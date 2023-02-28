@@ -69,16 +69,19 @@ dependencies {
 //    implementation("io.bidon:admob-adapter:0.1.0.1-Beta")
 //    implementation("io.bidon:bidmachine-adapter:0.1.0.1-Beta")
 //    implementation("io.bidon:applovin-adapter:0.1.0.1-Beta")
+//    implementation("io.bidon:dtexchange-adapter:0.1.0.1-Beta")
 
     implementation(project(":bidon"))
     implementation(project(":adapter:bidmachine"))
     implementation(project(":adapter:admob"))
     implementation(project(":adapter:applovin"))
+    implementation(project(":adapter:dtexchange"))
 //    implementation(project(":adapter:appsflyer"))
 //    implementation(project(":adapter:fyber"))
 //    implementation(project(":adapter:ironsource"))
 
-    implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
+    implementation(Dependencies.Google.PlayServicesAdsIdentifier)
+
     implementation("com.google.accompanist:accompanist-permissions:0.29.1-alpha")
     implementation("androidx.multidex:multidex:2.0.1")
     implementation("androidx.core:core-ktx:1.9.0")
