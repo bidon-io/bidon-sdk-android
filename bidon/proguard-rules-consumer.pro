@@ -2,9 +2,7 @@
 -keep class org.bidon.sdk.adapter.Adapter {
     public <methods>;
 }
--keep class org.bidon.sdk.BidOn { *; }
--keep public interface org.bidon.sdk.BidOnSdk { *; }
--keep public interface org.bidon.sdk.BidOnBuilder { *; }
+-keep public class org.bidon.sdk.BidOnSdk { *; }
 -keep public interface org.bidon.sdk.logs.logging.Logger { *; }
 -keep public enum org.bidon.sdk.logs.logging.Logger$Level { *; }
 -keep enum org.bidon.sdk.config.DefaultAdapters { *; }
