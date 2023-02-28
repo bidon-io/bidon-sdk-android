@@ -235,4 +235,4 @@ internal class AdmobInterstitialImpl(
     }
 }
 
-private const val Tag = "Admob Interstitial"
+private const val Tag = "AdmobInterstitial"

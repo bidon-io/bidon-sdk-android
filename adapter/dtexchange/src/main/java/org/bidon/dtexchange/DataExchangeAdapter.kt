@@ -7,11 +7,10 @@ import com.fyber.inneractive.sdk.external.OnFyberMarketplaceInitializedListener.
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
+import org.bidon.dtexchange.impl.DataExchangeAdAuctionParams
+import org.bidon.dtexchange.impl.DataExchangeInterstitial
 import org.bidon.sdk.BidOnSdk
-import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.adapter.Initializable
+import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logError
 import org.json.JSONObject
@@ -23,7 +22,9 @@ val DataExchangeDemandId = DemandId("dt_exchange")
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-class DataExchangeAdapter : Adapter, Initializable<DataExchangeParameters> {
+class DataExchangeAdapter : Adapter,
+    Initializable<DataExchangeParameters>,
+    AdProvider.Interstitial<DataExchangeAdAuctionParams> {
     override val demandId: DemandId = DataExchangeDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -49,7 +50,7 @@ class DataExchangeAdapter : Adapter, Initializable<DataExchangeParameters> {
                     }
                 }
             }
-            when(BidOnSdk.loggerLevel){
+            when (BidOnSdk.loggerLevel) {
                 Logger.Level.Verbose -> InneractiveAdManager.setLogLevel(Log.VERBOSE)
                 Logger.Level.Error -> InneractiveAdManager.setLogLevel(Log.ERROR)
                 Logger.Level.Off -> {
@@ -65,6 +66,19 @@ class DataExchangeAdapter : Adapter, Initializable<DataExchangeParameters> {
                 coppa = it.optBoolean("coppa", false)
             )
         }
+    }
+
+    override fun interstitial(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Interstitial<DataExchangeAdAuctionParams> {
+        return DataExchangeInterstitial(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
+        )
     }
 }
 
