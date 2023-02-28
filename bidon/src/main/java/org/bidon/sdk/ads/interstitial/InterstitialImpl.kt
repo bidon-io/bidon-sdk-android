@@ -21,10 +21,10 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 
-internal class InterstitialAdImpl(
+internal class InterstitialImpl(
     override val placementId: String,
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-) : InterstitialAd {
+) : Interstitial {
     private val demandAd by lazy {
         DemandAd(AdType.Interstitial, placementId)
     }
