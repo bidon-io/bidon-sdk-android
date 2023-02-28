@@ -99,7 +99,9 @@ internal class InterstitialImpl(
                 require(adSource is AdSource.Interstitial<*>) {
                     "Unexpected AdSource type. Expected: AdSource.Interstitial. Actual: ${adSource::class.java}."
                 }
-                adSource.show(activity)
+                scope.launch(Dispatchers.Main.immediate) {
+                    adSource.show(activity)
+                }
             }
         }
     }
