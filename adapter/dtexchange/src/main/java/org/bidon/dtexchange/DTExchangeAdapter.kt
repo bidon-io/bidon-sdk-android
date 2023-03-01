@@ -9,6 +9,7 @@ import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
 import org.bidon.dtexchange.impl.DTExchangeAdAuctionParams
 import org.bidon.dtexchange.impl.DTExchangeInterstitial
+import org.bidon.dtexchange.impl.DTExchangeRewarded
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.Logger
@@ -25,6 +26,7 @@ val DTExchangeDemandId = DemandId("dtexchange")
 class DTExchangeAdapter :
     Adapter,
     Initializable<DataExchangeParameters>,
+    AdProvider.Rewarded<DTExchangeAdAuctionParams>,
     AdProvider.Interstitial<DTExchangeAdAuctionParams> {
     override val demandId: DemandId = DTExchangeDemandId
     override val adapterInfo = AdapterInfo(
@@ -81,6 +83,15 @@ class DTExchangeAdapter :
             auctionId = auctionId
         )
     }
+
+    override fun rewarded(demandAd: DemandAd, roundId: String, auctionId: String): AdSource.Rewarded<DTExchangeAdAuctionParams> {
+        return DTExchangeRewarded(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
+        )
+    }
 }
 
-private const val Tag = "DataExchangeAdapter"
+private const val Tag = "DTExchangeAdapter"

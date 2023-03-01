@@ -13,6 +13,7 @@ import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -22,12 +23,12 @@ import org.bidon.sdk.stats.models.asRoundStatus
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-internal class DTExchangeInterstitial(
+internal class DTExchangeRewarded(
     override val demandId: DemandId,
     private val demandAd: DemandAd,
     private val roundId: String,
     private val auctionId: String
-) : AdSource.Interstitial<DTExchangeAdAuctionParams>,
+) : AdSource.Rewarded<DTExchangeAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -40,7 +41,8 @@ internal class DTExchangeInterstitial(
     private val adRequestListener by lazy {
         object : InneractiveAdSpot.RequestListener {
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
-                this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
+                logInfo(Tag, "SuccessfulAdRequest: $inneractiveAdSpot")
+                this@DTExchangeRewarded.inneractiveAdSpot = inneractiveAdSpot
                 val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
                 markBidFinished(
                     ecpm = ecpm,
@@ -50,7 +52,7 @@ internal class DTExchangeInterstitial(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = ecpm,
-                            adSource = this@DTExchangeInterstitial,
+                            adSource = this@DTExchangeRewarded,
                         )
                     )
                 )
@@ -60,6 +62,7 @@ internal class DTExchangeInterstitial(
                 inneractiveAdSpot: InneractiveAdSpot?,
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
+                logError(Tag, "Error while bidding: $inneractiveErrorCode", inneractiveErrorCode.asBidonError())
                 val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
                 markBidFinished(
                     ecpm = ecpm,
@@ -67,6 +70,17 @@ internal class DTExchangeInterstitial(
                 )
                 adEvent.tryEmit(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
             }
+        }
+    }
+
+    private val adRewardedListener by lazy {
+        InneractiveFullScreenAdRewardedListener { inneractiveAdSpot ->
+            adEvent.tryEmit(
+                AdEvent.OnReward(
+                    ad = inneractiveAdSpot.asAd(),
+                    reward = null
+                )
+            )
         }
     }
 
@@ -146,6 +160,7 @@ internal class DTExchangeInterstitial(
         val videoController = InneractiveFullscreenVideoContentController()
         controller.addContentController(videoController)
         controller.eventsListener = impressionListener
+        controller.rewardedListener = adRewardedListener
         spot.addUnitController(controller)
 
         val adRequest = InneractiveAdRequest(adParams.spotId)
@@ -202,8 +217,8 @@ internal class DTExchangeInterstitial(
         demandAd = demandAd,
         dsp = this.mediationNameString,
         roundId = roundId,
-        sourceAd = this@DTExchangeInterstitial
+        sourceAd = this@DTExchangeRewarded
     )
 }
 
-private const val Tag = "DataExchangeInterstitial"
+private const val Tag = "DTExchangeRewarded"
