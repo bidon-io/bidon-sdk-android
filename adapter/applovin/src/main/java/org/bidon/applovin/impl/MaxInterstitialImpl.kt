@@ -175,7 +175,7 @@ internal class MaxInterstitialImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = maxAd?.revenue ?: 0.0,
-            sourceAd = maxAd ?: demandAd,
+            demandAdObject = maxAd ?: demandAd,
             networkName = ApplovinDemandId.demandId,
             dsp = maxAd?.dspId,
             roundId = roundId,
@@ -193,7 +193,7 @@ internal class MaxInterstitialImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = 0.0,
-            sourceAd = maxAd ?: demandAd,
+            demandAdObject = maxAd ?: demandAd,
             networkName = ApplovinDemandId.demandId,
             dsp = null,
             roundId = roundId,

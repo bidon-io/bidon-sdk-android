@@ -191,7 +191,7 @@ internal class ApplovinBannerImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = lineItem?.pricefloor ?: 0.0,
-            sourceAd = this ?: demandAd,
+            demandAdObject = this ?: demandAd,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,
@@ -205,7 +205,7 @@ internal class ApplovinBannerImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = lineItem?.pricefloor ?: 0.0,
-            sourceAd = this ?: demandAd,
+            demandAdObject = this ?: demandAd,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,

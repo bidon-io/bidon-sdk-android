@@ -202,7 +202,7 @@ internal class DTExchangeInterstitial(
         demandAd = demandAd,
         dsp = this.mediationNameString,
         roundId = roundId,
-        sourceAd = this@DTExchangeInterstitial
+        demandAdObject = this
     )
 }
 

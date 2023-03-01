@@ -217,7 +217,7 @@ internal class DTExchangeRewarded(
         demandAd = demandAd,
         dsp = this.mediationNameString,
         roundId = roundId,
-        sourceAd = this@DTExchangeRewarded
+        demandAdObject = this
     )
 }
 
