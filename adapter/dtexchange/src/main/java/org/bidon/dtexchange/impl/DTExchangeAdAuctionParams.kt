@@ -6,7 +6,7 @@ import org.bidon.sdk.auction.models.LineItem
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-data class DataExchangeAdAuctionParams(
+data class DTExchangeAdAuctionParams(
     val lineItem: LineItem
 ) : AdAuctionParams {
     val spotId: String get() = requireNotNull(lineItem.adUnitId)

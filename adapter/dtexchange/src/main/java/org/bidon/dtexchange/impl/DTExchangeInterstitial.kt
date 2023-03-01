@@ -22,25 +22,25 @@ import org.bidon.sdk.stats.models.asRoundStatus
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-internal class DataExchangeInterstitial(
+internal class DTExchangeInterstitial(
     override val demandId: DemandId,
     private val demandAd: DemandAd,
     private val roundId: String,
     private val auctionId: String
-) : AdSource.Interstitial<DataExchangeAdAuctionParams>,
+) : AdSource.Interstitial<DTExchangeAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
         demandId = demandId
     ) {
 
-    private var auctionParams: DataExchangeAdAuctionParams? = null
+    private var auctionParams: DTExchangeAdAuctionParams? = null
     private var inneractiveAdSpot: InneractiveAdSpot? = null
 
     private val adRequestListener by lazy {
         object : InneractiveAdSpot.RequestListener {
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
-                this@DataExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
+                this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
                 val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
                 markBidFinished(
                     ecpm = ecpm,
@@ -50,7 +50,7 @@ internal class DataExchangeInterstitial(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = ecpm,
-                            adSource = this@DataExchangeInterstitial,
+                            adSource = this@DTExchangeInterstitial,
                         )
                     )
                 )
@@ -134,10 +134,10 @@ internal class DataExchangeInterstitial(
             .minByPricefloorOrNull(demandId, pricefloor)
             ?.also(onLineItemConsumed)
         lineItem?.adUnitId ?: error(BidonError.NoAppropriateAdUnitId)
-        DataExchangeAdAuctionParams(lineItem)
+        DTExchangeAdAuctionParams(lineItem)
     }
 
-    override suspend fun bid(adParams: DataExchangeAdAuctionParams): AuctionResult {
+    override suspend fun bid(adParams: DTExchangeAdAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
         markBidStarted(adParams.lineItem.adUnitId)
         auctionParams = adParams
@@ -195,12 +195,12 @@ internal class DataExchangeInterstitial(
         ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0,
         auctionId = auctionId,
         adUnitId = auctionParams?.lineItem?.adUnitId,
-        networkName = this.mediationNameString,
+        networkName = demandId.demandId,
         currencyCode = AdValue.USD,
         demandAd = demandAd,
-        dsp = null,
+        dsp = this.mediationNameString,
         roundId = roundId,
-        sourceAd = this@DataExchangeInterstitial
+        sourceAd = this@DTExchangeInterstitial
     )
 }
 

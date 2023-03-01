@@ -7,8 +7,8 @@ import com.fyber.inneractive.sdk.external.OnFyberMarketplaceInitializedListener.
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
-import org.bidon.dtexchange.impl.DataExchangeAdAuctionParams
-import org.bidon.dtexchange.impl.DataExchangeInterstitial
+import org.bidon.dtexchange.impl.DTExchangeAdAuctionParams
+import org.bidon.dtexchange.impl.DTExchangeInterstitial
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.Logger
@@ -25,7 +25,7 @@ val DTExchangeDemandId = DemandId("dtexchange")
 class DTExchangeAdapter :
     Adapter,
     Initializable<DataExchangeParameters>,
-    AdProvider.Interstitial<DataExchangeAdAuctionParams> {
+    AdProvider.Interstitial<DTExchangeAdAuctionParams> {
     override val demandId: DemandId = DTExchangeDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -73,8 +73,8 @@ class DTExchangeAdapter :
         demandAd: DemandAd,
         roundId: String,
         auctionId: String
-    ): AdSource.Interstitial<DataExchangeAdAuctionParams> {
-        return DataExchangeInterstitial(
+    ): AdSource.Interstitial<DTExchangeAdAuctionParams> {
+        return DTExchangeInterstitial(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,
