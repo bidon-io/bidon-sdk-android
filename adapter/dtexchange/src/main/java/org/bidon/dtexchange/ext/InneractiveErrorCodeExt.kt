@@ -1,24 +1,23 @@
 package org.bidon.dtexchange.ext
 
 import com.fyber.inneractive.sdk.external.InneractiveErrorCode
-import org.bidon.dtexchange.DataExchangeDemandId
+import org.bidon.dtexchange.DTExchangeDemandId
 import org.bidon.sdk.config.BidonError
 
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-internal fun InneractiveErrorCode?.asBidonError() = when(this) {
-    InneractiveErrorCode.NO_FILL -> BidonError.NoFill(DataExchangeDemandId)
+internal fun InneractiveErrorCode?.asBidonError() = when (this) {
+    InneractiveErrorCode.NO_FILL -> BidonError.NoFill(DTExchangeDemandId)
 
     InneractiveErrorCode.SERVER_INVALID_RESPONSE,
     InneractiveErrorCode.CONNECTION_ERROR,
     InneractiveErrorCode.SERVER_INTERNAL_ERROR -> {
-        BidonError.NetworkError(DataExchangeDemandId, message = "InneractiveErrorCode: $this")
+        BidonError.NetworkError(DTExchangeDemandId, message = "InneractiveErrorCode: $this")
     }
 
-
     InneractiveErrorCode.CONNECTION_TIMEOUT,
-    InneractiveErrorCode.LOAD_TIMEOUT -> BidonError.BidTimedOut(DataExchangeDemandId)
+    InneractiveErrorCode.LOAD_TIMEOUT -> BidonError.BidTimedOut(DTExchangeDemandId)
 
     InneractiveErrorCode.SPOT_DISABLED,
     InneractiveErrorCode.UNSUPPORTED_SPOT -> BidonError.NoAppropriateAdUnitId
@@ -36,6 +35,6 @@ internal fun InneractiveErrorCode?.asBidonError() = when(this) {
     InneractiveErrorCode.UNSPECIFIED,
     InneractiveErrorCode.SDK_NOT_INITIALIZED,
     InneractiveErrorCode.SDK_NOT_INITIALIZED_OR_CONFIG_ERROR, null -> {
-        BidonError.Unspecified(DataExchangeDemandId, Throwable("InneractiveErrorCode: $this"))
+        BidonError.Unspecified(DTExchangeDemandId, Throwable("InneractiveErrorCode: $this"))
     }
 }

@@ -194,7 +194,7 @@ internal class MaxRewardedImpl(
             networkName = maxAd?.networkName,
             dsp = maxAd?.dspId,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = this?.adUnitId
         )
@@ -212,7 +212,7 @@ internal class MaxRewardedImpl(
             networkName = ApplovinDemandId.demandId,
             dsp = null,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = this?.adUnitId
         )

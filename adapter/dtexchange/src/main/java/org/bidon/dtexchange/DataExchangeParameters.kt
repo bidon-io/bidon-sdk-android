@@ -8,4 +8,4 @@ import org.bidon.sdk.adapter.AdapterParameters
 data class DataExchangeParameters(
     val appId: String,
     val coppa: Boolean,
-): AdapterParameters
+) : AdapterParameters

@@ -179,7 +179,7 @@ internal class MaxInterstitialImpl(
             networkName = ApplovinDemandId.demandId,
             dsp = maxAd?.dspId,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = this?.adUnitId
         )
@@ -197,7 +197,7 @@ internal class MaxInterstitialImpl(
             networkName = ApplovinDemandId.demandId,
             dsp = null,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = this?.adUnitId
         )

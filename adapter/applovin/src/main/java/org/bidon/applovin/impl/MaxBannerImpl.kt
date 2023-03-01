@@ -225,7 +225,7 @@ internal class MaxBannerImpl(
             networkName = maxAd?.networkName,
             dsp = maxAd?.dspId,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = maxAd?.adUnitId
         )
@@ -243,7 +243,7 @@ internal class MaxBannerImpl(
             networkName = ApplovinDemandId.demandId,
             dsp = null,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = maxAd?.adUnitId
         )

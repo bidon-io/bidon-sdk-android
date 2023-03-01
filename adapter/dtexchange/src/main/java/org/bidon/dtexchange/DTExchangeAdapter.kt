@@ -9,7 +9,7 @@ import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
 import org.bidon.dtexchange.impl.DataExchangeAdAuctionParams
 import org.bidon.dtexchange.impl.DataExchangeInterstitial
-import org.bidon.sdk.BidOnSdk
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logError
@@ -17,15 +17,16 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-val DataExchangeDemandId = DemandId("dtexchange")
+val DTExchangeDemandId = DemandId("dtexchange")
 
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
  */
-class DataExchangeAdapter : Adapter,
+class DTExchangeAdapter :
+    Adapter,
     Initializable<DataExchangeParameters>,
     AdProvider.Interstitial<DataExchangeAdAuctionParams> {
-    override val demandId: DemandId = DataExchangeDemandId
+    override val demandId: DemandId = DTExchangeDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
@@ -44,13 +45,13 @@ class DataExchangeAdapter : Adapter,
                     FyberInitStatus.FAILED_NO_KITS_DETECTED,
                     FyberInitStatus.FAILED,
                     FyberInitStatus.INVALID_APP_ID, null -> {
-                        val cause = Throwable("Adapter(${DataExchangeDemandId.demandId}) not initialized ($initStatus)")
+                        val cause = Throwable("Adapter(${DTExchangeDemandId.demandId}) not initialized ($initStatus)")
                         logError(Tag, "Error while initialization", cause)
                         continuation.resumeWithException(cause)
                     }
                 }
             }
-            when (BidOnSdk.loggerLevel) {
+            when (BidonSdk.loggerLevel) {
                 Logger.Level.Verbose -> InneractiveAdManager.setLogLevel(Log.VERBOSE)
                 Logger.Level.Error -> InneractiveAdManager.setLogLevel(Log.ERROR)
                 Logger.Level.Off -> {

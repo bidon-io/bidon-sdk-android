@@ -3,17 +3,21 @@ package org.bidon.dtexchange.impl
 import android.app.Activity
 import com.fyber.inneractive.sdk.external.*
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import org.bidon.dtexchange.ext.asBidonError
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.minByPricefloorOrNull
+import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
-import org.bidon.sdk.utils.ext.asSuccess
 
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
@@ -30,19 +34,22 @@ internal class DataExchangeInterstitial(
         demandId = demandId
     ) {
 
+    private var auctionParams: DataExchangeAdAuctionParams? = null
     private var inneractiveAdSpot: InneractiveAdSpot? = null
+
     private val adRequestListener by lazy {
         object : InneractiveAdSpot.RequestListener {
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
                 this@DataExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
+                val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
                 markBidFinished(
-                    ecpm = null,
+                    ecpm = ecpm,
                     roundStatus = RoundStatus.Successful,
                 )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
-                            ecpm = 0.0,
+                            ecpm = ecpm,
                             adSource = this@DataExchangeInterstitial,
                         )
                     )
@@ -53,8 +60,9 @@ internal class DataExchangeInterstitial(
                 inneractiveAdSpot: InneractiveAdSpot?,
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
+                val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
                 markBidFinished(
-                    ecpm = null,
+                    ecpm = ecpm,
                     roundStatus = inneractiveErrorCode.asBidonError().asRoundStatus(),
                 )
                 adEvent.tryEmit(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
@@ -62,43 +70,55 @@ internal class DataExchangeInterstitial(
         }
     }
 
+    private fun ImpressionData.asAdValue() = AdValue(
+        adRevenue = this.pricing?.value ?: 0.0,
+        precision = Precision.Precise,
+        currency = this.pricing?.currency ?: AdValue.USD
+    )
+
     private val impressionListener by lazy {
         object : InneractiveFullscreenAdEventsListenerWithImpressionData {
             override fun onAdImpression(adSpot: InneractiveAdSpot?, impressionData: ImpressionData?) {
-                TODO("Not yet implemented")
+                val adValue = impressionData?.asAdValue() ?: return
+                val ad = adSpot?.asAd() ?: return
+                adEvent.tryEmit(AdEvent.PaidRevenue(ad, adValue))
             }
 
             override fun onAdImpression(adSpot: InneractiveAdSpot?) {
-                TODO("Not yet implemented")
+                adSpot?.asAd()?.let {
+                    adEvent.tryEmit(AdEvent.Shown(ad = it))
+                }
             }
 
             override fun onAdClicked(adSpot: InneractiveAdSpot?) {
-                TODO("Not yet implemented")
+                adSpot?.asAd()?.let {
+                    adEvent.tryEmit(AdEvent.Clicked(ad = it))
+                }
             }
 
             override fun onAdWillCloseInternalBrowser(adSpot: InneractiveAdSpot?) {
-                TODO("Not yet implemented")
             }
 
             override fun onAdWillOpenExternalApp(adSpot: InneractiveAdSpot?) {
-                TODO("Not yet implemented")
             }
 
             override fun onAdEnteredErrorState(
                 adSpot: InneractiveAdSpot?,
                 adDisplayError: InneractiveUnitController.AdDisplayError?
             ) {
-                TODO("Not yet implemented")
+                adEvent.tryEmit(AdEvent.ShowFailed(adDisplayError.asBidonError()))
             }
 
             override fun onAdDismissed(adSpot: InneractiveAdSpot?) {
-                TODO("Not yet implemented")
+                adSpot?.asAd()?.let {
+                    adEvent.tryEmit(AdEvent.Closed(ad = it))
+                }
             }
         }
     }
 
     override val ad: Ad?
-        get() = TODO("Not yet implemented")
+        get() = inneractiveAdSpot?.asAd()
     override val adEvent = MutableSharedFlow<AdEvent>(Int.MAX_VALUE)
     override val isAdReadyToShow: Boolean
         get() = inneractiveAdSpot?.isReady == true
@@ -109,13 +129,18 @@ internal class DataExchangeInterstitial(
         timeout: Long,
         lineItems: List<LineItem>,
         onLineItemConsumed: (LineItem) -> Unit
-    ): Result<AdAuctionParams> {
-        return DataExchangeAdAuctionParams(spotId = "").asSuccess()
+    ): Result<AdAuctionParams> = runCatching {
+        val lineItem = lineItems
+            .minByPricefloorOrNull(demandId, pricefloor)
+            ?.also(onLineItemConsumed)
+        lineItem?.adUnitId ?: error(BidonError.NoAppropriateAdUnitId)
+        DataExchangeAdAuctionParams(lineItem)
     }
 
     override suspend fun bid(adParams: DataExchangeAdAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        //markBidStarted(adParams.lineItem.adUnitId)
+        markBidStarted(adParams.lineItem.adUnitId)
+        auctionParams = adParams
         val spot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveFullscreenUnitController()
         val videoController = InneractiveFullscreenVideoContentController()
@@ -126,22 +151,57 @@ internal class DataExchangeInterstitial(
         val adRequest = InneractiveAdRequest(adParams.spotId)
         spot.requestAd(adRequest)
 
-        // InneractiveAdManager.setMuteVideo(true)
-
         spot.setRequestListener(adRequestListener)
+        val state = adEvent.first {
+            it is AdEvent.Bid || it is AdEvent.LoadFailed
+        }
+        return when (state) {
+            is AdEvent.LoadFailed -> {
+                AuctionResult(
+                    ecpm = adParams.lineItem.pricefloor,
+                    adSource = this
+                )
+            }
+            is AdEvent.Bid -> state.result
+            else -> error("unexpected: $state")
+        }
     }
 
-    override suspend fun fill(): Result<Ad> {
-        TODO("Not yet implemented")
+    override suspend fun fill(): Result<Ad> = runCatching {
+        logInfo(Tag, "Starting fill: $this")
+        markFillStarted()
+        /**
+         * DataExchange fills the bid automatically. It's not needed to fill it manually.
+         */
+        val event = AdEvent.Fill(requireNotNull(inneractiveAdSpot?.asAd()))
+        markFillFinished(RoundStatus.Successful)
+        adEvent.tryEmit(event)
+        event.ad
     }
 
     override fun show(activity: Activity) {
-        TODO("Not yet implemented")
+        if (inneractiveAdSpot?.isReady == true) {
+            val controller = inneractiveAdSpot?.selectedUnitController as? InneractiveFullscreenUnitController
+            controller?.show(activity)
+        }
     }
 
     override fun destroy() {
-        TODO("Not yet implemented")
+        inneractiveAdSpot?.destroy()
+        inneractiveAdSpot = null
     }
+
+    private fun InneractiveAdSpot.asAd() = Ad(
+        ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0,
+        auctionId = auctionId,
+        adUnitId = auctionParams?.lineItem?.adUnitId,
+        networkName = this.mediationNameString,
+        currencyCode = AdValue.USD,
+        demandAd = demandAd,
+        dsp = null,
+        roundId = roundId,
+        sourceAd = this@DataExchangeInterstitial
+    )
 }
 
 private const val Tag = "DataExchangeInterstitial"

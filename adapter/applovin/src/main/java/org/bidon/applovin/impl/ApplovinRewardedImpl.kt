@@ -192,7 +192,7 @@ internal class ApplovinRewardedImpl(
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = lineItem?.adUnitId
         )
@@ -206,7 +206,7 @@ internal class ApplovinRewardedImpl(
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,
-            currencyCode = AdValue.DefaultCurrency,
+            currencyCode = AdValue.USD,
             auctionId = auctionId,
             adUnitId = lineItem?.adUnitId
         )
