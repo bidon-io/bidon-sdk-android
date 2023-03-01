@@ -17,7 +17,7 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-val DataExchangeDemandId = DemandId("dt_exchange")
+val DataExchangeDemandId = DemandId("dtexchange")
 
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
