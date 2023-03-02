@@ -4,14 +4,13 @@ import android.app.Activity
 import com.unity3d.ads.IUnityAdsInitializationListener
 import com.unity3d.ads.UnityAds
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.adapter.Initializable
+import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.unityads.ext.adapterVersion
 import org.bidon.unityads.ext.asBidonError
 import org.bidon.unityads.ext.sdkVersion
+import org.bidon.unityads.impl.UnityAdsAuctionParams
+import org.bidon.unityads.impl.UnityAdsInterstitial
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -22,7 +21,11 @@ import kotlin.coroutines.resumeWithException
 
 internal val UnityAdsDemandId = DemandId("unityads")
 
-class UnityAdsAdapter : Adapter, Initializable<UnityAdsParameters> {
+class UnityAdsAdapter :
+    Adapter,
+    Initializable<UnityAdsParameters>,
+    AdProvider.Interstitial<UnityAdsAuctionParams> {
+
     override val demandId: DemandId = UnityAdsDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -52,6 +55,19 @@ class UnityAdsAdapter : Adapter, Initializable<UnityAdsParameters> {
     override fun parseConfigParam(json: String): UnityAdsParameters {
         return UnityAdsParameters(
             unityGameId = JSONObject(json).optString("game_id")
+        )
+    }
+
+    override fun interstitial(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Interstitial<UnityAdsAuctionParams> {
+        return UnityAdsInterstitial(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
         )
     }
 }
