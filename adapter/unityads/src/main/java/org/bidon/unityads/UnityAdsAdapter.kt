@@ -11,6 +11,7 @@ import org.bidon.unityads.ext.asBidonError
 import org.bidon.unityads.ext.sdkVersion
 import org.bidon.unityads.impl.UnityAdsAuctionParams
 import org.bidon.unityads.impl.UnityAdsInterstitial
+import org.bidon.unityads.impl.UnityAdsRewarded
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -24,7 +25,8 @@ internal val UnityAdsDemandId = DemandId("unityads")
 class UnityAdsAdapter :
     Adapter,
     Initializable<UnityAdsParameters>,
-    AdProvider.Interstitial<UnityAdsAuctionParams> {
+    AdProvider.Interstitial<UnityAdsAuctionParams>,
+    AdProvider.Rewarded<UnityAdsAuctionParams> {
 
     override val demandId: DemandId = UnityAdsDemandId
     override val adapterInfo = AdapterInfo(
@@ -64,6 +66,19 @@ class UnityAdsAdapter :
         auctionId: String
     ): AdSource.Interstitial<UnityAdsAuctionParams> {
         return UnityAdsInterstitial(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
+        )
+    }
+
+    override fun rewarded(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Rewarded<UnityAdsAuctionParams> {
+        return UnityAdsRewarded(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,

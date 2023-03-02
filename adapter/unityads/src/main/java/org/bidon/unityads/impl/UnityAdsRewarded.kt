@@ -28,12 +28,12 @@ import org.bidon.unityads.ext.asBidonError
 /**
  * Created by Aleksei Cherniaev on 02/03/2023.
  */
-internal class UnityAdsInterstitial(
+internal class UnityAdsRewarded(
     override val demandId: DemandId,
     private val demandAd: DemandAd,
     private val roundId: String,
     private val auctionId: String,
-) : AdSource.Interstitial<UnityAdsAuctionParams>,
+) : AdSource.Rewarded<UnityAdsAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId) {
 
     private val dispatcher: CoroutineDispatcher = SdkDispatchers.Main
@@ -84,7 +84,7 @@ internal class UnityAdsInterstitial(
             val loadListener = object : IUnityAdsLoadListener {
                 override fun onUnityAdsAdLoaded(placementId: String?) {
                     logInfo(Tag, "onUnityAdsAdLoaded: $this")
-                    this@UnityAdsInterstitial.placementId = placementId
+                    this@UnityAdsRewarded.placementId = placementId
                     isAdReadyToShow = true
                     markBidFinished(
                         ecpm = requireNotNull(lineItem?.pricefloor),
@@ -94,7 +94,7 @@ internal class UnityAdsInterstitial(
                         AdEvent.Bid(
                             AuctionResult(
                                 ecpm = requireNotNull(lineItem?.pricefloor),
-                                adSource = this@UnityAdsInterstitial,
+                                adSource = this@UnityAdsRewarded,
                             )
                         )
                     )
@@ -121,7 +121,7 @@ internal class UnityAdsInterstitial(
                 is AdEvent.LoadFailed -> {
                     AuctionResult(
                         ecpm = 0.0,
-                        adSource = this@UnityAdsInterstitial
+                        adSource = this@UnityAdsRewarded
                     )
                 }
                 is AdEvent.Bid -> state.result
@@ -177,7 +177,18 @@ internal class UnityAdsInterstitial(
 
             override fun onUnityAdsShowComplete(placementId: String?, state: UnityAds.UnityAdsShowCompletionState?) {
                 logInfo(Tag, "onUnityAdsShowComplete: placementId=$placementId, state=$state")
-                ad?.let { adEvent.tryEmit(AdEvent.Closed(it)) }
+                ad?.let {
+                    when (state) {
+                        UnityAds.UnityAdsShowCompletionState.COMPLETED -> {
+                            adEvent.tryEmit(AdEvent.OnReward(ad = it, reward = null))
+                        }
+                        UnityAds.UnityAdsShowCompletionState.SKIPPED,
+                        null -> {
+                            // do nothing
+                        }
+                    }
+                    adEvent.tryEmit(AdEvent.Closed(ad = it))
+                }
             }
         }
         UnityAds.show(activity, lineItem?.adUnitId, UnityAdsShowOptions(), showListener)
@@ -189,4 +200,4 @@ internal class UnityAdsInterstitial(
     }
 }
 
-private const val Tag = "UnityAdsInterstitial"
+private const val Tag = "UnityAdsRewarded"
