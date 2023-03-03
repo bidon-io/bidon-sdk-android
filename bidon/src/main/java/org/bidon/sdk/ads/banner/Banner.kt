@@ -6,6 +6,7 @@ import android.view.Gravity
 import android.widget.FrameLayout
 import androidx.annotation.AttrRes
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -48,10 +49,12 @@ class Banner @JvmOverloads constructor(
     private val isAuctionStarted = AtomicBoolean(false)
     private var userListener: BannerListener? = null
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
+    private var subscriberJob: Job? = null
     private val auction: Auction by lazy {
         get()
     }
     private var winner: AuctionResult? = null
+    private var shown = AtomicBoolean(false)
 
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.BannerView, 0, 0).apply {
@@ -129,22 +132,32 @@ class Banner @JvmOverloads constructor(
     }
 
     override fun showAd() {
-        logInfo(Tag, "Show with placement($placementId)")
         val adViewHolder = (winner?.adSource as? AdSource.Banner)?.getAdView()
-        if (adViewHolder != null) {
-            // add AdView to Screen
-            removeAllViews()
-            val layoutParams = LayoutParams(adViewHolder.widthPx, adViewHolder.heightPx).apply {
-                gravity = Gravity.CENTER
+        when {
+            adViewHolder != null && !shown.getAndSet(true) -> {
+                logInfo(Tag, "Show with placement($placementId)")
+                // add AdView to Screen
+                removeAllViews()
+                val layoutParams = LayoutParams(adViewHolder.widthPx, adViewHolder.heightPx).apply {
+                    gravity = Gravity.CENTER
+                }
+                addView(adViewHolder.networkAdview, layoutParams)
             }
-            addView(adViewHolder.networkAdview, layoutParams)
-            winner = null
+            shown.get() -> {
+                logInfo(Tag, "Banner already shown")
+            }
+            else -> {
+                logInfo(Tag, "Banner not loaded")
+            }
         }
     }
 
     override fun destroyAd() {
         winner?.adSource?.destroy()
         winner = null
+        subscriberJob?.cancel()
+        subscriberJob = null
+        removeAllViews()
     }
 
     override fun setBannerListener(listener: BannerListener) {
@@ -152,7 +165,7 @@ class Banner @JvmOverloads constructor(
     }
 
     private fun subscribeToWinner(adSource: AdSource<*>) {
-        adSource.adEvent.onEach { adEvent ->
+        subscriberJob = adSource.adEvent.onEach { adEvent ->
             logInfo(Tag, "$adEvent")
             when (adEvent) {
                 is AdEvent.Bid,
