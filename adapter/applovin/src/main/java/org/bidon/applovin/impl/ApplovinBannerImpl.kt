@@ -20,6 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.asRoundStatus
 
 /**
  * I have no idea how it works. There is no documentation.
@@ -48,15 +49,12 @@ internal class ApplovinBannerImpl(
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(Tag, "adReceived: $this")
                 applovinAd = ad
-                markBidFinished(
-                    ecpm = requireNotNull(lineItem?.pricefloor),
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = lineItem?.pricefloor ?: 0.0,
                             adSource = this@ApplovinBannerImpl,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -64,10 +62,6 @@ internal class ApplovinBannerImpl(
 
             override fun failedToReceiveAd(errorCode: Int) {
                 logInfo(Tag, "failedToReceiveAd: errorCode=$errorCode. $this")
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = RoundStatus.NoBid,
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
         }
@@ -134,7 +128,6 @@ internal class ApplovinBannerImpl(
         adParams: ApplovinBannerAuctionParams
     ): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        markBidStarted(adParams.lineItem.adUnitId)
         lineItem = adParams.lineItem
         val adSize = adParams.bannerFormat.asApplovinAdSize() ?: error(
             BidonError.AdFormatIsNotSupported(
@@ -158,7 +151,8 @@ internal class ApplovinBannerImpl(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = 0.0,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result
@@ -168,9 +162,7 @@ internal class ApplovinBannerImpl(
 
     override suspend fun fill(): Result<Ad> = runCatching {
         logInfo(Tag, "Starting fill: $this")
-        markFillStarted()
         requireNotNull(applovinAd?.asAd()).also {
-            markFillFinished(RoundStatus.Successful)
             adEvent.tryEmit(AdEvent.Fill(it))
         }
     }

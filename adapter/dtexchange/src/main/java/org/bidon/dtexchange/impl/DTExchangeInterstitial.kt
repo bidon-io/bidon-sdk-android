@@ -42,15 +42,12 @@ internal class DTExchangeInterstitial(
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
                 this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
                 val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
-                markBidFinished(
-                    ecpm = ecpm,
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = ecpm,
                             adSource = this@DTExchangeInterstitial,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -60,11 +57,6 @@ internal class DTExchangeInterstitial(
                 inneractiveAdSpot: InneractiveAdSpot?,
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
-                val ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0
-                markBidFinished(
-                    ecpm = ecpm,
-                    roundStatus = inneractiveErrorCode.asBidonError().asRoundStatus(),
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
             }
         }
@@ -139,7 +131,6 @@ internal class DTExchangeInterstitial(
 
     override suspend fun bid(adParams: DTExchangeAdAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        markBidStarted(adParams.lineItem.adUnitId)
         auctionParams = adParams
         val spot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveFullscreenUnitController()
@@ -159,7 +150,8 @@ internal class DTExchangeInterstitial(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = adParams.lineItem.pricefloor,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result
@@ -169,12 +161,10 @@ internal class DTExchangeInterstitial(
 
     override suspend fun fill(): Result<Ad> = runCatching {
         logInfo(Tag, "Starting fill: $this")
-        markFillStarted()
         /**
          * DataExchange fills the bid automatically. It's not needed to fill it manually.
          */
         val event = AdEvent.Fill(requireNotNull(inneractiveAdSpot?.asAd()))
-        markFillFinished(RoundStatus.Successful)
         adEvent.tryEmit(event)
         event.ad
     }

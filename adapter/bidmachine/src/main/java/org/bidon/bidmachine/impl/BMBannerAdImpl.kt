@@ -63,15 +63,12 @@ internal class BMBannerAdImpl(
             override fun onRequestSuccess(request: BannerRequest, result: BMAuctionResult) {
                 logInfo(Tag, "onRequestSuccess $result: $this")
                 adRequest = request
-                markBidFinished(
-                    ecpm = result.price,
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = result.price,
                             adSource = this@BMBannerAdImpl,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -80,20 +77,12 @@ internal class BMBannerAdImpl(
             override fun onRequestFailed(request: BannerRequest, bmError: BMError) {
                 logError(Tag, "onRequestFailed $bmError. $this", bmError.asBidonError(demandId))
                 adRequest = request
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = bmError.asBidonError(demandId).asRoundStatus(),
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(bmError.asBidonError(demandId)))
             }
 
             override fun onRequestExpired(request: BannerRequest) {
                 logInfo(Tag, "onRequestExpired: $this")
                 adRequest = request
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = RoundStatus.NoBid,
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(BidonError.Expired(demandId)))
             }
         }
@@ -141,7 +130,6 @@ internal class BMBannerAdImpl(
 
     override suspend fun bid(adParams: BMBannerAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        markBidStarted()
         context = adParams.context
         bannerFormat = adParams.bannerFormat
         BannerRequest.Builder()
@@ -162,7 +150,8 @@ internal class BMBannerAdImpl(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = 0.0,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result
@@ -172,7 +161,6 @@ internal class BMBannerAdImpl(
 
     override suspend fun fill(): Result<Ad> {
         logInfo(Tag, "Starting fill: $this")
-        markFillStarted()
         val context = context
         if (context == null) {
             adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoContextFound))
@@ -188,15 +176,12 @@ internal class BMBannerAdImpl(
         }
         return when (state) {
             is AdEvent.Fill -> {
-                markFillFinished(RoundStatus.Successful)
                 state.ad.asSuccess()
             }
             is AdEvent.LoadFailed -> {
-                markFillFinished(RoundStatus.NoFill)
                 state.cause.asFailure()
             }
             is AdEvent.Expired -> {
-                markFillFinished(RoundStatus.NoFill)
                 BidonError.FillTimedOut(demandId).asFailure()
             }
             else -> error("unexpected: $state")

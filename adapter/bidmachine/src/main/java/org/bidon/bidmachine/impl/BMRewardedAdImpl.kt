@@ -63,15 +63,12 @@ internal class BMRewardedAdImpl(
             ) {
                 logInfo(Tag, "onRequestSuccess $result: $this")
                 adRequest = request
-                markBidFinished(
-                    ecpm = result.price,
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = result.price,
                             adSource = this@BMRewardedAdImpl,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -80,20 +77,12 @@ internal class BMRewardedAdImpl(
             override fun onRequestFailed(request: RewardedRequest, bmError: BMError) {
                 logError(Tag, "onRequestFailed $bmError. $this", bmError.asBidonError(demandId))
                 adRequest = request
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = bmError.asBidonError(demandId).asRoundStatus(),
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(bmError.asBidonError(demandId)))
             }
 
             override fun onRequestExpired(request: RewardedRequest) {
                 logInfo(Tag, "onRequestExpired: $this")
                 adRequest = request
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = RoundStatus.NoBid,
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(BidonError.Expired(demandId)))
             }
         }
@@ -164,7 +153,6 @@ internal class BMRewardedAdImpl(
 
     override suspend fun bid(adParams: BMFullscreenAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        markBidStarted()
         this.context = adParams.context
         RewardedRequest.Builder()
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
@@ -183,7 +171,8 @@ internal class BMRewardedAdImpl(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = 0.0,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result
@@ -193,7 +182,6 @@ internal class BMRewardedAdImpl(
 
     override suspend fun fill(): Result<Ad> {
         logInfo(Tag, "Starting fill: $this")
-        markFillStarted()
         val context = context
         if (context == null) {
             adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoContextFound))
@@ -209,15 +197,12 @@ internal class BMRewardedAdImpl(
         }
         return when (state) {
             is AdEvent.Fill -> {
-                markFillFinished(RoundStatus.Successful)
                 state.ad.asSuccess()
             }
             is AdEvent.LoadFailed -> {
-                markFillFinished(RoundStatus.NoFill)
                 state.cause.asFailure()
             }
             is AdEvent.Expired -> {
-                markFillFinished(RoundStatus.NoFill)
                 BidonError.FillTimedOut(demandId).asFailure()
             }
             else -> error("unexpected: $state")

@@ -1,5 +1,6 @@
 package org.bidon.sdk.auction.models
 
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.utils.serializer.JsonName
 import org.bidon.sdk.utils.serializer.Serializable
 
@@ -15,5 +16,14 @@ data class BannerRequestBody(
         LeaderBoard728x90("LEADERBOARD"),
         MRec300x250("MREC"),
         AdaptiveBanner320x50("ADAPTIVE"),
+    }
+
+    companion object {
+        fun BannerFormat.asBannerFormat() = when (this) {
+            BannerFormat.Banner -> Format.Banner320x50
+            BannerFormat.LeaderBoard -> Format.LeaderBoard728x90
+            BannerFormat.MRec -> Format.MRec300x250
+            BannerFormat.Adaptive -> Format.AdaptiveBanner320x50
+        }
     }
 }

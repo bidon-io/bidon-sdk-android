@@ -44,15 +44,12 @@ internal class MaxRewardedImpl(
         object : MaxRewardedAdListener {
             override fun onAdLoaded(ad: MaxAd) {
                 maxAd = ad
-                markBidFinished(
-                    ecpm = requireNotNull(ad.revenue),
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = ad.revenue,
                             adSource = this@MaxRewardedImpl,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -60,10 +57,6 @@ internal class MaxRewardedImpl(
 
             override fun onAdLoadFailed(adUnitId: String, error: MaxError) {
                 logError(Tag, "(code=${error.code}) ${error.message}", error.asBidonError())
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = error.asBidonError().asRoundStatus(),
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(error.asBidonError()))
             }
 
@@ -144,7 +137,6 @@ internal class MaxRewardedImpl(
 
     override suspend fun bid(adParams: MaxFullscreenAdAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams")
-        markBidStarted(adParams.lineItem.adUnitId)
         val maxInterstitialAd = MaxRewardedAd.getInstance(adParams.lineItem.adUnitId, adParams.activity).also {
             it.setListener(maxAdListener)
             rewardedAd = it
@@ -157,7 +149,8 @@ internal class MaxRewardedImpl(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = 0.0,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result

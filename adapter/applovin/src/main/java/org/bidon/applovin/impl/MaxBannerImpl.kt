@@ -50,15 +50,12 @@ internal class MaxBannerImpl(
         object : MaxAdViewAdListener {
             override fun onAdLoaded(ad: MaxAd) {
                 maxAd = ad
-                markBidFinished(
-                    ecpm = requireNotNull(ad.revenue),
-                    roundStatus = RoundStatus.Successful,
-                )
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
                             ecpm = ad.revenue,
                             adSource = this@MaxBannerImpl,
+                            roundStatus = RoundStatus.Successful
                         )
                     )
                 )
@@ -69,10 +66,6 @@ internal class MaxBannerImpl(
 
             override fun onAdLoadFailed(adUnitId: String, error: MaxError) {
                 logError(Tag, "(code=${error.code}) ${error.message}", error.asBidonError())
-                markBidFinished(
-                    ecpm = null,
-                    roundStatus = error.asBidonError().asRoundStatus(),
-                )
                 adEvent.tryEmit(AdEvent.LoadFailed(error.asBidonError()))
             }
 
@@ -155,7 +148,6 @@ internal class MaxBannerImpl(
 
     override suspend fun bid(adParams: MaxBannerAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams")
-        markBidStarted(adParams.lineItem.adUnitId)
         bannerFormat = adParams.bannerFormat
         val maxAdView = if (adParams.bannerFormat == BannerFormat.Adaptive) {
             MaxAdView(
@@ -194,7 +186,8 @@ internal class MaxBannerImpl(
             is AdEvent.LoadFailed -> {
                 AuctionResult(
                     ecpm = 0.0,
-                    adSource = this
+                    adSource = this,
+                    roundStatus = state.cause.asRoundStatus()
                 )
             }
             is AdEvent.Bid -> state.result
