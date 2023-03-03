@@ -74,25 +74,21 @@ internal class DTExchangeInterstitial(
                 val adValue = impressionData?.asAdValue() ?: return
                 val ad = adSpot?.asAd() ?: return
                 adEvent.tryEmit(AdEvent.PaidRevenue(ad, adValue))
+                adEvent.tryEmit(AdEvent.Shown(ad))
+                sendShowImpression(StatisticsCollector.AdType.Interstitial)
             }
 
-            override fun onAdImpression(adSpot: InneractiveAdSpot?) {
-                adSpot?.asAd()?.let {
-                    adEvent.tryEmit(AdEvent.Shown(ad = it))
-                }
-            }
+            override fun onAdImpression(adSpot: InneractiveAdSpot?) {}
 
             override fun onAdClicked(adSpot: InneractiveAdSpot?) {
                 adSpot?.asAd()?.let {
                     adEvent.tryEmit(AdEvent.Clicked(ad = it))
                 }
+                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
 
-            override fun onAdWillCloseInternalBrowser(adSpot: InneractiveAdSpot?) {
-            }
-
-            override fun onAdWillOpenExternalApp(adSpot: InneractiveAdSpot?) {
-            }
+            override fun onAdWillCloseInternalBrowser(adSpot: InneractiveAdSpot?) {}
+            override fun onAdWillOpenExternalApp(adSpot: InneractiveAdSpot?) {}
 
             override fun onAdEnteredErrorState(
                 adSpot: InneractiveAdSpot?,

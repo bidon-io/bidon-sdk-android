@@ -68,6 +68,7 @@ internal class MaxInterstitialImpl(
                         adValue = ad.asBidonAdValue()
                     )
                 )
+                sendShowImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdHidden(ad: MaxAd) {
@@ -78,6 +79,7 @@ internal class MaxInterstitialImpl(
             override fun onAdClicked(ad: MaxAd) {
                 maxAd = ad
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
+                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdDisplayFailed(ad: MaxAd, error: MaxError) {

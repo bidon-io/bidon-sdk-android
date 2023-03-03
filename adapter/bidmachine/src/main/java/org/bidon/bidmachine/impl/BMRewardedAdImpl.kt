@@ -129,12 +129,14 @@ internal class BMRewardedAdImpl(
                         adValue = rewardedAd.auctionResult.asBidonAdValue()
                     )
                 )
+                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdClicked(rewardedAd: RewardedAd) {
                 logInfo(Tag, "onAdClicked: $this")
                 this@BMRewardedAdImpl.rewardedAd = rewardedAd
                 adEvent.tryEmit(AdEvent.Clicked(rewardedAd.asAd()))
+                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdExpired(rewardedAd: RewardedAd) {

@@ -159,11 +159,13 @@ internal class UnityAdsRewarded(
                         )
                     )
                 }
+                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onUnityAdsShowClick(placementId: String?) {
                 logInfo(Tag, "onUnityAdsShowClick. placementId: $placementId")
                 ad?.let { adEvent.tryEmit(AdEvent.Clicked(it)) }
+                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onUnityAdsShowComplete(placementId: String?, state: UnityAds.UnityAdsShowCompletionState?) {

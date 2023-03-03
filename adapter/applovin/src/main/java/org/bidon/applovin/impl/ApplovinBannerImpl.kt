@@ -12,6 +12,7 @@ import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AuctionResult
+import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -42,7 +43,7 @@ internal class ApplovinBannerImpl(
 
     private var adView: AppLovinAdView? = null
     private var applovinAd: AppLovinAd? = null
-    private var lineItem: LineItem? = null
+    private var param: ApplovinBannerAuctionParams? = null
 
     private val requestListener by lazy {
         object : AppLovinAdLoadListener {
@@ -52,7 +53,7 @@ internal class ApplovinBannerImpl(
                 adEvent.tryEmit(
                     AdEvent.Bid(
                         AuctionResult(
-                            ecpm = lineItem?.pricefloor ?: 0.0,
+                            ecpm = param?.lineItem?.pricefloor ?: 0.0,
                             adSource = this@ApplovinBannerImpl,
                             roundStatus = RoundStatus.Successful
                         )
@@ -75,9 +76,12 @@ internal class ApplovinBannerImpl(
                 adEvent.tryEmit(
                     AdEvent.PaidRevenue(
                         ad = ad.asAd(),
-                        adValue = lineItem?.pricefloor.asBidonAdValue()
+                        adValue = param?.lineItem?.pricefloor.asBidonAdValue()
                     )
                 )
+                param?.bannerFormat?.let {
+                    sendShowImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
+                }
             }
 
             override fun adHidden(ad: AppLovinAd) {
@@ -88,6 +92,9 @@ internal class ApplovinBannerImpl(
             override fun adClicked(ad: AppLovinAd) {
                 logInfo(Tag, "adClicked: $ad")
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
+                param?.bannerFormat?.let {
+                    sendClickImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
+                }
             }
         }
     }
@@ -128,7 +135,7 @@ internal class ApplovinBannerImpl(
         adParams: ApplovinBannerAuctionParams
     ): AuctionResult {
         logInfo(Tag, "Starting with $adParams: $this")
-        lineItem = adParams.lineItem
+        param = adParams
         val adSize = adParams.bannerFormat.asApplovinAdSize() ?: error(
             BidonError.AdFormatIsNotSupported(
                 demandId.demandId,
@@ -182,28 +189,28 @@ internal class ApplovinBannerImpl(
     private fun AppLovinAdView?.asAd(): Ad {
         return Ad(
             demandAd = demandAd,
-            ecpm = lineItem?.pricefloor ?: 0.0,
+            ecpm = param?.lineItem?.pricefloor ?: 0.0,
             demandAdObject = this ?: demandAd,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,
             currencyCode = AdValue.USD,
             auctionId = auctionId,
-            adUnitId = lineItem?.adUnitId
+            adUnitId = param?.lineItem?.adUnitId
         )
     }
 
     private fun AppLovinAd?.asAd(): Ad {
         return Ad(
             demandAd = demandAd,
-            ecpm = lineItem?.pricefloor ?: 0.0,
+            ecpm = param?.lineItem?.pricefloor ?: 0.0,
             demandAdObject = this ?: demandAd,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,
             currencyCode = AdValue.USD,
             auctionId = auctionId,
-            adUnitId = lineItem?.adUnitId
+            adUnitId = param?.lineItem?.adUnitId
         )
     }
 

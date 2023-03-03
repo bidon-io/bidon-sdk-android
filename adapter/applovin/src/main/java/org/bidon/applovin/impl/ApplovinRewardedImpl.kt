@@ -83,6 +83,7 @@ internal class ApplovinRewardedImpl(
                         adValue = lineItem?.pricefloor.asBidonAdValue()
                     )
                 )
+                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun adHidden(ad: AppLovinAd) {
@@ -93,11 +94,13 @@ internal class ApplovinRewardedImpl(
             override fun adClicked(ad: AppLovinAd) {
                 logInfo(Tag, "adClicked: $this")
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
+                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun userRewardVerified(ad: AppLovinAd, response: MutableMap<String, String>?) {
                 logInfo(Tag, "userRewardVerified: $this")
                 adEvent.tryEmit(AdEvent.OnReward(ad.asAd(), reward = null))
+                sendRewardImpression()
             }
 
             override fun userOverQuota(ad: AppLovinAd?, response: MutableMap<String, String>?) {}

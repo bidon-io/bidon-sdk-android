@@ -19,7 +19,7 @@ import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asBannerFormat
+import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -86,7 +86,7 @@ internal class AdmobBannerImpl(
             override fun onAdClicked() {
                 logInfo(Tag, "onAdClicked: $this")
                 adEvent.tryEmit(AdEvent.Clicked(requiredAdView.asAd()))
-                param?.bannerFormat?.asBannerFormat()?.let {
+                param?.bannerFormat?.asStatBannerFormat()?.let {
                     sendClickImpression(StatisticsCollector.AdType.Banner(format = it))
                 }
             }
@@ -99,7 +99,7 @@ internal class AdmobBannerImpl(
             override fun onAdImpression() {
                 logInfo(Tag, "onAdShown: $this")
                 adEvent.tryEmit(AdEvent.Shown(requiredAdView.asAd()))
-                param?.bannerFormat?.asBannerFormat()?.let {
+                param?.bannerFormat?.asStatBannerFormat()?.let {
                     sendShowImpression(StatisticsCollector.AdType.Banner(format = it))
                 }
             }

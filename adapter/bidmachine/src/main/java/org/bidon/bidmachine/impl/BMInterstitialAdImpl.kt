@@ -119,12 +119,14 @@ internal class BMInterstitialAdImpl(
                         adValue = interstitialAd.auctionResult.asBidonAdValue()
                     )
                 )
+                sendShowImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdClicked(interstitialAd: InterstitialAd) {
                 logInfo(Tag, "onAdClicked: $this")
                 this@BMInterstitialAdImpl.interstitialAd = interstitialAd
                 adEvent.tryEmit(AdEvent.Clicked(interstitialAd.asAd()))
+                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdExpired(interstitialAd: InterstitialAd) {

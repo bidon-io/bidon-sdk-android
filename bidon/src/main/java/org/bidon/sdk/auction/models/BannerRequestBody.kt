@@ -11,7 +11,7 @@ data class BannerRequestBody(
     @field:JsonName("format")
     val formatCode: String,
 ) : Serializable {
-    enum class Format(val code: String) {
+    enum class StatFormat(val code: String) {
         Banner320x50("BANNER"),
         LeaderBoard728x90("LEADERBOARD"),
         MRec300x250("MREC"),
@@ -19,11 +19,11 @@ data class BannerRequestBody(
     }
 
     companion object {
-        fun BannerFormat.asBannerFormat() = when (this) {
-            BannerFormat.Banner -> Format.Banner320x50
-            BannerFormat.LeaderBoard -> Format.LeaderBoard728x90
-            BannerFormat.MRec -> Format.MRec300x250
-            BannerFormat.Adaptive -> Format.AdaptiveBanner320x50
+        fun BannerFormat.asStatBannerFormat() = when (this) {
+            BannerFormat.Banner -> StatFormat.Banner320x50
+            BannerFormat.LeaderBoard -> StatFormat.LeaderBoard728x90
+            BannerFormat.MRec -> StatFormat.MRec300x250
+            BannerFormat.Adaptive -> StatFormat.AdaptiveBanner320x50
         }
     }
 }

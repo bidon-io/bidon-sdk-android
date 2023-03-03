@@ -69,6 +69,7 @@ internal class MaxRewardedImpl(
                         adValue = ad.asBidonAdValue()
                     )
                 )
+                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdHidden(ad: MaxAd) {
@@ -84,6 +85,7 @@ internal class MaxRewardedImpl(
             override fun onAdDisplayFailed(ad: MaxAd, error: MaxError) {
                 maxAd = ad
                 adEvent.tryEmit(AdEvent.ShowFailed(error.asBidonError()))
+                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             @Deprecated("Deprecated in Java")
@@ -99,6 +101,7 @@ internal class MaxRewardedImpl(
                         reward = Reward(reward?.label ?: "", reward?.amount ?: 0)
                     )
                 )
+                sendRewardImpression()
             }
         }
     }

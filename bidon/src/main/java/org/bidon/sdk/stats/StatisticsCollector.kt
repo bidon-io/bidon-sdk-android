@@ -26,6 +26,6 @@ interface StatisticsCollector {
     sealed interface AdType {
         object Rewarded : AdType
         object Interstitial : AdType
-        data class Banner(val format: BannerRequestBody.Format) : AdType
+        data class Banner(val format: BannerRequestBody.StatFormat) : AdType
     }
 }
