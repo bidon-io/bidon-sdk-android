@@ -15,7 +15,7 @@ internal fun AppToolbar(
 ) {
     TopAppBar(
         title = {
-            H5Text(text = title)
+            Subtitle1Text(text = title)
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(  MaterialTheme.colorScheme.background),
         navigationIcon = {
