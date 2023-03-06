@@ -23,6 +23,17 @@ android {
             )
         }
     }
+    flavorDimensions += "server"
+    productFlavors {
+        create("production") {
+            description = "Production backend x.appbaqend.com"
+            dimension = "server"
+        }
+        create("serverless") {
+            description = "No /config and /auction/* requests. Set it manually for tests"
+            dimension = "server"
+        }
+    }
     kotlinOptions {
         jvmTarget = "11"
     }
