@@ -23,7 +23,6 @@ internal val DarkColors = darkColorScheme(
     error = AppColors.Orange,
     onError = Color.White,
 
-
     tertiaryContainer = AppColors.Orange,
     tertiary = AppColors.Orange,
     onTertiary = AppColors.Orange,

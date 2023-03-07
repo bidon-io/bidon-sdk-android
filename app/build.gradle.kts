@@ -72,10 +72,6 @@ android {
 }
 
 dependencies {
-//    implementation("com.applovin:applovin-sdk:11.6.1")
-//    implementation("com.appsflyer:af-android-sdk:6.9.4")
-//    implementation("com.appsflyer:adrevenue:6.9.1")/
-
 //    implementation("io.bidon:bidon-sdk:0.1.0-Beta")
 //    implementation("io.bidon:admob-adapter:0.1.0.1-Beta")
 //    implementation("io.bidon:bidmachine-adapter:0.1.0.1-Beta")
