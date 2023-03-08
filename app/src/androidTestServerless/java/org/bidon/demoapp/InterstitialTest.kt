@@ -2,13 +2,10 @@ package org.bidon.demoapp
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import kotlinx.coroutines.test.runTest
@@ -17,6 +14,7 @@ import org.bidon.demoapp.ui.InterstitialScreen
 import org.bidon.sdk.auction.impl.ServerlessAuctionConfig
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.junit.Rule
 import org.junit.Test
 
@@ -107,12 +105,13 @@ class InterstitialTest {
                 InterstitialScreen(navController = rememberNavController())
             }
         }
-
         with(rule) {
             StepSdkInitialization.perform(activity)
+            onRoot().printToLog(Tag)
             clickOnButton("LOAD")
             assertViewWithText("ROUND_1")
-            assertViewWithText("WINNER")
+            assertViewWithText("onAdLoaded WINNER:")
+            logInfo(Tag, "1112222------")
             clickOnButton("SHOW")
             // closeAdmobInterstitial()
             assertViewWithText("onRevenuePaid")
@@ -122,17 +121,24 @@ class InterstitialTest {
     }
 }
 
-internal fun ComposeContentTestRule.assertViewWithText(text: String, timeout: Long = 15000) {
-    var countdown = timeout
-    val step = timeout / 10
-    while (countdown > 0 && this@assertViewWithText.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isEmpty()) {
-        Thread.sleep(step)
-        countdown -= step
-        println("11122222 $countdown, $step")
+internal fun BidonRule.assertViewWithText(text: String, timeout: Long = 10000) {
+    logInfo(Tag, "11122222 IN $text ${this@assertViewWithText.activityRule.scenario.state}")
+//    var countdown = timeout
+//    val step = timeout / 10
+//    while (countdown > 0 && this@assertViewWithText.onAllNodesWithText(text, ignoreCase = true, substring = true)
+//            .fetchSemanticsNodes().isEmpty()
+//    ) {
+//        Thread.sleep(step)
+//        countdown -= step
+//        println("11122222 $text $countdown, $step, ${this@assertViewWithText.activityRule.scenario.state}")
+//    }
+    waitUntil(timeout) {
+        onAllNodesWithText(text, ignoreCase = true, substring = true).fetchSemanticsNodes().size == 1
     }
-    require(this@assertViewWithText.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().size == 1) {
-        "No view with text($text) found"
-    }
+//    require(this@assertViewWithText.onAllNodesWithText(text, ignoreCase = true, substring = true).fetchSemanticsNodes().size == 1) {
+//        "No view with text($text) found"
+//    }
+    logInfo(Tag, "11122222 SUCCESS")
 }
 
 internal fun ComposeContentTestRule.clickOnButton(text: String) = onNodeWithText(text, ignoreCase = true).performClick()
@@ -148,3 +154,5 @@ internal fun BidonRule.clickBackButton() {
 internal fun BidonRule.closeAdmobInterstitial() {
     onNodeWithContentDescription(label = "Interstitial close button").performClick()
 }
+
+private const val Tag = "TESTME"
