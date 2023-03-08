@@ -38,7 +38,6 @@ fun InterstitialScreen(
     val activity = LocalContext.current as Activity
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-
     val logFlow = remember {
         mutableStateOf(listOf("Log"))
     }

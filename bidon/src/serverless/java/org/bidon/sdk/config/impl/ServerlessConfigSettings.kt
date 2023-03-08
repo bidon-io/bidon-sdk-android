@@ -8,9 +8,9 @@ import org.json.JSONObject
 /**
  * Created by Aleksei Cherniaev on 06/03/2023.
  */
-internal object ServerlessConfigSettings {
+object ServerlessConfigSettings {
 
-    private val adaptersToInit = mapOf(
+    private var adaptersToInit = mapOf(
         DefaultAdapters.AdmobAdapter to true,
         DefaultAdapters.BidmachineAdapter to true,
         DefaultAdapters.ApplovinAdapter to true,
@@ -18,7 +18,20 @@ internal object ServerlessConfigSettings {
         DefaultAdapters.UnityAdsAdapter to true,
     )
 
-    fun getConfigResponse(): ConfigResponse {
+    fun useAdapters(vararg adapters: String) {
+        adaptersToInit = adapters.associate { adapterName ->
+            when (adapterName) {
+                "admob" -> DefaultAdapters.AdmobAdapter
+                "applovin" -> DefaultAdapters.ApplovinAdapter
+                "bidmachine" -> DefaultAdapters.BidmachineAdapter
+                "dtexchange" -> DefaultAdapters.DataExchangeAdapter
+                "unityads" -> DefaultAdapters.UnityAdsAdapter
+                else -> error("Unknown adapter")
+            } to true
+        }
+    }
+
+    internal fun getConfigResponse(): ConfigResponse {
         return ConfigResponse(
             initializationTimeout = 15000,
             adapters = adaptersToInit.mapNotNull { (defaultAdapter, shouldInitialize) ->

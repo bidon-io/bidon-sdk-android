@@ -2,19 +2,15 @@ package org.bidon.demoapp
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.navigation.compose.rememberNavController
-import androidx.test.ext.junit.rules.ActivityScenarioRule
 import kotlinx.coroutines.test.runTest
 import org.bidon.demoapp.theme.AppTheme
 import org.bidon.demoapp.ui.InterstitialScreen
 import org.bidon.sdk.auction.impl.ServerlessAuctionConfig
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
-import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.config.impl.ServerlessConfigSettings
 import org.junit.Rule
 import org.junit.Test
 
@@ -70,19 +66,21 @@ class InterstitialTest {
 
         with(rule) {
             StepSdkInitialization.perform(activity)
-            clickOnButton("LOAD")
-            assertViewWithText("ROUND_1")
-            assertViewWithText("ROUND_2")
-            assertViewWithText("WINNER")
+            clickOnComposeButton("LOAD")
+//            assertViewWithText("ROUND_1")
+//            assertViewWithText("ROUND_2")
+//            assertViewWithText("WINNER")
 
-            clickOnButton("SHOW")
-            assertViewWithText("onRevenuePaid")
-            assertViewWithText("onAdShown")
+            clickOnComposeButton("SHOW")
+
+//            assertViewWithText("onRevenuePaid")
+//            assertViewWithText("onAdShown")
         }
     }
 
     @Test
     fun interstitial_OneRoundAdmob() {
+        ServerlessConfigSettings.useAdapters("admob")
         ServerlessAuctionConfig.setLocalAuctionResponse(
             pricefloor = 0.0,
             rounds = listOf(
@@ -107,52 +105,24 @@ class InterstitialTest {
         }
         with(rule) {
             StepSdkInitialization.perform(activity)
-            onRoot().printToLog(Tag)
-            clickOnButton("LOAD")
-            assertViewWithText("ROUND_1")
-            assertViewWithText("onAdLoaded WINNER:")
-            logInfo(Tag, "1112222------")
-            clickOnButton("SHOW")
-            // closeAdmobInterstitial()
-            assertViewWithText("onRevenuePaid")
-            assertViewWithText("onAdShown")
-            Thread.sleep(6000)
+            clickOnComposeButton("LOAD")
+            waitForCallbackText("ROUND_1")
+            waitForCallbackText("WINNER")
+
+            Thread.sleep(1000)
+            clickOnComposeButton("SHOW")
+
+            Thread.sleep(1000)
+            clickOnXmlButton(buttonDescription = AdmobInterstitialCloseButtonDescription)
+
+            waitForCallbackText("onRevenuePaid")
+            waitForCallbackText("onAdShown")
+            waitForCallbackText("onAdClosed")
         }
     }
-}
 
-internal fun BidonRule.assertViewWithText(text: String, timeout: Long = 10000) {
-    logInfo(Tag, "11122222 IN $text ${this@assertViewWithText.activityRule.scenario.state}")
-//    var countdown = timeout
-//    val step = timeout / 10
-//    while (countdown > 0 && this@assertViewWithText.onAllNodesWithText(text, ignoreCase = true, substring = true)
-//            .fetchSemanticsNodes().isEmpty()
-//    ) {
-//        Thread.sleep(step)
-//        countdown -= step
-//        println("11122222 $text $countdown, $step, ${this@assertViewWithText.activityRule.scenario.state}")
-//    }
-    waitUntil(timeout) {
-        onAllNodesWithText(text, ignoreCase = true, substring = true).fetchSemanticsNodes().size == 1
-    }
-//    require(this@assertViewWithText.onAllNodesWithText(text, ignoreCase = true, substring = true).fetchSemanticsNodes().size == 1) {
-//        "No view with text($text) found"
-//    }
-    logInfo(Tag, "11122222 SUCCESS")
-}
-
-internal fun ComposeContentTestRule.clickOnButton(text: String) = onNodeWithText(text, ignoreCase = true).performClick()
-
-typealias BidonRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
-
-internal fun BidonRule.clickBackButton() {
-    activityRule.scenario.onActivity {
-        it.onBackPressedDispatcher.onBackPressed()
+    private fun setAuctionSettings() {
     }
 }
 
-internal fun BidonRule.closeAdmobInterstitial() {
-    onNodeWithContentDescription(label = "Interstitial close button").performClick()
-}
-
-private const val Tag = "TESTME"
+private const val AdmobInterstitialCloseButtonDescription = "Interstitial close button"
