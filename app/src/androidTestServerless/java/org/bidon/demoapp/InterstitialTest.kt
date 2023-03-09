@@ -149,5 +149,4 @@ class InterstitialTest {
     }
 }
 
-
 private const val AdmobInterstitialCloseButtonDescription = "Interstitial close button"
