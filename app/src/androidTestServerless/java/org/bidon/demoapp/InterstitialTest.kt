@@ -106,8 +106,8 @@ class InterstitialTest {
         with(rule) {
             StepSdkInitialization.perform(activity)
             clickOnComposeButton("LOAD")
-            waitForCallbackText("ROUND_1")
-            waitForCallbackText("WINNER")
+            checkTextOnScreen("ROUND_1")
+            checkTextOnScreen("WINNER")
 
             Thread.sleep(1000)
             clickOnComposeButton("SHOW")
@@ -115,14 +115,94 @@ class InterstitialTest {
             Thread.sleep(1000)
             clickOnXmlButton(buttonDescription = AdmobInterstitialCloseButtonDescription)
 
-            waitForCallbackText("onRevenuePaid")
-            waitForCallbackText("onAdShown")
-            waitForCallbackText("onAdClosed")
+            checkTextOnScreen("onRevenuePaid")
+            checkTextOnScreen("onAdShown")
+            checkTextOnScreen("onAdClosed")
         }
     }
 
-    private fun setAuctionSettings() {
+    @Test
+    fun interstitial_NoAppropriateAdUnitAdmob() {
+        ServerlessConfigSettings.useAdapters("admob")
+        ServerlessAuctionConfig.setLocalAuctionResponse(
+            pricefloor = 1.0,
+            rounds = listOf(
+                Round(
+                    id = "ROUND_1",
+                    demandIds = listOf("admob"),
+                    timeoutMs = 10000
+                )
+            ),
+            lineItems = listOf(
+                LineItem(
+                    demandId = "admob",
+                    pricefloor = 0.01,
+                    adUnitId = "ca-app-pub-3940256099942544/1033173712"
+                )
+            )
+        )
+        rule.setContent {
+            AppTheme {
+                InterstitialScreen(navController = rememberNavController())
+            }
+        }
+        with(rule) {
+            StepSdkInitialization.perform(activity)
+            clickOnComposeButton("LOAD")
+            checkTextOnScreen("auctionStarted")
+            checkTextOnScreen("RoundStarted")
+            checkTextOnScreen("roundFailed")
+            checkTextOnScreen("auctionFailed")
+            checkTextOnScreen("onAdLoadFailed")
+
+            clickOnComposeButton("SHOW")
+            checkTextOnScreen("onAdShowFailed")
+        }
+    }
+
+    @Test
+    fun interstitial_OneRoundUnityAds() {
+        ServerlessConfigSettings.useAdapters("unityads")
+        ServerlessAuctionConfig.setLocalAuctionResponse(
+            pricefloor = 0.0,
+            rounds = listOf(
+                Round(
+                    id = "ROUND_1",
+                    demandIds = listOf("unityads"),
+                    timeoutMs = 10000
+                )
+            ),
+            lineItems = listOf(
+                LineItem(
+                    demandId = "unityads",
+                    pricefloor = 0.01,
+                    adUnitId = "Interstitial_Android"
+                )
+            )
+        )
+        rule.setContent {
+            AppTheme {
+                InterstitialScreen(navController = rememberNavController())
+            }
+        }
+        with(rule) {
+            StepSdkInitialization.perform(activity)
+            clickOnComposeButton("LOAD")
+            checkTextOnScreen("ROUND_1")
+            checkTextOnScreen("WINNER")
+
+            Thread.sleep(1000)
+            clickOnComposeButton("SHOW")
+
+            Thread.sleep(10000)
+            //clickOnXmlButton(buttonDescription = AdmobInterstitialCloseButtonDescription)
+
+            checkTextOnScreen("onRevenuePaid")
+            checkTextOnScreen("onAdShown")
+            checkTextOnScreen("onAdClosed")
+        }
     }
 }
+
 
 private const val AdmobInterstitialCloseButtonDescription = "Interstitial close button"

@@ -19,11 +19,11 @@ import org.hamcrest.Matcher
  * Created by Aleksei Cherniaev on 08/03/2023.
  */
 
-fun ComposeContentTestRule.waitForCallbackText(
+fun ComposeContentTestRule.checkTextOnScreen(
     text: String,
     timeoutMillis: Long = defaultTimeout
 ) {
-    waitUntilExists(hasText("ROUND_1", substring = true), timeoutMillis)
+    waitUntilExists(hasText(text, substring = true), timeoutMillis)
 }
 
 fun ComposeContentTestRule.waitUntilNodeCount(
