@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -17,18 +18,19 @@ import com.google.accompanist.flowlayout.MainAxisAlignment
 import com.google.accompanist.flowlayout.SizeMode
 
 @Composable
-fun <T> ItemSelector(
+fun <T> MultiSelector(
     modifier: Modifier = Modifier,
     title: String? = null,
     description: String? = null,
     items: List<T>,
-    selectedItem: T? = null,
+    selectedItems: List<T> = emptyList(),
     getItemTitle: (T) -> String,
     onItemClicked: (T) -> Unit,
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         title?.let {
             Text(
@@ -49,22 +51,20 @@ fun <T> ItemSelector(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
-                mainAxisAlignment = MainAxisAlignment.Start,
+                mainAxisAlignment = MainAxisAlignment.Center,
                 mainAxisSize = SizeMode.Expand,
                 crossAxisSpacing = 6.dp,
                 mainAxisSpacing = 6.dp,
             ) {
                 items.forEach { item ->
-                    val isSelected = item == selectedItem
+                    val isSelected = item in selectedItems
                     val color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
                     Surface(
                         shape = MaterialTheme.shapes.small,
                         color = MaterialTheme.colorScheme.background,
                         modifier = Modifier
                             .clickable {
-                                if (!isSelected) {
-                                    onItemClicked.invoke(item as T)
-                                }
+                                onItemClicked.invoke(item)
                             },
                         border = BorderStroke(
                             width = 1.dp,
