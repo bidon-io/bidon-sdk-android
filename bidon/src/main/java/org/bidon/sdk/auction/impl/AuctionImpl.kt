@@ -126,7 +126,7 @@ internal class AuctionImpl(
     private suspend fun fillWinner(auctionResults: List<AuctionResult>, timeout: Long): List<AuctionResult> {
         val index = auctionResults.indexOfFirst { auctionResult ->
             val fillResult = withTimeoutOrNull(timeout) {
-                (auctionResult.adSource as StatisticsCollector)?.markFillStarted()
+                (auctionResult.adSource as StatisticsCollector).markFillStarted()
                 logInfo(Tag, "Filling winner started for auction result: $auctionResult")
                 auctionResult.adSource.fill()
             } ?: BidonError.FillTimedOut(auctionResult.adSource.demandId).asFailure()
