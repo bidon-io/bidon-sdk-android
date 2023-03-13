@@ -217,42 +217,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 )
             ),
         )
-        val auctionConfig = AuctionResponse(
-            rounds = listOf(
-                Round(
-                    id = "round_1",
-                    timeoutMs = 15,
-                    demandIds = listOf(Applovin, Admob)
-                ),
-                Round(
-                    id = "round_2",
-                    timeoutMs = 25,
-                    demandIds = listOf(Admob)
-                ),
-            ),
-            auctionConfigurationId = 10,
-            auctionId = "auctionId_123",
-            lineItems = listOf(
-                LineItem(
-                    demandId = Applovin,
-                    pricefloor = 2.25,
-                    adUnitId = "AAAA2"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 1.2235,
-                    adUnitId = "admob1"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 3.2235,
-                    adUnitId = "admob2"
-                ),
-            ),
-            fillTimeout = 10000,
-            pricefloor = 0.01,
-            token = null,
-        )
+        val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
                 placement = any(),
@@ -312,42 +277,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 )
             ),
         )
-        val auctionConfig = AuctionResponse(
-            rounds = listOf(
-                Round(
-                    id = "round_1",
-                    timeoutMs = 15,
-                    demandIds = listOf(Applovin, Admob)
-                ),
-                Round(
-                    id = "round_2",
-                    timeoutMs = 25,
-                    demandIds = listOf(Admob)
-                ),
-            ),
-            auctionConfigurationId = 10,
-            auctionId = "auctionId_123",
-            lineItems = listOf(
-                LineItem(
-                    demandId = Applovin,
-                    pricefloor = 2.25,
-                    adUnitId = "AAAA2"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 1.2235,
-                    adUnitId = "admob1"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 3.2235,
-                    adUnitId = "admob2"
-                ),
-            ),
-            fillTimeout = 10000,
-            pricefloor = 0.01,
-            token = null,
-        )
+        val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
                 placement = any(),
@@ -394,42 +324,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 )
             ),
         )
-        val auctionConfig = AuctionResponse(
-            rounds = listOf(
-                Round(
-                    id = "round_1",
-                    timeoutMs = 15,
-                    demandIds = listOf(Applovin, Admob)
-                ),
-                Round(
-                    id = "round_2",
-                    timeoutMs = 25,
-                    demandIds = listOf(Admob)
-                ),
-            ),
-            auctionConfigurationId = 10,
-            auctionId = "auctionId_123",
-            lineItems = listOf(
-                LineItem(
-                    demandId = Applovin,
-                    pricefloor = 2.25,
-                    adUnitId = "AAAA2"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 1.2235,
-                    adUnitId = "admob1"
-                ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 3.2235,
-                    adUnitId = "admob2"
-                ),
-            ),
-            fillTimeout = 10000,
-            pricefloor = 0.01,
-            token = null,
-        )
+        val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
                 placement = any(),
@@ -456,4 +351,41 @@ internal class AuctionImplTest : ConcurrentTest() {
             assertThat(it).isEqualTo(BidonError.NoAuctionResults)
         }
     }
+
+    private fun getAuctionResponse() = AuctionResponse(
+        rounds = listOf(
+            Round(
+                id = "round_1",
+                timeoutMs = 15,
+                demandIds = listOf(Applovin, Admob)
+            ),
+            Round(
+                id = "round_2",
+                timeoutMs = 25,
+                demandIds = listOf(Admob)
+            ),
+        ),
+        auctionConfigurationId = 10,
+        auctionId = "auctionId_123",
+        lineItems = listOf(
+            LineItem(
+                demandId = Applovin,
+                pricefloor = 2.25,
+                adUnitId = "AAAA2"
+            ),
+            LineItem(
+                demandId = Admob,
+                pricefloor = 1.2235,
+                adUnitId = "admob1"
+            ),
+            LineItem(
+                demandId = Admob,
+                pricefloor = 3.2235,
+                adUnitId = "admob2"
+            ),
+        ),
+        fillTimeout = 10000,
+        pricefloor = 0.01,
+        token = null,
+    )
 }
