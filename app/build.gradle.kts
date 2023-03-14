@@ -7,19 +7,24 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
-secrets {
-    propertiesFileName = "keystore.properties"
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
 }
-val keystorePropertiesFile = rootProject.file("keystore.properties").takeIf { it.exists() }
-    ?: rootProject.file("debug.keystore.properties")
-val keystoreProperties = Properties()
-keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+secrets {
+    if (keystorePropertiesFile.exists()) {
+        propertiesFileName = "keystore.properties"
+    }
+}
 
 android {
     compileSdk = 33
 
     defaultConfig {
-        applicationId = keystoreProperties["demoApplicationId"] as String
+        applicationId = keystoreProperties["demoApplicationId"] as? String ?: "com.example.app"
         minSdk = 21
         targetSdk = 33
         versionCode = 1
@@ -30,10 +35,12 @@ android {
     }
     signingConfigs {
         create("myConfig") {
-            storeFile = file(keystoreProperties["storeSigningFileName"] as String)
-            storePassword = keystoreProperties["storeSigningKey"] as String
-            keyAlias = keystoreProperties["signingKeyAlias"] as String
-            keyPassword = keystoreProperties["signingKeyPassword"] as String
+            if (keystoreProperties.isNotEmpty()) {
+                storeFile = file(keystoreProperties["storeSigningFileName"] as String)
+                storePassword = keystoreProperties["storeSigningKey"] as String
+                keyAlias = keystoreProperties["signingKeyAlias"] as String
+                keyPassword = keystoreProperties["signingKeyPassword"] as String
+            }
         }
     }
     buildTypes {
