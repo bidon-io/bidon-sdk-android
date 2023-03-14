@@ -25,9 +25,9 @@ jobs:
           BIDON_API_KEY: ${{ secrets.BIDON_API_KEY }}
           demoApplicationId: ${{ secrets.demoApplicationId }}
         run:
-          echo MOBILE_ADS_APPLICATION_ID="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" > ./keystore.properties
-          echo BIDON_API_KEY="BIDON_API_KEY" > ./keystore.properties
-          echo demoApplicationId="com.example" > ./keystore.properties
+          echo MOBILE_ADS_APPLICATION_ID=\"ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX\" > ./keystore.properties
+          echo BIDON_API_KEY=\"BIDON_API_KEY\" > ./keystore.properties
+          echo demoApplicationId=\"com.example\" > ./keystore.properties
 
       # Execute unit tests
       - name: KtLint check
