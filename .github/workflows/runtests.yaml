@@ -1,8 +1,7 @@
 name: Android CI
 on: [push,pull_request,workflow_dispatch]
 
-- name: Touch local properties
-  run: touch local.properties
+run: touch local.properties
 
 jobs:
   test:
