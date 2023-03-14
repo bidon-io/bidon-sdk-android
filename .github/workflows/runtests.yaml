@@ -1,11 +1,9 @@
 name: Android CI
-
 on: [push,pull_request,workflow_dispatch]
 
 jobs:
   before_script:
     - touch local.properties
-
   test:
     runs-on: ubuntu-latest
     steps:
