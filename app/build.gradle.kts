@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.konan.properties.hasProperty
 import java.io.FileInputStream
 import java.util.*
 
@@ -34,7 +35,7 @@ android {
     }
     signingConfigs {
         create("myConfig") {
-            if (keystoreProperties.isNotEmpty()) {
+            if (keystoreProperties.hasProperty("storeSigningFileName")) {
                 storeFile = file(keystoreProperties["storeSigningFileName"] as String)
                 storePassword = keystoreProperties["storeSigningKey"] as String
                 keyAlias = keystoreProperties["signingKeyAlias"] as String
