@@ -16,6 +16,12 @@ jobs:
         with:
           java-version: 11
 
+      - name: set Admob Secrets
+        env:
+          MOBILE_ADS_APPLICATION_ID: ${{ secrets.MOBILE_ADS_APPLICATION_ID }}
+        run:
+          echo MOBILE_ADS_APPLICATION_ID="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" > ./local.properties
+
       # Execute unit tests
       - name: KtLint check
         run: ./gradlew ktlintcheck
