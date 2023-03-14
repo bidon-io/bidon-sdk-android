@@ -11,6 +11,9 @@ jobs:
       - name: create local.properties
         run: touch local.properties
 
+      - name: create keystore.properties
+        run: touch keystore.properties
+
       - name: set up JDK 11
         uses: actions/setup-java@v1
         with:
@@ -22,9 +25,9 @@ jobs:
           BIDON_API_KEY: ${{ secrets.BIDON_API_KEY }}
           demoApplicationId: ${{ secrets.demoApplicationId }}
         run:
-          echo MOBILE_ADS_APPLICATION_ID="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" > ./local.properties
-          echo BIDON_API_KEY="BIDON_API_KEY" > ./local.properties
-          echo demoApplicationId="com.example" > ./local.properties
+          echo MOBILE_ADS_APPLICATION_ID="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" > ./keystore.properties
+          echo BIDON_API_KEY="BIDON_API_KEY" > ./keystore.properties
+          echo demoApplicationId="com.example" > ./keystore.properties
 
       # Execute unit tests
       - name: KtLint check

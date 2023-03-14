@@ -15,9 +15,7 @@ val keystoreProperties = Properties().apply {
 }
 
 secrets {
-    if (keystorePropertiesFile.exists()) {
-        propertiesFileName = "keystore.properties"
-    }
+    propertiesFileName = "keystore.properties"
 }
 
 android {
