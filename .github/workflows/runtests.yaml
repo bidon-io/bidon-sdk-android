@@ -35,5 +35,11 @@ jobs:
 
       # Execute unit tests
       - name: Unit Test
-        run: ./gradlew testProductionDebugUnitTest
+        run:
+          ./gradlew :bidon:testProductionDebugUnitTest
+          ./gradlew :adapter:admob:testProductionDebugUnitTest
+          ./gradlew :adapter:applovin:testProductionDebugUnitTest
+          ./gradlew :adapter:bidmachine:testProductionDebugUnitTest
+          ./gradlew :adapter:dtexchange:testProductionDebugUnitTest
+          ./gradlew :adapter:unityads:testProductionDebugUnitTest
 
