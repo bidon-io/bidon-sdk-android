@@ -19,12 +19,8 @@ jobs:
       - name: set Secrets
         env:
           MOBILE_ADS_APPLICATION_ID: ${{ secrets.MOBILE_ADS_APPLICATION_ID }}
-          BIDON_API_KEY: ${{ secrets.BIDON_API_KEY }}
-          demoApplicationId: ${{ secrets.demoApplicationId }}
         run:
           echo MOBILE_ADS_APPLICATION_ID="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" > ./local.properties
-          echo BIDON_API_KEY="BIDON_API_KEY" > ./local.properties
-          echo demoApplicationId="com.example" > ./local.properties
 
       # Execute unit tests
       - name: KtLint check
@@ -32,5 +28,5 @@ jobs:
 
       # Execute unit tests
       - name: Unit Test
-        run: ./gradlew test
+        run: ./gradlew testProductionDebugUnitTest
 
