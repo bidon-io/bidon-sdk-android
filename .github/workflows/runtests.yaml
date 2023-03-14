@@ -1,13 +1,15 @@
 name: Android CI
 on: [push,pull_request,workflow_dispatch]
 
-run: touch local.properties
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
+      - name: create local.properties
+        run: touch local.properties
 
       - name: set up JDK 11
         uses: actions/setup-java@v1
