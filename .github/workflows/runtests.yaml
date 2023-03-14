@@ -19,14 +19,22 @@ jobs:
         with:
           java-version: 11
 
-      - name: set Secrets
+      - name: set Secrets Admob
         env:
           MOBILE_ADS_APPLICATION_ID: ${{ secrets.MOBILE_ADS_APPLICATION_ID }}
-          BIDON_API_KEY: ${{ secrets.BIDON_API_KEY }}
-          demoApplicationId: ${{ secrets.demoApplicationId }}
         run:
           echo MOBILE_ADS_APPLICATION_ID=\"$ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX\" > ./keystore.properties
+
+      - name: set Secrets BIDON_API_KEY
+        env:
+          BIDON_API_KEY: ${{ secrets.BIDON_API_KEY }}
+        run:
           echo BIDON_API_KEY=\"$BIDON_API_KEY\" > ./keystore.properties
+
+      - name: set Secrets demoApplicationId
+        env:
+          demoApplicationId: ${{ secrets.demoApplicationId }}
+        run:
           echo demoApplicationId=\"$com.example\" > ./keystore.properties
 
       # Execute unit tests
@@ -35,11 +43,5 @@ jobs:
 
       # Execute unit tests
       - name: Unit Test
-        run:
-          ./gradlew :bidon:testProductionDebugUnitTest
-          ./gradlew :adapter:admob:testProductionDebugUnitTest
-          ./gradlew :adapter:applovin:testProductionDebugUnitTest
-          ./gradlew :adapter:bidmachine:testProductionDebugUnitTest
-          ./gradlew :adapter:dtexchange:testProductionDebugUnitTest
-          ./gradlew :adapter:unityads:testProductionDebugUnitTest
+        run: ./gradlew testProductionDebugUnitTest
 
