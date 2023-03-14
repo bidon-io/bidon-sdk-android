@@ -22,6 +22,7 @@ secrets {
 
 android {
     compileSdk = 33
+    namespace = "org.bidon.demoapp"
 
     defaultConfig {
         applicationId = keystoreProperties["demoApplicationId"] as? String ?: "com.example.app"

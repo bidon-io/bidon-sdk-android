@@ -24,8 +24,12 @@ jobs:
 
       # Execute unit tests
       - name: KtLint check
-        run: ./gradlew ktlintcheck
+        run: ./gradlew ktLintCheck
 
       # Execute unit tests
+#      - name: Unit Test
+#        run: ./gradlew test
+      # Execute unit tests
       - name: Unit Test
-        run: ./gradlew test
+        run: ./gradlew :bidon:test
+
