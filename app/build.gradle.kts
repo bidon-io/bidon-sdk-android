@@ -10,11 +10,15 @@ plugins {
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
-    load(FileInputStream(keystorePropertiesFile))
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
 }
 
 secrets {
-    propertiesFileName = "keystore.properties"
+    if (keystorePropertiesFile.exists()) {
+        propertiesFileName = "keystore.properties"
+    }
 }
 
 android {
