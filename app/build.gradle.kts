@@ -1,3 +1,4 @@
+import ext.BIDON_API_KEY
 import org.jetbrains.kotlin.konan.properties.hasProperty
 import java.io.FileInputStream
 import java.util.*
@@ -5,7 +6,6 @@ import java.util.*
 plugins {
     id("com.android.application")
     kotlin("android")
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -15,18 +15,12 @@ val keystoreProperties = Properties().apply {
     }
 }
 
-secrets {
-    if (keystorePropertiesFile.exists()) {
-        propertiesFileName = "keystore.properties"
-    }
-}
-
 android {
     compileSdk = 33
     namespace = "org.bidon.demoapp"
 
     defaultConfig {
-        applicationId = keystoreProperties["demoApplicationId"] as? String ?: "com.example.app"
+        applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as String
         minSdk = 21
         targetSdk = 33
         versionCode = 1
@@ -34,6 +28,9 @@ android {
 
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as String
+        BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as String
     }
     signingConfigs {
         create("myConfig") {
