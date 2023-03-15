@@ -8,6 +8,7 @@ plugins {
     kotlin("android")
 }
 
+val defaultPackage = "org.bidon.demoapp"
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
@@ -17,10 +18,10 @@ val keystoreProperties = Properties().apply {
 
 android {
     compileSdk = 33
-    namespace = "org.bidon.demoapp"
+    namespace = defaultPackage
 
     defaultConfig {
-        applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as String
+        applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as? String ?: defaultPackage
         minSdk = 21
         targetSdk = 33
         versionCode = 1
@@ -29,12 +30,12 @@ android {
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as String
-        BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as String
+        manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as? String ?: ""
+        BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as? String ?: ""
     }
     signingConfigs {
         create("myConfig") {
-            if (keystoreProperties.hasProperty("storeSigningFileName")) {
+            if (keystorePropertiesFile.exists()) {
                 storeFile = file(keystoreProperties["storeSigningFileName"] as String)
                 storePassword = keystoreProperties["storeSigningKey"] as String
                 keyAlias = keystoreProperties["signingKeyAlias"] as String
