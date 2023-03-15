@@ -16,9 +16,9 @@ jobs:
         with:
           java-version: 11
 
-      # Execute unit tests
-#      - name: KtLint check
-#        run: ./gradlew ktLintCheck
+#       Execute unit tests
+      - name: KtLint check
+        run: ./gradlew ktLintCheck
 
       # Execute unit tests
       - name: Unit Test
