@@ -6,14 +6,9 @@ package org.bidon.sdk.adapter
  * Shows if an adapter supports test mode.
  */
 interface SupportsTestMode {
-    val isTestMode: Boolean
-    fun setTestMode(isTestMode: Boolean)
+    var isTestMode: Boolean
 }
 
-class SupportsTestModeImpl: SupportsTestMode {
+class SupportsTestModeImpl : SupportsTestMode {
     override var isTestMode: Boolean = false
-
-    override fun setTestMode(isTestMode: Boolean) {
-        this.isTestMode = isTestMode
-    }
 }

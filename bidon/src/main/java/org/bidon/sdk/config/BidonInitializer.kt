@@ -10,7 +10,7 @@ import org.bidon.sdk.utils.networking.NetworkSettings
 internal interface BidonInitializer {
 
     val isInitialized: Boolean
-    val isTestMode: Boolean
+    var isTestMode: Boolean
 
     /**
      * Default adapters is in [DefaultAdapters]
@@ -37,8 +37,6 @@ internal interface BidonInitializer {
      * Redefine BaseUrl for /action-requests. Default base url [NetworkSettings.BidonBaseUrl]
      */
     fun setBaseUrl(host: String)
-
-    fun setTestMode(testMode: Boolean)
 
     fun initialize(activity: Activity, appKey: String)
 }

@@ -72,10 +72,6 @@ internal class BidonInitializerImpl : BidonInitializer {
         bidOnEndpoints.init(host, setOf())
     }
 
-    override fun setTestMode(testMode: Boolean) {
-        this.isTestMode = testMode
-    }
-
     override fun initialize(activity: Activity, appKey: String) {
         val timeStart = System.currentTimeMillis()
         if (initializationState.value == SdkState.Initialized) {

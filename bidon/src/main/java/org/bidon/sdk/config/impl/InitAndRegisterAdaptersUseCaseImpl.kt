@@ -30,10 +30,10 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                 runCatching {
                     withTimeout(configResponse.initializationTimeout) {
                         // set test mode param
-                        (adapter as? SupportsTestMode)?.setTestMode(isTestMode)
+                        (adapter as? SupportsTestMode)?.isTestMode = isTestMode
 
                         // initialize if needed
-                        (adapter as? Initializable<AdapterParameters>)?.let { initializable->
+                        (adapter as? Initializable<AdapterParameters>)?.let { initializable ->
                             val timeStart = measureTimeMillis {
                                 initializable.init(
                                     activity = activity,

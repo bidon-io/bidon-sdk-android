@@ -82,7 +82,7 @@ object BidonSdk {
      */
     @JvmStatic
     fun setTestMode(isTestMode: Boolean): BidonSdk {
-        bidon.setTestMode(isTestMode)
+        bidon.isTestMode = isTestMode
         return this
     }
 
