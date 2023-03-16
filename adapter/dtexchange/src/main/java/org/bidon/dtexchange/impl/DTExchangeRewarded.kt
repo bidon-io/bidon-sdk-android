@@ -178,7 +178,7 @@ internal class DTExchangeRewarded(
     override suspend fun fill(): Result<Ad> = runCatching {
         logInfo(Tag, "Starting fill: $this")
         /**
-         * DataExchange fills the bid automatically. It's not needed to fill it manually.
+         * DTExchange fills the bid automatically. It's not needed to fill it manually.
          */
         val event = AdEvent.Fill(requireNotNull(inneractiveAdSpot?.asAd()))
         adEvent.tryEmit(event)

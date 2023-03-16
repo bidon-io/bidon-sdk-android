@@ -2,10 +2,8 @@ package org.bidon.sdk.config.impl
 
 import android.app.Activity
 import kotlinx.coroutines.*
-import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.adapter.AdapterParameters
+import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.config.models.ConfigResponse
 import org.bidon.sdk.config.usecases.InitAndRegisterAdaptersUseCase
 import org.bidon.sdk.logs.logging.impl.logError
@@ -23,24 +21,30 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
     override suspend operator fun invoke(
         activity: Activity,
         adapters: List<Adapter>,
-        configResponse: ConfigResponse
+        configResponse: ConfigResponse,
+        isTestMode: Boolean
     ) = coroutineScope {
         val deferredList = adapters.associate { adapter ->
             val demandId = adapter.demandId
             demandId to async {
                 runCatching {
                     withTimeout(configResponse.initializationTimeout) {
-                        val initializable = adapter as? Initializable<AdapterParameters>
-                        if (initializable == null) {
-                            adapter
-                        } else {
+                        // set test mode param
+                        (adapter as? SupportsTestMode)?.setTestMode(isTestMode)
+
+                        // initialize if needed
+                        (adapter as? Initializable<AdapterParameters>)?.let { initializable->
                             val timeStart = measureTimeMillis {
-                                val adapterParameters = parseAdapterParameters(configResponse, adapter).getOrThrow()
-                                adapter.init(activity, adapterParameters)
+                                initializable.init(
+                                    activity = activity,
+                                    configParams = parseAdapterParameters(configResponse, initializable).getOrThrow()
+                                )
                             }
                             logInfo(Tag, "Adapter ${demandId.demandId} initialized in $timeStart ms.")
-                            adapter
                         }
+
+                        // adapter is ready
+                        adapter
                     }
                 }
             }

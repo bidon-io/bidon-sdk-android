@@ -16,6 +16,11 @@ import org.bidon.sdk.logs.logging.Logger
 import org.json.JSONObject
 import kotlin.coroutines.resume
 
+/**
+ * Created by Aleksei Cherniaev on 16/03/2023.
+ *
+ * [Applovin SDK documentation](https://dash.applovin.com/documentation/mediation/android/getting-started/integration)
+ */
 val ApplovinDemandId = DemandId("applovin")
 
 @Suppress("unused")

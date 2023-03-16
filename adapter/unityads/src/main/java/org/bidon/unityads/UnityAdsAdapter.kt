@@ -18,13 +18,15 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * Created by Aleksei Cherniaev on 01/03/2023.
+ *
+ * [Unity Ads SDK documentation](https://docs.unity.com/ads/en/manual/AndroidDeveloperIntegrations)
  */
-
 internal val UnityAdsDemandId = DemandId("unityads")
 
 class UnityAdsAdapter :
     Adapter,
     Initializable<UnityAdsParameters>,
+    SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Interstitial<UnityAdsAuctionParams>,
     AdProvider.Rewarded<UnityAdsAuctionParams> {
 
@@ -36,7 +38,6 @@ class UnityAdsAdapter :
 
     override suspend fun init(activity: Activity, configParams: UnityAdsParameters) =
         suspendCancellableCoroutine { continuation ->
-            val isTestMode = BuildConfig.DEBUG
             UnityAds.initialize(
                 activity.applicationContext,
                 configParams.unityGameId,

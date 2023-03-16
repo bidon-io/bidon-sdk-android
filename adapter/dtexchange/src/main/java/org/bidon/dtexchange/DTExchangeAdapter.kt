@@ -18,11 +18,13 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-val DTExchangeDemandId = DemandId("dtexchange")
-
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
+ *
+ * [DT Exchange SDK documentation](https://developer.digitalturbine.com/hc/en-us/articles/360010822437-Integrating-the-Android-SDK)
  */
+val DTExchangeDemandId = DemandId("dtexchange")
+
 class DTExchangeAdapter :
     Adapter,
     Initializable<DTExchangeParameters>,
@@ -62,11 +64,11 @@ class DTExchangeAdapter :
         }
 
     override fun parseConfigParam(json: String): DTExchangeParameters {
-        return JSONObject(json).let {
-            DTExchangeParameters(
-                appId = requireNotNull(it.optString("app_id")),
-            )
-        }
+        return DTExchangeParameters(
+            appId = requireNotNull(JSONObject(json).optString("app_id")) {
+                "No app_id provided"
+            },
+        )
     }
 
     override fun interstitial(

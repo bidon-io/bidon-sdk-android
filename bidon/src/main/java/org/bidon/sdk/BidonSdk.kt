@@ -74,6 +74,18 @@ object BidonSdk {
         return this
     }
 
+    /**
+     * Enabling test mode.
+     * In test mode test ads will be shown and debug data will be written to logcat.
+     *
+     * @param isTestMode true to enable test mode. False by default.
+     */
+    @JvmStatic
+    fun setTestMode(isTestMode: Boolean): BidonSdk {
+        bidon.setTestMode(isTestMode)
+        return this
+    }
+
     @JvmStatic
     fun initialize(activity: Activity, appKey: String) = bidon.initialize(activity, appKey)
 }

@@ -48,6 +48,8 @@ internal class BidonInitializerImpl : BidonInitializer {
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
 
+    override var isTestMode: Boolean = false
+
     override fun registerDefaultAdapters() {
         useDefaultAdapters = true
     }
@@ -68,6 +70,10 @@ internal class BidonInitializerImpl : BidonInitializer {
 
     override fun setBaseUrl(host: String) {
         bidOnEndpoints.init(host, setOf())
+    }
+
+    override fun setTestMode(testMode: Boolean) {
+        this.isTestMode = testMode
     }
 
     override fun initialize(activity: Activity, appKey: String) {
@@ -121,10 +127,11 @@ internal class BidonInitializerImpl : BidonInitializer {
             .map { configResponse ->
                 logInfo(Tag, "Config data received in ${System.currentTimeMillis() - timeStart} ms.: $configResponse")
                 logInfo(Tag, "Starting adapters initialization")
-                initAndRegisterAdapters(
+                initAndRegisterAdapters.invoke(
                     activity = activity,
                     adapters = (defaultAdapters + publisherAdapters.values).distinctBy { it::class },
                     configResponse = configResponse,
+                    isTestMode = isTestMode
                 )
             }.onFailure {
                 logError(Tag, "Error while Config-request", it)

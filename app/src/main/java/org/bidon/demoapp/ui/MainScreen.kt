@@ -98,6 +98,7 @@ internal fun MainScreen(
 //                            .registerAdapters(ApplovinAdapter())
 //                            .registerAdapter("org.bidon.admob.AdmobAdapter")
                             .setBaseUrl(baseUrl)
+                            .setTestMode(isTestMode = true)
                             .setInitializationCallback {
                                 initState.value = MainScreenState.Initialized
                             }
