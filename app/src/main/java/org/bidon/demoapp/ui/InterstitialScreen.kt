@@ -26,7 +26,6 @@ import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.interstitial.InterstitialAd
 import org.bidon.sdk.ads.interstitial.InterstitialListener
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -75,43 +74,6 @@ fun InterstitialScreen(
 
                     override fun onAdExpired(ad: Ad) {
                         logFlow.log("onAdExpired: $ad")
-                    }
-
-                    override fun onAuctionStarted() {
-                        logFlow.log("auctionStarted")
-                    }
-
-                    override fun onAuctionSuccess(auctionResults: List<AuctionResult>) {
-                        val log = buildString {
-                            appendLine("AuctionSucceed (${auctionResults.size} items)")
-                            auctionResults.forEachIndexed { index, auctionResult ->
-                                appendLine("#$index ${auctionResult.adSource.demandId.demandId} ${auctionResult.ecpm}")
-                            }
-                        }
-                        logFlow.log(log)
-                    }
-
-                    override fun onAuctionFailed(cause: BidonError) {
-                        logFlow.log("auctionFailed: $cause")
-                    }
-
-                    override fun onRoundStarted(roundId: String, pricefloor: Double) {
-                        logFlow.log("RoundStarted(roundId=$roundId, pricefloor=$pricefloor)")
-                    }
-
-                    override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {
-                        logFlow.log(
-                            buildString {
-                                appendLine("roundSucceed($roundId)")
-                                roundResults.forEachIndexed { index, auctionResult ->
-                                    appendLine("#$index ${auctionResult.adSource.demandId.demandId} ${auctionResult.ecpm}")
-                                }
-                            }
-                        )
-                    }
-
-                    override fun onRoundFailed(roundId: String, cause: BidonError) {
-                        logFlow.log("roundFailed: roundId=$roundId, $cause")
                     }
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {

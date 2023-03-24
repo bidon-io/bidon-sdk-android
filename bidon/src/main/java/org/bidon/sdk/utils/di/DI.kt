@@ -13,7 +13,6 @@ import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
-import org.bidon.sdk.auction.RoundsListener
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
@@ -140,10 +139,9 @@ internal object DI {
                 )
             }
 
-            factoryWithParams<AuctionHolder> { (demandAd, listener) ->
+            factoryWithParams<AuctionHolder> { (demandAd) ->
                 AuctionHolderImpl(
                     demandAd = demandAd as DemandAd,
-                    roundsListener = listener as RoundsListener
                 )
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }

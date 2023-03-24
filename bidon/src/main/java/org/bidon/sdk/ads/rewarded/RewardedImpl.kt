@@ -13,7 +13,6 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -30,7 +29,7 @@ internal class RewardedImpl(
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
     private val auctionHolder: AuctionHolder by lazy {
-        org.bidon.sdk.utils.di.get { params(demandAd, listener) }
+        org.bidon.sdk.utils.di.get { params(demandAd) }
     }
     private val listener by lazy {
         getRewardedListener()
@@ -58,7 +57,6 @@ internal class RewardedImpl(
         observeCallbacksJob = null
 
         if (!auctionHolder.isActive) {
-            listener.onAuctionStarted()
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Rewarded(
                     activity = activity,
@@ -72,7 +70,6 @@ internal class RewardedImpl(
                              */
                             val winner = auctionResults.first()
                             subscribeToWinner(winner.adSource)
-                            listener.onAuctionSuccess(auctionResults)
                             listener.onAdLoaded(
                                 requireNotNull(winner.adSource.ad) {
                                     "[Ad] should exist when the Action succeeds"
@@ -82,7 +79,6 @@ internal class RewardedImpl(
                             /**
                              * Auction failed
                              */
-                            listener.onAuctionFailed(cause = it.asUnspecified())
                             listener.onAdLoadFailed(cause = it.asUnspecified())
                         }
                 }
@@ -181,30 +177,6 @@ internal class RewardedImpl(
 
         override fun onAdExpired(ad: Ad) {
             userListener?.onAdExpired(ad)
-        }
-
-        override fun onAuctionStarted() {
-            userListener?.onAuctionStarted()
-        }
-
-        override fun onAuctionSuccess(auctionResults: List<AuctionResult>) {
-            userListener?.onAuctionSuccess(auctionResults)
-        }
-
-        override fun onAuctionFailed(cause: BidonError) {
-            userListener?.onAuctionFailed(cause)
-        }
-
-        override fun onRoundStarted(roundId: String, pricefloor: Double) {
-            userListener?.onRoundStarted(roundId, pricefloor)
-        }
-
-        override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {
-            userListener?.onRoundSucceed(roundId, roundResults)
-        }
-
-        override fun onRoundFailed(roundId: String, cause: BidonError) {
-            userListener?.onRoundFailed(roundId, cause)
         }
 
         override fun onUserRewarded(ad: Ad, reward: Reward?) {
