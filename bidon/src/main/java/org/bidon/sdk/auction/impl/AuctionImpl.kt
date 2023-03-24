@@ -52,7 +52,6 @@ internal class AuctionImpl(
             logInfo(Tag, "Action started $this")
             // Request for Auction-data at /auction
             getAuctionRequest.request(
-                placement = demandAd.placement,
                 additionalData = adTypeParamData,
                 auctionId = UUID.randomUUID().toString(),
                 adapters = adaptersSource.adapters.associate {

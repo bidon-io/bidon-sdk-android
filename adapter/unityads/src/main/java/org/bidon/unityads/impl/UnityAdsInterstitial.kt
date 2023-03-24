@@ -38,7 +38,6 @@ internal class UnityAdsInterstitial(
 
     private val dispatcher: CoroutineDispatcher = SdkDispatchers.Main
     private var lineItem: LineItem? = null
-    private var placementId: String? = null
 
     override val ad: Ad?
         get() = lineItem?.let {
@@ -83,7 +82,6 @@ internal class UnityAdsInterstitial(
             val loadListener = object : IUnityAdsLoadListener {
                 override fun onUnityAdsAdLoaded(placementId: String?) {
                     logInfo(Tag, "onUnityAdsAdLoaded: $this")
-                    this@UnityAdsInterstitial.placementId = placementId
                     isAdReadyToShow = true
                     adEvent.tryEmit(
                         AdEvent.Bid(

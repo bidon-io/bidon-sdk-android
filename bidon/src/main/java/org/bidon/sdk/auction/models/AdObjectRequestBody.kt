@@ -11,8 +11,6 @@ import org.bidon.sdk.utils.serializer.Serializable
  * [BannerRequestBody.formatCode] is a [BannerRequestBody.StatFormat.code]
  */
 internal data class AdObjectRequestBody(
-    @field:JsonName("placement_id")
-    val placementId: String,
     @field:JsonName("orientation")
     val orientationCode: String,
     @field:JsonName("auction_id")

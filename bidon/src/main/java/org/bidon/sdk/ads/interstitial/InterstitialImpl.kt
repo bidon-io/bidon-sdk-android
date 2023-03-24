@@ -21,11 +21,10 @@ import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 
 internal class InterstitialImpl(
-    override val placementId: String,
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
 ) : Interstitial {
     private val demandAd by lazy {
-        DemandAd(AdType.Interstitial, placementId)
+        DemandAd(AdType.Interstitial)
     }
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
@@ -51,7 +50,7 @@ internal class InterstitialImpl(
             logInfo(Tag, "Ad is loaded and available to show.")
             return
         }
-        logInfo(Tag, "Load with placement=$placementId, pricefloor=$pricefloor")
+        logInfo(Tag, "Load (pricefloor=$pricefloor)")
         if (!auctionHolder.isActive) {
             listener.onAuctionStarted()
             auctionHolder.startAuction(
@@ -83,7 +82,7 @@ internal class InterstitialImpl(
                 }
             )
         } else {
-            logInfo(Tag, "Auction already in progress. Placement: $placementId.")
+            logInfo(Tag, "Auction already in progress")
         }
     }
 
@@ -93,7 +92,7 @@ internal class InterstitialImpl(
             listener.onAdShowFailed(BidonError.SdkNotInitialized)
             return
         }
-        logInfo(Tag, "Show with placement: $placementId")
+        logInfo(Tag, "Show")
         if (auctionHolder.isActive) {
             logInfo(Tag, "Show failed. Auction in progress.")
             listener.onAdShowFailed(BidonError.AuctionInProgress)

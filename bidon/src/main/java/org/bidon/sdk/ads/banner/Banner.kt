@@ -33,15 +33,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class Banner @JvmOverloads constructor(
     context: Context,
-    placementId: String = BidonSdk.DefaultPlacement,
     attrs: AttributeSet? = null,
     @AttrRes defStyleAtt: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAtt), BannerAd {
 
-    override var placementId: String = placementId
-        private set
-
-    private val demandAd by lazy { DemandAd(AdType.Banner, placementId) }
+    private val demandAd by lazy { DemandAd(AdType.Banner) }
     private var bannerFormat: BannerFormat = BannerFormat.Banner
     private var pricefloor: Double = BidonSdk.DefaultPricefloor
 
@@ -59,9 +55,6 @@ class Banner @JvmOverloads constructor(
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.BannerView, 0, 0).apply {
             try {
-                getString(R.styleable.BannerView_placementId)?.let {
-                    this@Banner.placementId = it
-                }
                 getInteger(R.styleable.BannerView_bannerSize, 0).let {
                     when (it) {
                         1 -> setBannerFormat(BannerFormat.Banner)
@@ -88,7 +81,7 @@ class Banner @JvmOverloads constructor(
         }
         if (!isAuctionStarted.getAndSet(true)) {
             this.pricefloor = pricefloor
-            logInfo(Tag, "Load with placement($placementId) and pricefloor($pricefloor)")
+            logInfo(Tag, "Load (pricefloor=$pricefloor)")
             scope.launch {
                 listener.onAuctionStarted()
                 auction.start(
@@ -123,7 +116,7 @@ class Banner @JvmOverloads constructor(
                 }
             }
         } else {
-            logInfo(Tag, "Auction already in progress. Placement: $placementId.")
+            logInfo(Tag, "Auction already in progress")
         }
     }
 
@@ -135,7 +128,7 @@ class Banner @JvmOverloads constructor(
         val adViewHolder = (winner?.adSource as? AdSource.Banner)?.getAdView()
         when {
             adViewHolder != null && !shown.getAndSet(true) -> {
-                logInfo(Tag, "Show with placement($placementId)")
+                logInfo(Tag, "Show")
                 // add AdView to Screen
                 removeAllViews()
                 val layoutParams = LayoutParams(adViewHolder.widthPx, adViewHolder.heightPx).apply {

@@ -176,7 +176,6 @@ internal class MaxBannerImpl(
         }
         maxAdView.apply {
             setListener(maxAdListener)
-            placement = demandAd.placement
             /**
              * AutoRefresher.kt provides auto-refresh
              */

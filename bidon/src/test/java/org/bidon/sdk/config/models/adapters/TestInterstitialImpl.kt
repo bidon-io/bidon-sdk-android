@@ -10,7 +10,6 @@ import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.config.models.auctions.impl.PlacementId
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
@@ -26,7 +25,7 @@ internal class TestInterstitialImpl(
     StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId) {
 
     private lateinit var adParams: TestInterstitialParameters
-    private val demandAd = DemandAd(adType = AdType.Interstitial, placement = PlacementId)
+    private val demandAd = DemandAd(adType = AdType.Interstitial)
 
     override val ad: Ad
         get() = Ad(

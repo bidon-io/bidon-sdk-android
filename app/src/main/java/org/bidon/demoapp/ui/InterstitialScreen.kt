@@ -46,7 +46,7 @@ fun InterstitialScreen(
     }
 
     val interstitial by lazy {
-        InterstitialAd("some_placement_id").apply {
+        InterstitialAd().apply {
             setInterstitialListener(
                 object : InterstitialListener {
                     override fun onAdLoaded(ad: Ad) {

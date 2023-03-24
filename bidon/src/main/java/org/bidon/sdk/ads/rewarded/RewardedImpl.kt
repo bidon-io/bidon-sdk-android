@@ -20,12 +20,11 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 
 internal class RewardedImpl(
-    override val placementId: String,
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
 ) : Rewarded {
 
     private val demandAd by lazy {
-        DemandAd(AdType.Rewarded, placementId)
+        DemandAd(AdType.Rewarded)
     }
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
@@ -53,7 +52,7 @@ internal class RewardedImpl(
             logInfo(Tag, "Ad is loaded and available to show.")
             return
         }
-        logInfo(Tag, "Load with placement: $placementId")
+        logInfo(Tag, "Load (pricefloor=$pricefloor)")
         observeCallbacksJob?.cancel()
         observeCallbacksJob = null
 
@@ -88,7 +87,7 @@ internal class RewardedImpl(
                 }
             )
         } else {
-            logInfo(Tag, "Auction already in progress. Placement: $placementId.")
+            logInfo(Tag, "Auction already in progress")
         }
     }
 
@@ -98,7 +97,7 @@ internal class RewardedImpl(
             listener.onAdShowFailed(BidonError.SdkNotInitialized)
             return
         }
-        logInfo(Tag, "Show with placement: $placementId")
+        logInfo(Tag, "Show")
         if (auctionHolder.isActive) {
             logInfo(Tag, "Show failed. Auction in progress.")
             listener.onAdShowFailed(BidonError.FullscreenAdNotReady)

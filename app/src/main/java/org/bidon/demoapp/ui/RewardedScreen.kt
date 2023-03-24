@@ -48,7 +48,7 @@ fun RewardedScreen(
     }
 
     val rewardedAd by lazy {
-        RewardedAd("some_placement_id").apply {
+        RewardedAd().apply {
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad) {

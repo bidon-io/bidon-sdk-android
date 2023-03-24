@@ -36,7 +36,6 @@ internal class GetAuctionRequestUseCaseImpl(
     )
 
     override suspend fun request(
-        placement: String,
         additionalData: AdTypeParam,
         auctionId: String,
         adapters: Map<String, AdapterInfo>,
@@ -44,7 +43,6 @@ internal class GetAuctionRequestUseCaseImpl(
         return withContext(SdkDispatchers.IO) {
             val (banner, interstitial, rewarded) = getData(additionalData)
             val adObject = AdObjectRequestBody(
-                placementId = placement,
                 auctionId = auctionId,
                 banner = banner,
                 interstitial = interstitial,

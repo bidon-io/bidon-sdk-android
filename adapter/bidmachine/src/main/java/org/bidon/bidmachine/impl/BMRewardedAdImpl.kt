@@ -165,7 +165,6 @@ internal class BMRewardedAdImpl(
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
-            .setPlacementId(demandAd.placement)
             .build()
             .also {
                 adRequest = it

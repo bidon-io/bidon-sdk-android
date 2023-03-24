@@ -37,7 +37,6 @@ import org.junit.Test
 
 private const val Applovin = "applovin"
 private const val Admob = "admob"
-internal const val PlacementId = "somePlacementId"
 
 @ExperimentalCoroutinesApi
 internal class AuctionImplTest : ConcurrentTest() {
@@ -133,7 +132,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
                 adapters = any()
@@ -220,7 +218,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
                 adapters = any()
@@ -280,7 +277,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
                 adapters = any()
@@ -327,7 +323,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
                 adapters = any()

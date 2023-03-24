@@ -9,7 +9,6 @@ import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.utils.networking.NetworkSettings
 
 object BidonSdk {
-    const val DefaultPlacement = "default"
     const val DefaultPricefloor = 0.0
     const val SdkVersion = BuildConfig.ADAPTER_VERSION
 
