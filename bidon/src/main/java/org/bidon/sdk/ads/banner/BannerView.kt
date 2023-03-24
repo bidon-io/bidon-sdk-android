@@ -240,7 +240,6 @@ class BannerView(
                         val ad = requireNotNull(winner.adSource.ad) {
                             "[Ad] should exist when an Action succeeds"
                         }
-                        listener.onAuctionSuccess(action.auctionResults)
                         listener.onAdLoaded(ad)
                         LoadState.Loaded(winner)
                     }
@@ -248,7 +247,6 @@ class BannerView(
                         /**
                          * Auction failed
                          */
-                        listener.onAuctionFailed(cause = action.cause)
                         listener.onAdLoadFailed(cause = action.cause)
                         launchLoadingRefreshIfNeeded()
                         LoadState.Idle
@@ -391,7 +389,6 @@ class BannerView(
     private fun startAuction(
         pricefloor: Double
     ) {
-        listener.onAuctionStarted()
         scope.launch {
             get<Auction>().start(
                 demandAd = demandAd,
@@ -401,7 +398,6 @@ class BannerView(
                     adContainer = this@BannerView,
                     pricefloor = pricefloor
                 ),
-                roundsListener = listener
             ).onSuccess { auctionResults ->
                 sendAction(LoadAction.OnAuctionSucceed(auctionResults))
             }.onFailure {

@@ -12,8 +12,6 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
-import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.RoundsListener
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -143,13 +141,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         // WHEN 2 rounds are completed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            roundsListener = object : RoundsListener {
-                override fun onRoundStarted(roundId: String, pricefloor: Double) {}
-                override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {}
-                override fun onRoundFailed(roundId: String, cause: BidonError) {
-                    error("unexpected")
-                }
-            },
             adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
             resolver = MaxEcpmAuctionResolver
         ).onSuccess { auctionResults ->
@@ -230,11 +221,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         // WHEN 2 rounds are completed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            roundsListener = object : RoundsListener {
-                override fun onRoundStarted(roundId: String, pricefloor: Double) {}
-                override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {}
-                override fun onRoundFailed(roundId: String, cause: BidonError) {}
-            },
             adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
             resolver = MaxEcpmAuctionResolver
         ).onSuccess { auctionResults ->
@@ -290,11 +276,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         // WHEN all bids failed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            roundsListener = object : RoundsListener {
-                override fun onRoundStarted(roundId: String, pricefloor: Double) {}
-                override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {}
-                override fun onRoundFailed(roundId: String, cause: BidonError) {}
-            },
             adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
             resolver = MaxEcpmAuctionResolver
         ).onSuccess {
@@ -337,11 +318,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         // WHEN all fills failed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            roundsListener = object : RoundsListener {
-                override fun onRoundStarted(roundId: String, pricefloor: Double) {}
-                override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {}
-                override fun onRoundFailed(roundId: String, cause: BidonError) {}
-            },
             adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
             resolver = MaxEcpmAuctionResolver
         ).onSuccess {
