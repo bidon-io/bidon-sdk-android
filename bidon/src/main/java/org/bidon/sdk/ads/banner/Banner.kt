@@ -83,7 +83,6 @@ class Banner @JvmOverloads constructor(
             this.pricefloor = pricefloor
             logInfo(Tag, "Load (pricefloor=$pricefloor)")
             scope.launch {
-                listener.onAuctionStarted()
                 auction.start(
                     demandAd = demandAd,
                     resolver = MaxEcpmAuctionResolver,
@@ -92,7 +91,6 @@ class Banner @JvmOverloads constructor(
                         bannerFormat = bannerFormat,
                         adContainer = this@Banner
                     ),
-                    roundsListener = listener
                 ).onSuccess { auctionResults ->
                     /**
                      * Winner found
@@ -101,7 +99,6 @@ class Banner @JvmOverloads constructor(
                         winner = it
                     }
                     subscribeToWinner(winner.adSource)
-                    listener.onAuctionSuccess(auctionResults)
                     listener.onAdLoaded(
                         requireNotNull(winner.adSource.ad) {
                             "[Ad] should exist when action succeeds"
@@ -111,7 +108,6 @@ class Banner @JvmOverloads constructor(
                     /**
                      * Auction failed
                      */
-                    listener.onAuctionFailed(cause = it.asUnspecified())
                     listener.onAdLoadFailed(cause = it.asUnspecified())
                 }
             }

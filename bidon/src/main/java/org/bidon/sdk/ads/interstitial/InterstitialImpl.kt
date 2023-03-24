@@ -13,7 +13,6 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -30,7 +29,7 @@ internal class InterstitialImpl(
     private var observeCallbacksJob: Job? = null
     private val auctionHolder: AuctionHolder by lazy {
         get {
-            params(demandAd, listener)
+            params(demandAd)
         }
     }
     private val listener by lazy {
@@ -52,7 +51,6 @@ internal class InterstitialImpl(
         }
         logInfo(Tag, "Load (pricefloor=$pricefloor)")
         if (!auctionHolder.isActive) {
-            listener.onAuctionStarted()
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Interstitial(
                     activity = activity,
@@ -66,7 +64,6 @@ internal class InterstitialImpl(
                              */
                             val winner = auctionResults.first()
                             subscribeToWinner(winner.adSource)
-                            listener.onAuctionSuccess(auctionResults)
                             listener.onAdLoaded(
                                 requireNotNull(winner.adSource.ad) {
                                     "[Ad] should exist when action succeeds"
@@ -76,7 +73,6 @@ internal class InterstitialImpl(
                             /**
                              * Auction failed
                              */
-                            listener.onAuctionFailed(cause = it.asUnspecified())
                             listener.onAdLoadFailed(cause = it.asUnspecified())
                         }
                 }
@@ -183,30 +179,6 @@ internal class InterstitialImpl(
 
         override fun onAdExpired(ad: Ad) {
             userListener?.onAdExpired(ad)
-        }
-
-        override fun onAuctionStarted() {
-            userListener?.onAuctionStarted()
-        }
-
-        override fun onAuctionSuccess(auctionResults: List<AuctionResult>) {
-            userListener?.onAuctionSuccess(auctionResults)
-        }
-
-        override fun onAuctionFailed(cause: BidonError) {
-            userListener?.onAuctionFailed(cause)
-        }
-
-        override fun onRoundStarted(roundId: String, pricefloor: Double) {
-            userListener?.onRoundStarted(roundId, pricefloor)
-        }
-
-        override fun onRoundSucceed(roundId: String, roundResults: List<AuctionResult>) {
-            userListener?.onRoundSucceed(roundId, roundResults)
-        }
-
-        override fun onRoundFailed(roundId: String, cause: BidonError) {
-            userListener?.onRoundFailed(roundId, cause)
         }
 
         override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
