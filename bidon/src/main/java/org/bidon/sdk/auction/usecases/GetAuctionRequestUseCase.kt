@@ -1,6 +1,7 @@
 package org.bidon.sdk.auction.usecases
 
 import org.bidon.sdk.adapter.AdapterInfo
+import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResponse
 /**
@@ -10,6 +11,7 @@ internal interface GetAuctionRequestUseCase {
     suspend fun request(
         additionalData: AdTypeParam,
         auctionId: String,
+        demandAd: DemandAd,
         adapters: Map<String, AdapterInfo>,
     ): Result<AuctionResponse>
 }

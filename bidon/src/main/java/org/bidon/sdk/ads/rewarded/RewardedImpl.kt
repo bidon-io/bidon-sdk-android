@@ -10,6 +10,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.Extras
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
@@ -17,18 +18,17 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.di.get
 
 internal class RewardedImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-) : Rewarded {
+    private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
+) : Rewarded, Extras by demandAd {
 
-    private val demandAd by lazy {
-        DemandAd(AdType.Rewarded)
-    }
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
     private val auctionHolder: AuctionHolder by lazy {
-        org.bidon.sdk.utils.di.get { params(demandAd) }
+        get { params(demandAd) }
     }
     private val listener by lazy {
         getRewardedListener()
@@ -59,7 +59,7 @@ internal class RewardedImpl(
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Rewarded(
                     activity = activity,
-                    pricefloor = pricefloor
+                    pricefloor = pricefloor,
                 ),
                 onResult = { result ->
                     result

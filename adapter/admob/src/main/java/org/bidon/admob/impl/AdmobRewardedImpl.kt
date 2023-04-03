@@ -41,7 +41,8 @@ internal class AdmobRewardedImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private val dispatcher: CoroutineDispatcher = SdkDispatchers.Main

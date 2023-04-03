@@ -2,6 +2,7 @@ package org.bidon.sdk.stats.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.models.BannerRequestBody
@@ -25,6 +26,7 @@ class StatisticsCollectorImpl(
     auctionId: String,
     roundId: String,
     demandId: DemandId,
+    private val demandAd: DemandAd
 ) : StatisticsCollector {
 
     private var auctionConfigurationId: Int = 0
@@ -65,7 +67,8 @@ class StatisticsCollectorImpl(
                 sendImpression(
                     urlPath = "$key/$lastSegment",
                     bodyKey = "show",
-                    body = createImpressionRequestBody(adType)
+                    body = createImpressionRequestBody(adType),
+                    extras = demandAd.getExtras()
                 )
             }
         }
@@ -79,7 +82,8 @@ class StatisticsCollectorImpl(
                 sendImpression(
                     urlPath = "$key/$lastSegment",
                     bodyKey = "show",
-                    body = createImpressionRequestBody(adType)
+                    body = createImpressionRequestBody(adType),
+                    extras = demandAd.getExtras()
                 )
             }
         }
@@ -93,7 +97,8 @@ class StatisticsCollectorImpl(
                 sendImpression(
                     urlPath = "$key/$lastSegment",
                     bodyKey = "show",
-                    body = createImpressionRequestBody(StatisticsCollector.AdType.Rewarded)
+                    body = createImpressionRequestBody(StatisticsCollector.AdType.Rewarded),
+                    extras = demandAd.getExtras()
                 )
             }
         }

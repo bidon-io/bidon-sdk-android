@@ -16,6 +16,7 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.Extras
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.auction.AdTypeParam
@@ -35,9 +36,11 @@ class Banner @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     @AttrRes defStyleAtt: Int = 0,
-) : FrameLayout(context, attrs, defStyleAtt), BannerAd {
+    private val demandAd: DemandAd = DemandAd(AdType.Banner),
+) : FrameLayout(context, attrs, defStyleAtt),
+    BannerAd,
+    Extras by demandAd {
 
-    private val demandAd by lazy { DemandAd(AdType.Banner) }
     private var bannerFormat: BannerFormat = BannerFormat.Banner
     private var pricefloor: Double = BidonSdk.DefaultPricefloor
 
@@ -89,7 +92,7 @@ class Banner @JvmOverloads constructor(
                     adTypeParamData = AdTypeParam.Banner(
                         pricefloor = pricefloor,
                         bannerFormat = bannerFormat,
-                        adContainer = this@Banner
+                        adContainer = this@Banner,
                     ),
                 ).onSuccess { auctionResults ->
                     /**

@@ -48,6 +48,9 @@ fun RewardedScreen(
 
     val rewardedAd by lazy {
         RewardedAd().apply {
+            addExtra("some_extra_int", 321)
+            addExtra("some_extra_data", "rewarded+some_value")
+
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad) {

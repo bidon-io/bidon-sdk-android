@@ -34,7 +34,12 @@ internal class UnityAdsInterstitial(
     private val roundId: String,
     private val auctionId: String,
 ) : AdSource.Interstitial<UnityAdsAuctionParams>,
-    StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId) {
+    StatisticsCollector by StatisticsCollectorImpl(
+        auctionId = auctionId,
+        roundId = roundId,
+        demandId = demandId,
+        demandAd = demandAd
+    ) {
 
     private val dispatcher: CoroutineDispatcher = SdkDispatchers.Main
     private var lineItem: LineItem? = null

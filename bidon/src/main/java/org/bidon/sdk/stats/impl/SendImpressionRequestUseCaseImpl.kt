@@ -34,11 +34,13 @@ internal class SendImpressionRequestUseCaseImpl(
         urlPath: String,
         bodyKey: String,
         body: ImpressionRequestBody,
+        extras: Map<String, Any>
     ): Result<BaseResponse> = withContext(SdkDispatchers.IO) {
         val requestBody = createRequestBody.invoke(
             binders = binders,
             dataKeyName = bodyKey,
             data = body,
+            extras = extras
         )
         logInfo(Tag, "Request body: $requestBody")
 

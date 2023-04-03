@@ -7,8 +7,7 @@ import org.bidon.sdk.utils.serializer.Serializable
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  *
- * [orientationCode] is a [Orientation.code]
- * [BannerRequestBody.formatCode] is a [BannerRequestBody.StatFormat.code]
+ * @param [orientationCode] is a [Orientation.code]*
  */
 internal data class AdObjectRequestBody(
     @field:JsonName("orientation")

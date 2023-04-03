@@ -38,7 +38,8 @@ internal class ApplovinBannerImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var adView: AppLovinAdView? = null

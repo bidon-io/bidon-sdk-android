@@ -10,6 +10,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.Extras
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
@@ -21,10 +22,8 @@ import org.bidon.sdk.utils.di.get
 
 internal class InterstitialImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-) : Interstitial {
-    private val demandAd by lazy {
-        DemandAd(AdType.Interstitial)
-    }
+    private val demandAd: DemandAd = DemandAd(AdType.Interstitial)
+) : Interstitial, Extras by demandAd {
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
     private val auctionHolder: AuctionHolder by lazy {
@@ -54,7 +53,7 @@ internal class InterstitialImpl(
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Interstitial(
                     activity = activity,
-                    pricefloor = pricefloor
+                    pricefloor = pricefloor,
                 ),
                 onResult = { result ->
                     result

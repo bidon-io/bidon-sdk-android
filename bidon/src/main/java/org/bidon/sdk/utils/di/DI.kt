@@ -5,6 +5,8 @@ import android.content.Context
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
+import org.bidon.sdk.ads.Extras
+import org.bidon.sdk.ads.ExtrasImpl
 import org.bidon.sdk.ads.banner.helper.CountDownTimer
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
@@ -192,6 +194,7 @@ internal object DI {
                     segmentBinder = SegmentBinder(dataSource = get()),
                 )
             }
+            factory<Extras> { ExtrasImpl() }
         }
     }
 }

@@ -36,7 +36,8 @@ internal class ApplovinInterstitialImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var applovinAd: AppLovinAd? = null

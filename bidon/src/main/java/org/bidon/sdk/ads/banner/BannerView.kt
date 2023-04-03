@@ -35,19 +35,6 @@ import org.bidon.sdk.utils.di.get
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
-interface BannerAd {
-    fun setBannerFormat(bannerFormat: BannerFormat)
-    fun loadAd(pricefloor: Double = DefaultPricefloor)
-
-    /**
-     * Shows if banner is ready to show
-     */
-    fun isReady(): Boolean
-    fun showAd()
-    fun destroyAd()
-    fun setBannerListener(listener: BannerListener)
-}
-
 @Deprecated("Use Banner")
 class BannerView(
     context: Context,
@@ -384,7 +371,7 @@ class BannerView(
                 adTypeParamData = AdTypeParam.Banner(
                     bannerFormat = bannerFormat,
                     adContainer = this@BannerView,
-                    pricefloor = pricefloor
+                    pricefloor = pricefloor,
                 ),
             ).onSuccess { auctionResults ->
                 sendAction(LoadAction.OnAuctionSucceed(auctionResults))

@@ -107,6 +107,9 @@ fun InterstitialScreen(
                     if (pricefloor == null) {
                         pricefloorState.value = BidonSdk.DefaultPricefloor.toString()
                     }
+                    interstitial.addExtra("some_extra_obj", interstitial)
+                    interstitial.addExtra("some_extra_int", 123)
+                    interstitial.addExtra("some_extra_data", "some_value")
                     interstitial.loadAd(activity, pricefloor = pricefloor ?: BidonSdk.DefaultPricefloor)
                 }
                 Body1Text(

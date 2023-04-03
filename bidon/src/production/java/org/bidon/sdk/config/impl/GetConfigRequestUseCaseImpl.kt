@@ -37,6 +37,7 @@ internal class GetConfigRequestUseCaseImpl(
                 binders = binders,
                 dataKeyName = null,
                 data = null,
+                extras = emptyMap()
             )
             val requestBody = jsonObject(putTo = bindersData) {
                 "adapters" hasValue jsonObject {
@@ -49,9 +50,6 @@ internal class GetConfigRequestUseCaseImpl(
                 path = ConfigRequestPath,
                 body = requestBody,
             ).mapCatching { jsonString ->
-                /**
-                 * Save "segment_id"
-                 */
                 /**
                  * Save "segment_id"
                  */
