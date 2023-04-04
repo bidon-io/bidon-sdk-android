@@ -7,7 +7,7 @@ import org.bidon.sdk.BuildConfig
  */
 
 object BidonVersion {
-    var version: String = BuildConfig.ADAPTER_VERSION
+    const val adapterVersion: String = BuildConfig.ADAPTER_VERSION
     var frameworkName = "android"
     var frameworkVersion: String? = null
     var engineVersion: String? = null

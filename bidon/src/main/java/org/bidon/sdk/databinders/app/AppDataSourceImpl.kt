@@ -30,7 +30,7 @@ internal class AppDataSourceImpl(
     override fun getFramework(): String = BidonVersion.frameworkName
     override fun getFrameworkVersion(): String? = BidonVersion.frameworkVersion
     override fun getPluginVersion(): String? = BidonVersion.engineVersion
-    override fun getVersion(): String = BidonVersion.version
+    override fun getVersion(): String = getPackageInfo(context)?.versionName ?: ""
 
     private fun getPackageInfo(context: Context): PackageInfo? {
         var packageInfo: PackageInfo? = null
