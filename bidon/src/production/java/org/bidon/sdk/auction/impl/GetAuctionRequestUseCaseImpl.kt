@@ -1,6 +1,7 @@
 package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.withContext
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
@@ -56,7 +57,7 @@ internal class GetAuctionRequestUseCaseImpl(
                 binders = binders,
                 dataKeyName = "ad_object",
                 data = adObject,
-                extras = demandAd.getExtras()
+                extras = BidonSdk.getExtras() + demandAd.getExtras()
             )
             logInfo(Tag, "Request body: $requestBody")
             get<JsonHttpRequest>().invoke(

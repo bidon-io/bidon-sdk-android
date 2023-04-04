@@ -1,6 +1,7 @@
 package org.bidon.sdk.stats.impl
 
 import kotlinx.coroutines.withContext
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -36,11 +37,11 @@ internal class SendImpressionRequestUseCaseImpl(
         body: ImpressionRequestBody,
         extras: Map<String, Any>
     ): Result<BaseResponse> = withContext(SdkDispatchers.IO) {
-        val requestBody = createRequestBody.invoke(
+        val requestBody = createRequestBody(
             binders = binders,
             dataKeyName = bodyKey,
             data = body,
-            extras = extras
+            extras = BidonSdk.getExtras() + extras
         )
         logInfo(Tag, "Request body: $requestBody")
 

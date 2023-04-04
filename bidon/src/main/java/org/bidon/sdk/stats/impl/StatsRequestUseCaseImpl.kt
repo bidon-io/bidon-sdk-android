@@ -1,6 +1,7 @@
 package org.bidon.sdk.stats.impl
 
 import kotlinx.coroutines.withContext
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
@@ -46,7 +47,7 @@ internal class StatsRequestUseCaseImpl(
                 binders = binders,
                 dataKeyName = "stats",
                 data = body,
-                extras = demandAd.getExtras()
+                extras = BidonSdk.getExtras() + demandAd.getExtras()
             )
             logInfo(Tag, "$requestBody")
             get<JsonHttpRequest>().invoke(

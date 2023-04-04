@@ -24,14 +24,14 @@ internal class CreateRequestBodyUseCaseImpl(
             .takeIf { it.isNotEmpty() }
             ?.let { dataProvider.provide(binders) }
         return jsonObject {
+            bindData?.forEach { (key, jsonElement) ->
+                key hasValue jsonElement
+            }
             if (extras.isNotEmpty()) {
                 "ext" hasValue JSONObject(extras).toString()
             }
             if (data != null && dataKeyName != null) {
                 dataKeyName hasValue data.serialize()
-            }
-            bindData?.forEach { (key, jsonElement) ->
-                key hasValue jsonElement
             }
         }.also {
             logInfo(Tag, "$it")

@@ -1,6 +1,7 @@
 package org.bidon.sdk.databinders.extras
 
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.logs.logging.impl.logInfo
 
 internal class ExtrasImpl : Extras {
 
@@ -12,6 +13,7 @@ internal class ExtrasImpl : Extras {
         } else {
             extras.remove(key)
         }
+        logInfo(Tag, "Extras updated: $extras")
     }
 
     override fun getExtras(): Map<String, Any> = extras.toMap()

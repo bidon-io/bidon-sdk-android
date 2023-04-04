@@ -79,6 +79,7 @@ internal class CreateRequestBodyUseCaseImplTest : ConcurrentTest() {
 
         // THEN it should serialize ext
         assertThat(actual.has("ext")).isTrue()
+        println(actual)
         assertThat(actual.getString("ext")).isEqualTo(
             """
             {"key1":100500,"key2":"asd"}
