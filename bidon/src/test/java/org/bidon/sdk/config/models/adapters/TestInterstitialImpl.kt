@@ -21,11 +21,11 @@ internal class TestInterstitialImpl(
     private val auctionId: String,
     private val roundId: String,
     private val testParameters: TestAdapterParameters,
+    private val demandAd: DemandAd = DemandAd(AdType.Interstitial),
 ) : AdSource.Interstitial<TestInterstitialParameters>,
-    StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId) {
+    StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId, demandAd) {
 
     private lateinit var adParams: TestInterstitialParameters
-    private val demandAd = DemandAd(adType = AdType.Interstitial)
 
     override val ad: Ad
         get() = Ad(
