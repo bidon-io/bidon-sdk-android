@@ -28,6 +28,8 @@ import org.bidon.sdk.databinders.app.AppDataSourceImpl
 import org.bidon.sdk.databinders.device.DeviceBinder
 import org.bidon.sdk.databinders.device.DeviceDataSource
 import org.bidon.sdk.databinders.device.DeviceDataSourceImpl
+import org.bidon.sdk.databinders.extras.Extras
+import org.bidon.sdk.databinders.extras.ExtrasImpl
 import org.bidon.sdk.databinders.geo.GeoBinder
 import org.bidon.sdk.databinders.location.LocationDataSource
 import org.bidon.sdk.databinders.location.LocationDataSourceImpl
@@ -192,6 +194,7 @@ internal object DI {
                     segmentBinder = SegmentBinder(dataSource = get()),
                 )
             }
+            factory<Extras> { ExtrasImpl() }
         }
     }
 }

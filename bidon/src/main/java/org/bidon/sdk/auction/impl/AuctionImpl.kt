@@ -51,9 +51,9 @@ internal class AuctionImpl(
             logInfo(Tag, "Action started $this")
             // Request for Auction-data at /auction
             getAuctionRequest.request(
-                placement = demandAd.placement,
                 additionalData = adTypeParamData,
                 auctionId = UUID.randomUUID().toString(),
+                demandAd = demandAd,
                 adapters = adaptersSource.adapters.associate {
                     it.demandId.demandId to it.adapterInfo
                 }
@@ -86,7 +86,7 @@ internal class AuctionImpl(
 
                 // Finish auction
                 state.value = AuctionState.Finished
-                sendStatsAsync(demandAd.adType)
+                sendStatsAsync(demandAd)
             }.getOrThrow()
         }
         state.first { it == AuctionState.Finished }
@@ -276,7 +276,7 @@ internal class AuctionImpl(
         statsRound.add(roundStat)
     }
 
-    private suspend fun sendStatsAsync(adType: AdType) {
+    private suspend fun sendStatsAsync(demandAd: DemandAd) {
         coroutineScope {
             launch(SdkDispatchers.Default) {
                 val bidStats = statsAuctionResults.map {
@@ -312,7 +312,7 @@ internal class AuctionImpl(
                             }
                         )
                     },
-                    adType = adType
+                    demandAd = demandAd
                 )
                 statsRound.clear()
             }

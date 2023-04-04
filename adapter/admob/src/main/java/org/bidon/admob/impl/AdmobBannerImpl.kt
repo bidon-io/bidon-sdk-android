@@ -42,6 +42,7 @@ internal class AdmobBannerImpl(
         auctionId = auctionId,
         roundId = roundId,
         demandId = demandId,
+        demandAd = demandAd
     ) {
 
     override val ad: Ad?

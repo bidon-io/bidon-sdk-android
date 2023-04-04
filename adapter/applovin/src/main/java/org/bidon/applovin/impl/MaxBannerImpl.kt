@@ -40,7 +40,8 @@ internal class MaxBannerImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var maxAdView: MaxAdView? = null
@@ -176,7 +177,6 @@ internal class MaxBannerImpl(
         }
         maxAdView.apply {
             setListener(maxAdListener)
-            placement = demandAd.placement
             /**
              * AutoRefresher.kt provides auto-refresh
              */

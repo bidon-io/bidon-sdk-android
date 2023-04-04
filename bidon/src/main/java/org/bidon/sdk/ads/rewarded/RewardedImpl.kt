@@ -14,22 +14,21 @@ import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.di.get
 
 internal class RewardedImpl(
-    override val placementId: String,
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-) : Rewarded {
+    private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
+) : Rewarded, Extras by demandAd {
 
-    private val demandAd by lazy {
-        DemandAd(AdType.Rewarded, placementId)
-    }
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
     private val auctionHolder: AuctionHolder by lazy {
-        org.bidon.sdk.utils.di.get { params(demandAd) }
+        get { params(demandAd) }
     }
     private val listener by lazy {
         getRewardedListener()
@@ -52,7 +51,7 @@ internal class RewardedImpl(
             logInfo(Tag, "Ad is loaded and available to show.")
             return
         }
-        logInfo(Tag, "Load with placement: $placementId")
+        logInfo(Tag, "Load (pricefloor=$pricefloor)")
         observeCallbacksJob?.cancel()
         observeCallbacksJob = null
 
@@ -60,7 +59,7 @@ internal class RewardedImpl(
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Rewarded(
                     activity = activity,
-                    pricefloor = pricefloor
+                    pricefloor = pricefloor,
                 ),
                 onResult = { result ->
                     result
@@ -84,7 +83,7 @@ internal class RewardedImpl(
                 }
             )
         } else {
-            logInfo(Tag, "Auction already in progress. Placement: $placementId.")
+            logInfo(Tag, "Auction already in progress")
         }
     }
 
@@ -94,7 +93,7 @@ internal class RewardedImpl(
             listener.onAdShowFailed(BidonError.SdkNotInitialized)
             return
         }
-        logInfo(Tag, "Show with placement: $placementId")
+        logInfo(Tag, "Show")
         if (auctionHolder.isActive) {
             logInfo(Tag, "Show failed. Auction in progress.")
             listener.onAdShowFailed(BidonError.FullscreenAdNotReady)

@@ -117,7 +117,6 @@ fun BannerScreen(navController: NavHostController) {
                 AppButton(text = "Create") {
                     banner.value = Banner(
                         context = context,
-                        placementId = "some_placement_id"
                     ).apply {
                         setBannerFormat(bannerFormat.value)
                         setBannerListener(

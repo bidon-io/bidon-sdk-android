@@ -35,7 +35,8 @@ internal class ApplovinRewardedImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var rewardedAd: AppLovinIncentivizedInterstitial? = null

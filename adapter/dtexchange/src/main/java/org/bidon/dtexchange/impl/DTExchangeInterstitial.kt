@@ -31,7 +31,8 @@ internal class DTExchangeInterstitial(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var auctionParams: DTExchangeAdAuctionParams? = null

@@ -28,14 +28,16 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
+import org.bidon.sdk.utils.di.DI
+import org.bidon.sdk.utils.di.SimpleDiStorage
 import org.bidon.sdk.utils.ext.asSuccess
 import org.bidon.sdk.utils.networking.BaseResponse
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 private const val Applovin = "applovin"
 private const val Admob = "admob"
-internal const val PlacementId = "somePlacementId"
 
 @ExperimentalCoroutinesApi
 internal class AuctionImplTest : ConcurrentTest() {
@@ -56,6 +58,8 @@ internal class AuctionImplTest : ConcurrentTest() {
 
     @Before
     fun before() {
+        DI.init(activity)
+        DI.setFactories()
         mockkStatic(Log::class)
         mockkStatic(::logInfo)
         every { logInfo(any(), any()) } returns Unit
@@ -66,12 +70,17 @@ internal class AuctionImplTest : ConcurrentTest() {
                 auctionId = any(),
                 auctionConfigurationId = any(),
                 results = any(),
-                adType = any()
+                demandAd = any()
             )
         } returns BaseResponse(
             success = true,
             error = null
         ).asSuccess()
+    }
+
+    @After
+    fun after() {
+        SimpleDiStorage.instances.clear()
     }
 
     @Test
@@ -131,10 +140,10 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
-                adapters = any()
+                adapters = any(),
+                demandAd = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -155,15 +164,17 @@ internal class AuctionImplTest : ConcurrentTest() {
             assertThat(winnerAd.roundId).isEqualTo("round_2")
             assertThat(winner.ecpm).isEqualTo(2.2235)
             val roundStat = slot<List<RoundStat>>()
+            val demandAd = slot<DemandAd>()
             // AND CHECK STAT REQUEST
             coVerify(exactly = 1) {
                 statsRequestUseCase.invoke(
                     auctionId = "auctionId_123",
                     auctionConfigurationId = 10,
                     results = capture(roundStat),
-                    adType = AdType.Interstitial,
+                    demandAd = capture(demandAd),
                 )
             }
+            assertThat(demandAd.captured.adType).isEqualTo(AdType.Interstitial)
             val actualRoundStat = roundStat.captured
             // LOSERS
             assertThat(actualRoundStat[0].auctionId).isEqualTo("auctionId_123")
@@ -211,10 +222,10 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
-                adapters = any()
+                adapters = any(),
+                demandAd = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -266,10 +277,10 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
-                adapters = any()
+                adapters = any(),
+                demandAd = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -308,10 +319,10 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                placement = any(),
                 additionalData = any(),
                 auctionId = any(),
-                adapters = any()
+                adapters = any(),
+                demandAd = any()
             )
         } returns auctionConfig.asSuccess()
 

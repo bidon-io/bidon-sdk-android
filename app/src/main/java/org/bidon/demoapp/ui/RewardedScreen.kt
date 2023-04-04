@@ -2,10 +2,12 @@ package org.bidon.demoapp.ui
 
 import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -18,10 +20,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
-import org.bidon.demoapp.component.AppButton
+import org.bidon.demoapp.component.*
 import org.bidon.demoapp.component.AppToolbar
-import org.bidon.demoapp.component.Body1Text
-import org.bidon.demoapp.component.Body2Text
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.rewarded.Reward
@@ -47,7 +47,7 @@ fun RewardedScreen(
     }
 
     val rewardedAd by lazy {
-        RewardedAd("some_placement_id").apply {
+        RewardedAd().apply {
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad) {
@@ -102,22 +102,13 @@ fun RewardedScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 24.dp, end = 24.dp, top = 24.dp)
+                .padding(start = 24.dp, end = 24.dp, top = 0.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                AppButton(text = "Load") {
-                    val minPrice = pricefloor.value.toDoubleOrNull()
-                    if (minPrice == null) {
-                        pricefloor.value = BidonSdk.DefaultPricefloor.toString()
-                    }
-                    rewardedAd.loadAd(activity, pricefloor = minPrice ?: BidonSdk.DefaultPricefloor)
-                }
-                Body1Text(
-                    text = "Pricefloor $", modifier = Modifier.padding(start = 16.dp)
-                )
+                Body1Text(text = "Pricefloor $")
                 BasicTextField(
                     value = pricefloor.value,
                     onValueChange = { newValue ->
@@ -128,18 +119,39 @@ fun RewardedScreen(
                         background = MaterialTheme.colorScheme.surface
                     ),
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .padding(horizontal = 4.dp),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     maxLines = 1
                 )
+                AppTextButton(
+                    text = "Add extras"
+                ) {
+                    rewardedAd.addExtra("some_extra_int", 321)
+                    rewardedAd.addExtra("some_extra_data", "rewarded+some_value")
+                }
             }
-            AppButton(text = "Show") {
-                rewardedAd.showAd(activity)
-            }
-            AppButton(text = "Destroy") {
-                rewardedAd.destroyAd()
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                AppButton(text = "Load") {
+                    val minPrice = pricefloor.value.toDoubleOrNull()
+                    if (minPrice == null) {
+                        pricefloor.value = BidonSdk.DefaultPricefloor.toString()
+                    }
+                    rewardedAd.loadAd(activity, pricefloor = minPrice ?: BidonSdk.DefaultPricefloor)
+                }
+                AppButton(
+                    modifier = Modifier.padding(start = 8.dp),
+                    text = "Show"
+                ) {
+                    rewardedAd.showAd(activity)
+                }
+                AppButton(
+                    modifier = Modifier.padding(start = 8.dp),
+                    text = "Destroy"
+                ) {
+                    rewardedAd.destroyAd()
+                }
             }
             LazyColumn(
                 modifier = Modifier

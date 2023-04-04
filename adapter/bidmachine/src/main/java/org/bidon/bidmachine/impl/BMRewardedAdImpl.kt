@@ -44,7 +44,8 @@ internal class BMRewardedAdImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
@@ -165,7 +166,6 @@ internal class BMRewardedAdImpl(
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
-            .setPlacementId(demandAd.placement)
             .build()
             .also {
                 adRequest = it

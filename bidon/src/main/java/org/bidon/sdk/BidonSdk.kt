@@ -5,11 +5,11 @@ import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.config.InitializationCallback
 import org.bidon.sdk.config.impl.Bidon
+import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.utils.networking.NetworkSettings
 
 object BidonSdk {
-    const val DefaultPlacement = "default"
     const val DefaultPricefloor = 0.0
     const val SdkVersion = BuildConfig.ADAPTER_VERSION
 
@@ -76,4 +76,22 @@ object BidonSdk {
 
     @JvmStatic
     fun initialize(activity: Activity, appKey: String) = bidon.initialize(activity, appKey)
+
+    /**
+     * Adding SDK-level extra data.
+     * @param key name of [Extras] data
+     * @param value value of extra data. Null removes data if exists.
+     *              Possible types are String, Int, Long, Double, Float, Boolean, Char
+     */
+    @JvmStatic
+    fun addExtra(key: String, value: Any?): BidonSdk {
+        bidon.addExtra(key, value)
+        return this
+    }
+
+    /**
+     * Obtaining SDK-level [Extras]
+     */
+    @JvmStatic
+    fun getExtras(): Map<String, Any> = bidon.getExtras()
 }

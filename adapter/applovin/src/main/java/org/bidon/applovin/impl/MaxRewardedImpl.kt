@@ -34,7 +34,8 @@ internal class MaxRewardedImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var rewardedAd: MaxRewardedAd? = null

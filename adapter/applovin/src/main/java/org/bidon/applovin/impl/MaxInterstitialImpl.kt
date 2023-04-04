@@ -33,7 +33,8 @@ internal class MaxInterstitialImpl(
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
-        demandId = demandId
+        demandId = demandId,
+        demandAd = demandAd,
     ) {
 
     private var interstitialAd: MaxInterstitialAd? = null
