@@ -1,7 +1,7 @@
 package org.bidon.sdk.adapter
 
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.Extras
+import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.utils.di.get
 
 /**

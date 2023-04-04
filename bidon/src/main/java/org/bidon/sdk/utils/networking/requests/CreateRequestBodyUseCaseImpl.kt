@@ -20,7 +20,9 @@ internal class CreateRequestBodyUseCaseImpl(
         data: T?,
         extras: Map<String, Any>
     ): JSONObject {
-        val bindData = dataProvider.provide(binders)
+        val bindData = binders
+            .takeIf { it.isNotEmpty() }
+            ?.let { dataProvider.provide(binders) }
         return jsonObject {
             if (extras.isNotEmpty()) {
                 "ext" hasValue JSONObject(extras).toString()
@@ -28,7 +30,7 @@ internal class CreateRequestBodyUseCaseImpl(
             if (data != null && dataKeyName != null) {
                 dataKeyName hasValue data.serialize()
             }
-            bindData.forEach { (key, jsonElement) ->
+            bindData?.forEach { (key, jsonElement) ->
                 key hasValue jsonElement
             }
         }.also {

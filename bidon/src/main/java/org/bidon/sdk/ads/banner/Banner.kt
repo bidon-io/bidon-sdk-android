@@ -16,7 +16,6 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.Extras
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.auction.AdTypeParam
@@ -24,6 +23,7 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get

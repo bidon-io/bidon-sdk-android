@@ -2,7 +2,7 @@ package org.bidon.sdk.ads.rewarded
 
 import android.app.Activity
 import org.bidon.sdk.BidonSdk.DefaultPricefloor
-import org.bidon.sdk.ads.Extras
+import org.bidon.sdk.databinders.extras.Extras
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
