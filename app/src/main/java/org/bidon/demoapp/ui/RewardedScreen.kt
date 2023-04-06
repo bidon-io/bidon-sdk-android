@@ -152,8 +152,10 @@ fun RewardedScreen(
                 ) {
                     rewardedAd.destroyAd()
                 }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 AppOutlinedButton(
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = 0.dp),
                     text = "Notify Loss"
                 ) {
                     rewardedAd.notifyLoss(
