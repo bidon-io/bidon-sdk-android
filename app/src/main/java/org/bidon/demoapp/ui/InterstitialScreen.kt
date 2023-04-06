@@ -148,6 +148,15 @@ fun InterstitialScreen(
                 ) {
                     interstitial.destroyAd()
                 }
+                AppOutlinedButton(
+                    modifier = Modifier.padding(start = 8.dp),
+                    text = "Notify Loss"
+                ) {
+                    interstitial.notifyLoss(
+                        winnerDemandId = "appodeal",
+                        winnerEcpm = 234.567
+                    )
+                }
             }
             LazyColumn(
                 modifier = Modifier

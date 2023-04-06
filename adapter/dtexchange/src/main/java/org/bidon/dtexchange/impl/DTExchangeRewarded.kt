@@ -91,7 +91,6 @@ internal class DTExchangeRewarded(
                 val ad = adSpot?.asAd() ?: return
                 adEvent.tryEmit(AdEvent.PaidRevenue(ad, adValue))
                 adEvent.tryEmit(AdEvent.Shown(ad))
-                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdImpression(adSpot: InneractiveAdSpot?) {
@@ -101,7 +100,6 @@ internal class DTExchangeRewarded(
                 adSpot?.asAd()?.let {
                     adEvent.tryEmit(AdEvent.Clicked(ad = it))
                 }
-                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdWillCloseInternalBrowser(adSpot: InneractiveAdSpot?) {

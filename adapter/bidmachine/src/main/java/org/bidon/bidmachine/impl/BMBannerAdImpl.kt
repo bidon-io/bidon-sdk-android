@@ -19,7 +19,6 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -111,18 +110,12 @@ internal class BMBannerAdImpl(
                         adValue = bannerView.auctionResult.asBidonAdValue()
                     )
                 )
-                bannerFormat?.let {
-                    sendShowImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
 
             override fun onAdClicked(bannerView: BannerView) {
                 logInfo(Tag, "onAdClicked: $this")
                 this@BMBannerAdImpl.bannerView = bannerView
                 adEvent.tryEmit(AdEvent.Clicked(bannerView.asAd()))
-                bannerFormat?.let {
-                    sendClickImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
 
             override fun onAdExpired(bannerView: BannerView) {

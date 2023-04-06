@@ -117,7 +117,6 @@ internal class AdmobRewardedImpl(
             override fun onAdClicked() {
                 logInfo(Tag, "onAdClicked: $this")
                 adEvent.tryEmit(AdEvent.Clicked(requiredRewardedAd.asAd()))
-                sendClickImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdDismissedFullScreenContent() {
@@ -133,7 +132,6 @@ internal class AdmobRewardedImpl(
             override fun onAdImpression() {
                 logInfo(Tag, "onAdShown: $this")
                 adEvent.tryEmit(AdEvent.Shown(requiredRewardedAd.asAd()))
-                sendShowImpression(StatisticsCollector.AdType.Rewarded)
             }
 
             override fun onAdShowedFullScreenContent() {}

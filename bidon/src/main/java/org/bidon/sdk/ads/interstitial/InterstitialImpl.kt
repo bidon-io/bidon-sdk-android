@@ -17,6 +17,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 
@@ -111,6 +112,12 @@ internal class InterstitialImpl(
         this.userListener = listener
     }
 
+    override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
+        auctionHolder.popWinner()?.sendLoss(winnerDemandId, winnerEcpm, StatisticsCollector.AdType.Interstitial)
+        destroyAd()
+    }
+
     override fun destroyAd() {
         scope.launch(Dispatchers.Main.immediate) {
             auctionHolder.destroy()
@@ -138,10 +145,12 @@ internal class InterstitialImpl(
                 }
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
+                    adSource.sendClickImpression(adType = StatisticsCollector.AdType.Interstitial)
                 }
                 is AdEvent.Closed -> listener.onAdClosed(adEvent.ad)
                 is AdEvent.Shown -> {
                     listener.onAdShown(adEvent.ad)
+                    adSource.sendShowImpression(adType = StatisticsCollector.AdType.Interstitial)
                 }
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)

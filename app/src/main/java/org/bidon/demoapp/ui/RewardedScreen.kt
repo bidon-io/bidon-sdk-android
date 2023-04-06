@@ -152,6 +152,15 @@ fun RewardedScreen(
                 ) {
                     rewardedAd.destroyAd()
                 }
+                AppOutlinedButton(
+                    modifier = Modifier.padding(start = 8.dp),
+                    text = "Notify Loss"
+                ) {
+                    rewardedAd.notifyLoss(
+                        winnerDemandId = "appodeal",
+                        winnerEcpm = 123.456
+                    )
+                }
             }
             LazyColumn(
                 modifier = Modifier

@@ -17,6 +17,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 
@@ -117,6 +118,12 @@ internal class RewardedImpl(
         this.userListener = listener
     }
 
+    override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
+        auctionHolder.popWinner()?.sendLoss(winnerDemandId, winnerEcpm, StatisticsCollector.AdType.Rewarded)
+        destroyAd()
+    }
+
     override fun destroyAd() {
         scope.launch(Dispatchers.Main.immediate) {
             auctionHolder.destroy()
@@ -137,10 +144,19 @@ internal class RewardedImpl(
                 is AdEvent.Fill -> {
                     // do nothing
                 }
-                is AdEvent.OnReward -> listener.onUserRewarded(adEvent.ad, adEvent.reward)
-                is AdEvent.Clicked -> listener.onAdClicked(adEvent.ad)
+                is AdEvent.OnReward -> {
+                    listener.onUserRewarded(adEvent.ad, adEvent.reward)
+                    adSource.sendRewardImpression()
+                }
+                is AdEvent.Clicked -> {
+                    listener.onAdClicked(adEvent.ad)
+                    adSource.sendClickImpression(adType = StatisticsCollector.AdType.Rewarded)
+                }
                 is AdEvent.Closed -> listener.onAdClosed(adEvent.ad)
-                is AdEvent.Shown -> listener.onAdShown(adEvent.ad)
+                is AdEvent.Shown -> {
+                    listener.onAdShown(adEvent.ad)
+                    adSource.sendShowImpression(adType = StatisticsCollector.AdType.Rewarded)
+                }
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
                 is AdEvent.LoadFailed -> listener.onAdLoadFailed(adEvent.cause)
