@@ -5,6 +5,7 @@ import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.config.InitializationCallback
 import org.bidon.sdk.config.impl.Bidon
+import org.bidon.sdk.databinders.app.UnitySpecificInfo
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.utils.networking.NetworkSettings
@@ -94,4 +95,31 @@ object BidonSdk {
      */
     @JvmStatic
     fun getExtras(): Map<String, Any> = bidon.getExtras()
+
+    /**
+     * Unity uses only
+     */
+    @JvmStatic
+    fun setFramework(framework: String): BidonSdk {
+        UnitySpecificInfo.frameworkName = framework
+        return this
+    }
+
+    /**
+     * Unity uses only
+     */
+    @JvmStatic
+    fun setFrameworkVersion(version: String): BidonSdk {
+        UnitySpecificInfo.frameworkVersion = version
+        return this
+    }
+
+    /**
+     * Unity uses only
+     */
+    @JvmStatic
+    fun setPluginVersion(version: String): BidonSdk {
+        UnitySpecificInfo.pluginVersion = version
+        return this
+    }
 }
