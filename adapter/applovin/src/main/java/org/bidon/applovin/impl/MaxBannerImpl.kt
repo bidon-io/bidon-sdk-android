@@ -19,7 +19,6 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -80,9 +79,6 @@ internal class MaxBannerImpl(
                         adValue = ad.asBidonAdValue()
                     )
                 )
-                bannerFormat?.let {
-                    sendShowImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
 
             override fun onAdHidden(ad: MaxAd) {
@@ -93,9 +89,6 @@ internal class MaxBannerImpl(
             override fun onAdClicked(ad: MaxAd) {
                 maxAd = ad
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
-                bannerFormat?.let {
-                    sendClickImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
 
             override fun onAdDisplayFailed(ad: MaxAd, error: MaxError) {

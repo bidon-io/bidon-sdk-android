@@ -83,7 +83,6 @@ internal class ApplovinInterstitialImpl(
                         adValue = lineItem?.pricefloor.asBidonAdValue()
                     )
                 )
-                sendShowImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun adHidden(ad: AppLovinAd) {
@@ -94,7 +93,6 @@ internal class ApplovinInterstitialImpl(
             override fun adClicked(ad: AppLovinAd) {
                 logInfo(Tag, "adClicked: $this")
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
-                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
         }
     }

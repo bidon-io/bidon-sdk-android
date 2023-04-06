@@ -13,6 +13,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.ImpressionRequestBody
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
+import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
@@ -37,6 +38,9 @@ class StatisticsCollectorImpl(
 
     private val sendImpression by lazy {
         get<SendImpressionRequestUseCase>()
+    }
+    private val sendLossRequest by lazy {
+        get<SendLossRequestUseCase>()
     }
 
     private val isShowSent = AtomicBoolean(false)
@@ -66,7 +70,7 @@ class StatisticsCollectorImpl(
                 val lastSegment = adType.asAdType().code
                 sendImpression(
                     urlPath = "$key/$lastSegment",
-                    bodyKey = "show",
+                    bodyKey = "bid",
                     body = createImpressionRequestBody(adType),
                     extras = demandAd.getExtras()
                 )
@@ -81,7 +85,7 @@ class StatisticsCollectorImpl(
                 val lastSegment = adType.asAdType().code
                 sendImpression(
                     urlPath = "$key/$lastSegment",
-                    bodyKey = "show",
+                    bodyKey = "bid",
                     body = createImpressionRequestBody(adType),
                     extras = demandAd.getExtras()
                 )
@@ -96,11 +100,23 @@ class StatisticsCollectorImpl(
                 val lastSegment = StatisticsCollector.AdType.Rewarded.asAdType().code
                 sendImpression(
                     urlPath = "$key/$lastSegment",
-                    bodyKey = "show",
+                    bodyKey = "bid",
                     body = createImpressionRequestBody(StatisticsCollector.AdType.Rewarded),
                     extras = demandAd.getExtras()
                 )
             }
+        }
+    }
+
+    override fun sendLoss(winnerDemandId: String, winnerEcpm: Double, adType: StatisticsCollector.AdType) {
+        scope.launch {
+            sendLossRequest.invoke(
+                winnerDemandId = winnerDemandId,
+                winnerEcpm = winnerEcpm,
+                demandAd = demandAd,
+                bodyKey = "bid",
+                body = createImpressionRequestBody(adType)
+            )
         }
     }
 

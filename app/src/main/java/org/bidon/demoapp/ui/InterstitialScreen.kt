@@ -149,6 +149,17 @@ fun InterstitialScreen(
                     interstitial.destroyAd()
                 }
             }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                AppOutlinedButton(
+                    modifier = Modifier.padding(start = 0.dp),
+                    text = "Notify Loss"
+                ) {
+                    interstitial.notifyLoss(
+                        winnerDemandId = "appodeal",
+                        winnerEcpm = 234.567
+                    )
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()

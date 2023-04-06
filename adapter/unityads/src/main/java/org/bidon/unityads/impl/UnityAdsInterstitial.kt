@@ -161,14 +161,12 @@ internal class UnityAdsInterstitial(
                             )
                         )
                     )
-                    sendShowImpression(StatisticsCollector.AdType.Interstitial)
                 }
             }
 
             override fun onUnityAdsShowClick(placementId: String?) {
                 logInfo(Tag, "onUnityAdsShowClick. placementId: $placementId")
                 ad?.let { adEvent.tryEmit(AdEvent.Clicked(it)) }
-                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onUnityAdsShowComplete(placementId: String?, state: UnityAds.UnityAdsShowCompletionState?) {

@@ -12,7 +12,6 @@ import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -80,9 +79,6 @@ internal class ApplovinBannerImpl(
                         adValue = param?.lineItem?.pricefloor.asBidonAdValue()
                     )
                 )
-                param?.bannerFormat?.let {
-                    sendShowImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
 
             override fun adHidden(ad: AppLovinAd) {
@@ -93,9 +89,6 @@ internal class ApplovinBannerImpl(
             override fun adClicked(ad: AppLovinAd) {
                 logInfo(Tag, "adClicked: $ad")
                 adEvent.tryEmit(AdEvent.Clicked(ad.asAd()))
-                param?.bannerFormat?.let {
-                    sendClickImpression(StatisticsCollector.AdType.Banner(format = it.asStatBannerFormat()))
-                }
             }
         }
     }

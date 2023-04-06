@@ -49,8 +49,10 @@ import org.bidon.sdk.databinders.user.UserDataSource
 import org.bidon.sdk.databinders.user.impl.AdvertisingDataImpl
 import org.bidon.sdk.databinders.user.impl.UserDataSourceImpl
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
+import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
+import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
@@ -195,6 +197,12 @@ internal object DI {
                 )
             }
             factory<Extras> { ExtrasImpl() }
+
+            factory<SendLossRequestUseCase> {
+                SendLossRequestUseCaseImpl(
+                    createRequestBody = get()
+                )
+            }
         }
     }
 }

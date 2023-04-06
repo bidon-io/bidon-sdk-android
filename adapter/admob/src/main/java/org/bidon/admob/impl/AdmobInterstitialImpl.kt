@@ -103,7 +103,6 @@ internal class AdmobInterstitialImpl(
             override fun onAdClicked() {
                 logInfo(Tag, "onAdClicked: $this")
                 adEvent.tryEmit(AdEvent.Clicked(requiredInterstitialAd.asAd()))
-                sendClickImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdDismissedFullScreenContent() {
@@ -119,7 +118,6 @@ internal class AdmobInterstitialImpl(
             override fun onAdImpression() {
                 logInfo(Tag, "onAdShown: $this")
                 adEvent.tryEmit(AdEvent.Shown(requiredInterstitialAd.asAd()))
-                sendShowImpression(StatisticsCollector.AdType.Interstitial)
             }
 
             override fun onAdShowedFullScreenContent() {}
