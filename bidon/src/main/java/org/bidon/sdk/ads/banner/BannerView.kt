@@ -106,6 +106,18 @@ class BannerView(
         this.userListener = listener
     }
 
+    override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        TODO("Not yet implemented")
+    }
+
+    override fun addExtra(key: String, value: Any?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun getExtras(): Map<String, Any> {
+        TODO("Not yet implemented")
+    }
+
     override fun isReady(): Boolean {
         TODO("Not yet implemented")
     }
@@ -192,17 +204,11 @@ class BannerView(
                                 LoadState.Loading
                             }
                             LoadState.Loading -> {
-                                logInfo(
-                                    Tag,
-                                    "Auction already in progress"
-                                )
+                                logInfo(Tag, "Auction already in progress")
                                 state
                             }
                             is LoadState.Loaded -> {
-                                logInfo(
-                                    Tag,
-                                    "Auction is completed and winner exists"
-                                )
+                                logInfo(Tag, "Auction is completed and winner exists")
                                 state
                             }
                         }
@@ -406,4 +412,3 @@ class BannerView(
 }
 
 private const val Tag = "BannerView"
-const val DefaultAutoRefreshTimeoutMs = 10_000L
