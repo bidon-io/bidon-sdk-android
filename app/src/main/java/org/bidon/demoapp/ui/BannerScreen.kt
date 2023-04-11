@@ -28,32 +28,29 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.Banner
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
-import org.bidon.sdk.auction.impl.ServerlessAuctionConfig
-import org.bidon.sdk.auction.models.LineItem
-import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 @Composable
 fun BannerScreen(navController: NavHostController) {
-    ServerlessAuctionConfig.setLocalAuctionResponse(
-        rounds = listOf(
-            Round(
-                id = "ROUND_1",
-                demandIds = listOf("admob"),
-                timeoutMs = 10000
-            )
-        ),
-        lineItems = listOf(
-            LineItem(
-                demandId = "admob",
-                pricefloor = 0.01,
-                adUnitId = "ca-app-pub-3940256099942544/6300978111"
-            )
-        ),
-        pricefloor = 0.0
-    )
+//    ServerlessAuctionConfig.setLocalAuctionResponse(
+//        rounds = listOf(
+//            Round(
+//                id = "ROUND_1",
+//                demandIds = listOf("admob"),
+//                timeoutMs = 10000
+//            )
+//        ),
+//        lineItems = listOf(
+//            LineItem(
+//                demandId = "admob",
+//                pricefloor = 0.01,
+//                adUnitId = "ca-app-pub-3940256099942544/6300978111"
+//            )
+//        ),
+//        pricefloor = 0.0
+//    )
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()

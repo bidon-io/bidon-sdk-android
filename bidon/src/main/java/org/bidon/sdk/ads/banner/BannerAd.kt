@@ -7,7 +7,7 @@ import org.bidon.sdk.stats.LossNotifier
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
-interface BannerAd: LossNotifier, Extras {
+interface BannerAd : LossNotifier, Extras {
     fun setBannerFormat(bannerFormat: BannerFormat)
     fun loadAd(pricefloor: Double = BidonSdk.DefaultPricefloor)
 
