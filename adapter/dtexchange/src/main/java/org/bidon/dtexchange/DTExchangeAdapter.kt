@@ -18,10 +18,13 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Created by Aleksei Cherniaev on 28/02/2023.
+ */
 val DTExchangeDemandId = DemandId("dtexchange")
 
 /**
- * Created by Aleksei Cherniaev on 28/02/2023.
+ * [Documentation](https://developer.digitalturbine.com/hc/en-us/articles/360019744297-Android-Ad-Formats)
  */
 class DTExchangeAdapter :
     Adapter,

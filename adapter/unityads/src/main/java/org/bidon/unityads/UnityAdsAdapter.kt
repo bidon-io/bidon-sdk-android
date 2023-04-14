@@ -9,7 +9,8 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.unityads.ext.adapterVersion
 import org.bidon.unityads.ext.asBidonError
 import org.bidon.unityads.ext.sdkVersion
-import org.bidon.unityads.impl.UnityAdsAuctionParams
+import org.bidon.unityads.impl.UnityAdsFullscreenAuctionParams
+import org.bidon.unityads.impl.UnityAdsBanner
 import org.bidon.unityads.impl.UnityAdsInterstitial
 import org.bidon.unityads.impl.UnityAdsRewarded
 import org.json.JSONObject
@@ -22,11 +23,15 @@ import kotlin.coroutines.resumeWithException
 
 internal val UnityAdsDemandId = DemandId("unityads")
 
+/**
+ * [Documentation](https://docs.unity.com/ads/en/manual/InitializingTheAndroidSDK)
+ */
 class UnityAdsAdapter :
     Adapter,
     Initializable<UnityAdsParameters>,
-    AdProvider.Interstitial<UnityAdsAuctionParams>,
-    AdProvider.Rewarded<UnityAdsAuctionParams> {
+    AdProvider.Banner<UnityAdsFullscreenAuctionParams>,
+    AdProvider.Interstitial<UnityAdsFullscreenAuctionParams>,
+    AdProvider.Rewarded<UnityAdsFullscreenAuctionParams> {
 
     override val demandId: DemandId = UnityAdsDemandId
     override val adapterInfo = AdapterInfo(
@@ -64,7 +69,7 @@ class UnityAdsAdapter :
         demandAd: DemandAd,
         roundId: String,
         auctionId: String
-    ): AdSource.Interstitial<UnityAdsAuctionParams> {
+    ): AdSource.Interstitial<UnityAdsFullscreenAuctionParams> {
         return UnityAdsInterstitial(
             demandId = demandId,
             demandAd = demandAd,
@@ -77,8 +82,21 @@ class UnityAdsAdapter :
         demandAd: DemandAd,
         roundId: String,
         auctionId: String
-    ): AdSource.Rewarded<UnityAdsAuctionParams> {
+    ): AdSource.Rewarded<UnityAdsFullscreenAuctionParams> {
         return UnityAdsRewarded(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
+        )
+    }
+
+    override fun banner(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Banner<UnityAdsFullscreenAuctionParams> {
+        return UnityAdsBanner(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,
