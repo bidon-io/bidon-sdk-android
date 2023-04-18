@@ -121,6 +121,7 @@ class Banner @JvmOverloads constructor(
             }
         } else {
             logInfo(Tag, "Auction already in progress")
+            userListener?.onAdLoadFailed(BidonError.AuctionInProgress)
         }
     }
 
@@ -132,11 +133,13 @@ class Banner @JvmOverloads constructor(
         logInfo(Tag, "ShowAd invoked")
         val adViewHolder = (winner?.adSource as? AdSource.Banner)?.getAdView() ?: run {
             LogLifecycleAdStateUseCase.invoke(adLifecycle = adLifecycleFlow.value)
+            userListener?.onAdLoadFailed(BidonError.BannerAdNotReady)
             return
         }
         val isLoaded = adLifecycleFlow.compareAndSet(expect = AdLifecycle.Loaded, update = AdLifecycle.Displaying)
         if (!isLoaded) {
             LogLifecycleAdStateUseCase.invoke(adLifecycle = adLifecycleFlow.value)
+            userListener?.onAdLoadFailed(BidonError.BannerAdNotReady)
             return
         }
         // add AdView to Screen

@@ -85,11 +85,10 @@ internal class DTExchangeBanner(
                 override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
                     logInfo(Tag, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                     this@DTExchangeBanner.adSpot = inneractiveAdSpot
-                    val ecpm = adParams.lineItem.pricefloor
                     adEvent.tryEmit(
                         AdEvent.Bid(
                             AuctionResult(
-                                ecpm = ecpm,
+                                ecpm = adParams.lineItem.pricefloor,
                                 adSource = this@DTExchangeBanner,
                                 roundStatus = RoundStatus.Successful
                             )
@@ -140,7 +139,6 @@ internal class DTExchangeBanner(
         val controller = adSpot?.selectedUnitController as InneractiveAdViewUnitController
         // set to new container, because DTExchange does not expose its bannerView
         val container = FrameLayout(requireNotNull(param?.context))
-        controller.bindView(container)
         controller.eventsListener = object : InneractiveAdViewEventsListener {
             override fun onAdImpression(adSpot: InneractiveAdSpot?) {
                 logInfo(Tag, "onAdImpression: $adSpot")
@@ -165,7 +163,7 @@ internal class DTExchangeBanner(
                 adSpot: InneractiveAdSpot?,
                 adDisplayError: InneractiveUnitController.AdDisplayError?
             ) {
-                logInfo(Tag, "onAdEnteredErrorState: $adSpot")
+                logInfo(Tag, "onAdEnteredErrorState: $adSpot, $adDisplayError")
                 adEvent.tryEmit(AdEvent.ShowFailed(adDisplayError.asBidonError()))
             }
 
@@ -175,6 +173,7 @@ internal class DTExchangeBanner(
             override fun onAdWillOpenExternalApp(adSpot: InneractiveAdSpot?) {}
             override fun onAdCollapsed(adSpot: InneractiveAdSpot?) {}
         }
+        controller.bindView(container)
         return AdViewHolder(
             networkAdview = container,
             widthPx = FrameLayout.LayoutParams.MATCH_PARENT,
