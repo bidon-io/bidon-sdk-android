@@ -7,9 +7,7 @@ import com.fyber.inneractive.sdk.external.OnFyberMarketplaceInitializedListener.
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
-import org.bidon.dtexchange.impl.DTExchangeAdAuctionParams
-import org.bidon.dtexchange.impl.DTExchangeInterstitial
-import org.bidon.dtexchange.impl.DTExchangeRewarded
+import org.bidon.dtexchange.impl.*
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.logs.logging.Logger
@@ -30,7 +28,8 @@ class DTExchangeAdapter :
     Adapter,
     Initializable<DTExchangeParameters>,
     AdProvider.Rewarded<DTExchangeAdAuctionParams>,
-    AdProvider.Interstitial<DTExchangeAdAuctionParams> {
+    AdProvider.Interstitial<DTExchangeAdAuctionParams>,
+    AdProvider.Banner<DTExchangeBannerAuctionParams> {
     override val demandId: DemandId = DTExchangeDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -87,6 +86,19 @@ class DTExchangeAdapter :
 
     override fun rewarded(demandAd: DemandAd, roundId: String, auctionId: String): AdSource.Rewarded<DTExchangeAdAuctionParams> {
         return DTExchangeRewarded(
+            demandId = demandId,
+            demandAd = demandAd,
+            roundId = roundId,
+            auctionId = auctionId
+        )
+    }
+
+    override fun banner(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Banner<DTExchangeBannerAuctionParams> {
+        return DTExchangeBanner(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,

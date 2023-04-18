@@ -1,7 +1,6 @@
 package org.bidon.unityads.impl
 
 import android.app.Activity
-import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.unity3d.services.banners.BannerErrorInfo
 import com.unity3d.services.banners.BannerView
@@ -69,7 +68,6 @@ internal class UnityAdsBanner(
             bannerAdView?.let {
                 adEvent.tryEmit(AdEvent.Clicked(it.asAd()))
             }
-
         }
 
         override fun onBannerFailedToLoad(bannerAdView: BannerView?, errorInfo: BannerErrorInfo?) {
@@ -91,19 +89,23 @@ internal class UnityAdsBanner(
     override var isAdReadyToShow: Boolean = false
 
     override fun getAuctionParams(
-        adContainer: ViewGroup,
+        activity: Activity,
         pricefloor: Double,
         timeout: Long,
         lineItems: List<LineItem>,
         bannerFormat: BannerFormat,
-        onLineItemConsumed: (LineItem) -> Unit
+        onLineItemConsumed: (LineItem) -> Unit,
+        containerWidth: Float,
     ): Result<AdAuctionParams> = runCatching {
         val lineItem = lineItems
             .minByPricefloorOrNull(demandId, pricefloor)
             ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
-        UnityAdsFullscreenAuctionParams(
+        UnityAdsBannerAuctionParams(
             lineItem = lineItem,
-            pricefloor = pricefloor
+            pricefloor = pricefloor,
+            bannerFormat = bannerFormat,
+            activity = activity,
+            containerWidth = containerWidth,
         )
     }
 
@@ -118,7 +120,6 @@ internal class UnityAdsBanner(
             null -> FrameLayout.LayoutParams.WRAP_CONTENT
         }
     )
-
 
     override suspend fun bid(adParams: UnityAdsBannerAuctionParams): AuctionResult {
         logInfo(Tag, "Starting with $adParams")

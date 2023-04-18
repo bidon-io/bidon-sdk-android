@@ -1,5 +1,6 @@
 package org.bidon.demoapp.ui
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -170,7 +171,7 @@ fun BannerScreen(navController: NavHostController) {
                 AppButton(
                     text = "Load",
                 ) {
-                    banner.value?.loadAd()
+                    banner.value?.loadAd(activity = context as Activity)
                     if (showOnLoad.value) {
                         banner.value?.showAd()
                     }

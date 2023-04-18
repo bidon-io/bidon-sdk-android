@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.banner
 
+import android.app.Activity
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.stats.LossNotifier
@@ -9,7 +10,7 @@ import org.bidon.sdk.stats.LossNotifier
  */
 interface BannerAd : LossNotifier, Extras {
     fun setBannerFormat(bannerFormat: BannerFormat)
-    fun loadAd(pricefloor: Double = BidonSdk.DefaultPricefloor)
+    fun loadAd(activity: Activity, pricefloor: Double = BidonSdk.DefaultPricefloor)
 
     /**
      * Shows if banner is ready to show

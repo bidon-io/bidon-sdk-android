@@ -36,8 +36,7 @@ internal fun UnityAds.UnityAdsShowError?.asBidonError() = when (this) {
     }
 }
 
-
-internal fun BannerErrorInfo?.asBidonError() = when(this?.errorCode){
+internal fun BannerErrorInfo?.asBidonError() = when (this?.errorCode) {
     null -> BidonError.Unspecified(UnityAdsDemandId, Throwable("null"))
     BannerErrorCode.NATIVE_ERROR,
     BannerErrorCode.WEBVIEW_ERROR,

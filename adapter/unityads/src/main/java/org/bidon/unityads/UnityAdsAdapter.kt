@@ -9,10 +9,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.unityads.ext.adapterVersion
 import org.bidon.unityads.ext.asBidonError
 import org.bidon.unityads.ext.sdkVersion
-import org.bidon.unityads.impl.UnityAdsFullscreenAuctionParams
-import org.bidon.unityads.impl.UnityAdsBanner
-import org.bidon.unityads.impl.UnityAdsInterstitial
-import org.bidon.unityads.impl.UnityAdsRewarded
+import org.bidon.unityads.impl.*
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -29,7 +26,7 @@ internal val UnityAdsDemandId = DemandId("unityads")
 class UnityAdsAdapter :
     Adapter,
     Initializable<UnityAdsParameters>,
-    AdProvider.Banner<UnityAdsFullscreenAuctionParams>,
+    AdProvider.Banner<UnityAdsBannerAuctionParams>,
     AdProvider.Interstitial<UnityAdsFullscreenAuctionParams>,
     AdProvider.Rewarded<UnityAdsFullscreenAuctionParams> {
 
@@ -95,7 +92,7 @@ class UnityAdsAdapter :
         demandAd: DemandAd,
         roundId: String,
         auctionId: String
-    ): AdSource.Banner<UnityAdsFullscreenAuctionParams> {
+    ): AdSource.Banner<UnityAdsBannerAuctionParams> {
         return UnityAdsBanner(
             demandId = demandId,
             demandAd = demandAd,

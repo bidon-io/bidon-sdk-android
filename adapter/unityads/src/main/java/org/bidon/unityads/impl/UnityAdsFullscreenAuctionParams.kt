@@ -1,7 +1,6 @@
 package org.bidon.unityads.impl
 
 import android.app.Activity
-import android.view.ViewGroup
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.LineItem
@@ -17,11 +16,11 @@ data class UnityAdsFullscreenAuctionParams(
 }
 
 data class UnityAdsBannerAuctionParams(
-    val activity: Activity,
-    val adContainer: ViewGroup,
     val bannerFormat: BannerFormat,
     val lineItem: LineItem,
-    val pricefloor: Double
+    val pricefloor: Double,
+    val activity: Activity,
+    val containerWidth: Float,
 ) : AdAuctionParams {
     override val adUnitId: String get() = requireNotNull(lineItem.adUnitId)
 }

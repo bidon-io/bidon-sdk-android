@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.banner
 
+import android.app.Activity
 import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
@@ -77,7 +78,7 @@ class Banner @JvmOverloads constructor(
         this.bannerFormat = bannerFormat
     }
 
-    override fun loadAd(pricefloor: Double) {
+    override fun loadAd(activity: Activity, pricefloor: Double) {
         if (!BidonSdk.isInitialized()) {
             logInfo(Tag, "Sdk is not initialized")
             listener.onAdLoadFailed(BidonError.SdkNotInitialized)
@@ -91,9 +92,10 @@ class Banner @JvmOverloads constructor(
                     demandAd = demandAd,
                     resolver = MaxEcpmAuctionResolver,
                     adTypeParamData = AdTypeParam.Banner(
+                        activity = activity,
                         pricefloor = pricefloor,
                         bannerFormat = bannerFormat,
-                        adContainer = this@Banner,
+                        containerWidth = width.toFloat()
                     ),
                 ).onSuccess { auctionResults ->
                     /**

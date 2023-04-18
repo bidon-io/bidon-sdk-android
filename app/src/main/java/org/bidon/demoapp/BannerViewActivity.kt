@@ -31,7 +31,7 @@ class BannerViewActivity : AppCompatActivity(R.layout.banner_view_layout) {
 
     private fun initViews() {
         loadButton.setOnClickListener {
-            bannerView.loadAd()
+            bannerView.loadAd(activity = this)
             bannerView.showAd()
         }
         destroyButton.setOnClickListener {
