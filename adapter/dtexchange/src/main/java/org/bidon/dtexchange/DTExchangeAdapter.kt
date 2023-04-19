@@ -71,12 +71,8 @@ class DTExchangeAdapter :
         }
     }
 
-    override fun interstitial(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Interstitial<DTExchangeAdAuctionParams> {
-        return DTExchangeInterstitial(
+    override fun rewarded(demandAd: DemandAd, roundId: String, auctionId: String): AdSource.Rewarded<DTExchangeAdAuctionParams> {
+        return DTExchangeRewarded(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,
@@ -84,8 +80,12 @@ class DTExchangeAdapter :
         )
     }
 
-    override fun rewarded(demandAd: DemandAd, roundId: String, auctionId: String): AdSource.Rewarded<DTExchangeAdAuctionParams> {
-        return DTExchangeRewarded(
+    override fun interstitial(
+        demandAd: DemandAd,
+        roundId: String,
+        auctionId: String
+    ): AdSource.Interstitial<DTExchangeAdAuctionParams> {
+        return DTExchangeInterstitial(
             demandId = demandId,
             demandAd = demandAd,
             roundId = roundId,
