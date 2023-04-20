@@ -5,7 +5,6 @@ import android.view.View
 import kotlinx.coroutines.flow.Flow
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.stats.StatisticsCollector
 
