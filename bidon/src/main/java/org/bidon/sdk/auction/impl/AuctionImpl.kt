@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.*
+import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.*
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -20,9 +21,11 @@ import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.asFailure
+import org.bidon.sdk.utils.ext.asSuccess
 import java.util.*
 
 /**
@@ -124,10 +127,20 @@ internal class AuctionImpl(
 
     private suspend fun fillWinner(auctionResults: List<AuctionResult>, timeout: Long): List<AuctionResult> {
         val index = auctionResults.indexOfFirst { auctionResult ->
-            val fillResult = withTimeoutOrNull(timeout) {
+            val fillResult: Result<Ad> = withTimeoutOrNull(timeout) {
                 (auctionResult.adSource as StatisticsCollector).markFillStarted()
                 logInfo(Tag, "Filling winner started for auction result: $auctionResult")
                 auctionResult.adSource.fill()
+                val state = auctionResult.adSource.adEvent.first {
+                    // wait for results
+                    it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired
+                }
+                when (state) {
+                    is AdEvent.LoadFailed -> state.cause.asFailure()
+                    is AdEvent.Fill -> state.ad.asSuccess()
+                    is AdEvent.Expired -> BidonError.FillTimedOut(auctionResult.adSource.demandId).asFailure()
+                    else -> error("unexpected: $state")
+                }
             } ?: BidonError.FillTimedOut(auctionResult.adSource.demandId).asFailure()
 
             fillResult
@@ -365,7 +378,7 @@ internal class AuctionImpl(
                     logInfo(
                         tag = Tag,
                         message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts bidding. " +
-                            "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
+                                "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
                     )
                     async {
                         val result = withTimeoutOrNull(round.timeoutMs) {
@@ -382,6 +395,22 @@ internal class AuctionImpl(
                             }
                             adParam.getOrNull()?.let { adAuctionParams ->
                                 adSource.bid(adParams = adAuctionParams)
+                                val state = adSource.adEvent.first {
+                                    // wait for results
+                                    it is AdEvent.Bid || it is AdEvent.LoadFailed
+                                }
+                                when (state) {
+                                    is AdEvent.LoadFailed -> {
+                                        AuctionResult(
+                                            ecpm = 0.0,
+                                            adSource = adSource,
+                                            roundStatus = state.cause.asRoundStatus()
+                                        )
+                                    }
+                                    is AdEvent.Bid -> state.result
+                                    else -> error("unexpected: $state")
+                                }
+
                             } ?: run {
                                 AuctionResult(
                                     ecpm = 0.0,
