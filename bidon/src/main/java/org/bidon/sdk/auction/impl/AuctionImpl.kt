@@ -378,7 +378,7 @@ internal class AuctionImpl(
                     logInfo(
                         tag = Tag,
                         message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts bidding. " +
-                            "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
+                                "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
                     )
                     async {
                         val result = withTimeoutOrNull(round.timeoutMs) {
