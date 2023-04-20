@@ -54,7 +54,7 @@ internal class UnityAdsRewarded(
             )
         }
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
 
     override var isAdReadyToShow: Boolean = false
 

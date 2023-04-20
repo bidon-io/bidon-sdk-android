@@ -41,7 +41,7 @@ internal class DTExchangeBanner(
 
     override val ad: Ad?
         get() = adSpot?.asAd()
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
     override fun getAuctionParams(
@@ -61,7 +61,6 @@ internal class DTExchangeBanner(
             pricefloor = pricefloor,
             bannerFormat = bannerFormat,
             context = activity.applicationContext,
-            containerWidth = containerWidth
         )
     }
 

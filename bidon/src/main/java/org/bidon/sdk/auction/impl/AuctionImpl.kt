@@ -75,17 +75,13 @@ internal class AuctionImpl(
                 logInfo(Tag, "Rounds completed")
 
                 // Finding winner
-                val finalResults = fillWinner(
-                    auctionResults = auctionResults.value,
-                    timeout = auctionData.fillTimeout ?: DefaultFillTimeoutMs
-                ).also {
-                    auctionResults.value = it
-                }
+                val finalResults = auctionResults.value
+
                 logInfo(Tag, "Action finished with ${finalResults.size} results")
                 finalResults.forEachIndexed { index, auctionResult ->
                     logInfo(Tag, "Action result #$index: $auctionResult")
                 }
-                notifyLosers(finalResults)
+                notifyWinLoss(finalResults)
 
                 // Finish auction
                 state.value = AuctionState.Finished
@@ -108,8 +104,9 @@ internal class AuctionImpl(
         _auctionDataResponse = null
     }
 
-    private fun notifyLosers(finalResults: List<AuctionResult>) {
+    private fun notifyWinLoss(finalResults: List<AuctionResult>) {
         val winner = finalResults.getOrNull(0) ?: return
+        winner.adSource.markWin()
         finalResults.drop(1)
             .forEach { auctionResult ->
                 val adSource = auctionResult.adSource
@@ -125,6 +122,7 @@ internal class AuctionImpl(
             }
     }
 
+    @Deprecated("")
     private suspend fun fillWinner(auctionResults: List<AuctionResult>, timeout: Long): List<AuctionResult> {
         val index = auctionResults.indexOfFirst { auctionResult ->
             val fillResult: Result<Ad> = withTimeoutOrNull(timeout) {
@@ -147,10 +145,6 @@ internal class AuctionImpl(
                 .onFailure { cause ->
                     logError(Tag, "Failed to fill: ${auctionResult.adSource.demandId}", cause)
                     (auctionResult.adSource as StatisticsCollector).markFillFinished(RoundStatus.NoFill)
-//                    (auctionResult.adSource as? WinLossNotifiable)?.let {
-//                        logInfo(Tag, "Notified loss: ${auctionResult.adSource.demandId}")
-//                        it.notifyLoss()
-//                    }
                 }
                 .onSuccess {
                     logInfo(Tag, "Winner filled: ${auctionResult.adSource.demandId}")
@@ -176,15 +170,12 @@ internal class AuctionImpl(
         adTypeParamData: AdTypeParam,
     ) {
         val round = rounds.firstOrNull() ?: return
-
         val allRoundResults = executeRound(
             round = round,
             pricefloor = pricefloor,
             demandAd = demandAd,
             adTypeParamData = adTypeParamData,
-            timeout = round.timeoutMs
         ).getOrNull() ?: emptyList()
-
         proceedRoundResults(
             resolver = resolver,
             allResults = allRoundResults,
@@ -192,7 +183,6 @@ internal class AuctionImpl(
             round = round,
             pricefloor = pricefloor,
         )
-
         val nextPriceFloor = auctionResults.value.firstOrNull()?.ecpm ?: pricefloor
         conductRounds(
             rounds = rounds.drop(1),
@@ -338,7 +328,6 @@ internal class AuctionImpl(
         pricefloor: Double,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        timeout: Long
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
             val filteredAdapters = adaptersSource.adapters.filter {
@@ -372,70 +361,94 @@ internal class AuctionImpl(
                     }
                 }
             }
-            adSources
-                .map { adSource ->
-                    val availableLineItemsForDemand = mutableLineItems.filterBy(adSource.demandId)
-                    logInfo(
-                        tag = Tag,
-                        message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts bidding. " +
-                                "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
-                    )
-                    async {
-                        val result = withTimeoutOrNull(round.timeoutMs) {
-                            val adParam = obtainAdParamByType(
-                                adSource = adSource,
-                                adTypeParamData = adTypeParamData,
-                                pricefloor = pricefloor,
-                                timeout = timeout,
-                                availableLineItemsForDemand = availableLineItemsForDemand,
-                            ).onSuccess {
-                                (adSource as StatisticsCollector).markBidStarted(adUnitId = it.adUnitId)
-                            }.onFailure {
-                                (adSource as StatisticsCollector).markBidStarted(adUnitId = null)
+            adSources.map { adSource ->
+                val availableLineItemsForDemand = mutableLineItems.filterBy(adSource.demandId)
+                logInfo(
+                    tag = Tag,
+                    message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts bidding. " +
+                            "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
+                )
+                async {
+                    withTimeoutOrNull(round.timeoutMs) {
+                        val adParam = obtainAdParamByType(
+                            adSource,
+                            adTypeParamData,
+                            pricefloor,
+                            round.timeoutMs,
+                            availableLineItemsForDemand
+                        ).getOrNull()
+
+                        adSource.markBidStarted(adUnitId = adParam?.adUnitId)
+                        // BID
+                        val bidAdEvent: AdEvent = adParam?.let {
+                            adSource.bid(adParam)
+                            adSource.adEvent.first {
+                                // wait for results
+                                it is AdEvent.Bid || it is AdEvent.LoadFailed
                             }
-                            adParam.getOrNull()?.let { adAuctionParams ->
-                                adSource.bid(adParams = adAuctionParams)
-                                val state = adSource.adEvent.first {
+                        } ?: AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId)
+                        when (bidAdEvent) {
+                            is AdEvent.LoadFailed -> {
+                                adSource.markBidFinished(bidAdEvent.cause.asRoundStatus(), ecpm = 0.0)
+                                bidAdEvent
+                            }
+                            is AdEvent.Bid -> {
+                                adSource.markBidFinished(bidAdEvent.result.roundStatus, bidAdEvent.result.ecpm)
+                                // FILL
+                                adSource.markFillStarted()
+                                adSource.fill()
+                                val fillAdEvent = adSource.adEvent.first {
                                     // wait for results
-                                    it is AdEvent.Bid || it is AdEvent.LoadFailed
+                                    it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired
                                 }
-                                when (state) {
-                                    is AdEvent.LoadFailed -> {
-                                        AuctionResult(
-                                            ecpm = 0.0,
-                                            adSource = adSource,
-                                            roundStatus = state.cause.asRoundStatus()
-                                        )
+                                when (fillAdEvent) {
+                                    is AdEvent.Fill -> {
+                                        adSource.markFillFinished(RoundStatus.Successful)
                                     }
-                                    is AdEvent.Bid -> state.result
+                                    is AdEvent.LoadFailed -> {
+                                        logError(Tag, "Failed to fill: ${adSource.demandId}", fillAdEvent.cause)
+                                        adSource.markFillFinished(fillAdEvent.cause.asRoundStatus())
+                                    }
+                                    is AdEvent.Expired -> {
+                                        logError(
+                                            Tag,
+                                            "Failed to fill: ${adSource.demandId}",
+                                            BidonError.Expired(adSource.demandId)
+                                        )
+                                        adSource.markFillFinished(RoundStatus.NoFill)
+                                    }
                                     else -> error("unexpected: $state")
                                 }
-                            } ?: run {
-                                AuctionResult(
-                                    ecpm = 0.0,
-                                    adSource = adSource,
-                                    roundStatus = RoundStatus.NoAppropriateAdUnitId
-                                )
+                                fillAdEvent
                             }
-                        } ?: run {
-                            AuctionResult(
-                                ecpm = 0.0,
-                                adSource = adSource,
-                                roundStatus = RoundStatus.BidTimeoutReached
-                            )
+                            else -> error("unexpected: $state")
                         }
-                        (adSource as StatisticsCollector).markBidFinished(result.roundStatus, result.ecpm)
-                        result
-                    } to adSource
-                }.mapIndexed { index, (deferred, adSource) ->
-                    val logRoundTitle = "Round '${round.id}' result #$index(${adSource.demandId.demandId})"
+                    } ?: AdEvent.LoadFailed(
+                        when (adSource.buildBidStatistic().roundStatus) {
+                            RoundStatus.NoBid -> BidonError.FillTimedOut(adSource.demandId)
+                            else -> BidonError.BidTimedOut(adSource.demandId)
+                        }
+                    )
+                } to adSource
+            }.mapIndexed { index, (deferred, adSource) ->
+                val logRoundTitle = "Round '${round.id}' result #$index(${adSource.demandId.demandId})"
 
-                    deferred.await().also {
-                        logInfo(Tag, "$logRoundTitle: $it. Statistics: ${(adSource as StatisticsCollector).buildBidStatistic()}")
-                    }
-                }.also {
-                    logInfo(Tag, "Round '${round.id}' finished with ${it.size} results: $it")
+                deferred.await().let { adEvent ->
+                    logInfo(Tag, "$logRoundTitle: $adEvent. Statistics: ${adSource.buildBidStatistic()}")
+                    AuctionResult(
+                        roundStatus = when (adEvent) {
+                            is AdEvent.Fill -> RoundStatus.Successful
+                            is AdEvent.Expired -> RoundStatus.NoFill
+                            is AdEvent.LoadFailed -> adEvent.cause.asRoundStatus()
+                            else -> error("unexpected: $adEvent")
+                        },
+                        ecpm = (adEvent as? AdEvent.Fill)?.ad?.ecpm ?: 0.0,
+                        adSource = adSource
+                    )
                 }
+            }.also {
+                logInfo(Tag, "Round '${round.id}' finished with ${it.size} results: $it")
+            }
         }
     }
 

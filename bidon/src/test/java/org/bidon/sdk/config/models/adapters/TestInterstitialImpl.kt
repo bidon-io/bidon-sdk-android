@@ -41,7 +41,7 @@ internal class TestInterstitialImpl(
             adUnitId = adParams.adUnitId
         )
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
 
     override val isAdReadyToShow: Boolean
         get() = testParameters.fill == Process.Succeed

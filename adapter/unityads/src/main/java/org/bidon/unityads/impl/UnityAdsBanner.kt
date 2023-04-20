@@ -79,7 +79,7 @@ internal class UnityAdsBanner(
     override val ad: Ad?
         get() = bannerAdView?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override var isAdReadyToShow: Boolean = false
 
     override fun getAuctionParams(
@@ -99,7 +99,6 @@ internal class UnityAdsBanner(
             pricefloor = pricefloor,
             bannerFormat = bannerFormat,
             activity = activity,
-            containerWidth = containerWidth,
         )
     }
 

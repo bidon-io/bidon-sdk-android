@@ -39,7 +39,7 @@ internal class BMBannerAdImpl(
         demandAd = demandAd,
     ) {
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val ad: Ad? get() = bannerView?.asAd()
 
     private var context: Context? = null

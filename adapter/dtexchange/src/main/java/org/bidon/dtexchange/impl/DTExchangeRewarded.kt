@@ -123,7 +123,7 @@ internal class DTExchangeRewarded(
 
     override val ad: Ad?
         get() = inneractiveAdSpot?.asAd()
-    override val adEvent = MutableSharedFlow<AdEvent>(Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = inneractiveAdSpot?.isReady == true
 

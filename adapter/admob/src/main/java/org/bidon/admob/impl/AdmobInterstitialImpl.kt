@@ -120,7 +120,7 @@ internal class AdmobInterstitialImpl(
     override val ad: Ad?
         get() = interstitialAd?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null
 

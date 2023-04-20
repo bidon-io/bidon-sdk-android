@@ -90,7 +90,7 @@ internal class ApplovinBannerImpl(
         }
     }
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = applovinAd != null
 
@@ -118,7 +118,6 @@ internal class ApplovinBannerImpl(
         ApplovinBannerAuctionParams(
             context = activity.applicationContext,
             lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
-            adaptiveBannerHeight = null,
             bannerFormat = bannerFormat
         )
     }

@@ -106,7 +106,7 @@ internal class MaxRewardedImpl(
         }
     }
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.isReady == true

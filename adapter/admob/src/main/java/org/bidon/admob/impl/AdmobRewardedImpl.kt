@@ -134,7 +134,7 @@ internal class AdmobRewardedImpl(
     override val ad: Ad?
         get() = rewardedAd?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE)
+    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
 

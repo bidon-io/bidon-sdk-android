@@ -136,7 +136,6 @@ internal class AuctionImplTest : ConcurrentTest() {
                     adUnitId = "admob2"
                 ),
             ),
-            fillTimeout = 10000,
             pricefloor = 0.01,
             token = null,
         )
@@ -374,7 +373,6 @@ internal class AuctionImplTest : ConcurrentTest() {
                 adUnitId = "admob2"
             ),
         ),
-        fillTimeout = 10000,
         pricefloor = 0.01,
         token = null,
     )
