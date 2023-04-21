@@ -1,15 +1,23 @@
 object Versions {
-    const val BidonVersionName = "0.2.0"
+    private val major = 0
+    private val minor = 2
+    private val patch = 1
+    private val semantic: String? = "-beta.1"
+
+    val BidonVersionName = mainVersion + semanticVersion
 
     object Adapters {
-        const val Admob = "0.2.0.0"
-        const val Applovin = "0.2.0.0"
-        const val Appsflyer = "0.2.0.0"
-        const val BidMachine = "0.2.0.0"
-        const val IronSource = "0.2.0.0"
-        const val Fyber = "0.2.0.0"
-        const val DTExchange = "0.2.0.0"
-        const val UnityAds = "0.2.0.0"
+        val Admob = "$mainVersion.0"
+        val Applovin = "$mainVersion.0"
+        val Appsflyer = "$mainVersion.0"
+        val BidMachine = "$mainVersion.0"
+        val IronSource = "$mainVersion.0"
+        val Fyber = "$mainVersion.0"
+        val DTExchange = "$mainVersion.0"
+        val UnityAds = "$mainVersion.0"
     }
+
+    private val mainVersion get() = "$major.$minor.$patch"
+    private val semanticVersion get() = semantic.takeIf { !it.isNullOrBlank() }.orEmpty()
 }
 
