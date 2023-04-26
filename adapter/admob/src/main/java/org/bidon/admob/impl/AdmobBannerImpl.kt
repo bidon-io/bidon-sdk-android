@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.util.DisplayMetrics
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
-import android.widget.FrameLayout
 import com.google.android.gms.ads.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.admob.AdmobBannerAuctionParams
@@ -194,8 +194,8 @@ internal class AdmobBannerImpl(
 
     override fun getAdView(): AdViewHolder = AdViewHolder(
         networkAdview = requiredAdView,
-        widthPx = FrameLayout.LayoutParams.MATCH_PARENT,
-        heightPx = adSize?.getHeightInPixels(requiredAdView.context) ?: FrameLayout.LayoutParams.WRAP_CONTENT
+        widthDp = adSize?.width ?: MATCH_PARENT,
+        heightDp = adSize?.height ?: MATCH_PARENT
     )
 
     private fun AdView.asAd(): Ad {

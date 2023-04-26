@@ -21,6 +21,7 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.asUnspecified
 import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.LogLifecycleAdStateUseCase
+import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
@@ -144,7 +145,7 @@ class Banner @JvmOverloads constructor(
         }
         // add AdView to Screen
         removeAllViews()
-        val layoutParams = LayoutParams(adViewHolder.widthPx, adViewHolder.heightPx).apply {
+        val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx).apply {
             gravity = Gravity.CENTER
         }
         addView(adViewHolder.networkAdview, layoutParams)

@@ -149,13 +149,19 @@ internal class DTExchangeBanner(
         controller.bindView(container)
         return AdViewHolder(
             networkAdview = container,
-            widthPx = FrameLayout.LayoutParams.MATCH_PARENT,
-            heightPx = when (param?.bannerFormat) {
+            widthDp = when (param?.bannerFormat) {
+                BannerFormat.Banner -> 320
+                BannerFormat.LeaderBoard -> 728
+                BannerFormat.MRec -> 300
                 BannerFormat.Adaptive,
+                null -> FrameLayout.LayoutParams.MATCH_PARENT
+            },
+            heightDp = when (param?.bannerFormat) {
                 BannerFormat.Banner -> 50.dpToPx
                 BannerFormat.LeaderBoard -> 90.dpToPx
                 BannerFormat.MRec -> 250.dpToPx
-                null -> FrameLayout.LayoutParams.WRAP_CONTENT
+                BannerFormat.Adaptive,
+                null -> FrameLayout.LayoutParams.MATCH_PARENT
             }
         )
     }
