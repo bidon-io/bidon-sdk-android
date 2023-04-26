@@ -86,8 +86,8 @@ internal class AdmobBannerImpl(
             }
 
             override fun onAdImpression() {
-                logInfo(Tag, "onAdShown: $this")
-                adEvent.tryEmit(AdEvent.Shown(requiredAdView.asAd()))
+                logInfo(Tag, "onAdImpression: $this")
+                // tracked impression/shown by [BannerView]
             }
 
             override fun onAdOpened() {}

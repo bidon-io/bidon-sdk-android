@@ -97,7 +97,7 @@ internal class BMBannerAdImpl(
             override fun onAdImpression(bannerView: BannerView) {
                 logInfo(Tag, "onAdShown: $this")
                 this@BMBannerAdImpl.bannerView = bannerView
-                adEvent.tryEmit(AdEvent.Shown(bannerView.asAd()))
+                // tracked impression/shown by [BannerView]
                 adEvent.tryEmit(
                     AdEvent.PaidRevenue(
                         ad = bannerView.asAd(),

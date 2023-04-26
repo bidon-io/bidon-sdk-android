@@ -115,8 +115,8 @@ internal class UnityAdsBanner(
         val adUnitId = adParams.adUnitId
         if (adUnitId.isNotBlank()) {
             val unityBannerSize = when (adParams.bannerFormat) {
+                BannerFormat.LeaderBoard -> UnityBannerSize(728, 90)
                 BannerFormat.Banner,
-                BannerFormat.LeaderBoard,
                 BannerFormat.Adaptive -> UnityBannerSize(320, 50)
                 BannerFormat.MRec -> UnityBannerSize(300, 250)
             }

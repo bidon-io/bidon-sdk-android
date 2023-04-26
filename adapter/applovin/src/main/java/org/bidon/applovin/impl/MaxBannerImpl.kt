@@ -69,13 +69,13 @@ internal class MaxBannerImpl(
 
             override fun onAdDisplayed(ad: MaxAd) {
                 maxAd = ad
-                adEvent.tryEmit(AdEvent.Shown(ad.asAd()))
                 adEvent.tryEmit(
                     AdEvent.PaidRevenue(
                         ad = ad.asAd(),
                         adValue = ad.asBidonAdValue()
                     )
                 )
+                // tracked impression/shown by [BannerView]
             }
 
             override fun onAdHidden(ad: MaxAd) {

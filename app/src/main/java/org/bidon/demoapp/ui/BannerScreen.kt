@@ -26,9 +26,9 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.banner.Banner
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
+import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -64,8 +64,8 @@ fun BannerScreen(navController: NavHostController) {
     val showOnLoad = remember {
         mutableStateOf(false)
     }
-    val banner = remember {
-        mutableStateOf<Banner?>(null)
+    val bannerView = remember {
+        mutableStateOf<BannerView?>(null)
     }
 
     Column(
@@ -90,7 +90,7 @@ fun BannerScreen(navController: NavHostController) {
                 .padding(0.dp),
             contentAlignment = Alignment.Center
         ) {
-            val view = banner.value
+            val view = bannerView.value
             if (view != null) {
                 AndroidView(
                     modifier = Modifier
@@ -127,14 +127,14 @@ fun BannerScreen(navController: NavHostController) {
                 },
                 onItemClicked = {
                     bannerFormat.value = it
-                    banner.value?.setBannerFormat(it)
+                    bannerView.value?.setBannerFormat(it)
                 }
             )
             Spacer(modifier = Modifier.padding(top = 2.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 AppButton(text = "Create") {
-                    banner.value = Banner(
+                    bannerView.value = BannerView(
                         context = context,
                     ).apply {
                         setBannerFormat(bannerFormat.value)
@@ -163,6 +163,10 @@ fun BannerScreen(navController: NavHostController) {
                                 override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                                     logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
                                 }
+
+                                override fun onAdShowFailed(cause: BidonError) {
+                                    logFlow.log("onAdShowFailed: $cause")
+                                }
                             }
                         )
                     }
@@ -171,9 +175,9 @@ fun BannerScreen(navController: NavHostController) {
                 AppButton(
                     text = "Load",
                 ) {
-                    banner.value?.loadAd(activity = context as Activity)
+                    bannerView.value?.loadAd(activity = context as Activity)
                     if (showOnLoad.value) {
-                        banner.value?.showAd()
+                        bannerView.value?.showAd()
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -187,12 +191,12 @@ fun BannerScreen(navController: NavHostController) {
             }
             Row {
                 AppButton(text = "Show") {
-                    banner.value?.showAd()
+                    bannerView.value?.showAd()
                 }
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 AppButton(text = "Destroy") {
-                    banner.value?.destroyAd()
-                    banner.value = null
+                    bannerView.value?.destroyAd()
+                    bannerView.value = null
                 }
             }
         }
