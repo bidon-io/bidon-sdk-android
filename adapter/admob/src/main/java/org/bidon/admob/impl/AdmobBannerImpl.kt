@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.util.DisplayMetrics
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
 import com.google.android.gms.ads.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -14,6 +13,8 @@ import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.getHeightDp
+import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
@@ -194,8 +195,8 @@ internal class AdmobBannerImpl(
 
     override fun getAdView(): AdViewHolder = AdViewHolder(
         networkAdview = requiredAdView,
-        widthDp = adSize?.width ?: MATCH_PARENT,
-        heightDp = adSize?.height ?: MATCH_PARENT
+        widthDp = adSize?.width ?: param?.bannerFormat.getWidthDp(),
+        heightDp = adSize?.height ?: param?.bannerFormat.getHeightDp()
     )
 
     private fun AdView.asAd(): Ad {

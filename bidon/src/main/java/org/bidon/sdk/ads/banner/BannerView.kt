@@ -94,12 +94,14 @@ class BannerView @JvmOverloads constructor(
                     logInfo(Tag, "Auction already in progress")
                     userListener?.onAdLoadFailed(BidonError.AuctionInProgress)
                 }
+
                 AdLifecycle.Loaded -> {
                     winner?.adSource?.ad?.let {
                         logInfo(Tag, "Banner loaded")
                         userListener?.onAdLoaded(it)
                     }
                 }
+
                 else -> {
                     logInfo(Tag, "Ad State=${adLifecycleFlow.value})")
                 }
@@ -119,9 +121,7 @@ class BannerView @JvmOverloads constructor(
             userListener?.onAdShowFailed(BidonError.BannerAdNotReady)
             return
         }
-        val adViewHolder = bannerSource.getAdView()
-        logInfo(Tag, "ShowAd. Current state: ${adLifecycleFlow.value}")
-        val isLoaded = adLifecycleFlow.compareAndSet(expect = AdLifecycle.Loaded, update = AdLifecycle.Displaying)
+        val isLoaded = isReady() && adLifecycleFlow.compareAndSet(expect = AdLifecycle.Loaded, update = AdLifecycle.Displaying)
         if (!isLoaded) {
             logInfo(Tag, "Not loaded. Current state: ${adLifecycleFlow.value}")
             LogLifecycleAdStateUseCase.invoke(adLifecycle = adLifecycleFlow.value)
@@ -196,18 +196,18 @@ class BannerView @JvmOverloads constructor(
                     winner = it
                 }
                 subscribeToWinner(winner.adSource)
+                adLifecycleFlow.value = AdLifecycle.Loaded
                 listener.onAdLoaded(
                     requireNotNull(winner.adSource.ad) {
                         "[Ad] should exist when action succeeds"
                     }
                 )
-                adLifecycleFlow.value = AdLifecycle.Loaded
             }.onFailure {
                 /**
                  * Auction failed
                  */
-                listener.onAdLoadFailed(cause = it.asUnspecified())
                 adLifecycleFlow.value = AdLifecycle.LoadingFailed
+                listener.onAdLoadFailed(cause = it.asUnspecified())
             }
         }
     }
@@ -223,6 +223,7 @@ class BannerView @JvmOverloads constructor(
                 is AdEvent.Fill -> {
                     // do nothing
                 }
+
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
                     adSource.sendClickImpression(
@@ -231,14 +232,17 @@ class BannerView @JvmOverloads constructor(
                         )
                     )
                 }
+
                 is AdEvent.Shown -> {
                     // banners do not invoke onShown callback
                 }
+
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> {
                     adLifecycleFlow.value = AdLifecycle.DisplayingFailed
                     listener.onAdLoadFailed(adEvent.cause)
                 }
+
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)

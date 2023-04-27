@@ -142,6 +142,9 @@ fun BannerScreen(navController: NavHostController) {
                             object : BannerListener {
                                 override fun onAdLoaded(ad: Ad) {
                                     logFlow.log("onAdLoaded WINNER:\n$ad")
+                                    if (showOnLoad.value) {
+                                        bannerView.value?.showAd()
+                                    }
                                 }
 
                                 override fun onAdLoadFailed(cause: BidonError) {
@@ -170,15 +173,13 @@ fun BannerScreen(navController: NavHostController) {
                             }
                         )
                     }
+                    logFlow.log("New BannerView created")
                 }
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 AppButton(
                     text = "Load",
                 ) {
                     bannerView.value?.loadAd(activity = context as Activity)
-                    if (showOnLoad.value) {
-                        bannerView.value?.showAd()
-                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Body2Text(text = "Show onLoad")
@@ -197,6 +198,14 @@ fun BannerScreen(navController: NavHostController) {
                 AppButton(text = "Destroy") {
                     bannerView.value?.destroyAd()
                     bannerView.value = null
+                    logFlow.log("BannerView destroyed")
+                }
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                AppTextButton(text = "Notify Loss") {
+                    bannerView.value?.also {
+                        it.notifyLoss(winnerDemandId = "Unity", winnerEcpm = 4.0)
+                        logFlow.log("NotifyLoss")
+                    }
                 }
             }
         }
