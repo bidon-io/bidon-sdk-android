@@ -81,4 +81,3 @@ internal class TrackingHolder(
 
 private const val DefCheckDelay = 100L
 private const val Tag = "VisibilityTracker"
-
