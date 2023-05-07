@@ -170,7 +170,7 @@ class BannerView @JvmOverloads constructor(
         val adViewHolder: AdViewHolder = adSource.getAdView()
         val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
         addView(adViewHolder.networkAdview, layoutParams)
-        logInfo(Tag, "View added: ${adViewHolder.networkAdview}. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})")
+        logInfo(Tag, "View added(${adSource.demandId.demandId}): ${adViewHolder.networkAdview}. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})")
         checkBannerShown(onBannerShown = {
             adLifecycleFlow.value = AdLifecycle.Displayed
             adSource.ad?.let { listener.onAdShown(ad = it) }
