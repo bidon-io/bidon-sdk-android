@@ -35,7 +35,6 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
-import org.bidon.sdk.utils.visibilitytracker.VisibilityParams
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
 
 /**
@@ -57,7 +56,7 @@ class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
     private val auction: Auction get() = get()
-    private val visibilityTracker: VisibilityTracker get() = get()
+    private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var winner: AuctionResult? = null
     private var winnerSubscriberJob: Job? = null
     private var auctionJob: Job? = null
@@ -154,7 +153,7 @@ class BannerView @JvmOverloads constructor(
 
     override fun destroyAd() {
         adLifecycleFlow.value = AdLifecycle.Destroyed
-        visibilityTracker.stopTracking(this)
+        visibilityTracker.stop()
         auctionJob?.cancel()
         auctionJob = null
         winner?.adSource?.destroy()
@@ -257,11 +256,11 @@ class BannerView @JvmOverloads constructor(
     }
 
     private fun checkBannerShown(onBannerShown: () -> Unit) {
-        visibilityTracker.startTracking(view = this, visibilityParams = VisibilityParams()) {
+        visibilityTracker.start(view = this) {
             onBannerShown.invoke()
         }
     }
 }
 
-private const val Tag = "Banner"
+private const val Tag = "BannerView"
 const val DefaultAutoRefreshTimeoutMs = 10_000L

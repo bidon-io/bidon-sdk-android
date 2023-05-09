@@ -64,7 +64,6 @@ import org.bidon.sdk.utils.networking.impl.NetworkStateObserverImpl
 import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCase
 import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCaseImpl
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
-import org.bidon.sdk.utils.visibilitytracker.VisibilityTrackerImpl
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -123,7 +122,6 @@ internal object DI {
             singleton<SegmentDataSource> { SegmentDataSourceImpl() }
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
 
-            singleton<VisibilityTracker> { VisibilityTrackerImpl() }
 
             /**
              * Factories
@@ -201,6 +199,7 @@ internal object DI {
                 )
             }
             factory<Extras> { ExtrasImpl() }
+            factory { VisibilityTracker() }
 
             factory<SendLossRequestUseCase> {
                 SendLossRequestUseCaseImpl(
