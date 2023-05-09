@@ -122,7 +122,6 @@ internal object DI {
             singleton<SegmentDataSource> { SegmentDataSourceImpl() }
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
 
-
             /**
              * Factories
              */
