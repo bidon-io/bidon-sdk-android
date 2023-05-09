@@ -10,7 +10,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 internal fun View?.isOnTop(visibilityParams: VisibilityParams): Boolean {
-    if (this==null) return false
+    if (this == null) return false
     val visibilityPercent = visibilityParams.pixelThreshold
     val maxCountOverlappedViews = visibilityParams.maxCountOverlappedViews
     val ignoreWindowFocus = visibilityParams.isIgnoreWindowFocus
