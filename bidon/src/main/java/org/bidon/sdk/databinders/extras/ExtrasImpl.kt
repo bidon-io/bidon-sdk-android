@@ -23,19 +23,19 @@ internal class ExtrasImpl : Extras {
 
     private fun Any.isTypeSupported(): Boolean {
         return (
-                this is String ||
-                        this is Int ||
-                        this is Long ||
-                        this is Double ||
-                        this is Float ||
-                        this is Boolean ||
-                        this is Char ||
-                        this is JSONObject
-                ).also {
-                if (!it) {
-                    logError(Tag, "Type of $this is not supported", UnsupportedOperationException())
-                }
+            this is String ||
+                this is Int ||
+                this is Long ||
+                this is Double ||
+                this is Float ||
+                this is Boolean ||
+                this is Char ||
+                this is JSONObject
+            ).also {
+            if (!it) {
+                logError(Tag, "Type of $this is not supported", UnsupportedOperationException())
             }
+        }
     }
 }
 
