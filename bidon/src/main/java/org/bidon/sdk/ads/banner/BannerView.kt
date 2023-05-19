@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
 import androidx.annotation.AttrRes
 import kotlinx.coroutines.CoroutineScope
@@ -202,7 +203,7 @@ class BannerView @JvmOverloads constructor(
             Tag,
             "View added(${adSource.demandId.demandId}): ${adViewHolder.networkAdview}. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})"
         )
-        checkBannerShown(onBannerShown = {
+        checkBannerShown(adViewHolder.networkAdview, onBannerShown = {
             adLifecycleFlow.value = AdLifecycle.Displayed
             adSource.ad?.let { listener.onAdShown(ad = it) }
             adSource.sendShowImpression(
@@ -288,8 +289,8 @@ class BannerView @JvmOverloads constructor(
         }.launchIn(scope)
     }
 
-    private fun checkBannerShown(onBannerShown: () -> Unit) {
-        visibilityTracker.start(view = this) {
+    private fun checkBannerShown(networkAdview: View, onBannerShown: () -> Unit) {
+        visibilityTracker.start(view = networkAdview) {
             onBannerShown.invoke()
         }
     }
