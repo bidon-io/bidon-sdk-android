@@ -9,7 +9,7 @@ object Versions {
     object Adapters {
         val Admob = "$mainVersion.10"
         val Applovin = "$mainVersion.10"
-        val BidMachine = "$mainVersion.10"
+        val BidMachine = "$mainVersion.11"
         val DTExchange = "$mainVersion.10"
         val UnityAds = "$mainVersion.10"
 

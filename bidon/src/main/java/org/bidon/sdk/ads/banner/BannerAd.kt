@@ -25,4 +25,3 @@ interface BannerAd : LossNotifier, Extras {
     fun destroyAd()
     fun setBannerListener(listener: BannerListener?)
 }
-
