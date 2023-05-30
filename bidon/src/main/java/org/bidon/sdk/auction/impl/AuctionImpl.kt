@@ -1,15 +1,27 @@
 package org.bidon.sdk.auction.impl
 
+import android.content.Context
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import org.bidon.sdk.adapter.*
-import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.adapter.AdAuctionParams
+import org.bidon.sdk.adapter.AdEvent
+import org.bidon.sdk.adapter.AdProvider
+import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdaptersSource
+import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.auction.*
+import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.Auction
+import org.bidon.sdk.auction.AuctionResolver
+import org.bidon.sdk.auction.AuctionResult
+import org.bidon.sdk.auction.AuctionState
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
@@ -24,9 +36,7 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
-import org.bidon.sdk.utils.ext.asFailure
-import org.bidon.sdk.utils.ext.asSuccess
-import java.util.*
+import java.util.UUID
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -126,56 +136,6 @@ internal class AuctionImpl(
             }
     }
 
-    @Deprecated("")
-    private suspend fun fillWinner(
-        auctionResults: List<AuctionResult>,
-        timeout: Long
-    ): List<AuctionResult> {
-        val index = auctionResults.indexOfFirst { auctionResult ->
-            val fillResult: Result<Ad> = withTimeoutOrNull(timeout) {
-                (auctionResult.adSource as StatisticsCollector).markFillStarted()
-                logInfo(Tag, "Filling winner started for auction result: $auctionResult")
-                auctionResult.adSource.fill()
-                val state = auctionResult.adSource.adEvent.first {
-                    // wait for results
-                    it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired
-                }
-                when (state) {
-                    is AdEvent.LoadFailed -> state.cause.asFailure()
-                    is AdEvent.Fill -> state.ad.asSuccess()
-                    is AdEvent.Expired -> BidonError.FillTimedOut(auctionResult.adSource.demandId)
-                        .asFailure()
-
-                    else -> error("unexpected: $state")
-                }
-            } ?: BidonError.FillTimedOut(auctionResult.adSource.demandId).asFailure()
-
-            fillResult
-                .onFailure { cause ->
-                    logError(Tag, "Failed to fill: ${auctionResult.adSource.demandId}", cause)
-                    (auctionResult.adSource as StatisticsCollector).markFillFinished(
-                        roundStatus = RoundStatus.NoFill,
-                        ecpm = auctionResult.ecpm
-                    )
-                }
-                .onSuccess { ad ->
-                    logInfo(Tag, "Winner filled: ${auctionResult.adSource.demandId}")
-                    (auctionResult.adSource as StatisticsCollector).markFillFinished(
-                        roundStatus = RoundStatus.Successful,
-                        ecpm = ad.ecpm
-                    )
-                    (auctionResult.adSource as? WinLossNotifiable)?.let {
-                        logInfo(Tag, "Notified win: ${auctionResult.adSource.demandId}")
-                        it.notifyWin()
-                    }
-                    (auctionResult.adSource as StatisticsCollector).markWin()
-                }
-                .isSuccess
-        }
-        return if (index == NoWinnerFilled) emptyList()
-        else auctionResults.drop(index)
-    }
-
     private suspend fun conductRounds(
         rounds: List<Round>,
         sourcePriceFloor: Double,
@@ -263,10 +223,7 @@ internal class AuctionImpl(
     ) {
         val winner = successfulRoundResults.firstOrNull()
         val unknownDemandId =
-            (
-                round.demandIds - allRoundResults.map { it.adSource.demandId.demandId }
-                    .toSet()
-                )
+            (round.demandIds - allRoundResults.map { it.adSource.demandId.demandId }.toSet())
                 .takeIf { it.isNotEmpty() }
                 ?.map { demandId ->
                     DemandStat(
@@ -403,7 +360,14 @@ internal class AuctionImpl(
                     }
                 }
             }
-            adSources.map { adSource ->
+            val biddingResult = executeServerBidding(
+                context = adTypeParamData.activity.applicationContext,
+                biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>()
+            )
+
+            val networkSources = adSources.filterIsInstance<AdSourceType.Network<AdAuctionParams>>()
+            networkSources.map { adSource ->
+                adSource as AdSource<AdAuctionParams>
                 val availableLineItemsForDemand = mutableLineItems.filterBy(adSource.demandId)
                 logInfo(
                     tag = Tag,
@@ -419,76 +383,55 @@ internal class AuctionImpl(
                             round.timeoutMs,
                             availableLineItemsForDemand
                         ).getOrNull()
+                            ?: return@withTimeoutOrNull AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId)
 
-                        adSource.markBidStarted(adUnitId = adParam?.adUnitId)
-                        // BID
-                        val bidAdEvent: AdEvent = adParam?.let {
-                            adSource.bid(adParam)
-                            adSource.adEvent.first {
-                                // wait for results
-                                it is AdEvent.Bid || it is AdEvent.LoadFailed
+                        adSource.markBidStarted(adUnitId = adParam.adUnitId)
+                        adSource.markBidFinished(
+                            roundStatus = RoundStatus.Successful,
+                            ecpm = adParam.pricefloor
+                        )
+                        // FILL
+                        adSource.markFillStarted()
+                        adSource.fill(adParam)
+                        val fillAdEvent = adSource.adEvent.first {
+                            // wait for results
+                            it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired
+                        }
+                        when (fillAdEvent) {
+                            is AdEvent.Fill -> {
+                                adSource.markFillFinished(
+                                    roundStatus = RoundStatus.Successful,
+                                    ecpm = fillAdEvent.ad.ecpm
+                                )
                             }
-                        } ?: AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId)
-                        when (bidAdEvent) {
+
                             is AdEvent.LoadFailed -> {
-                                adSource.markBidFinished(
-                                    roundStatus = bidAdEvent.cause.asRoundStatus(),
-                                    ecpm = adParam?.pricefloor
+                                logError(
+                                    Tag,
+                                    "Failed to fill: ${adSource.demandId}",
+                                    fillAdEvent.cause
                                 )
-                                bidAdEvent
+                                adSource.markFillFinished(
+                                    roundStatus = fillAdEvent.cause.asRoundStatus(),
+                                    ecpm = adParam.pricefloor
+                                )
                             }
 
-                            is AdEvent.Bid -> {
-                                adSource.markBidFinished(
-                                    roundStatus = bidAdEvent.result.roundStatus,
-                                    ecpm = bidAdEvent.result.ecpm
+                            is AdEvent.Expired -> {
+                                logError(
+                                    Tag,
+                                    "Failed to fill: ${adSource.demandId}",
+                                    BidonError.Expired(adSource.demandId)
                                 )
-                                // FILL
-                                adSource.markFillStarted()
-                                adSource.fill()
-                                val fillAdEvent = adSource.adEvent.first {
-                                    // wait for results
-                                    it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired
-                                }
-                                when (fillAdEvent) {
-                                    is AdEvent.Fill -> {
-                                        adSource.markFillFinished(
-                                            roundStatus = RoundStatus.Successful,
-                                            ecpm = fillAdEvent.ad.ecpm
-                                        )
-                                    }
-
-                                    is AdEvent.LoadFailed -> {
-                                        logError(
-                                            Tag,
-                                            "Failed to fill: ${adSource.demandId}",
-                                            fillAdEvent.cause
-                                        )
-                                        adSource.markFillFinished(
-                                            roundStatus = fillAdEvent.cause.asRoundStatus(),
-                                            ecpm = bidAdEvent.result.ecpm
-                                        )
-                                    }
-
-                                    is AdEvent.Expired -> {
-                                        logError(
-                                            Tag,
-                                            "Failed to fill: ${adSource.demandId}",
-                                            BidonError.Expired(adSource.demandId)
-                                        )
-                                        adSource.markFillFinished(
-                                            roundStatus = RoundStatus.NoFill,
-                                            ecpm = fillAdEvent.ad.ecpm
-                                        )
-                                    }
-
-                                    else -> error("unexpected: $state")
-                                }
-                                fillAdEvent
+                                adSource.markFillFinished(
+                                    roundStatus = RoundStatus.NoFill,
+                                    ecpm = fillAdEvent.ad.ecpm
+                                )
                             }
 
                             else -> error("unexpected: $state")
                         }
+                        fillAdEvent
                     } ?: AdEvent.LoadFailed(
                         cause = when (adSource.buildBidStatistic().roundStatus) {
                             RoundStatus.NoBid -> BidonError.FillTimedOut(adSource.demandId)
@@ -520,6 +463,18 @@ internal class AuctionImpl(
                 logInfo(Tag, "Round '${round.id}' finished with ${it.size} results: $it")
             }
         }
+    }
+
+    private fun executeServerBidding(
+        context: Context,
+        biddingSources: List<AdSourceType.Bidding<AdAuctionParams>>
+    ): Result<AuctionResult> = runCatching {
+        val tokens = biddingSources.mapNotNull { adSource ->
+            adSource.getToken(context)?.let { token ->
+                (adSource as AdSource<*>).demandId.demandId to token
+            }
+        }
+        TODO()
     }
 
     private fun obtainAdParamByType(

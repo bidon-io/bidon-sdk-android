@@ -15,7 +15,6 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -24,7 +23,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.RoundStatus
 
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
@@ -35,6 +33,7 @@ internal class AdmobBannerImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Banner<AdmobBannerAuctionParams>,
+    AdSourceType.Network<AdmobBannerAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -45,7 +44,8 @@ internal class AdmobBannerImpl(
     override val ad: Ad?
         get() = adView?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    override val adEvent =
+        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
 
     override var isAdReadyToShow: Boolean = false
 
@@ -53,50 +53,6 @@ internal class AdmobBannerImpl(
     private var param: AdmobBannerAuctionParams? = null
     private var adView: AdView? = null
     private val requiredAdView: AdView get() = requireNotNull(adView)
-
-    private val requestListener by lazy {
-        object : AdListener() {
-            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                logError(Tag, "Error while loading ad: $loadAdError. $this", loadAdError.asBidonError())
-                adEvent.tryEmit(
-                    AdEvent.LoadFailed(loadAdError.asBidonError())
-                )
-            }
-
-            override fun onAdLoaded() {
-                logInfo(Tag, "onAdLoaded: $this")
-                adView?.run {
-                    isAdReadyToShow = true
-                    adEvent.tryEmit(
-                        AdEvent.Bid(
-                            AuctionResult(
-                                ecpm = requireNotNull(param?.lineItem?.pricefloor),
-                                adSource = this@AdmobBannerImpl,
-                                roundStatus = RoundStatus.Successful
-                            )
-                        )
-                    )
-                }
-            }
-
-            override fun onAdClicked() {
-                logInfo(Tag, "onAdClicked: $this")
-                adEvent.tryEmit(AdEvent.Clicked(requiredAdView.asAd()))
-            }
-
-            override fun onAdClosed() {
-                logInfo(Tag, "onAdClosed: $this")
-                adEvent.tryEmit(AdEvent.Closed(requiredAdView.asAd()))
-            }
-
-            override fun onAdImpression() {
-                logInfo(Tag, "onAdImpression: $this")
-                // tracked impression/shown by [BannerView]
-            }
-
-            override fun onAdOpened() {}
-        }
-    }
 
     /**
      * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
@@ -151,11 +107,48 @@ internal class AdmobBannerImpl(
     }
 
     @SuppressLint("MissingPermission")
-    override fun bid(adParams: AdmobBannerAuctionParams) {
+    override fun fill(adParams: AdmobBannerAuctionParams) {
         logInfo(Tag, "Starting with $adParams")
         param = adParams
         val adUnitId = param?.lineItem?.adUnitId
         if (!adUnitId.isNullOrBlank()) {
+            val requestListener = object : AdListener() {
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    logError(
+                        Tag,
+                        "Error while loading ad: $loadAdError. $this",
+                        loadAdError.asBidonError()
+                    )
+                    adEvent.tryEmit(
+                        AdEvent.LoadFailed(loadAdError.asBidonError())
+                    )
+                }
+
+                override fun onAdLoaded() {
+                    logInfo(Tag, "onAdLoaded: $this")
+                    adView?.run {
+                        isAdReadyToShow = true
+                        adEvent.tryEmit(AdEvent.Fill(ad = requireNotNull(adView?.asAd())))
+                    }
+                }
+
+                override fun onAdClicked() {
+                    logInfo(Tag, "onAdClicked: $this")
+                    adEvent.tryEmit(AdEvent.Clicked(requiredAdView.asAd()))
+                }
+
+                override fun onAdClosed() {
+                    logInfo(Tag, "onAdClosed: $this")
+                    adEvent.tryEmit(AdEvent.Closed(requiredAdView.asAd()))
+                }
+
+                override fun onAdImpression() {
+                    logInfo(Tag, "onAdImpression: $this")
+                    // tracked impression/shown by [BannerView]
+                }
+
+                override fun onAdOpened() {}
+            }
             val adView = AdView(adParams.context)
                 .apply {
                     val admobBannerSize = adParams.bannerFormat.asAdmobAdSize(
@@ -181,16 +174,6 @@ internal class AdmobBannerImpl(
                 error = error
             )
             adEvent.tryEmit(AdEvent.LoadFailed(error))
-        }
-    }
-
-    override fun fill() {
-        runCatching {
-            logInfo(Tag, "Starting fill: $this")
-            /**
-             * Admob fills the bid automatically. It's not needed to fill it manually.
-             */
-            adEvent.tryEmit(AdEvent.Fill(ad = requireNotNull(adView?.asAd())))
         }
     }
 

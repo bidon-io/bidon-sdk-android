@@ -5,11 +5,16 @@ import com.unity3d.services.banners.BannerErrorInfo
 import com.unity3d.services.banners.BannerView
 import com.unity3d.services.banners.UnityBannerSize
 import kotlinx.coroutines.flow.MutableSharedFlow
-import org.bidon.sdk.adapter.*
+import org.bidon.sdk.adapter.AdAuctionParams
+import org.bidon.sdk.adapter.AdEvent
+import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdViewHolder
+import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceType
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -18,7 +23,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.unityads.ext.asBidonError
 
 /**
@@ -30,6 +34,7 @@ internal class UnityAdsBanner(
     private val roundId: String,
     private val auctionId: String,
 ) : AdSource.Banner<UnityAdsBannerAuctionParams>,
+    AdSourceType.Network<UnityAdsBannerAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -39,46 +44,11 @@ internal class UnityAdsBanner(
     private var bannerAdView: BannerView? = null
     private var param: UnityAdsBannerAuctionParams? = null
 
-    private val bannerListener: BannerView.IListener = object : BannerView.IListener {
-        override fun onBannerLoaded(bannerAdView: BannerView?) {
-            this@UnityAdsBanner.bannerAdView = bannerAdView
-            isAdReadyToShow = true
-            bannerAdView?.let {
-                adEvent.tryEmit(
-                    AdEvent.Bid(
-                        AuctionResult(
-                            ecpm = requireNotNull(param?.lineItem?.pricefloor),
-                            adSource = this@UnityAdsBanner,
-                            roundStatus = RoundStatus.Successful
-                        )
-                    )
-                )
-            }
-        }
-
-        override fun onBannerClick(bannerAdView: BannerView?) {
-            logInfo(Tag, "onAdClicked: $this")
-            bannerAdView?.let {
-                adEvent.tryEmit(AdEvent.Clicked(it.asAd()))
-            }
-        }
-
-        override fun onBannerFailedToLoad(bannerAdView: BannerView?, errorInfo: BannerErrorInfo?) {
-            logError(Tag, "Error while loading ad: $errorInfo. $this", errorInfo.asBidonError())
-            isAdReadyToShow = false
-            adEvent.tryEmit(
-                AdEvent.LoadFailed(errorInfo.asBidonError())
-            )
-        }
-
-        override fun onBannerLeftApplication(bannerView: BannerView?) {
-        }
-    }
-
     override val ad: Ad?
         get() = bannerAdView?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    override val adEvent =
+        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override var isAdReadyToShow: Boolean = false
 
     override fun getAuctionParams(
@@ -109,7 +79,7 @@ internal class UnityAdsBanner(
         )
     }
 
-    override fun bid(adParams: UnityAdsBannerAuctionParams) {
+    override fun fill(adParams: UnityAdsBannerAuctionParams) {
         logInfo(Tag, "Starting with $adParams")
         param = adParams
         val adUnitId = adParams.adUnitId
@@ -125,9 +95,36 @@ internal class UnityAdsBanner(
 
                 BannerFormat.MRec -> UnityBannerSize(300, 250)
             }
-            val adView = BannerView(adParams.activity, adParams.adUnitId, unityBannerSize)
-                .apply { this.listener = bannerListener }
-                .also { bannerAdView = it }
+            val adView = BannerView(adParams.activity, adParams.adUnitId, unityBannerSize).also {
+                bannerAdView = it
+            }
+            adView.listener = object : BannerView.IListener {
+                override fun onBannerLoaded(bannerAdView: BannerView?) {
+                    this@UnityAdsBanner.bannerAdView = bannerAdView
+                    isAdReadyToShow = true
+                    adEvent.tryEmit(AdEvent.Fill(requireNotNull(bannerAdView?.asAd())))
+                }
+
+                override fun onBannerClick(bannerAdView: BannerView?) {
+                    logInfo(Tag, "onAdClicked: $this")
+                    bannerAdView?.let {
+                        adEvent.tryEmit(AdEvent.Clicked(it.asAd()))
+                    }
+                }
+
+                override fun onBannerFailedToLoad(
+                    bannerAdView: BannerView?,
+                    errorInfo: BannerErrorInfo?
+                ) {
+                    val cause = errorInfo.asBidonError()
+                    logError(Tag, "Error while loading ad: $errorInfo. $this", cause)
+                    isAdReadyToShow = false
+                    adEvent.tryEmit(AdEvent.LoadFailed(cause))
+                }
+
+                override fun onBannerLeftApplication(bannerView: BannerView?) {
+                }
+            }
             adView.load()
         } else {
             val error = BidonError.NoAppropriateAdUnitId
@@ -138,14 +135,6 @@ internal class UnityAdsBanner(
             )
             adEvent.tryEmit(AdEvent.LoadFailed(error))
         }
-    }
-
-    override fun fill() {
-        logInfo(Tag, "Starting fill: $this")
-        /**
-         * Admob fills the bid automatically. It's not needed to fill it manually.
-         */
-        adEvent.tryEmit(AdEvent.Fill(requireNotNull(bannerAdView?.asAd())))
     }
 
     override fun show(activity: Activity) {}

@@ -3,6 +3,7 @@ package org.bidon.bidmachine.impl
 import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdRequest
+import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.banner.BannerListener
@@ -19,6 +20,7 @@ import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.AdSourceType
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -43,6 +45,7 @@ internal class BMBannerAdImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Banner<BMBannerAuctionParams>,
+    AdSourceType.Bidding<BMBannerAuctionParams>,
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
@@ -134,7 +137,9 @@ internal class BMBannerAdImpl(
         }
     }
 
-    override fun bid(adParams: BMBannerAuctionParams) {
+    override fun getToken(context: Context): String = BidMachine.getBidToken(context)
+
+    override fun bid(adParams: BMBannerAuctionParams, payload: String) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         bannerFormat = adParams.bannerFormat
@@ -142,6 +147,7 @@ internal class BMBannerAdImpl(
             .setSize(adParams.bannerFormat.asBidMachineBannerSize())
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
+            .setBidPayload(payload)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
             .build()
@@ -188,7 +194,7 @@ internal class BMBannerAdImpl(
             pricefloor = pricefloor,
             timeout = timeout,
             context = activity.applicationContext,
-            bannerFormat = bannerFormat
+            bannerFormat = bannerFormat,
         )
     }
 

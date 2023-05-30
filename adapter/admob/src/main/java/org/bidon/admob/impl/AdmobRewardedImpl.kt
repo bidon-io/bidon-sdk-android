@@ -11,7 +11,6 @@ import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.rewarded.Reward
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
@@ -19,7 +18,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.RoundStatus
 
 // $0.1 ca-app-pub-9630071911882835/9299488830
 // $0.5 ca-app-pub-9630071911882835/4234864416
@@ -33,6 +31,7 @@ internal class AdmobRewardedImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
+    AdSourceType.Network<AdmobFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -44,30 +43,6 @@ internal class AdmobRewardedImpl(
     private var rewardedAd: RewardedAd? = null
     private val requiredRewardedAd: RewardedAd get() = requireNotNull(rewardedAd)
 
-    private val requestListener by lazy {
-        object : RewardedAdLoadCallback() {
-            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                logError(Tag, "Error while loading ad. LoadAdError=$loadAdError.\n$this", loadAdError.asBidonError())
-                adEvent.tryEmit(AdEvent.LoadFailed(loadAdError.asBidonError()))
-            }
-
-            override fun onAdLoaded(rewardedAd: RewardedAd) {
-                logInfo(Tag, "onAdLoaded. RewardedAd=$rewardedAd, $this")
-                this@AdmobRewardedImpl.rewardedAd = rewardedAd
-                requiredRewardedAd.onPaidEventListener = paidListener
-                requiredRewardedAd.fullScreenContentCallback = rewardedListener
-                adEvent.tryEmit(
-                    AdEvent.Bid(
-                        AuctionResult(
-                            ecpm = requireNotNull(param?.lineItem?.pricefloor),
-                            adSource = this@AdmobRewardedImpl,
-                            roundStatus = RoundStatus.Successful
-                        )
-                    )
-                )
-            }
-        }
-    }
     private val onUserEarnedRewardListener by lazy {
         OnUserEarnedRewardListener { rewardItem ->
             logInfo(Tag, "onUserEarnedReward $rewardItem: $this")
@@ -134,7 +109,8 @@ internal class AdmobRewardedImpl(
     override val ad: Ad?
         get() = rewardedAd?.asAd()
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    override val adEvent =
+        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
 
@@ -163,12 +139,30 @@ internal class AdmobRewardedImpl(
         )
     }
 
-    override fun bid(adParams: AdmobFullscreenAdAuctionParams) {
+    override fun fill(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         param = adParams
         val adRequest = AdRequest.Builder().build()
         val adUnitId = param?.lineItem?.adUnitId
         if (!adUnitId.isNullOrBlank()) {
+            val requestListener = object : RewardedAdLoadCallback() {
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    logError(
+                        Tag,
+                        "Error while loading ad. LoadAdError=$loadAdError.\n$this",
+                        loadAdError.asBidonError()
+                    )
+                    adEvent.tryEmit(AdEvent.LoadFailed(loadAdError.asBidonError()))
+                }
+
+                override fun onAdLoaded(rewardedAd: RewardedAd) {
+                    logInfo(Tag, "onAdLoaded. RewardedAd=$rewardedAd, $this")
+                    this@AdmobRewardedImpl.rewardedAd = rewardedAd
+                    requiredRewardedAd.onPaidEventListener = paidListener
+                    requiredRewardedAd.fullScreenContentCallback = rewardedListener
+                    adEvent.tryEmit(AdEvent.Fill(requiredRewardedAd.asAd()))
+                }
+            }
             RewardedAd.load(adParams.context, adUnitId, adRequest, requestListener)
         } else {
             val error = BidonError.NoAppropriateAdUnitId
@@ -180,14 +174,6 @@ internal class AdmobRewardedImpl(
             )
             adEvent.tryEmit(AdEvent.LoadFailed(error))
         }
-    }
-
-    override fun fill() {
-        logInfo(Tag, "Starting fill: $this")
-        /**
-         * Admob fills the bid automatically. It's not needed to fill it manually.
-         */
-        adEvent.tryEmit(AdEvent.Fill(requiredRewardedAd.asAd()))
     }
 
     override fun show(activity: Activity) {

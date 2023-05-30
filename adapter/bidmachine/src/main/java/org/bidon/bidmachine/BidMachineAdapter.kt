@@ -27,6 +27,8 @@ class BidMachineAdapter :
     AdProvider.Rewarded<BMFullscreenAuctionParams>,
     AdProvider.Interstitial<BMFullscreenAuctionParams> {
 
+    private var context: Context? = null
+
     override val demandId = BidMachineDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -35,6 +37,7 @@ class BidMachineAdapter :
 
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
         suspendCancellableCoroutine { continuation ->
+            this.context = context
             val sourceId = configParams.sellerId
             BidMachine.setLoggingEnabled(BidonSdk.loggerLevel != Logger.Level.Off)
             BidMachine.initialize(context, sourceId) {

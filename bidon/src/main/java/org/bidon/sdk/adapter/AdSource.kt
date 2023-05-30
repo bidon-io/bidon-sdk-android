@@ -17,8 +17,6 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
     val adEvent: Flow<AdEvent>
     val isAdReadyToShow: Boolean
 
-    fun bid(adParams: T)
-    fun fill()
     /**
      * Applovin needs Activity instance for interstitial 🤦‍️
      */

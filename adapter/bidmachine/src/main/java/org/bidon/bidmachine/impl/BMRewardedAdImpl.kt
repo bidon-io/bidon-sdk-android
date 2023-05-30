@@ -3,6 +3,7 @@ package org.bidon.bidmachine.impl
 import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdRequest
+import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.rewarded.RewardedAd
@@ -32,6 +33,7 @@ internal class BMRewardedAdImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Rewarded<BMFullscreenAuctionParams>,
+    AdSourceType.Bidding<BMFullscreenAuctionParams>,
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
@@ -40,7 +42,8 @@ internal class BMRewardedAdImpl(
         demandAd = demandAd,
     ) {
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    override val adEvent =
+        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val ad: Ad? get() = rewardedAd?.asAd()
 
     private var context: Context? = null
@@ -149,13 +152,16 @@ internal class BMRewardedAdImpl(
         }
     }
 
-    override fun bid(adParams: BMFullscreenAuctionParams) {
+    override fun getToken(context: Context): String = BidMachine.getBidToken(context)
+
+    override fun bid(adParams: BMFullscreenAuctionParams, payload: String) {
         logInfo(Tag, "Starting with $adParams: $this")
         this.context = adParams.context
         RewardedRequest.Builder()
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
             .setLoadingTimeOut(adParams.timeout.toInt())
+            .setBidPayload(payload)
             .setListener(requestListener)
             .build()
             .also {
@@ -202,7 +208,11 @@ internal class BMRewardedAdImpl(
         lineItems: List<LineItem>,
         onLineItemConsumed: (LineItem) -> Unit,
     ): Result<AdAuctionParams> = runCatching {
-        BMFullscreenAuctionParams(pricefloor = pricefloor, timeout = timeout, context = activity.applicationContext)
+        BMFullscreenAuctionParams(
+            pricefloor = pricefloor,
+            timeout = timeout,
+            context = activity.applicationContext,
+        )
     }
 
     override fun destroy() {

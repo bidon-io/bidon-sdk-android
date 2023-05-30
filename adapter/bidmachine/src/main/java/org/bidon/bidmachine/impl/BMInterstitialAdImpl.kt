@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdContentType
 import io.bidmachine.AdRequest
+import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.interstitial.InterstitialAd
@@ -35,6 +36,7 @@ internal class BMInterstitialAdImpl(
     private val auctionId: String
 ) : AdSource.Interstitial<BMFullscreenAuctionParams>,
     WinLossNotifiable,
+    AdSourceType.Bidding<BMFullscreenAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -42,7 +44,8 @@ internal class BMInterstitialAdImpl(
         demandAd = demandAd,
     ) {
 
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    override val adEvent =
+        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val ad: Ad? get() = interstitialAd?.asAd()
 
     private var context: Context? = null
@@ -139,13 +142,16 @@ internal class BMInterstitialAdImpl(
         }
     }
 
-    override fun bid(adParams: BMFullscreenAuctionParams) {
+    override fun getToken(context: Context): String = BidMachine.getBidToken(context)
+
+    override fun bid(adParams: BMFullscreenAuctionParams, payload: String) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         InterstitialRequest.Builder()
             .setAdContentType(AdContentType.All)
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
+            .setBidPayload(payload)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
             .build()
@@ -196,7 +202,7 @@ internal class BMInterstitialAdImpl(
         return BMFullscreenAuctionParams(
             pricefloor = pricefloor,
             timeout = timeout,
-            context = activity.applicationContext
+            context = activity.applicationContext,
         ).asSuccess()
     }
 

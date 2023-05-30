@@ -30,6 +30,7 @@ internal class ApplovinInterstitialImpl(
     private val applovinSdk: AppLovinSdk,
     private val auctionId: String
 ) : AdSource.Interstitial<ApplovinFullscreenAdAuctionParams>,
+    AdSourceType.Network<ApplovinFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -122,7 +123,7 @@ internal class ApplovinInterstitialImpl(
         )
     }
 
-    override fun bid(adParams: ApplovinFullscreenAdAuctionParams) {
+    override fun fill(adParams: ApplovinFullscreenAdAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         lineItem = adParams.lineItem
         val adService: AppLovinAdService = applovinSdk.adService
@@ -132,9 +133,6 @@ internal class ApplovinInterstitialImpl(
         } else {
             adService.loadNextAdForZoneId(zoneId, requestListener)
         }
-    }
-
-    override fun fill() {
         runCatching {
             logInfo(Tag, "Starting fill: $this")
             adEvent.tryEmit(AdEvent.Fill(requireNotNull(applovinAd?.asAd())))
