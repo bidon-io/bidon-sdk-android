@@ -35,7 +35,6 @@ import org.bidon.sdk.databinders.device.DeviceDataSource
 import org.bidon.sdk.databinders.device.DeviceDataSourceImpl
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.databinders.extras.ExtrasImpl
-import org.bidon.sdk.databinders.geo.GeoBinder
 import org.bidon.sdk.databinders.location.LocationDataSource
 import org.bidon.sdk.databinders.location.LocationDataSourceImpl
 import org.bidon.sdk.databinders.placement.PlacementBinder
@@ -207,9 +206,8 @@ internal object DI {
             }
             factory<DataProvider> {
                 DataProviderImpl(
-                    deviceBinder = DeviceBinder(dataSource = get()),
+                    deviceBinder = DeviceBinder(deviceDataSource = get(), locationDataSource = get()),
                     appBinder = AppBinder(dataSource = get()),
-                    geoBinder = GeoBinder(dataSource = get()),
                     sessionBinder = SessionBinder(dataSource = get()),
                     tokenBinder = TokenBinder(dataSource = get()),
                     userBinder = UserBinder(dataSource = get()),

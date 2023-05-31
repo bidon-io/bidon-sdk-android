@@ -9,6 +9,7 @@ import org.json.JSONObject
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
+@Deprecated("Moved to Device")
 internal class GeoBinder(
     private val dataSource: LocationDataSource
 ) : DataBinder<JSONObject> {

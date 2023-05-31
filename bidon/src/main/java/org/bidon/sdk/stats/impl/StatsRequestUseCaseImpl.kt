@@ -29,7 +29,6 @@ internal class StatsRequestUseCaseImpl(
         DataBinderType.Device,
         DataBinderType.App,
         DataBinderType.Token,
-        DataBinderType.Geo,
         DataBinderType.Session,
         DataBinderType.User,
         DataBinderType.Segment,

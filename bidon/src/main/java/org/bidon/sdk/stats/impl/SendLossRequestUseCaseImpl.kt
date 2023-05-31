@@ -26,7 +26,6 @@ internal class SendLossRequestUseCaseImpl(
         DataBinderType.Session,
         DataBinderType.App,
         DataBinderType.User,
-        DataBinderType.Geo,
         DataBinderType.Token,
         DataBinderType.Segment,
     )

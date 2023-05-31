@@ -27,7 +27,6 @@ internal class GetConfigRequestUseCaseImpl(
         DataBinderType.Device,
         DataBinderType.App,
         DataBinderType.Token,
-        DataBinderType.Geo,
         DataBinderType.Session,
         DataBinderType.User,
     )
