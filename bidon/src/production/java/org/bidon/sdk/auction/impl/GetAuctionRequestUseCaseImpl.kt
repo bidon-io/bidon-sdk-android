@@ -38,6 +38,8 @@ internal class GetAuctionRequestUseCaseImpl(
         DataBinderType.Session,
         DataBinderType.User,
         DataBinderType.Segment,
+        DataBinderType.Reg,
+        DataBinderType.Test,
     )
 
     override suspend fun request(

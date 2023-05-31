@@ -32,6 +32,8 @@ internal class StatsRequestUseCaseImpl(
         DataBinderType.Session,
         DataBinderType.User,
         DataBinderType.Segment,
+        DataBinderType.Reg,
+        DataBinderType.Test,
     )
 
     override suspend operator fun invoke(

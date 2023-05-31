@@ -4,8 +4,10 @@ import org.bidon.sdk.databinders.adapters.AdaptersBinder
 import org.bidon.sdk.databinders.app.AppBinder
 import org.bidon.sdk.databinders.device.DeviceBinder
 import org.bidon.sdk.databinders.placement.PlacementBinder
+import org.bidon.sdk.databinders.reg.RegulationsBinder
 import org.bidon.sdk.databinders.segment.SegmentBinder
 import org.bidon.sdk.databinders.session.SessionBinder
+import org.bidon.sdk.databinders.test.TestModeBinder
 import org.bidon.sdk.databinders.token.TokenBinder
 import org.bidon.sdk.databinders.user.UserBinder
 
@@ -21,6 +23,8 @@ internal class DataProviderImpl(
     private val placementBinder: PlacementBinder,
     private val adaptersBinder: AdaptersBinder,
     private val segmentBinder: SegmentBinder,
+    private val regulationsBinder: RegulationsBinder,
+    private val testModeBinder: TestModeBinder,
 ) : DataProvider {
 
     override suspend fun provide(dataBinders: List<DataBinderType>): Map<String, Any> {
@@ -34,8 +38,8 @@ internal class DataProviderImpl(
                 DataBinderType.Placement -> placementBinder
                 DataBinderType.AvailableAdapters -> adaptersBinder
                 DataBinderType.Segment -> segmentBinder
-                DataBinderType.Reg -> TODO()
-                DataBinderType.Test -> TODO()
+                DataBinderType.Reg -> regulationsBinder
+                DataBinderType.Test -> testModeBinder
             }
             binder.getJsonObject()?.let { binder.fieldName to it }
         }.toMap()

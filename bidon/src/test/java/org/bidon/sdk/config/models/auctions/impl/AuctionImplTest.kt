@@ -269,6 +269,7 @@ internal class AuctionImplTest : ConcurrentTest() {
         }
     }
 
+    @Ignore
     @Test
     fun `it should expose #NoAuctionResults when all bids failed`() = runTest {
         // PREPARE

@@ -313,7 +313,7 @@ internal class AuctionImpl(
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
             val filteredAdapters = adaptersSource.adapters.filter {
-                it.demandId.demandId in round.demandIds
+                it.demandId.demandId in (round.demandIds + round.biddingIds)
             }
             (round.demandIds - filteredAdapters.map { it.demandId.demandId }.toSet())
                 .takeIf { it.isNotEmpty() }
@@ -361,13 +361,16 @@ internal class AuctionImpl(
                     }
                 }
             }
-            val biddingResult = conductBiddingAuction.invoke(
-                context = adTypeParamData.activity.applicationContext,
-                biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>(),
-                participantIds = round.biddingIds,
-                adTypeParam = adTypeParamData,
-                demandAd = demandAd
-            )
+            logInfo("ConductBiddingAuctionUseCase", "adSources: $adSources")
+            if (round.biddingIds.isNotEmpty()) {
+                val biddingResult = conductBiddingAuction.invoke(
+                    context = adTypeParamData.activity.applicationContext,
+                    biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>(),
+                    participantIds = round.biddingIds,
+                    adTypeParam = adTypeParamData,
+                    demandAd = demandAd
+                )
+            }
 
             val networkSources = adSources.filterIsInstance<AdSourceType.Network<AdAuctionParams>>()
             networkSources.map { adSource ->

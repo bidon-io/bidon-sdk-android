@@ -22,6 +22,7 @@ internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 @Suppress("unused")
 class BidMachineAdapter :
     Adapter,
+    SupportsTestMode by SupportsTestModeImpl(),
     Initializable<BidMachineParameters>,
     AdProvider.Banner<BMBannerAuctionParams>,
     AdProvider.Rewarded<BMFullscreenAuctionParams>,
@@ -39,6 +40,7 @@ class BidMachineAdapter :
         suspendCancellableCoroutine { continuation ->
             this.context = context
             val sourceId = configParams.sellerId
+            BidMachine.setTestMode(isTestMode)
             BidMachine.setLoggingEnabled(BidonSdk.loggerLevel != Logger.Level.Off)
             BidMachine.initialize(context, sourceId) {
                 continuation.resume(Unit)

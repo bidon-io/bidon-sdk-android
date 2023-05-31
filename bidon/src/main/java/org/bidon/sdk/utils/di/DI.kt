@@ -40,6 +40,9 @@ import org.bidon.sdk.databinders.location.LocationDataSourceImpl
 import org.bidon.sdk.databinders.placement.PlacementBinder
 import org.bidon.sdk.databinders.placement.PlacementDataSource
 import org.bidon.sdk.databinders.placement.PlacementDataSourceImpl
+import org.bidon.sdk.databinders.reg.RegulationDataSource
+import org.bidon.sdk.databinders.reg.RegulationDataSourceImpl
+import org.bidon.sdk.databinders.reg.RegulationsBinder
 import org.bidon.sdk.databinders.segment.SegmentBinder
 import org.bidon.sdk.databinders.segment.SegmentDataSource
 import org.bidon.sdk.databinders.segment.SegmentDataSourceImpl
@@ -48,6 +51,7 @@ import org.bidon.sdk.databinders.session.SessionDataSource
 import org.bidon.sdk.databinders.session.SessionDataSourceImpl
 import org.bidon.sdk.databinders.session.SessionTracker
 import org.bidon.sdk.databinders.session.SessionTrackerImpl
+import org.bidon.sdk.databinders.test.TestModeBinder
 import org.bidon.sdk.databinders.token.TokenBinder
 import org.bidon.sdk.databinders.token.TokenDataSource
 import org.bidon.sdk.databinders.token.TokenDataSourceImpl
@@ -214,10 +218,13 @@ internal object DI {
                     placementBinder = PlacementBinder(dataSource = get()),
                     adaptersBinder = AdaptersBinder(adaptersSource = get()),
                     segmentBinder = SegmentBinder(dataSource = get()),
+                    regulationsBinder = RegulationsBinder(dataSource = get()),
+                    testModeBinder = TestModeBinder()
                 )
             }
             factory<Extras> { ExtrasImpl() }
             factory { VisibilityTracker() }
+            factory<RegulationDataSource> { RegulationDataSourceImpl() }
 
             factory<SendLossRequestUseCase> {
                 SendLossRequestUseCaseImpl(

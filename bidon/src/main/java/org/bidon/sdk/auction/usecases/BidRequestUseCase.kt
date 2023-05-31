@@ -42,6 +42,8 @@ internal class BidRequestUseCaseImpl(
         DataBinderType.Session,
         DataBinderType.User,
         DataBinderType.Segment,
+        DataBinderType.Reg,
+        DataBinderType.Test,
     )
 
     override suspend fun invoke(
