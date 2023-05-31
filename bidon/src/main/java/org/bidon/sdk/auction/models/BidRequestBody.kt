@@ -30,5 +30,4 @@ internal data class BidRequestBody(
         @field:JsonName("token")
         val token: String
     ) : Serializable
-
 }

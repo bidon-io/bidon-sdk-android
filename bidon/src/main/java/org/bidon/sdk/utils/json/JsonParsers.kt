@@ -1,7 +1,6 @@
 package org.bidon.sdk.utils.json
 
 import org.bidon.sdk.auction.models.AuctionResponseParser
-import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.auction.models.BidResponseParser
 import org.bidon.sdk.auction.models.LineItemParser
 import org.bidon.sdk.auction.models.RoundParser

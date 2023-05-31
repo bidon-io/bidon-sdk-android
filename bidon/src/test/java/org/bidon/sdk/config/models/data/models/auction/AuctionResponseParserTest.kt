@@ -29,12 +29,12 @@ internal class AuctionResponseParserTest {
                 timeoutMs = 15,
                 demandIds = listOf("admob", "bidmachine"),
                 biddingIds = listOf(),
-                ),
+            ),
             Round(
                 id = "prebid",
                 timeoutMs = 25,
                 demandIds = listOf("bidmachine"),
-                biddingIds = listOf(),
+                biddingIds = listOf("asd"),
             ),
         ),
         auctionConfigurationId = 10,
@@ -71,7 +71,10 @@ internal class AuctionResponseParserTest {
               "timeout": 25,
               "demands": [
                 "bidmachine"
-              ]
+              ],
+              "bidding": [
+                "asd"
+              ],
             }
           ],
           "line_items": [

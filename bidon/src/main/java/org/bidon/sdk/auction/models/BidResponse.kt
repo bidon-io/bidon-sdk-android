@@ -34,7 +34,6 @@ internal data class BidResponse(
     val noBiddingReason: Int,
 ) : Serializable
 
-
 internal class BidResponseParser : JsonParser<BidResponse> {
     override fun parseOrNull(jsonString: String): BidResponse? = runCatching {
         val json = JSONObject(jsonString)

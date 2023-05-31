@@ -31,7 +31,7 @@ internal class CreateRequestBodyUseCaseImpl(
             if (extras.isNotEmpty()) {
                 "ext" hasValue JSONObject(extras).toString()
             }
-            if (dataKeyName!=null) {
+            if (dataKeyName != null) {
                 when {
                     data != null -> {
                         dataKeyName hasValue data.serialize()

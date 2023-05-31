@@ -3,7 +3,6 @@ package org.bidon.sdk.databinders
 import org.bidon.sdk.databinders.adapters.AdaptersBinder
 import org.bidon.sdk.databinders.app.AppBinder
 import org.bidon.sdk.databinders.device.DeviceBinder
-import org.bidon.sdk.databinders.geo.GeoBinder
 import org.bidon.sdk.databinders.placement.PlacementBinder
 import org.bidon.sdk.databinders.segment.SegmentBinder
 import org.bidon.sdk.databinders.session.SessionBinder
