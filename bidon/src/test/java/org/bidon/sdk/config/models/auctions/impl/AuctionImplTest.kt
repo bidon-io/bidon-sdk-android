@@ -3,7 +3,13 @@ package org.bidon.sdk.config.models.auctions.impl
 import android.app.Activity
 import android.util.Log
 import com.google.common.truth.Truth.assertThat
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdaptersSource
@@ -54,7 +60,8 @@ internal class AuctionImplTest : ConcurrentTest() {
         AuctionImpl(
             adaptersSource = adaptersSource,
             getAuctionRequest = getAuctionRequestUseCase,
-            statsRequest = statsRequestUseCase
+            statsRequest = statsRequestUseCase,
+            conductBiddingAuction = mockk()
         )
     }
 
@@ -112,12 +119,14 @@ internal class AuctionImplTest : ConcurrentTest() {
                 Round(
                     id = "round_1",
                     timeoutMs = 15,
-                    demandIds = listOf(Applovin, Admob)
+                    demandIds = listOf(Applovin, Admob),
+                    biddingIds = listOf(),
                 ),
                 Round(
                     id = "round_2",
                     timeoutMs = 25,
-                    demandIds = listOf(Admob)
+                    demandIds = listOf(Admob),
+                    biddingIds = listOf(),
                 ),
             ),
             auctionConfigurationId = 10,
@@ -349,12 +358,14 @@ internal class AuctionImplTest : ConcurrentTest() {
             Round(
                 id = "round_1",
                 timeoutMs = 15,
-                demandIds = listOf(Applovin, Admob)
+                demandIds = listOf(Applovin, Admob),
+                biddingIds = listOf(),
             ),
             Round(
                 id = "round_2",
                 timeoutMs = 25,
-                demandIds = listOf(Admob)
+                demandIds = listOf(Admob),
+                biddingIds = listOf(),
             ),
         ),
         auctionConfigurationId = 10,

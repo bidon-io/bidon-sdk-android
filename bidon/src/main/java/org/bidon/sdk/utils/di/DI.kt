@@ -16,6 +16,10 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
 import org.bidon.sdk.auction.impl.AuctionImpl
+import org.bidon.sdk.auction.usecases.BidRequestUseCase
+import org.bidon.sdk.auction.usecases.BidRequestUseCaseImpl
+import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
+import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -40,7 +44,11 @@ import org.bidon.sdk.databinders.placement.PlacementDataSourceImpl
 import org.bidon.sdk.databinders.segment.SegmentBinder
 import org.bidon.sdk.databinders.segment.SegmentDataSource
 import org.bidon.sdk.databinders.segment.SegmentDataSourceImpl
-import org.bidon.sdk.databinders.session.*
+import org.bidon.sdk.databinders.session.SessionBinder
+import org.bidon.sdk.databinders.session.SessionDataSource
+import org.bidon.sdk.databinders.session.SessionDataSourceImpl
+import org.bidon.sdk.databinders.session.SessionTracker
+import org.bidon.sdk.databinders.session.SessionTrackerImpl
 import org.bidon.sdk.databinders.token.TokenBinder
 import org.bidon.sdk.databinders.token.TokenDataSource
 import org.bidon.sdk.databinders.token.TokenDataSourceImpl
@@ -138,6 +146,7 @@ internal object DI {
                     adaptersSource = get(),
                     getAuctionRequest = get(),
                     statsRequest = get(),
+                    conductBiddingAuction = get()
                 )
             }
             factoryWithParams { (param) ->
@@ -145,7 +154,6 @@ internal object DI {
                     activityLifecycleObserver = param as ActivityLifecycleObserver
                 )
             }
-
             factoryWithParams<AuctionHolder> { (demandAd) ->
                 AuctionHolderImpl(
                     demandAd = demandAd as DemandAd,
@@ -153,6 +161,17 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
+            factory<ConductBiddingAuctionUseCase> {
+                ConductBiddingAuctionUseCaseImpl(
+                    bidRequestUseCase = get()
+                )
+            }
+            factory<BidRequestUseCase> {
+                BidRequestUseCaseImpl(
+                    createRequestBody = get(),
+                    getOrientation = get(),
+                )
+            }
 
             /**
              * Requests

@@ -9,7 +9,8 @@ import org.json.JSONObject
 data class Round(
     val id: String,
     val timeoutMs: Long,
-    val demandIds: List<String>
+    val demandIds: List<String>,
+    val biddingIds: List<String>
 )
 
 internal class RoundParser : JsonParser<Round> {
@@ -20,6 +21,12 @@ internal class RoundParser : JsonParser<Round> {
             timeoutMs = json.getLong("timeout"),
             demandIds = buildList {
                 val jsonArray = json.getJSONArray("demands")
+                repeat(jsonArray.length()) { index ->
+                    add(jsonArray.getString(index))
+                }
+            },
+            biddingIds = buildList {
+                val jsonArray = json.getJSONArray("bidding")
                 repeat(jsonArray.length()) { index ->
                     add(jsonArray.getString(index))
                 }

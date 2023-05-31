@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.impl
 
-import android.content.Context
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +24,7 @@ import org.bidon.sdk.auction.AuctionState
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
+import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -45,6 +45,7 @@ internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val statsRequest: StatsRequestUseCase,
+    private val conductBiddingAuction: ConductBiddingAuctionUseCase,
 ) : Auction {
     private val state = MutableStateFlow(AuctionState.Initialized)
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
@@ -360,9 +361,12 @@ internal class AuctionImpl(
                     }
                 }
             }
-            val biddingResult = executeServerBidding(
+            val biddingResult = conductBiddingAuction.invoke(
                 context = adTypeParamData.activity.applicationContext,
-                biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>()
+                biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>(),
+                participantIds = round.biddingIds,
+                adTypeParam = adTypeParamData,
+                demandAd = demandAd
             )
 
             val networkSources = adSources.filterIsInstance<AdSourceType.Network<AdAuctionParams>>()
@@ -377,11 +381,11 @@ internal class AuctionImpl(
                 async {
                     withTimeoutOrNull(round.timeoutMs) {
                         val adParam = obtainAdParamByType(
-                            adSource,
-                            adTypeParamData,
-                            pricefloor,
-                            round.timeoutMs,
-                            availableLineItemsForDemand
+                            adSource = adSource,
+                            adTypeParamData = adTypeParamData,
+                            pricefloor = pricefloor,
+                            timeout = round.timeoutMs,
+                            availableLineItemsForDemand = availableLineItemsForDemand
                         ).getOrNull()
                             ?: return@withTimeoutOrNull AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId)
 
@@ -463,18 +467,6 @@ internal class AuctionImpl(
                 logInfo(Tag, "Round '${round.id}' finished with ${it.size} results: $it")
             }
         }
-    }
-
-    private fun executeServerBidding(
-        context: Context,
-        biddingSources: List<AdSourceType.Bidding<AdAuctionParams>>
-    ): Result<AuctionResult> = runCatching {
-        val tokens = biddingSources.mapNotNull { adSource ->
-            adSource.getToken(context)?.let { token ->
-                (adSource as AdSource<*>).demandId.demandId to token
-            }
-        }
-        TODO()
     }
 
     private fun obtainAdParamByType(

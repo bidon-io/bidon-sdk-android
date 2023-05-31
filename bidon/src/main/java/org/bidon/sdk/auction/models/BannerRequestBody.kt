@@ -27,5 +27,6 @@ data class BannerRequestBody(
             BannerFormat.MRec -> StatFormat.MRec300x250
             BannerFormat.Adaptive -> StatFormat.AdaptiveBanner320x50
         }
+
     }
 }

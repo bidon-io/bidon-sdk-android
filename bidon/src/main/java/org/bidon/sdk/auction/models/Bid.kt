@@ -1,0 +1,25 @@
+package org.bidon.sdk.auction.models
+
+import org.bidon.sdk.utils.serializer.JsonName
+
+/**
+ * Created by Aleksei Cherniaev on 31/05/2023.
+ */
+internal data class Bid(
+    @field:JsonName("id")
+    val id: String,
+    @field:JsonName("payload")
+    val payload: String,
+    @field:JsonName("impid")
+    val impressionId: String,
+    @field:JsonName("nurl")
+    val winNoticeUrl: String?,
+    @field:JsonName("burl")
+    val billingNoticeUrl: String?,
+    @field:JsonName("lurl")
+    val lossNoticeUrl: String?,
+    @field:JsonName("price")
+    val price: Double,
+    @field:JsonName("ext")
+    val ext: Map<String, Any?>,
+)

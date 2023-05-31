@@ -4,11 +4,15 @@ import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
+import org.bidon.sdk.ads.ext.asAdType
+import org.bidon.sdk.ads.ext.asBannerRequestBody
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.*
+import org.bidon.sdk.auction.models.AdObjectRequestBody
+import org.bidon.sdk.auction.models.AuctionResponse
+import org.bidon.sdk.auction.models.BannerRequestBody
+import org.bidon.sdk.auction.models.InterstitialRequestBody
+import org.bidon.sdk.auction.models.RewardedRequestBody
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
@@ -76,15 +80,7 @@ internal class GetAuctionRequestUseCaseImpl(
     private fun getData(data: AdTypeParam): Triple<BannerRequestBody?, InterstitialRequestBody?, RewardedRequestBody?> {
         return when (data) {
             is AdTypeParam.Banner -> {
-                val banner = BannerRequestBody(
-                    formatCode = when (data.bannerFormat) {
-                        BannerFormat.Banner -> BannerRequestBody.StatFormat.Banner320x50
-                        BannerFormat.LeaderBoard -> BannerRequestBody.StatFormat.LeaderBoard728x90
-                        BannerFormat.MRec -> BannerRequestBody.StatFormat.MRec300x250
-                        BannerFormat.Adaptive -> BannerRequestBody.StatFormat.AdaptiveBanner320x50
-                    }.code,
-                )
-                Triple(first = banner, second = null, third = null)
+                Triple(first = data.asBannerRequestBody(), second = null, third = null)
             }
             is AdTypeParam.Interstitial -> {
                 Triple(first = null, second = InterstitialRequestBody(), third = null)
@@ -93,12 +89,6 @@ internal class GetAuctionRequestUseCaseImpl(
                 Triple(first = null, second = null, third = RewardedRequestBody())
             }
         }
-    }
-
-    private fun AdTypeParam.asAdType() = when (this) {
-        is AdTypeParam.Banner -> AdType.Banner
-        is AdTypeParam.Interstitial -> AdType.Interstitial
-        is AdTypeParam.Rewarded -> AdType.Rewarded
     }
 }
 

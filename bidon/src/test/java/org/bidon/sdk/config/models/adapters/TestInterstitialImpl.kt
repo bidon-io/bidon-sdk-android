@@ -24,6 +24,7 @@ internal class TestInterstitialImpl(
     private val testParameters: TestAdapterParameters,
     private val demandAd: DemandAd = DemandAd(AdType.Interstitial),
 ) : AdSource.Interstitial<TestInterstitialParameters>,
+    AdSourceType.Network<TestInterstitialParameters>,
     StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId, demandAd) {
 
     private lateinit var adParams: TestInterstitialParameters
@@ -46,7 +47,7 @@ internal class TestInterstitialImpl(
     override val isAdReadyToShow: Boolean
         get() = testParameters.fill == Process.Succeed
 
-    override fun bid(adParams: TestInterstitialParameters) {
+    override fun fill(adParams: TestInterstitialParameters) {
         this.adParams = adParams
         when (testParameters.bid) {
             Process.Succeed -> {
@@ -70,9 +71,6 @@ internal class TestInterstitialImpl(
                 }
             }
         }
-    }
-
-    override fun fill() {
         when (testParameters.fill) {
             Process.Succeed -> adEvent.tryEmit(AdEvent.Fill(ad))
             Process.Failed -> adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
