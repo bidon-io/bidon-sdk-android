@@ -19,7 +19,7 @@ sealed interface AdSourceType<T : AdAuctionParams> {
      */
     interface Bidding<T : AdAuctionParams> : AdSourceType<T> {
         fun getToken(context: Context): String?
-        fun bid(adParams: T, payload: String)
+        fun bid(adParams: T)
         fun fill()
     }
 }

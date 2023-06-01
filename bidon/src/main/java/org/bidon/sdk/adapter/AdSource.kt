@@ -29,6 +29,7 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
             pricefloor: Double,
             timeout: Long,
             lineItems: List<LineItem>,
+            payload: String? = null,
             onLineItemConsumed: (LineItem) -> Unit
         ): Result<AdAuctionParams>
     }
@@ -39,6 +40,7 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
             pricefloor: Double,
             timeout: Long,
             lineItems: List<LineItem>,
+            payload: String? = null,
             onLineItemConsumed: (LineItem) -> Unit
         ): Result<AdAuctionParams>
     }
@@ -50,6 +52,7 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
             timeout: Long,
             lineItems: List<LineItem>,
             bannerFormat: BannerFormat,
+            payload: String? = null,
             onLineItemConsumed: (LineItem) -> Unit,
             containerWidth: Float,
         ): Result<AdAuctionParams>

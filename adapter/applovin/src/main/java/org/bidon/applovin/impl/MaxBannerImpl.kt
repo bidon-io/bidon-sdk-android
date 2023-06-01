@@ -113,6 +113,7 @@ internal class MaxBannerImpl(
         timeout: Long,
         lineItems: List<LineItem>,
         bannerFormat: BannerFormat,
+        payload: String?,
         onLineItemConsumed: (LineItem) -> Unit,
         containerWidth: Float
     ): Result<AdAuctionParams> = runCatching {

@@ -40,7 +40,6 @@ internal class BidResponseParser : JsonParser<BidResponse> {
         BidResponse(
             impressionId = json.getString("id"),
             seatBid = json.optJSONObject("seatbid")?.let {
-
                 SeatBid(
                     bids = buildList {
                         val jsonArray = json.getJSONArray("bid")
@@ -65,7 +64,8 @@ internal class BidResponseParser : JsonParser<BidResponse> {
                                 )
                             )
                         }
-                    }
+                    },
+                    seat = json.optString("seat")
                 )
             },
             bidderGeneratedResponseId = json.optString("bidid"),

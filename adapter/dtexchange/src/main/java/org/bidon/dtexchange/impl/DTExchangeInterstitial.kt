@@ -102,6 +102,7 @@ internal class DTExchangeInterstitial(
         pricefloor: Double,
         timeout: Long,
         lineItems: List<LineItem>,
+        payload: String?,
         onLineItemConsumed: (LineItem) -> Unit
     ): Result<AdAuctionParams> = runCatching {
         val lineItem = lineItems

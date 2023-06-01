@@ -8,5 +8,7 @@ import java.io.Serializable
  */
 internal data class SeatBid(
     @field:JsonName("bid")
-    val bids: List<Bid>
+    val bids: List<Bid>,
+    @field:JsonName("seat")
+    val seat: String?
 ) : Serializable

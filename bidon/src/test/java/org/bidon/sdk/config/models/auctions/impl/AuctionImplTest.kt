@@ -61,7 +61,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             adaptersSource = adaptersSource,
             getAuctionRequest = getAuctionRequestUseCase,
             statsRequest = statsRequestUseCase,
-            conductBiddingAuction = mockk()
+            conductBiddingAuction = mockk(),
+            conductNetworkAuction = mockk()
         )
     }
 

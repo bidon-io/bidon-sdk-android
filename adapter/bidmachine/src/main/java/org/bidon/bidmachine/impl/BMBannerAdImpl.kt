@@ -139,7 +139,7 @@ internal class BMBannerAdImpl(
 
     override fun getToken(context: Context): String = BidMachine.getBidToken(context)
 
-    override fun bid(adParams: BMBannerAuctionParams, payload: String) {
+    override fun bid(adParams: BMBannerAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         bannerFormat = adParams.bannerFormat
@@ -147,7 +147,7 @@ internal class BMBannerAdImpl(
             .setSize(adParams.bannerFormat.asBidMachineBannerSize())
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
-            .setBidPayload(payload)
+            .setBidPayload(adParams.payload)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
             .build()
@@ -187,6 +187,7 @@ internal class BMBannerAdImpl(
         timeout: Long,
         lineItems: List<LineItem>,
         bannerFormat: BannerFormat,
+        payload: String?,
         onLineItemConsumed: (LineItem) -> Unit,
         containerWidth: Float
     ): Result<AdAuctionParams> = runCatching {
@@ -195,6 +196,7 @@ internal class BMBannerAdImpl(
             timeout = timeout,
             context = activity.applicationContext,
             bannerFormat = bannerFormat,
+            payload = payload
         )
     }
 

@@ -154,14 +154,14 @@ internal class BMRewardedAdImpl(
 
     override fun getToken(context: Context): String = BidMachine.getBidToken(context)
 
-    override fun bid(adParams: BMFullscreenAuctionParams, payload: String) {
+    override fun bid(adParams: BMFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         this.context = adParams.context
         RewardedRequest.Builder()
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
             .setLoadingTimeOut(adParams.timeout.toInt())
-            .setBidPayload(payload)
+            .setBidPayload(adParams.payload)
             .setListener(requestListener)
             .build()
             .also {
@@ -206,12 +206,14 @@ internal class BMRewardedAdImpl(
         pricefloor: Double,
         timeout: Long,
         lineItems: List<LineItem>,
+        payload: String?,
         onLineItemConsumed: (LineItem) -> Unit,
     ): Result<AdAuctionParams> = runCatching {
         BMFullscreenAuctionParams(
             pricefloor = pricefloor,
             timeout = timeout,
             context = activity.applicationContext,
+            payload = payload
         )
     }
 

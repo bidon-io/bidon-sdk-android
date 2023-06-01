@@ -144,14 +144,14 @@ internal class BMInterstitialAdImpl(
 
     override fun getToken(context: Context): String = BidMachine.getBidToken(context)
 
-    override fun bid(adParams: BMFullscreenAuctionParams, payload: String) {
+    override fun bid(adParams: BMFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         InterstitialRequest.Builder()
             .setAdContentType(AdContentType.All)
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
-            .setBidPayload(payload)
+            .setBidPayload(adParams.payload)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)
             .build()
@@ -197,12 +197,14 @@ internal class BMInterstitialAdImpl(
         pricefloor: Double,
         timeout: Long,
         lineItems: List<LineItem>,
+        payload: String?,
         onLineItemConsumed: (LineItem) -> Unit,
     ): Result<AdAuctionParams> {
         return BMFullscreenAuctionParams(
             pricefloor = pricefloor,
             timeout = timeout,
             context = activity.applicationContext,
+            payload = payload
         ).asSuccess()
     }
 

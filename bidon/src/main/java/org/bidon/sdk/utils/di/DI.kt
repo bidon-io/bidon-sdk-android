@@ -20,6 +20,8 @@ import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.BidRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCaseImpl
+import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCase
+import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -149,7 +151,8 @@ internal object DI {
                     adaptersSource = get(),
                     getAuctionRequest = get(),
                     statsRequest = get(),
-                    conductBiddingAuction = get()
+                    conductBiddingAuction = get(),
+                    conductNetworkAuction = get()
                 )
             }
             factoryWithParams { (param) ->
@@ -168,6 +171,9 @@ internal object DI {
                 ConductBiddingAuctionUseCaseImpl(
                     bidRequestUseCase = get()
                 )
+            }
+            factory<ConductNetworkAuctionUseCase> {
+                ConductNetworkAuctionUseCaseImpl()
             }
             factory<BidRequestUseCase> {
                 BidRequestUseCaseImpl(
