@@ -11,7 +11,6 @@ import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.rewarded.Reward
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -122,22 +121,17 @@ internal class AdmobRewardedImpl(
         param = null
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-        AdmobFullscreenAdAuctionParams(
-            lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
-            pricefloor = pricefloor,
-            context = activity.applicationContext
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed)
+            AdmobFullscreenAdAuctionParams(
+                lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
+                pricefloor = pricefloor,
+                context = activity.applicationContext
+            )
+        }
     }
 
     override fun fill(adParams: AdmobFullscreenAdAuctionParams) {

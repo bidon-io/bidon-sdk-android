@@ -79,8 +79,7 @@ internal class BidRequestUseCaseImpl(
             val requestBody = createRequestBody(
                 binders = binders,
                 dataKeyName = "imp",
-                data = null,
-                list = listOf(bidRequestBody),
+                data = bidRequestBody,
                 extras = BidonSdk.getExtras() + extras
             )
             logInfo(Tag, "Request body: $requestBody")

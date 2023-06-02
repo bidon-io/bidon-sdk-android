@@ -6,6 +6,7 @@ import com.unity3d.ads.IUnityAdsShowListener
 import com.unity3d.ads.UnityAds
 import com.unity3d.ads.UnityAdsShowOptions
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -15,6 +16,7 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
@@ -62,19 +64,13 @@ internal class UnityAdsInterstitial(
 
     override var isAdReadyToShow: Boolean = false
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-            ?: error(org.bidon.sdk.config.BidonError.NoAppropriateAdUnitId)
-        UnityAdsFullscreenAuctionParams(lineItem)
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
+            UnityAdsFullscreenAuctionParams(lineItem)
+        }
     }
 
     override fun fill(adParams: UnityAdsFullscreenAuctionParams) {

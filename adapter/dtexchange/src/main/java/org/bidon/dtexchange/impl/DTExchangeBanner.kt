@@ -13,6 +13,7 @@ import com.fyber.inneractive.sdk.external.InneractiveUnitController
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.dtexchange.ext.asAdValue
 import org.bidon.dtexchange.ext.asBidonError
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -23,9 +24,7 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.impl.pxToDp
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -57,24 +56,17 @@ internal class DTExchangeBanner(
         MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        bannerFormat: BannerFormat,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-        containerWidth: Float,
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
-        DTExchangeBannerAuctionParams(
-            lineItem = lineItem,
-            bannerFormat = bannerFormat,
-            context = activity.applicationContext,
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed) ?: error("BidonError.NoAppropriateAdUnitId")
+            DTExchangeBannerAuctionParams(
+                lineItem = lineItem,
+                bannerFormat = bannerFormat,
+                context = activity.applicationContext,
+            )
+        }
     }
 
     override fun fill(adParams: DTExchangeBannerAuctionParams) {

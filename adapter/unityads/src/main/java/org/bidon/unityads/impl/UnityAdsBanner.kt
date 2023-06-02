@@ -5,6 +5,7 @@ import com.unity3d.services.banners.BannerErrorInfo
 import com.unity3d.services.banners.BannerView
 import com.unity3d.services.banners.UnityBannerSize
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -15,7 +16,6 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceType
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -51,24 +51,17 @@ internal class UnityAdsBanner(
         MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override var isAdReadyToShow: Boolean = false
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        bannerFormat: BannerFormat,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-        containerWidth: Float,
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
-        UnityAdsBannerAuctionParams(
-            lineItem = lineItem,
-            bannerFormat = bannerFormat,
-            activity = activity,
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
+            UnityAdsBannerAuctionParams(
+                lineItem = lineItem,
+                bannerFormat = bannerFormat,
+                activity = activity,
+            )
+        }
     }
 
     override fun getAdView(): AdViewHolder {

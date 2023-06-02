@@ -14,6 +14,7 @@ import com.fyber.inneractive.sdk.external.InneractiveUnitController
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.dtexchange.ext.asAdValue
 import org.bidon.dtexchange.ext.asBidonError
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -21,7 +22,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -111,19 +111,14 @@ internal class DTExchangeRewarded(
     override val isAdReadyToShow: Boolean
         get() = inneractiveAdSpot?.isReady == true
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-        lineItem?.adUnitId ?: error(BidonError.NoAppropriateAdUnitId)
-        DTExchangeAdAuctionParams(lineItem)
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed)
+            lineItem?.adUnitId ?: error(BidonError.NoAppropriateAdUnitId)
+            DTExchangeAdAuctionParams(lineItem)
+        }
     }
 
     override fun fill(adParams: DTExchangeAdAuctionParams) {

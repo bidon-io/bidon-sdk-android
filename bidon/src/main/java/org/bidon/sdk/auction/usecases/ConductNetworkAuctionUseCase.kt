@@ -5,6 +5,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -101,13 +102,16 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
     ): AdEvent {
         adSource as AdSource<AdAuctionParams>
         return withTimeoutOrNull(round.timeoutMs) {
-            val adParam = obtainAdParamByType(
-                adSource = adSource,
-                adTypeParamData = adTypeParam,
-                pricefloor = pricefloor,
-                timeout = round.timeoutMs,
-                availableLineItemsForDemand = availableLineItemsForDemand,
-                onLineItemConsumed = onLineItemConsumed
+            val adParam = adSource.getAuctionParam(
+                AdAuctionParamSource(
+                    activity = adTypeParam.activity,
+                    timeout = round.timeoutMs,
+                    optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+                    optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                    pricefloor = pricefloor,
+                    lineItems = availableLineItemsForDemand,
+                    onLineItemConsumed = onLineItemConsumed
+                )
             ).getOrNull() ?: run {
                 return@withTimeoutOrNull AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId)
             }
@@ -158,50 +162,6 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
                 else -> BidonError.BidTimedOut(adSource.demandId)
             }
         )
-    }
-
-    private fun obtainAdParamByType(
-        adSource: AdSource<AdAuctionParams>,
-        adTypeParamData: AdTypeParam,
-        pricefloor: Double,
-        timeout: Long,
-        availableLineItemsForDemand: List<LineItem>,
-        onLineItemConsumed: (LineItem) -> Unit
-    ): Result<AdAuctionParams> = when (adSource) {
-        is AdSource.Banner -> {
-            check(adTypeParamData is AdTypeParam.Banner)
-            adSource.getAuctionParams(
-                activity = adTypeParamData.activity,
-                pricefloor = pricefloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                bannerFormat = adTypeParamData.bannerFormat,
-                onLineItemConsumed = onLineItemConsumed,
-                containerWidth = adTypeParamData.containerWidth
-            )
-        }
-
-        is AdSource.Interstitial -> {
-            check(adTypeParamData is AdTypeParam.Interstitial)
-            adSource.getAuctionParams(
-                pricefloor = pricefloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                activity = adTypeParamData.activity,
-                onLineItemConsumed = onLineItemConsumed,
-            )
-        }
-
-        is AdSource.Rewarded -> {
-            check(adTypeParamData is AdTypeParam.Rewarded)
-            adSource.getAuctionParams(
-                pricefloor = pricefloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                activity = adTypeParamData.activity,
-                onLineItemConsumed = onLineItemConsumed,
-            )
-        }
     }
 }
 

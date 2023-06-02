@@ -8,8 +8,6 @@ import org.bidon.sdk.utils.serializer.JsonName
 internal data class Bid(
     @field:JsonName("id")
     val id: String,
-    @field:JsonName("payload")
-    val payload: String,
     @field:JsonName("impid")
     val impressionId: String,
     @field:JsonName("nurl")
@@ -18,6 +16,10 @@ internal data class Bid(
     val billingNoticeUrl: String?,
     @field:JsonName("lurl")
     val lossNoticeUrl: String?,
+    @field:JsonName("demand_id")
+    val demandId: String,
+    @field:JsonName("payload")
+    val payload: String,
     @field:JsonName("price")
     val price: Double,
     @field:JsonName("ext")

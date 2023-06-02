@@ -1,11 +1,8 @@
 package org.bidon.sdk.adapter
 
 import android.app.Activity
-import android.view.View
 import kotlinx.coroutines.flow.Flow
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.stats.StatisticsCollector
 
 /**
@@ -22,43 +19,11 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
      */
     fun show(activity: Activity)
     fun destroy()
+    fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams>
 
-    interface Interstitial<T : AdAuctionParams> : AdSource<T> {
-        fun getAuctionParams(
-            activity: Activity,
-            pricefloor: Double,
-            timeout: Long,
-            lineItems: List<LineItem>,
-            payload: String? = null,
-            onLineItemConsumed: (LineItem) -> Unit
-        ): Result<AdAuctionParams>
-    }
-
-    interface Rewarded<T : AdAuctionParams> : AdSource<T> {
-        fun getAuctionParams(
-            activity: Activity,
-            pricefloor: Double,
-            timeout: Long,
-            lineItems: List<LineItem>,
-            payload: String? = null,
-            onLineItemConsumed: (LineItem) -> Unit
-        ): Result<AdAuctionParams>
-    }
-
+    interface Interstitial<T : AdAuctionParams> : AdSource<T>
+    interface Rewarded<T : AdAuctionParams> : AdSource<T>
     interface Banner<T : AdAuctionParams> : AdSource<T> {
-        fun getAuctionParams(
-            activity: Activity,
-            pricefloor: Double,
-            timeout: Long,
-            lineItems: List<LineItem>,
-            bannerFormat: BannerFormat,
-            payload: String? = null,
-            onLineItemConsumed: (LineItem) -> Unit,
-            containerWidth: Float,
-        ): Result<AdAuctionParams>
-
         fun getAdView(): AdViewHolder
     }
 }
-
-class AdViewHolder(val networkAdview: View, val widthDp: Int, val heightDp: Int)

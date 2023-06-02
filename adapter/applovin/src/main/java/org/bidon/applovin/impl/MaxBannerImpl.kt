@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.applovin.ApplovinDemandId
 import org.bidon.applovin.MaxBannerAuctionParams
 import org.bidon.applovin.ext.asBidonAdValue
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -22,7 +23,6 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -107,25 +107,18 @@ internal class MaxBannerImpl(
         maxAd = null
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        bannerFormat: BannerFormat,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-        containerWidth: Float
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-        MaxBannerAuctionParams(
-            context = activity.applicationContext,
-            lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
-            bannerFormat = bannerFormat,
-            adaptiveBannerHeight = null
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed)
+            MaxBannerAuctionParams(
+                context = activity.applicationContext,
+                lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
+                bannerFormat = bannerFormat,
+                adaptiveBannerHeight = null
+            )
+        }
     }
 
     override fun getAdView(): AdViewHolder {

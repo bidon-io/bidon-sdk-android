@@ -107,21 +107,16 @@ internal class ApplovinInterstitialImpl(
         applovinAd = null
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-        ApplovinFullscreenAdAuctionParams(
-            lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
-            timeoutMs = timeout,
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed)
+            ApplovinFullscreenAdAuctionParams(
+                lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
+                timeoutMs = timeout,
+            )
+        }
     }
 
     override fun fill(adParams: ApplovinFullscreenAdAuctionParams) {

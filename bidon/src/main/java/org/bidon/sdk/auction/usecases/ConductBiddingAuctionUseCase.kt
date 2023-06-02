@@ -3,6 +3,7 @@ package org.bidon.sdk.auction.usecases
 import android.content.Context
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -10,7 +11,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BiddingDemandId
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -79,18 +79,19 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 )
             }
 
-            val bid = bidResponse.seatBid?.bids?.firstOrNull()
+            val bid = bidResponse.bid
             val adSource = biddingSources.first {
-                (it as AdSource<*>).demandId.demandId == bidResponse.seatBid?.seat
+                (it as AdSource<*>).demandId.demandId == bid?.demandId
             }
-            val adParam = obtainAdParamByType(
-                adSource = adSource as AdSource<AdAuctionParams>,
-                adTypeParamData = adTypeParam,
-                bidfloor = bidfloor,
-                timeout = round.timeoutMs,
-                availableLineItemsForDemand = emptyList(),
-                payload = bid?.payload,
-                onLineItemConsumed = {}
+            val adParam = (adSource as AdSource<AdAuctionParams>).getAuctionParam(
+                AdAuctionParamSource(
+                    activity = adTypeParam.activity,
+                    pricefloor = bidfloor,
+                    timeout = round.timeoutMs,
+                    payload = bid?.payload,
+                    optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+                    optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                )
             ).getOrElse {
                 return@withTimeoutOrNull DeferredAdEvent(
                     adEvent = AdEvent.LoadFailed(BidonError.NoRoundResults),
@@ -142,54 +143,6 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 bidAdEvent
             }
             DeferredAdEvent(adEvent, adSource)
-        }
-    }
-
-    private fun obtainAdParamByType(
-        adSource: AdSource<AdAuctionParams>,
-        adTypeParamData: AdTypeParam,
-        bidfloor: Double,
-        timeout: Long,
-        availableLineItemsForDemand: List<LineItem>,
-        onLineItemConsumed: (LineItem) -> Unit,
-        payload: String?
-    ): Result<AdAuctionParams> = when (adSource) {
-        is AdSource.Banner -> {
-            check(adTypeParamData is AdTypeParam.Banner)
-            adSource.getAuctionParams(
-                activity = adTypeParamData.activity,
-                pricefloor = bidfloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                bannerFormat = adTypeParamData.bannerFormat,
-                onLineItemConsumed = onLineItemConsumed,
-                containerWidth = adTypeParamData.containerWidth,
-                payload = payload,
-            )
-        }
-
-        is AdSource.Interstitial -> {
-            check(adTypeParamData is AdTypeParam.Interstitial)
-            adSource.getAuctionParams(
-                pricefloor = bidfloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                activity = adTypeParamData.activity,
-                onLineItemConsumed = onLineItemConsumed,
-                payload = payload,
-            )
-        }
-
-        is AdSource.Rewarded -> {
-            check(adTypeParamData is AdTypeParam.Rewarded)
-            adSource.getAuctionParams(
-                pricefloor = bidfloor,
-                timeout = timeout,
-                lineItems = availableLineItemsForDemand,
-                activity = adTypeParamData.activity,
-                onLineItemConsumed = onLineItemConsumed,
-                payload = payload,
-            )
         }
     }
 }

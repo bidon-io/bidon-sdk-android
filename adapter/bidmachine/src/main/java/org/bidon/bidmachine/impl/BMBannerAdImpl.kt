@@ -17,6 +17,7 @@ import org.bidon.bidmachine.BidMachineBannerSize
 import org.bidon.bidmachine.asBidonErrorOnBid
 import org.bidon.bidmachine.asBidonErrorOnFill
 import org.bidon.bidmachine.ext.asBidonAdValue
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
@@ -31,7 +32,6 @@ import org.bidon.sdk.ads.banner.helper.DeviceType.isTablet
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -181,23 +181,16 @@ internal class BMBannerAdImpl(
         adRequest?.notifyMediationWin()
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        bannerFormat: BannerFormat,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-        containerWidth: Float
-    ): Result<AdAuctionParams> = runCatching {
-        BMBannerAuctionParams(
-            pricefloor = pricefloor,
-            timeout = timeout,
-            context = activity.applicationContext,
-            bannerFormat = bannerFormat,
-            payload = payload
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            BMBannerAuctionParams(
+                pricefloor = pricefloor,
+                timeout = timeout,
+                context = activity.applicationContext,
+                bannerFormat = bannerFormat,
+                payload = payload
+            )
+        }
     }
 
     override fun destroy() {

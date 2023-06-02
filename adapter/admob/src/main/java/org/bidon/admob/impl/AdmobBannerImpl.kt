@@ -15,7 +15,6 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -85,26 +84,19 @@ internal class AdmobBannerImpl(
         param = null
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        bannerFormat: BannerFormat,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-        containerWidth: Float,
-    ): Result<AdAuctionParams> = runCatching {
-        val lineItem = lineItems
-            .minByPricefloorOrNull(demandId, pricefloor)
-            ?.also(onLineItemConsumed)
-        AdmobBannerAuctionParams(
-            lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
-            bannerFormat = bannerFormat,
-            pricefloor = pricefloor,
-            context = activity.applicationContext,
-            containerWidth = containerWidth
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            val lineItem = lineItems
+                .minByPricefloorOrNull(demandId, pricefloor)
+                ?.also(onLineItemConsumed)
+            AdmobBannerAuctionParams(
+                lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
+                bannerFormat = bannerFormat,
+                pricefloor = pricefloor,
+                context = activity.applicationContext,
+                containerWidth = containerWidth
+            )
+        }
     }
 
     @SuppressLint("MissingPermission")

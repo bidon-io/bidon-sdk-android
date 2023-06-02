@@ -19,7 +19,6 @@ import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -201,20 +200,15 @@ internal class BMRewardedAdImpl(
         adRequest?.notifyMediationWin()
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-    ): Result<AdAuctionParams> = runCatching {
-        BMFullscreenAuctionParams(
-            pricefloor = pricefloor,
-            timeout = timeout,
-            context = activity.applicationContext,
-            payload = payload
-        )
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            BMFullscreenAuctionParams(
+                pricefloor = pricefloor,
+                timeout = timeout,
+                context = activity.applicationContext,
+                payload = payload
+            )
+        }
     }
 
     override fun destroy() {

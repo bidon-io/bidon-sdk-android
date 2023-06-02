@@ -20,14 +20,12 @@ import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.utils.ext.asSuccess
 
 internal class BMInterstitialAdImpl(
     override val demandId: DemandId,
@@ -192,20 +190,15 @@ internal class BMInterstitialAdImpl(
         adRequest?.notifyMediationWin()
     }
 
-    override fun getAuctionParams(
-        activity: Activity,
-        pricefloor: Double,
-        timeout: Long,
-        lineItems: List<LineItem>,
-        payload: String?,
-        onLineItemConsumed: (LineItem) -> Unit,
-    ): Result<AdAuctionParams> {
-        return BMFullscreenAuctionParams(
-            pricefloor = pricefloor,
-            timeout = timeout,
-            context = activity.applicationContext,
-            payload = payload
-        ).asSuccess()
+    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
+        return adAuctionParamsCatching {
+            BMFullscreenAuctionParams(
+                pricefloor = pricefloor,
+                timeout = timeout,
+                context = activity.applicationContext,
+                payload = payload
+            )
+        }
     }
 
     override fun destroy() {
