@@ -20,7 +20,7 @@ import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -45,7 +45,7 @@ internal class BMBannerAdImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Banner<BMBannerAuctionParams>,
-    AdSourceType.Bidding<BMBannerAuctionParams>,
+    AdLoadingType.Bidding<BMBannerAuctionParams>,
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,

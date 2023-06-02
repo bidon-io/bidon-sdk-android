@@ -30,7 +30,7 @@ internal class ApplovinInterstitialImpl(
     private val applovinSdk: AppLovinSdk,
     private val auctionId: String
 ) : AdSource.Interstitial<ApplovinFullscreenAdAuctionParams>,
-    AdSourceType.Network<ApplovinFullscreenAdAuctionParams>,
+    AdLoadingType.Network<ApplovinFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

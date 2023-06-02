@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdProvider
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -369,7 +369,7 @@ internal class AuctionImpl(
                 val biddingResultDeferred = async {
                     conductBiddingAuction.invoke(
                         context = adTypeParamData.activity.applicationContext,
-                        biddingSources = adSources.filterIsInstance<AdSourceType.Bidding<AdAuctionParams>>(),
+                        biddingSources = adSources.filterIsInstance<AdLoadingType.Bidding<AdAuctionParams>>(),
                         participantIds = round.biddingIds,
                         adTypeParam = adTypeParamData,
                         demandAd = demandAd,
@@ -385,7 +385,7 @@ internal class AuctionImpl(
             if (round.demandIds.isNotEmpty()) {
                 val networkResults = conductNetworkAuction.invoke(
                     context = adTypeParamData.activity,
-                    networkSources = adSources.filterIsInstance<AdSourceType.Network<AdAuctionParams>>(),
+                    networkSources = adSources.filterIsInstance<AdLoadingType.Network<AdAuctionParams>>(),
                     participantIds = round.biddingIds,
                     adTypeParam = adTypeParamData,
                     demandAd = demandAd,

@@ -6,18 +6,18 @@ import android.content.Context
  * Created by Aleksei Cherniaev on 30/05/2023.
  */
 
-sealed interface AdSourceType<T : AdAuctionParams> {
+sealed interface AdLoadingType<T : AdAuctionParams> {
     /**
      * Classic mediation ad network
      */
-    interface Network<T : AdAuctionParams> : AdSourceType<T> {
+    interface Network<T : AdAuctionParams> : AdLoadingType<T> {
         fun fill(adParams: T)
     }
 
     /**
      * Bidding ad network
      */
-    interface Bidding<T : AdAuctionParams> : AdSourceType<T> {
+    interface Bidding<T : AdAuctionParams> : AdLoadingType<T> {
         fun getToken(context: Context): String?
         fun bid(adParams: T)
         fun fill()

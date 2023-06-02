@@ -33,7 +33,7 @@ internal class AdmobBannerImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Banner<AdmobBannerAuctionParams>,
-    AdSourceType.Network<AdmobBannerAuctionParams>,
+    AdLoadingType.Network<AdmobBannerAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

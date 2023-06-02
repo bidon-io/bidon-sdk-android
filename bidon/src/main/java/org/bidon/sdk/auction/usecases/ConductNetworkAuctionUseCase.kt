@@ -8,7 +8,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.LineItem
@@ -28,7 +28,7 @@ internal interface ConductNetworkAuctionUseCase {
      */
     suspend fun invoke(
         context: Context,
-        networkSources: List<AdSourceType.Network<AdAuctionParams>>,
+        networkSources: List<AdLoadingType.Network<AdAuctionParams>>,
         participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
@@ -41,7 +41,7 @@ internal interface ConductNetworkAuctionUseCase {
 internal class ConductNetworkAuctionUseCaseImpl() : ConductNetworkAuctionUseCase {
     override suspend fun invoke(
         context: Context,
-        networkSources: List<AdSourceType.Network<AdAuctionParams>>,
+        networkSources: List<AdLoadingType.Network<AdAuctionParams>>,
         participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
@@ -94,7 +94,7 @@ internal class ConductNetworkAuctionUseCaseImpl() : ConductNetworkAuctionUseCase
     }
 
     private suspend fun startBidding(
-        adSource: AdSourceType.Network<AdAuctionParams>,
+        adSource: AdLoadingType.Network<AdAuctionParams>,
         adTypeParam: AdTypeParam,
         pricefloor: Double,
         round: Round,

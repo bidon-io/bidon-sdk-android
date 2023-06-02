@@ -33,7 +33,7 @@ internal class BMRewardedAdImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Rewarded<BMFullscreenAuctionParams>,
-    AdSourceType.Bidding<BMFullscreenAuctionParams>,
+    AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,

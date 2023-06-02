@@ -31,7 +31,7 @@ internal class AdmobRewardedImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
-    AdSourceType.Network<AdmobFullscreenAdAuctionParams>,
+    AdLoadingType.Network<AdmobFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

@@ -12,7 +12,7 @@ import org.bidon.applovin.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
@@ -31,7 +31,7 @@ internal class MaxInterstitialImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Interstitial<MaxFullscreenAdAuctionParams>,
-    AdSourceType.Network<MaxFullscreenAdAuctionParams>,
+    AdLoadingType.Network<MaxFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

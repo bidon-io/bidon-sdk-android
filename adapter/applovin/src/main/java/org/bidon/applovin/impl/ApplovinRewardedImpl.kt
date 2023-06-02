@@ -15,7 +15,7 @@ import org.bidon.applovin.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
@@ -39,7 +39,7 @@ internal class ApplovinRewardedImpl(
     private val applovinSdk: AppLovinSdk,
     private val auctionId: String
 ) : AdSource.Rewarded<ApplovinFullscreenAdAuctionParams>,
-    AdSourceType.Network<ApplovinFullscreenAdAuctionParams>,
+    AdLoadingType.Network<ApplovinFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

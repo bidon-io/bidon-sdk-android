@@ -24,7 +24,7 @@ internal class TestInterstitialImpl(
     private val testParameters: TestAdapterParameters,
     private val demandAd: DemandAd = DemandAd(AdType.Interstitial),
 ) : AdSource.Interstitial<TestInterstitialParameters>,
-    AdSourceType.Network<TestInterstitialParameters>,
+    AdLoadingType.Network<TestInterstitialParameters>,
     StatisticsCollector by StatisticsCollectorImpl(auctionId, roundId, demandId, demandAd) {
 
     private lateinit var adParams: TestInterstitialParameters

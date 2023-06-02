@@ -15,7 +15,7 @@ import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
@@ -38,7 +38,7 @@ internal class AdmobInterstitialImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
-    AdSourceType.Network<AdmobFullscreenAdAuctionParams>,
+    AdLoadingType.Network<AdmobFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

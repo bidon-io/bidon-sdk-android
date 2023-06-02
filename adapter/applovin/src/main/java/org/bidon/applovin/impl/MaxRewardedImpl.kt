@@ -27,7 +27,7 @@ internal class MaxRewardedImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Rewarded<MaxFullscreenAdAuctionParams>,
-    AdSourceType.Network<MaxFullscreenAdAuctionParams>,
+    AdLoadingType.Network<MaxFullscreenAdAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

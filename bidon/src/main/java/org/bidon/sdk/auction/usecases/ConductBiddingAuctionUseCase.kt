@@ -6,7 +6,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BiddingDemandId
@@ -27,7 +27,7 @@ internal interface ConductBiddingAuctionUseCase {
      */
     suspend fun invoke(
         context: Context,
-        biddingSources: List<AdSourceType.Bidding<AdAuctionParams>>,
+        biddingSources: List<AdLoadingType.Bidding<AdAuctionParams>>,
         participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
@@ -42,7 +42,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
 
     override suspend fun invoke(
         context: Context,
-        biddingSources: List<AdSourceType.Bidding<AdAuctionParams>>,
+        biddingSources: List<AdLoadingType.Bidding<AdAuctionParams>>,
         participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,

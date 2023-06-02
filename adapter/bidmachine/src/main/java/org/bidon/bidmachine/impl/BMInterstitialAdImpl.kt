@@ -36,7 +36,7 @@ internal class BMInterstitialAdImpl(
     private val auctionId: String
 ) : AdSource.Interstitial<BMFullscreenAuctionParams>,
     WinLossNotifiable,
-    AdSourceType.Bidding<BMFullscreenAuctionParams>,
+    AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdSourceType
+import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -34,7 +34,7 @@ internal class UnityAdsBanner(
     private val roundId: String,
     private val auctionId: String,
 ) : AdSource.Banner<UnityAdsBannerAuctionParams>,
-    AdSourceType.Network<UnityAdsBannerAuctionParams>,
+    AdLoadingType.Network<UnityAdsBannerAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
