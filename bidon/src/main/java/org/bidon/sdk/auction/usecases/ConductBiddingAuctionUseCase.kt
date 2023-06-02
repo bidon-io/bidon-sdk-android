@@ -9,6 +9,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdSourceType
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.models.BiddingDemandId
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.config.BidonError
@@ -65,8 +66,14 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 adTypeParam = adTypeParam,
                 tokens = tokens,
                 extras = demandAd.getExtras(),
-                bidfloor = bidfloor
-            ).getOrThrow()
+                bidfloor = bidfloor,
+                roundId = round.id
+            ).getOrElse {
+                return@withTimeoutOrNull DeferredAdEvent(
+                    adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
+                    adSource = null
+                )
+            }
 
             val bid = bidResponse.seatBid?.bids?.firstOrNull()
             val adSource = biddingSources.first {
@@ -80,7 +87,12 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 availableLineItemsForDemand = emptyList(),
                 payload = bid?.payload,
                 onLineItemConsumed = {}
-            ).getOrThrow()
+            ).getOrElse {
+                return@withTimeoutOrNull DeferredAdEvent(
+                    adEvent = AdEvent.LoadFailed(BidonError.NoRoundResults),
+                    adSource = null
+                )
+            }
 
             adSource.markBidStarted(adUnitId = adParam.adUnitId)
             adSource.bid(adParam)

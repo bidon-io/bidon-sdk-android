@@ -28,10 +28,6 @@ internal data class BidResponse(
     val impressionId: String,
     @field:JsonName("seatbid")
     val seatBid: SeatBid?,
-    @field:JsonName("bidid")
-    val bidderGeneratedResponseId: String?,
-    @field:JsonName("nbr")
-    val noBiddingReason: Int,
 ) : Serializable
 
 internal class BidResponseParser : JsonParser<BidResponse> {
@@ -68,8 +64,6 @@ internal class BidResponseParser : JsonParser<BidResponse> {
                     seat = json.optString("seat")
                 )
             },
-            bidderGeneratedResponseId = json.optString("bidid"),
-            noBiddingReason = json.optInt("nbr")
         )
     }.getOrNull()
 }

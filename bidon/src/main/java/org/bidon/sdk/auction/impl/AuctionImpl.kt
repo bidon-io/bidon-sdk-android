@@ -21,6 +21,7 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.AuctionState
 import org.bidon.sdk.auction.models.AuctionResponse
+import org.bidon.sdk.auction.models.BiddingDemandId
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
@@ -375,7 +376,7 @@ internal class AuctionImpl(
                         bidfloor = pricefloor,
                         round = round
                     ) ?: DeferredAdEvent(
-                        adEvent = AdEvent.LoadFailed(BidonError.NoRoundResults), // todo determine cause error
+                        adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
                         adSource = null
                     )
                 }
@@ -427,4 +428,3 @@ internal class AuctionImpl(
 }
 
 private const val Tag = "Auction"
-private const val NoWinnerFilled = -1

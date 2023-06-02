@@ -11,6 +11,8 @@ import org.bidon.sdk.utils.serializer.Serializable
 internal data class BidRequestBody(
     @field:JsonName("id")
     val impressionId: String,
+    @field:JsonName("round_id")
+    val roundId: String,
     @field:JsonName("orientation")
     val orientationCode: String,
     @field:JsonName("banner")

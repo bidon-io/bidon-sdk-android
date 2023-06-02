@@ -27,7 +27,8 @@ internal interface BidRequestUseCase {
         adTypeParam: AdTypeParam,
         tokens: List<Pair<DemandId, String>>,
         extras: Map<String, Any>,
-        bidfloor: Double
+        bidfloor: Double,
+        roundId: String,
     ): Result<BidResponse>
 }
 
@@ -52,6 +53,7 @@ internal class BidRequestUseCaseImpl(
         tokens: List<Pair<DemandId, String>>,
         extras: Map<String, Any>,
         bidfloor: Double,
+        roundId: String,
     ): Result<BidResponse> {
         return withContext(SdkDispatchers.IO) {
             val bidRequestBody = BidRequestBody(
@@ -66,6 +68,7 @@ internal class BidRequestUseCaseImpl(
                 banner = adTypeParam.asBannerRequestBody(),
                 bidfloor = bidfloor,
                 orientationCode = getOrientation().code,
+                roundId = roundId,
             )
             val requestBody = createRequestBody(
                 binders = binders,
