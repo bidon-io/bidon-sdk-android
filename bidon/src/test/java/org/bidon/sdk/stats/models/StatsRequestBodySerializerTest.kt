@@ -57,7 +57,9 @@ class StatsRequestBodySerializerTest {
                 status = "SUCCESS",
                 demandId = "admob",
                 ecpm = 0.123,
-                adUnitId = "id123"
+                adUnitId = "id123",
+                auctionStartTs = 1000,
+                auctionFinishTs = 1300,
             )
         ).serialize()
         json.assertEquals(
@@ -106,6 +108,8 @@ class StatsRequestBodySerializerTest {
                     "winner_id" hasValue "admob"
                     "ecpm" hasValue 0.123
                     "ad_unit_id" hasValue "id123"
+                    "auction_start_ts" hasValue 1000
+                    "auction_finish_ts" hasValue 1300
                 }
             }
         )

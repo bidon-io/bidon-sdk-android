@@ -11,7 +11,9 @@ internal interface StatsRequestUseCase {
     suspend operator fun invoke(
         auctionId: String,
         auctionConfigurationId: Int,
+        auctionStartTs: Long,
+        auctionFinishTs: Long,
         results: List<RoundStat>,
-        demandAd: DemandAd
+        demandAd: DemandAd,
     ): Result<BaseResponse>
 }

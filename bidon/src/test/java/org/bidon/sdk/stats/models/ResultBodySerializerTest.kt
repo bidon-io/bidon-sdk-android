@@ -24,7 +24,7 @@ internal class ResultBodySerializerTest {
             fillFinishTs = 1L,
             bidStartTs = 2L,
             bidFinishTs = 3L
-        ).asSuccessResultOrFail().serialize()
+        ).asSuccessResultOrFail(100000, 100020).serialize()
 
         actual.assertEquals(
             expectedJsonStructure {
@@ -32,6 +32,8 @@ internal class ResultBodySerializerTest {
                 "winner_id" hasValue "admob"
                 "ecpm" hasValue 1.234
                 "ad_unit_id" hasValue "id123"
+                "auction_start_ts" hasValue 100000
+                "auction_finish_ts" hasValue 100020
             }
         )
     }
@@ -47,11 +49,13 @@ internal class ResultBodySerializerTest {
             fillFinishTs = 1L,
             bidStartTs = 2L,
             bidFinishTs = 3L
-        ).asSuccessResultOrFail().serialize()
+        ).asSuccessResultOrFail(100000, 100020).serialize()
 
         actual.assertEquals(
             expectedJsonStructure {
                 "status" hasValue "FAIL"
+                "auction_start_ts" hasValue 100000
+                "auction_finish_ts" hasValue 100020
             }
         )
     }

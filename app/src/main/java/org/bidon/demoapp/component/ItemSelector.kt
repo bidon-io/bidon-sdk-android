@@ -65,7 +65,7 @@ fun <T> ItemSelector(
                         modifier = Modifier
                             .clickable {
                                 if (!isSelected) {
-                                    onItemClicked.invoke(item as T)
+                                    onItemClicked.invoke(item)
                                 }
                             },
                         border = BorderStroke(

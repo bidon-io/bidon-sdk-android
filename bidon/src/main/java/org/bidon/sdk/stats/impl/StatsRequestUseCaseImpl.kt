@@ -39,11 +39,18 @@ internal class StatsRequestUseCaseImpl(
     override suspend operator fun invoke(
         auctionId: String,
         auctionConfigurationId: Int,
+        auctionStartTs: Long,
+        auctionFinishTs: Long,
         results: List<RoundStat>,
-        demandAd: DemandAd
+        demandAd: DemandAd,
     ): Result<BaseResponse> = runCatching {
         return withContext(SdkDispatchers.IO) {
-            val body = results.asStatsRequestBody(auctionId, auctionConfigurationId)
+            val body = results.asStatsRequestBody(
+                auctionId = auctionId,
+                auctionConfigurationId = auctionConfigurationId,
+                auctionStartTs = auctionStartTs,
+                auctionFinishTs = auctionFinishTs
+            )
             val requestBody = createRequestBody(
                 binders = binders,
                 dataKeyName = "stats",
@@ -68,6 +75,8 @@ internal class StatsRequestUseCaseImpl(
     private fun List<RoundStat>.asStatsRequestBody(
         auctionId: String,
         auctionConfigurationId: Int,
+        auctionStartTs: Long,
+        auctionFinishTs: Long,
     ): StatsRequestBody {
         return StatsRequestBody(
             auctionId = auctionId,
@@ -95,7 +104,10 @@ internal class StatsRequestUseCaseImpl(
             result = this
                 .flatMap { it.demands }
                 .firstOrNull { it.roundStatus == RoundStatus.Win }
-                .asSuccessResultOrFail()
+                .asSuccessResultOrFail(
+                    auctionStartTs = auctionStartTs,
+                    auctionFinishTs = auctionFinishTs
+                )
         )
     }
 }

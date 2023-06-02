@@ -38,6 +38,7 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.ext.SystemTimeNow
 import java.util.UUID
 
 /**
@@ -71,6 +72,7 @@ internal class AuctionImpl(
         ) {
             logInfo(Tag, "Action started $this")
             // Request for Auction-data at /auction
+            val auctionStartTs = SystemTimeNow
             getAuctionRequest.request(
                 additionalData = adTypeParamData,
                 auctionId = UUID.randomUUID().toString(),
@@ -103,7 +105,11 @@ internal class AuctionImpl(
 
                 // Finish auction
                 state.value = AuctionState.Finished
-                sendStatsAsync(demandAd)
+                sendStatsAsync(
+                    demandAd,
+                    auctionStartTs = auctionStartTs,
+                    auctionFinishTs = SystemTimeNow
+                )
             }.getOrThrow()
         }
         state.first { it == AuctionState.Finished }
@@ -260,7 +266,11 @@ internal class AuctionImpl(
         statsRound.add(roundStat)
     }
 
-    private suspend fun sendStatsAsync(demandAd: DemandAd) {
+    private suspend fun sendStatsAsync(
+        demandAd: DemandAd,
+        auctionStartTs: Long,
+        auctionFinishTs: Long,
+    ) {
         coroutineScope {
             launch(SdkDispatchers.Default) {
                 val bidStats = statsAuctionResults.map {
@@ -301,7 +311,9 @@ internal class AuctionImpl(
                             }
                         )
                     },
-                    demandAd = demandAd
+                    demandAd = demandAd,
+                    auctionStartTs = auctionStartTs,
+                    auctionFinishTs = auctionFinishTs
                 )
                 statsRound.clear()
             }

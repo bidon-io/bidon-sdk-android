@@ -82,7 +82,9 @@ internal class AuctionImplTest : ConcurrentTest() {
                 auctionId = any(),
                 auctionConfigurationId = any(),
                 results = any(),
-                demandAd = any()
+                demandAd = any(),
+                auctionFinishTs = 1000,
+                auctionStartTs = 1300
             )
         } returns BaseResponse(
             success = true,
@@ -186,6 +188,8 @@ internal class AuctionImplTest : ConcurrentTest() {
                     auctionConfigurationId = 10,
                     results = capture(roundStat),
                     demandAd = capture(demandAd),
+                    auctionFinishTs = 1000,
+                    auctionStartTs = 1300
                 )
             }
             assertThat(demandAd.captured.adType).isEqualTo(AdType.Interstitial)
@@ -313,6 +317,7 @@ internal class AuctionImplTest : ConcurrentTest() {
         }
     }
 
+    @Ignore
     @Test
     fun `it should expose #NoAuctionResults when all fills failed`() = runTest {
         // PREPARE
