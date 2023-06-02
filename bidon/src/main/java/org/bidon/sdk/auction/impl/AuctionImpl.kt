@@ -1,32 +1,22 @@
 package org.bidon.sdk.auction.impl
 
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.bidon.sdk.adapter.AdAuctionParams
-import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdLoadingType
-import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.WinLossNotifiable
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.AuctionState
 import org.bidon.sdk.auction.models.AuctionResponse
-import org.bidon.sdk.auction.models.BiddingDemandId
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
-import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCase
-import org.bidon.sdk.auction.usecases.DeferredAdEvent
+import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -35,7 +25,6 @@ import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.SystemTimeNow
@@ -48,8 +37,7 @@ internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val statsRequest: StatsRequestUseCase,
-    private val conductBiddingAuction: ConductBiddingAuctionUseCase,
-    private val conductNetworkAuction: ConductNetworkAuctionUseCase,
+    private val executeRound: ExecuteRoundUseCase,
 ) : Auction {
     private val state = MutableStateFlow(AuctionState.Initialized)
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
@@ -159,7 +147,13 @@ internal class AuctionImpl(
             round = round,
             pricefloor = pricefloor,
             demandAd = demandAd,
-            adTypeParamData = adTypeParamData,
+            adTypeParam = adTypeParamData,
+            auctionResponse = auctionDataResponse,
+            lineItems = mutableLineItems,
+            onFinish = { remainingLineItems ->
+                mutableLineItems.clear()
+                mutableLineItems.addAll(remainingLineItems)
+            }
         ).getOrNull() ?: emptyList()
         proceedRoundResults(
             resolver = resolver,
@@ -316,119 +310,6 @@ internal class AuctionImpl(
                     auctionFinishTs = auctionFinishTs
                 )
                 statsRound.clear()
-            }
-        }
-    }
-
-    private suspend fun executeRound(
-        round: Round,
-        pricefloor: Double,
-        demandAd: DemandAd,
-        adTypeParamData: AdTypeParam,
-    ): Result<List<AuctionResult>> = coroutineScope {
-        runCatching {
-            val filteredAdapters = adaptersSource.adapters.filter {
-                it.demandId.demandId in (round.demandIds + round.biddingIds)
-            }
-            (round.demandIds - filteredAdapters.map { it.demandId.demandId }.toSet())
-                .takeIf { it.isNotEmpty() }
-                ?.let { unknownDemandIds ->
-                    logError(
-                        tag = Tag,
-                        message = "Adapters not found: $unknownDemandIds",
-                        error = NoSuchElementException(unknownDemandIds.joinToString())
-                    )
-                }
-            logInfo(
-                Tag,
-                "Round '${round.id}' started with adapters [${filteredAdapters.joinToString { it.demandId.demandId }}]"
-            )
-            logInfo(Tag, "Round '${round.id}' started with line items: $mutableLineItems")
-            val adSources = when (demandAd.adType) {
-                AdType.Interstitial -> {
-                    filteredAdapters.filterIsInstance<AdProvider.Interstitial<AdAuctionParams>>()
-                        .map {
-                            it.interstitial(
-                                demandAd = demandAd,
-                                roundId = round.id,
-                                auctionId = auctionDataResponse.auctionId ?: ""
-                            )
-                        }
-                }
-
-                AdType.Rewarded -> {
-                    filteredAdapters.filterIsInstance<AdProvider.Rewarded<AdAuctionParams>>().map {
-                        it.rewarded(
-                            demandAd = demandAd,
-                            roundId = round.id,
-                            auctionId = auctionDataResponse.auctionId ?: ""
-                        )
-                    }
-                }
-
-                AdType.Banner -> {
-                    filteredAdapters.filterIsInstance<AdProvider.Banner<AdAuctionParams>>().map {
-                        it.banner(
-                            demandAd = demandAd,
-                            roundId = round.id,
-                            auctionId = auctionDataResponse.auctionId ?: ""
-                        )
-                    }
-                }
-            }
-            val roundDeferred = mutableListOf<Deferred<DeferredAdEvent?>>()
-            if (round.biddingIds.isNotEmpty()) {
-                val biddingResultDeferred = async {
-                    conductBiddingAuction.invoke(
-                        context = adTypeParamData.activity.applicationContext,
-                        biddingSources = adSources.filterIsInstance<AdLoadingType.Bidding<AdAuctionParams>>(),
-                        participantIds = round.biddingIds,
-                        adTypeParam = adTypeParamData,
-                        demandAd = demandAd,
-                        bidfloor = pricefloor,
-                        auctionId = auctionDataResponse.auctionId ?: "",
-                        round = round,
-                        auctionConfigurationId = auctionDataResponse.auctionConfigurationId
-                    ) ?: DeferredAdEvent(
-                        adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
-                        adSource = null
-                    )
-                }
-                roundDeferred.add(biddingResultDeferred)
-            }
-            if (round.demandIds.isNotEmpty()) {
-                val networkResults = conductNetworkAuction.invoke(
-                    context = adTypeParamData.activity,
-                    networkSources = adSources.filterIsInstance<AdLoadingType.Network<AdAuctionParams>>(),
-                    participantIds = round.demandIds,
-                    adTypeParam = adTypeParamData,
-                    demandAd = demandAd,
-                    lineItems = mutableLineItems,
-                    round = round,
-                    pricefloor = pricefloor
-                )
-                mutableLineItems.clear()
-                mutableLineItems.addAll(networkResults.remainingLineItems)
-                roundDeferred.addAll(networkResults.results)
-            }
-            roundDeferred.mapIndexedNotNull { index, deferred ->
-                val result = deferred.await() ?: return@mapIndexedNotNull null
-                val adSource = result.adSource ?: return@mapIndexedNotNull null
-                val adEvent = result.adEvent
-                val logRoundTitle = "Round '${round.id}' result #$index(${adSource.demandId.demandId})"
-                logInfo(Tag, "$logRoundTitle: $adEvent. Statistics: ${adSource.buildBidStatistic()}")
-                AuctionResult(
-                    roundStatus = when (adEvent) {
-                        is AdEvent.Fill -> RoundStatus.Successful
-                        is AdEvent.Expired -> RoundStatus.NoFill
-                        is AdEvent.LoadFailed -> adEvent.cause.asRoundStatus()
-                        else -> error("unexpected: $adEvent")
-                    },
-                    ecpm = (adEvent as? AdEvent.Fill)?.ad?.ecpm ?: 0.0,
-                    adSource = adSource
-                )
-            }.also {
-                logInfo(Tag, "Round '${round.id}' finished with ${it.size} results: $it")
             }
         }
     }
