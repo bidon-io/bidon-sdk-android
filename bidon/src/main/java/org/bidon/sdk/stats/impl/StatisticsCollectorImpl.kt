@@ -17,7 +17,7 @@ import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -177,6 +177,7 @@ class StatisticsCollectorImpl(
         val (banner, interstitial, rewarded) = getData(adType)
         return ImpressionRequestBody(
             auctionId = stat.auctionId,
+            roundId = stat.roundId,
             auctionConfigurationId = auctionConfigurationId,
             impressionId = impressionId,
             demandId = stat.demandId.demandId,
@@ -193,9 +194,11 @@ class StatisticsCollectorImpl(
             is StatisticsCollector.AdType.Banner -> {
                 Triple(BannerRequestBody(formatCode = adType.format.code), null, null)
             }
+
             StatisticsCollector.AdType.Interstitial -> {
                 Triple(null, InterstitialRequestBody(), null)
             }
+
             StatisticsCollector.AdType.Rewarded -> {
                 Triple(null, null, RewardedRequestBody())
             }

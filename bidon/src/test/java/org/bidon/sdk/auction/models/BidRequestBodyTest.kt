@@ -13,10 +13,8 @@ internal class BidRequestBodyTest {
     fun serialize() {
         val body = BidRequestBody(
             impressionId = "imp123",
-            extras = mapOf(
-                "bidon" to BidRequestBody.BidonExtras(
-                    map = mapOf("bidmachine" to BidRequestBody.Token(token = "bm_token_123"))
-                )
+            demands = mapOf(
+                "bidmachine" to BidRequestBody.Token(token = "bm_token_123")
             ),
             banner = BannerRequestBody(formatCode = BannerRequestBody.StatFormat.AdaptiveBanner320x50.code),
             bidfloor = 1.24,
@@ -30,13 +28,9 @@ internal class BidRequestBodyTest {
 
         actual.assertEquals(
             expectedJsonStructure {
-                "ext" hasJson expectedJsonStructure {
-                    "bidon" hasJson expectedJsonStructure {
-                        "bidding" hasJson expectedJsonStructure {
-                            "bidmachine" hasJson expectedJsonStructure {
-                                "token" hasValue "bm_token_123"
-                            }
-                        }
+                "demands" hasJson expectedJsonStructure {
+                    "bidmachine" hasJson expectedJsonStructure {
+                        "token" hasValue "bm_token_123"
                     }
                 }
 
@@ -57,10 +51,8 @@ internal class BidRequestBodyTest {
     fun array() {
         val body = BidRequestBody(
             impressionId = "imp123",
-            extras = mapOf(
-                "bidon" to BidRequestBody.BidonExtras(
-                    map = mapOf("bidmachine" to BidRequestBody.Token(token = "bm_token_123"))
-                )
+            demands = mapOf(
+                "bidmachine" to BidRequestBody.Token(token = "bm_token_123")
             ),
             banner = BannerRequestBody(formatCode = BannerRequestBody.StatFormat.AdaptiveBanner320x50.code),
             bidfloor = 1.24,

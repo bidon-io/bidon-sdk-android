@@ -23,14 +23,9 @@ internal data class BidRequestBody(
     val banner: BannerRequestBody?,
     @field:JsonName("bidfloor")
     val bidfloor: Double,
-    @field:JsonName("ext")
-    val extras: Map<String, Any>,
+    @field:JsonName("demands")
+    val demands: Map<String, Token>,
 ) : Serializable {
-
-    data class BidonExtras(
-        @field:JsonName("bidding")
-        val map: Map<String, Token>
-    ) : Serializable
 
     data class Token(
         @field:JsonName("token")

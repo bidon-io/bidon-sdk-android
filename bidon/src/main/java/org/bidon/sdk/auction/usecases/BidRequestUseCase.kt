@@ -63,13 +63,9 @@ internal class BidRequestUseCaseImpl(
             val bidRequestBody = BidRequestBody(
                 auctionId = auctionId,
                 impressionId = UUID.randomUUID().toString(),
-                extras = mapOf(
-                    "bidon" to BidRequestBody.BidonExtras(
-                        map = tokens.associate { (demandId, token) ->
-                            demandId.demandId to BidRequestBody.Token(token)
-                        }
-                    )
-                ),
+                demands = tokens.associate { (demandId, token) ->
+                    demandId.demandId to BidRequestBody.Token(token)
+                },
                 banner = adTypeParam.asBannerRequestBody(),
                 bidfloor = bidfloor,
                 orientationCode = getOrientation().code,
