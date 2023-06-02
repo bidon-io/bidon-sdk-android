@@ -25,7 +25,7 @@ internal class DeviceBinder(
                     lat = locationDataSource.getLatitude(),
                     lon = locationDataSource.getLongitude(),
                     accuracy = locationDataSource.getAccuracy(),
-                    lastfix = locationDataSource.getLastFix(),
+                    lastFix = locationDataSource.getLastFix(),
                     country = locationDataSource.getCountry(),
                     city = locationDataSource.getCity(),
                     zip = locationDataSource.getZip(),

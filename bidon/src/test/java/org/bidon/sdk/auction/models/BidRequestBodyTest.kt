@@ -21,7 +21,9 @@ internal class BidRequestBodyTest {
             banner = BannerRequestBody(formatCode = BannerRequestBody.StatFormat.AdaptiveBanner320x50.code),
             bidfloor = 1.24,
             orientationCode = AdObjectRequestBody.Orientation.Landscape.code,
-            roundId = "round123"
+            roundId = "round123",
+            auctionId = "auc123",
+            auctionConfigurationId = 12
         )
         val actual = body.serialize()
         println(actual)
@@ -45,6 +47,8 @@ internal class BidRequestBodyTest {
                 "bidfloor" hasValue 1.24
                 "id" hasValue "imp123"
                 "round_id" hasValue "round123"
+                "auction_id" hasValue "auc123"
+                "auction_configuration_id" hasValue 12
             }
         )
     }
@@ -61,7 +65,9 @@ internal class BidRequestBodyTest {
             banner = BannerRequestBody(formatCode = BannerRequestBody.StatFormat.AdaptiveBanner320x50.code),
             bidfloor = 1.24,
             orientationCode = AdObjectRequestBody.Orientation.Landscape.code,
-            roundId = "round123"
+            roundId = "round123",
+            auctionId = "auc123",
+            auctionConfigurationId = 12
         )
         val actual = listOf(body).serialize()
         println(actual)

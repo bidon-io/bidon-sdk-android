@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdLoadingType
+import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -374,7 +374,9 @@ internal class AuctionImpl(
                         adTypeParam = adTypeParamData,
                         demandAd = demandAd,
                         bidfloor = pricefloor,
-                        round = round
+                        auctionId = auctionDataResponse.auctionId ?: "",
+                        round = round,
+                        auctionConfigurationId = auctionDataResponse.auctionConfigurationId
                     ) ?: DeferredAdEvent(
                         adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
                         adSource = null
@@ -386,7 +388,7 @@ internal class AuctionImpl(
                 val networkResults = conductNetworkAuction.invoke(
                     context = adTypeParamData.activity,
                     networkSources = adSources.filterIsInstance<AdLoadingType.Network<AdAuctionParams>>(),
-                    participantIds = round.biddingIds,
+                    participantIds = round.demandIds,
                     adTypeParam = adTypeParamData,
                     demandAd = demandAd,
                     lineItems = mutableLineItems,

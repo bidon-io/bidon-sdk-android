@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdLoadingType
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.LineItem
@@ -38,7 +38,7 @@ internal interface ConductNetworkAuctionUseCase {
     ): RoundNetworkResult
 }
 
-internal class ConductNetworkAuctionUseCaseImpl() : ConductNetworkAuctionUseCase {
+internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
     override suspend fun invoke(
         context: Context,
         networkSources: List<AdLoadingType.Network<AdAuctionParams>>,
@@ -51,8 +51,6 @@ internal class ConductNetworkAuctionUseCaseImpl() : ConductNetworkAuctionUseCase
     ): RoundNetworkResult = coroutineScope {
         val mutableLineItems = lineItems.toMutableList()
         runCatching {
-            logInfo(Tag, "networkSources: $networkSources")
-            logInfo(Tag, "participantIds: $participantIds")
             val participants = networkSources.filter {
                 (it as AdSource<*>).demandId.demandId in participantIds
             }

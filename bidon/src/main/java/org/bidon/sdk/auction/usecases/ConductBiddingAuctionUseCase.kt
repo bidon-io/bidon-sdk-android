@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdLoadingType
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BiddingDemandId
@@ -32,7 +32,9 @@ internal interface ConductBiddingAuctionUseCase {
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
-        round: Round
+        auctionId: String,
+        round: Round,
+        auctionConfigurationId: Int?,
     ): DeferredAdEvent?
 }
 
@@ -47,11 +49,11 @@ internal class ConductBiddingAuctionUseCaseImpl(
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
-        round: Round
+        auctionId: String,
+        round: Round,
+        auctionConfigurationId: Int?,
     ): DeferredAdEvent? {
         return withTimeoutOrNull(round.timeoutMs) {
-            logInfo(Tag, "biddingSources: $biddingSources")
-            logInfo(Tag, "participantIds: $participantIds")
             val participants = biddingSources.filter {
                 (it as AdSource<*>).demandId.demandId in participantIds
             }
@@ -67,7 +69,9 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 tokens = tokens,
                 extras = demandAd.getExtras(),
                 bidfloor = bidfloor,
-                roundId = round.id
+                auctionId = auctionId,
+                roundId = round.id,
+                auctionConfigurationId = auctionConfigurationId,
             ).getOrElse {
                 return@withTimeoutOrNull DeferredAdEvent(
                     adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),

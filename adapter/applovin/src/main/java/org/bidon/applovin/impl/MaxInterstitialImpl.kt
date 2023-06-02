@@ -11,8 +11,8 @@ import org.bidon.applovin.MaxFullscreenAdAuctionParams
 import org.bidon.applovin.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdLoadingType
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad

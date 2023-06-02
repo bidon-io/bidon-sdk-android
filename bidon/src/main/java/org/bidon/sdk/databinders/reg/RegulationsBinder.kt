@@ -11,7 +11,7 @@ internal class RegulationsBinder(
     private val dataSource: RegulationDataSource
 ) : DataBinder<JSONObject> {
     override val fieldName: String
-        get() = "reg"
+        get() = "regs"
 
     override suspend fun getJsonObject(): JSONObject {
         return dataSource.regulations.serialize()

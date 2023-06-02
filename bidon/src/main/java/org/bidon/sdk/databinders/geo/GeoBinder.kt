@@ -23,7 +23,7 @@ internal class GeoBinder(
                 lat = dataSource.getLatitude(),
                 lon = dataSource.getLongitude(),
                 accuracy = dataSource.getAccuracy(),
-                lastfix = dataSource.getLastFix(),
+                lastFix = dataSource.getLastFix(),
                 country = dataSource.getCountry(),
                 city = dataSource.getCity(),
                 zip = dataSource.getZip(),

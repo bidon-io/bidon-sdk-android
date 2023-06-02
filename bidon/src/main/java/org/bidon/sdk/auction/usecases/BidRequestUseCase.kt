@@ -28,7 +28,9 @@ internal interface BidRequestUseCase {
         tokens: List<Pair<DemandId, String>>,
         extras: Map<String, Any>,
         bidfloor: Double,
+        auctionId: String,
         roundId: String,
+        auctionConfigurationId: Int?,
     ): Result<BidResponse>
 }
 
@@ -53,10 +55,13 @@ internal class BidRequestUseCaseImpl(
         tokens: List<Pair<DemandId, String>>,
         extras: Map<String, Any>,
         bidfloor: Double,
+        auctionId: String,
         roundId: String,
+        auctionConfigurationId: Int?,
     ): Result<BidResponse> {
         return withContext(SdkDispatchers.IO) {
             val bidRequestBody = BidRequestBody(
+                auctionId = auctionId,
                 impressionId = UUID.randomUUID().toString(),
                 extras = mapOf(
                     "bidon" to BidRequestBody.BidonExtras(
@@ -69,6 +74,7 @@ internal class BidRequestUseCaseImpl(
                 bidfloor = bidfloor,
                 orientationCode = getOrientation().code,
                 roundId = roundId,
+                auctionConfigurationId = auctionConfigurationId,
             )
             val requestBody = createRequestBody(
                 binders = binders,

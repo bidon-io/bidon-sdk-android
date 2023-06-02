@@ -35,7 +35,7 @@ internal class DeviceSerializerTest {
                 lat = 52.2388276,
                 lon = 20.9767103,
                 accuracy = 13.407f,
-                lastfix = 1677171891497,
+                lastFix = 1677171891497,
                 country = "Poland",
                 city = "Warsaw",
                 zip = "01-233",
