@@ -11,7 +11,18 @@ import org.json.JSONObject
 internal data class BidResponse(
     @field:JsonName("bid")
     val bid: Bid?,
-) : Serializable
+    @field:JsonName("status")
+    val status: BidStatus,
+) : Serializable {
+    enum class BidStatus(val code: String) {
+        Success("SUCCESS"),
+        NoBid("NO_BID");
+
+        companion object {
+            fun get(code: String) = values().first { it.code == code }
+        }
+    }
+}
 
 internal class BidResponseParser : JsonParser<BidResponse> {
     override fun parseOrNull(jsonString: String): BidResponse? = runCatching {
@@ -22,9 +33,6 @@ internal class BidResponseParser : JsonParser<BidResponse> {
                     id = bidJson.getString("id"),
                     impressionId = bidJson.optString("impid"),
                     payload = bidJson.getString("payload"),
-                    winNoticeUrl = bidJson.optString("nurl"),
-                    billingNoticeUrl = bidJson.optString("burl"),
-                    lossNoticeUrl = bidJson.optString("lurl"),
                     demandId = bidJson.optString("demand_id"),
                     price = bidJson.getDouble("price"),
                     ext = bidJson.optJSONObject("ext")?.let { extJson ->
@@ -35,6 +43,9 @@ internal class BidResponseParser : JsonParser<BidResponse> {
                         }
                     } ?: emptyMap()
                 )
+            },
+            status = json.getString("status").let {
+                BidResponse.BidStatus.get(it)
             }
         )
     }.getOrNull()

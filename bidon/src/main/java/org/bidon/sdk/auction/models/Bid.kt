@@ -10,12 +10,6 @@ internal data class Bid(
     val id: String,
     @field:JsonName("impid")
     val impressionId: String,
-    @field:JsonName("nurl")
-    val winNoticeUrl: String?,
-    @field:JsonName("burl")
-    val billingNoticeUrl: String?,
-    @field:JsonName("lurl")
-    val lossNoticeUrl: String?,
     @field:JsonName("demand_id")
     val demandId: String,
     @field:JsonName("payload")
