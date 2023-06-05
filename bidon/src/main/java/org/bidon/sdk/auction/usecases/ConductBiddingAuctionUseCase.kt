@@ -35,7 +35,7 @@ internal interface ConductBiddingAuctionUseCase {
         auctionId: String,
         round: Round,
         auctionConfigurationId: Int?,
-    ): DeferredAdEvent?
+    ): PollItem?
 }
 
 internal class ConductBiddingAuctionUseCaseImpl(
@@ -52,7 +52,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
         auctionId: String,
         round: Round,
         auctionConfigurationId: Int?,
-    ): DeferredAdEvent? {
+    ): PollItem? {
         return withTimeoutOrNull(round.timeoutMs) {
             val participants = biddingSources.filter {
                 (it as AdSource<*>).demandId.demandId in participantIds
@@ -73,7 +73,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 roundId = round.id,
                 auctionConfigurationId = auctionConfigurationId,
             ).getOrElse {
-                return@withTimeoutOrNull DeferredAdEvent(
+                return@withTimeoutOrNull PollItem(
                     adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
                     adSource = null
                 )
@@ -83,7 +83,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
             val adSource = biddingSources.first {
                 (it as AdSource<*>).demandId.demandId == bid?.demandId
             }
-            val adParam = (adSource as AdSource<AdAuctionParams>).getAuctionParam(
+            val adParam = (adSource as AdSource<AdAuctionParams>).obtainAuctionParam(
                 AdAuctionParamSource(
                     activity = adTypeParam.activity,
                     pricefloor = bidfloor,
@@ -93,7 +93,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
                     optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                 )
             ).getOrElse {
-                return@withTimeoutOrNull DeferredAdEvent(
+                return@withTimeoutOrNull PollItem(
                     adEvent = AdEvent.LoadFailed(BidonError.NoRoundResults),
                     adSource = null
                 )
@@ -142,7 +142,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 )
                 bidAdEvent
             }
-            DeferredAdEvent(adEvent, adSource)
+            PollItem(adEvent, adSource)
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.bidon.unityads.impl
 
-import android.app.Activity
 import com.unity3d.services.banners.BannerErrorInfo
 import com.unity3d.services.banners.BannerView
 import com.unity3d.services.banners.UnityBannerSize
@@ -51,8 +50,8 @@ internal class UnityAdsBanner(
         MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override var isAdReadyToShow: Boolean = false
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             val lineItem = lineItems
                 .minByPricefloorOrNull(demandId, pricefloor)
                 ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)
@@ -130,8 +129,6 @@ internal class UnityAdsBanner(
             adEvent.tryEmit(AdEvent.LoadFailed(error))
         }
     }
-
-    override fun show(activity: Activity) {}
 
     override fun destroy() {
         bannerAdView?.listener = null

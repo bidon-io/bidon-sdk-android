@@ -34,7 +34,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.stats.usecases.SendStatisticsUseCase
+import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
 import org.bidon.sdk.utils.ext.asSuccess
@@ -51,7 +51,7 @@ internal class AuctionImplTest : ConcurrentTest() {
 
     private val activity: Activity by lazy { mockk() }
     private val getAuctionRequestUseCase: GetAuctionRequestUseCase = mockk()
-    private val sendStatisticsUseCase: SendStatisticsUseCase = mockk(relaxed = true)
+    private val sendStatisticsAsyncUseCase: SendStatisticsAsyncUseCase = mockk(relaxed = true)
 
     private val adaptersSource: AdaptersSource by lazy { mockk(relaxed = true) }
 
@@ -59,7 +59,7 @@ internal class AuctionImplTest : ConcurrentTest() {
         AuctionImpl(
             adaptersSource = adaptersSource,
             getAuctionRequest = getAuctionRequestUseCase,
-            sendStatistics = sendStatisticsUseCase,
+            sendStatisticsAsync = sendStatisticsAsyncUseCase,
             executeRound = mockk()
         )
     }
@@ -168,7 +168,7 @@ internal class AuctionImplTest : ConcurrentTest() {
             val demandAd = slot<DemandAd>()
             // AND CHECK STAT REQUEST
             coVerify(exactly = 1) {
-                sendStatisticsUseCase.invoke(
+                sendStatisticsAsyncUseCase.invoke(
                     demandAd = capture(demandAd),
                     auctionResponse = any(),
                     auctionFinishTs = 1000,

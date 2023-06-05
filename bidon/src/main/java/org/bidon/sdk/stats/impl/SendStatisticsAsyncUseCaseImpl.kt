@@ -1,4 +1,4 @@
-package org.bidon.sdk.stats.usecases
+package org.bidon.sdk.stats.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -9,29 +9,15 @@ import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
+import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 
-/**
- * Created by Aleksei Cherniaev on 05/06/2023.
- */
-internal interface SendStatisticsUseCase {
-    operator fun invoke(
-        demandAd: DemandAd,
-        auctionResponse: AuctionResponse,
-        auctionStartTs: Long,
-        auctionFinishTs: Long,
-        statsAuctionResults: List<AuctionResult>,
-        statsRound: List<RoundStat>,
-    )
-}
-
-internal class SendStatisticsUseCaseImpl(
+internal class SendStatisticsAsyncUseCaseImpl(
     private val statsRequest: StatsRequestUseCase,
-) : SendStatisticsUseCase {
+) : SendStatisticsAsyncUseCase {
 
-    private val scope: CoroutineScope by lazy {
-        CoroutineScope(SdkDispatchers.IO)
-    }
+    private val scope: CoroutineScope get() = CoroutineScope(SdkDispatchers.IO)
 
     override fun invoke(
         demandAd: DemandAd,

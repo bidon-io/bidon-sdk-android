@@ -112,8 +112,8 @@ internal class MaxRewardedImpl(
         maxAd = null
     }
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             val lineItem = lineItems.minByOrNull { it.pricefloor }
                 ?.also(onLineItemConsumed)
             MaxFullscreenAdAuctionParams(

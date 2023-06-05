@@ -16,14 +16,14 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
 import org.bidon.sdk.auction.impl.AuctionImpl
+import org.bidon.sdk.auction.impl.ExecuteRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.BidRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCaseImpl
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.models.ExecuteRoundUseCase
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -66,11 +66,11 @@ import org.bidon.sdk.databinders.user.impl.AdvertisingDataImpl
 import org.bidon.sdk.databinders.user.impl.UserDataSourceImpl
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
+import org.bidon.sdk.stats.impl.SendStatisticsAsyncUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
-import org.bidon.sdk.stats.usecases.SendStatisticsUseCase
-import org.bidon.sdk.stats.usecases.SendStatisticsUseCaseImpl
+import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
@@ -155,11 +155,11 @@ internal object DI {
                     adaptersSource = get(),
                     getAuctionRequest = get(),
                     executeRound = get(),
-                    sendStatistics = get()
+                    sendStatisticsAsync = get()
                 )
             }
-            factory<SendStatisticsUseCase> {
-                SendStatisticsUseCaseImpl(
+            factory<SendStatisticsAsyncUseCase> {
+                SendStatisticsAsyncUseCaseImpl(
                     statsRequest = get(),
                 )
             }

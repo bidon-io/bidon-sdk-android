@@ -1,4 +1,4 @@
-package org.bidon.sdk.auction.usecases
+package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -17,26 +17,15 @@ import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.BiddingDemandId
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
+import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
+import org.bidon.sdk.auction.usecases.ConductNetworkAuctionUseCase
+import org.bidon.sdk.auction.usecases.PollItem
+import org.bidon.sdk.auction.usecases.models.ExecuteRoundUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
-
-/**
- * Created by Aleksei Cherniaev on 02/06/2023.
- */
-internal interface ExecuteRoundUseCase {
-    suspend operator fun invoke(
-        demandAd: DemandAd,
-        auctionResponse: AuctionResponse,
-        adTypeParam: AdTypeParam,
-        round: Round,
-        pricefloor: Double,
-        lineItems: List<LineItem>,
-        onFinish: (remainingLineItems: List<LineItem>) -> Unit,
-    ): Result<List<AuctionResult>>
-}
 
 internal class ExecuteRoundUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -66,13 +55,11 @@ internal class ExecuteRoundUseCaseImpl(
                         error = NoSuchElementException(unknownDemandIds.joinToString())
                     )
                 }
-            logInfo(
-                Tag,
-                "Round '${round.id}' started with adapters [${filteredAdapters.joinToString { it.demandId.demandId }}]"
-            )
-            logInfo(Tag, "Round '${round.id}' started with line items: $mutableLineItems")
+            val logText = "Round '${round.id}' started with"
+            logInfo(Tag, "$logText adapters [${filteredAdapters.joinToString { it.demandId.demandId }}]")
+            logInfo(Tag, "$logText line items: $mutableLineItems")
             val adSources = filteredAdapters.getAdSources(demandAd, round, auctionResponse)
-            val roundDeferred = mutableListOf<Deferred<DeferredAdEvent?>>()
+            val roundDeferred = mutableListOf<Deferred<PollItem?>>()
 
             // Start Bidding demands auction
             if (round.biddingIds.isNotEmpty()) {
@@ -87,7 +74,7 @@ internal class ExecuteRoundUseCaseImpl(
                         auctionId = auctionResponse.auctionId ?: "",
                         round = round,
                         auctionConfigurationId = auctionResponse.auctionConfigurationId
-                    ) ?: DeferredAdEvent(
+                    ) ?: PollItem(
                         adEvent = AdEvent.LoadFailed(BidonError.NoBid(BiddingDemandId)),
                         adSource = null
                     )

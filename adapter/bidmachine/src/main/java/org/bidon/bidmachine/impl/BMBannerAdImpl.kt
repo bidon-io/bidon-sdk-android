@@ -1,6 +1,5 @@
 package org.bidon.bidmachine.impl
 
-import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdRequest
 import io.bidmachine.BidMachine
@@ -171,8 +170,6 @@ internal class BMBannerAdImpl(
         }
     }
 
-    override fun show(activity: Activity) {}
-
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
         adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
     }
@@ -181,8 +178,8 @@ internal class BMBannerAdImpl(
         adRequest?.notifyMediationWin()
     }
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             BMBannerAuctionParams(
                 pricefloor = pricefloor,
                 timeout = timeout,

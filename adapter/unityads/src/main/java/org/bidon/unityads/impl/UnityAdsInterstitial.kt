@@ -64,8 +64,8 @@ internal class UnityAdsInterstitial(
 
     override var isAdReadyToShow: Boolean = false
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             val lineItem = lineItems
                 .minByPricefloorOrNull(demandId, pricefloor)
                 ?.also(onLineItemConsumed) ?: error(BidonError.NoAppropriateAdUnitId)

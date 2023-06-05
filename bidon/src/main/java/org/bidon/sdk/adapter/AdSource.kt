@@ -14,15 +14,18 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
     val adEvent: Flow<AdEvent>
     val isAdReadyToShow: Boolean
 
-    /**
-     * Applovin needs Activity instance for interstitial 🤦‍️
-     */
-    fun show(activity: Activity)
     fun destroy()
-    fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams>
+    fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams>
 
-    interface Interstitial<T : AdAuctionParams> : AdSource<T>
-    interface Rewarded<T : AdAuctionParams> : AdSource<T>
+    interface Interstitial<T : AdAuctionParams> : AdSource<T> {
+        /**
+         * DTExchange, Applovin, UnityAds need [Activity] instance for displaying ad 🤦‍️
+         */
+        fun show(activity: Activity)
+    }
+    interface Rewarded<T : AdAuctionParams> : AdSource<T> {
+        fun show(activity: Activity)
+    }
     interface Banner<T : AdAuctionParams> : AdSource<T> {
         fun getAdView(): AdViewHolder
     }

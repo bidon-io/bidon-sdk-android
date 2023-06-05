@@ -1,6 +1,5 @@
 package org.bidon.dtexchange.impl
 
-import android.app.Activity
 import android.widget.FrameLayout
 import com.fyber.inneractive.sdk.external.ImpressionData
 import com.fyber.inneractive.sdk.external.InneractiveAdRequest
@@ -56,8 +55,8 @@ internal class DTExchangeBanner(
         MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             val lineItem = lineItems
                 .minByPricefloorOrNull(demandId, pricefloor)
                 ?.also(onLineItemConsumed) ?: error("BidonError.NoAppropriateAdUnitId")
@@ -158,8 +157,6 @@ internal class DTExchangeBanner(
             }
         )
     }
-
-    override fun show(activity: Activity) {}
 
     override fun destroy() {
         adSpot?.setRequestListener(null)

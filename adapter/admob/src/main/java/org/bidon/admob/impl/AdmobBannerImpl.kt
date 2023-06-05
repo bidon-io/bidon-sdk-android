@@ -1,7 +1,6 @@
 package org.bidon.admob.impl
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.util.DisplayMetrics
 import android.view.WindowManager
@@ -84,8 +83,8 @@ internal class AdmobBannerImpl(
         param = null
     }
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             val lineItem = lineItems
                 .minByPricefloorOrNull(demandId, pricefloor)
                 ?.also(onLineItemConsumed)
@@ -169,8 +168,6 @@ internal class AdmobBannerImpl(
             adEvent.tryEmit(AdEvent.LoadFailed(error))
         }
     }
-
-    override fun show(activity: Activity) {}
 
     override fun getAdView(): AdViewHolder = AdViewHolder(
         networkAdview = requiredAdView,

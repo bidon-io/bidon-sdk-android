@@ -36,7 +36,7 @@ internal interface ConductNetworkAuctionUseCase {
         lineItems: List<LineItem>,
         round: Round,
         pricefloor: Double
-    ): RoundNetworkResult
+    ): DeferredRoundResult
 }
 
 internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
@@ -49,7 +49,7 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
         lineItems: List<LineItem>,
         round: Round,
         pricefloor: Double
-    ): RoundNetworkResult = coroutineScope {
+    ): DeferredRoundResult = coroutineScope {
         val mutableLineItems = lineItems.toMutableList()
         runCatching {
             val participants = networkSources.filter {
@@ -65,7 +65,7 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
                         "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
                 )
                 async {
-                    DeferredAdEvent(
+                    PollItem(
                         adEvent = startBidding(
                             adSource = adSource,
                             adTypeParam = adTypeParam,
@@ -80,12 +80,12 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
                     )
                 }
             }
-            RoundNetworkResult(
+            DeferredRoundResult(
                 results = deferredList,
                 remainingLineItems = mutableLineItems.toList()
             )
         }.getOrNull() ?: run {
-            RoundNetworkResult(
+            DeferredRoundResult(
                 results = emptyList(),
                 remainingLineItems = lineItems
             )
@@ -102,7 +102,7 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
     ): AdEvent {
         adSource as AdSource<AdAuctionParams>
         return withTimeoutOrNull(round.timeoutMs) {
-            val adParam = adSource.getAuctionParam(
+            val adParam = adSource.obtainAuctionParam(
                 AdAuctionParamSource(
                     activity = adTypeParam.activity,
                     timeout = round.timeoutMs,

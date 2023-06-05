@@ -200,8 +200,8 @@ internal class BMRewardedAdImpl(
         adRequest?.notifyMediationWin()
     }
 
-    override fun getAuctionParam(adAuctionParamsCatching: AdAuctionParamSource): Result<AdAuctionParams> {
-        return adAuctionParamsCatching {
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
             BMFullscreenAuctionParams(
                 pricefloor = pricefloor,
                 timeout = timeout,

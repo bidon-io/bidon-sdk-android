@@ -14,8 +14,8 @@ import org.bidon.sdk.auction.AuctionState
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.models.ExecuteRoundUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -23,7 +23,7 @@ import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.stats.usecases.SendStatisticsUseCase
+import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import java.util.UUID
 
@@ -34,7 +34,7 @@ internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val executeRound: ExecuteRoundUseCase,
-    private val sendStatistics: SendStatisticsUseCase
+    private val sendStatisticsAsync: SendStatisticsAsyncUseCase
 ) : Auction {
     private val state = MutableStateFlow(AuctionState.Initialized)
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
@@ -68,6 +68,7 @@ internal class AuctionImpl(
             ).onSuccess { auctionData ->
                 _auctionDataResponse = auctionData
                 mutableLineItems.addAll(auctionData.lineItems ?: emptyList())
+
                 // Start auction
                 conductRounds(
                     rounds = auctionData.rounds ?: listOf(),
@@ -79,18 +80,16 @@ internal class AuctionImpl(
                 )
                 logInfo(Tag, "Rounds completed")
 
-                // Finding winner
+                // Finding winner / notifying losers
                 val finalResults = auctionResults.value
-
                 logInfo(Tag, "Action finished with ${finalResults.size} results")
                 finalResults.forEachIndexed { index, auctionResult ->
                     logInfo(Tag, "Action result #$index: $auctionResult")
                 }
                 notifyWinLoss(finalResults)
 
-                // Finish auction
-                state.value = AuctionState.Finished
-                sendStatistics(
+                // Sending auction statistics
+                sendStatisticsAsync(
                     demandAd = demandAd,
                     auctionStartTs = auctionStartTs,
                     auctionFinishTs = SystemTimeNow,
@@ -98,8 +97,12 @@ internal class AuctionImpl(
                     auctionResponse = auctionData,
                     statsRound = statsRound.toList(),
                 )
+
+                // Finish auction
+                state.value = AuctionState.Finished
             }.getOrThrow()
         }
+        // Wait for auction is completed
         state.first { it == AuctionState.Finished }
         val results = auctionResults.value.toList()
         clearData()
@@ -143,6 +146,8 @@ internal class AuctionImpl(
         adTypeParamData: AdTypeParam,
     ) {
         val round = rounds.firstOrNull() ?: return
+
+        // Execute round
         val allRoundResults = executeRound(
             round = round,
             pricefloor = pricefloor,
@@ -155,6 +160,8 @@ internal class AuctionImpl(
                 mutableLineItems.addAll(remainingLineItems)
             }
         ).getOrNull() ?: emptyList()
+
+        // Save round results
         proceedRoundResults(
             resolver = resolver,
             allResults = allRoundResults,
@@ -163,6 +170,8 @@ internal class AuctionImpl(
             pricefloor = pricefloor,
         )
         val nextPriceFloor = auctionResults.value.firstOrNull()?.ecpm ?: pricefloor
+
+        // Start next round
         conductRounds(
             rounds = rounds.drop(1),
             sourcePriceFloor = sourcePriceFloor,
