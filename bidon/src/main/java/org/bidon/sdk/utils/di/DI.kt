@@ -69,6 +69,8 @@ import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
+import org.bidon.sdk.stats.usecases.SendStatisticsUseCase
+import org.bidon.sdk.stats.usecases.SendStatisticsUseCaseImpl
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
@@ -152,8 +154,13 @@ internal object DI {
                 AuctionImpl(
                     adaptersSource = get(),
                     getAuctionRequest = get(),
+                    executeRound = get(),
+                    sendStatistics = get()
+                )
+            }
+            factory<SendStatisticsUseCase> {
+                SendStatisticsUseCaseImpl(
                     statsRequest = get(),
-                    executeRound = get()
                 )
             }
             factoryWithParams { (param) ->

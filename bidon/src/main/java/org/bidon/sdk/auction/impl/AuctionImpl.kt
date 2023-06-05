@@ -1,9 +1,7 @@
 package org.bidon.sdk.auction.impl
 
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -25,8 +23,7 @@ import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.RoundStat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.stats.usecases.StatsRequestUseCase
-import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.stats.usecases.SendStatisticsUseCase
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import java.util.UUID
 
@@ -36,8 +33,8 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val statsRequest: StatsRequestUseCase,
     private val executeRound: ExecuteRoundUseCase,
+    private val sendStatistics: SendStatisticsUseCase
 ) : Auction {
     private val state = MutableStateFlow(AuctionState.Initialized)
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
@@ -93,10 +90,13 @@ internal class AuctionImpl(
 
                 // Finish auction
                 state.value = AuctionState.Finished
-                sendStatsAsync(
-                    demandAd,
+                sendStatistics(
+                    demandAd = demandAd,
                     auctionStartTs = auctionStartTs,
-                    auctionFinishTs = SystemTimeNow
+                    auctionFinishTs = SystemTimeNow,
+                    statsAuctionResults = statsAuctionResults.toList(),
+                    auctionResponse = auctionData,
+                    statsRound = statsRound.toList(),
                 )
             }.getOrThrow()
         }
@@ -254,64 +254,10 @@ internal class AuctionImpl(
             pricefloor = pricefloor,
             winnerDemandId = winner?.adSource?.demandId,
             winnerEcpm = winner?.ecpm,
-            demands = unknownDemandId
+            demands = unknownDemandId,
         )
         statsAuctionResults.addAll(sortedRoundResult)
         statsRound.add(roundStat)
-    }
-
-    private suspend fun sendStatsAsync(
-        demandAd: DemandAd,
-        auctionStartTs: Long,
-        auctionFinishTs: Long,
-    ) {
-        coroutineScope {
-            launch(SdkDispatchers.Default) {
-                val bidStats = statsAuctionResults.map {
-                    (it.adSource as StatisticsCollector).buildBidStatistic()
-                }
-                statsRequest.invoke(
-                    auctionId = auctionDataResponse.auctionId ?: "",
-                    auctionConfigurationId = auctionDataResponse.auctionConfigurationId ?: -1,
-                    results = statsRound.map { roundStat ->
-                        val errorDemandStat = roundStat.demands
-                        val succeedDemandStat = bidStats.filter { it.roundId == roundStat.roundId }
-                            .map { bidStat ->
-                                DemandStat(
-                                    roundStatus = requireNotNull(bidStat.roundStatus),
-                                    demandId = bidStat.demandId,
-                                    bidStartTs = bidStat.bidStartTs,
-                                    bidFinishTs = bidStat.bidFinishTs,
-                                    fillStartTs = bidStat.fillStartTs,
-                                    fillFinishTs = bidStat.fillFinishTs,
-                                    ecpm = bidStat.ecpm.takeIf {
-                                        bidStat.roundStatus !in arrayOf(
-                                            RoundStatus.NoBid,
-                                            RoundStatus.NoAppropriateAdUnitId
-                                        )
-                                    },
-                                    adUnitId = bidStat.adUnitId
-                                )
-                            }
-                        roundStat.copy(
-                            demands = (succeedDemandStat + errorDemandStat).map { demandStat ->
-                                if (demandStat.roundStatus == RoundStatus.Successful) {
-                                    demandStat.copy(
-                                        roundStatus = RoundStatus.Loss
-                                    )
-                                } else {
-                                    demandStat
-                                }
-                            }
-                        )
-                    },
-                    demandAd = demandAd,
-                    auctionStartTs = auctionStartTs,
-                    auctionFinishTs = auctionFinishTs
-                )
-                statsRound.clear()
-            }
-        }
     }
 
     private suspend fun saveAuctionResults(
