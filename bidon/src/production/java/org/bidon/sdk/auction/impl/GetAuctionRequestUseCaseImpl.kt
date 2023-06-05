@@ -5,14 +5,11 @@ import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
+import org.bidon.sdk.ads.ext.asAdRequestBody
 import org.bidon.sdk.ads.ext.asAdType
-import org.bidon.sdk.ads.ext.asBannerRequestBody
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdObjectRequestBody
 import org.bidon.sdk.auction.models.AuctionResponse
-import org.bidon.sdk.auction.models.BannerRequestBody
-import org.bidon.sdk.auction.models.InterstitialRequestBody
-import org.bidon.sdk.auction.models.RewardedRequestBody
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
@@ -49,7 +46,7 @@ internal class GetAuctionRequestUseCaseImpl(
         adapters: Map<String, AdapterInfo>,
     ): Result<AuctionResponse> {
         return withContext(SdkDispatchers.IO) {
-            val (banner, interstitial, rewarded) = getData(additionalData)
+            val (banner, interstitial, rewarded) = additionalData.asAdRequestBody()
             val adObject = AdObjectRequestBody(
                 auctionId = auctionId,
                 banner = banner,
@@ -74,20 +71,6 @@ internal class GetAuctionRequestUseCaseImpl(
                 logError(Tag, "Error while loading auction data", it)
             }.onSuccess {
                 logInfo(Tag, "Loaded auction data: $it")
-            }
-        }
-    }
-
-    private fun getData(data: AdTypeParam): Triple<BannerRequestBody?, InterstitialRequestBody?, RewardedRequestBody?> {
-        return when (data) {
-            is AdTypeParam.Banner -> {
-                Triple(first = data.asBannerRequestBody(), second = null, third = null)
-            }
-            is AdTypeParam.Interstitial -> {
-                Triple(first = null, second = InterstitialRequestBody(), third = null)
-            }
-            is AdTypeParam.Rewarded -> {
-                Triple(first = null, second = null, third = RewardedRequestBody())
             }
         }
     }

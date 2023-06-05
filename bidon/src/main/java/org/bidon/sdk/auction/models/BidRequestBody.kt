@@ -19,12 +19,17 @@ internal data class BidRequestBody(
     val roundId: String,
     @field:JsonName("orientation")
     val orientationCode: String,
-    @field:JsonName("banner")
-    val banner: BannerRequestBody?,
     @field:JsonName("bidfloor")
     val bidfloor: Double,
     @field:JsonName("demands")
     val demands: Map<String, Token>,
+    @field:JsonName("banner")
+    val banner: BannerRequestBody?,
+    @field:JsonName("interstitial")
+    val interstitial: InterstitialRequestBody?,
+    @field:JsonName("rewarded")
+    val rewarded: RewardedRequestBody?,
+
 ) : Serializable {
 
     data class Token(

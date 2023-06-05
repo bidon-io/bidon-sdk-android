@@ -21,7 +21,9 @@ internal class BidRequestBodyTest {
             orientationCode = AdObjectRequestBody.Orientation.Landscape.code,
             roundId = "round123",
             auctionId = "auc123",
-            auctionConfigurationId = 12
+            auctionConfigurationId = 12,
+            rewarded = RewardedRequestBody(),
+            interstitial = InterstitialRequestBody(),
         )
         val actual = body.serialize()
         println(actual)
@@ -35,6 +37,8 @@ internal class BidRequestBodyTest {
                 }
 
                 "orientation" hasValue "LANDSCAPE"
+                "rewarded" hasJson expectedJsonStructure { }
+                "interstitial" hasJson expectedJsonStructure { }
                 "banner" hasJson expectedJsonStructure {
                     "format" hasValue "ADAPTIVE"
                 }
@@ -59,7 +63,9 @@ internal class BidRequestBodyTest {
             orientationCode = AdObjectRequestBody.Orientation.Landscape.code,
             roundId = "round123",
             auctionId = "auc123",
-            auctionConfigurationId = 12
+            auctionConfigurationId = 12,
+            rewarded = RewardedRequestBody(),
+            interstitial = InterstitialRequestBody(),
         )
         val actual = listOf(body).serialize()
         println(actual)

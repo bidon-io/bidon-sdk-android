@@ -4,8 +4,8 @@ import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
+import org.bidon.sdk.ads.ext.asAdRequestBody
 import org.bidon.sdk.ads.ext.asAdType
-import org.bidon.sdk.ads.ext.asBannerRequestBody
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BidRequestBody
 import org.bidon.sdk.auction.models.BidResponse
@@ -60,17 +60,20 @@ internal class BidRequestUseCaseImpl(
         auctionConfigurationId: Int?,
     ): Result<BidResponse> {
         return withContext(SdkDispatchers.IO) {
+            val (banner, interstitial, rewarded) = adTypeParam.asAdRequestBody()
             val bidRequestBody = BidRequestBody(
                 auctionId = auctionId,
                 impressionId = UUID.randomUUID().toString(),
                 demands = tokens.associate { (demandId, token) ->
                     demandId.demandId to BidRequestBody.Token(token)
                 },
-                banner = adTypeParam.asBannerRequestBody(),
                 bidfloor = bidfloor,
                 orientationCode = getOrientation().code,
                 roundId = roundId,
                 auctionConfigurationId = auctionConfigurationId,
+                banner = banner,
+                interstitial = interstitial,
+                rewarded = rewarded,
             )
             val requestBody = createRequestBody(
                 binders = binders,
