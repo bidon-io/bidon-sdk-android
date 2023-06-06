@@ -20,20 +20,24 @@ repositories {
     }
 }        
 ```
+or
+```ruby
+maven { url = uri("https://artifactory.bidon.org/artifactory/bidon") }
+```
 
 secondly add the following lines to your `build.gradle` (:app):
 
 ``` ruby
 dependencies {
     # Bidon SDK Library
-    implementation 'org.bidon:bidon-sdk:0.1.1-Beta'
+    implementation 'org.bidon:bidon-sdk:$BIDON_VERSION'
 
     # Demand Sources (AdNetworks)
-    implementation 'org.bidon:bidmachine-adapter:0.1.1.0-Beta'
-    implementation 'org.bidon:admob-adapter:0.1.1.0-Beta'
-    implementation 'org.bidon:applovin-adapter:0.1.1.0-Beta'
-    implementation 'org.bidon:dtexchange-adapter:0.1.1.0-Beta'
-    implementation 'org.bidon:unityads-adapter:0.1.1.0-Beta'
+    implementation 'org.bidon:bidmachine-adapter:$BIDON_ADAPTER_VERSION'
+    implementation 'org.bidon:admob-adapter:$BIDON_ADAPTER_VERSION'
+    implementation 'org.bidon:applovin-adapter:$BIDON_ADAPTER_VERSION'
+    implementation 'org.bidon:dtexchange-adapter:$BIDON_ADAPTER_VERSION'
+    implementation 'org.bidon:unityads-adapter:$BIDON_ADAPTER_VERSION'
     
     ... 
 }
