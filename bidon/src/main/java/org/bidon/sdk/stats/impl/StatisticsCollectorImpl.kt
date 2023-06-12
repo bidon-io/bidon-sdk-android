@@ -109,14 +109,16 @@ class StatisticsCollectorImpl(
     }
 
     override fun sendLoss(winnerDemandId: String, winnerEcpm: Double, adType: StatisticsCollector.AdType) {
-        scope.launch {
-            sendLossRequest.invoke(
-                winnerDemandId = winnerDemandId,
-                winnerEcpm = winnerEcpm,
-                demandAd = demandAd,
-                bodyKey = "bid",
-                body = createImpressionRequestBody(adType)
-            )
+        if (!isShowSent.getAndSet(true)) {
+            scope.launch {
+                sendLossRequest.invoke(
+                    winnerDemandId = winnerDemandId,
+                    winnerEcpm = winnerEcpm,
+                    demandAd = demandAd,
+                    bodyKey = "bid",
+                    body = createImpressionRequestBody(adType)
+                )
+            }
         }
     }
 
