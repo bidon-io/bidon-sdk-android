@@ -24,7 +24,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceType.isTablet
@@ -45,7 +44,6 @@ internal class BMBannerAdImpl(
     private val auctionId: String
 ) : AdSource.Banner<BMBannerAuctionParams>,
     AdLoadingType.Bidding<BMBannerAuctionParams>,
-    WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
         roundId = roundId,
@@ -71,8 +69,7 @@ internal class BMBannerAdImpl(
                 adRequest = request
                 adEvent.tryEmit(
                     AdEvent.Bid(
-                        AuctionResult(
-                            ecpm = result.price,
+                        AuctionResult.Bidding.Success(
                             adSource = this@BMBannerAdImpl,
                             roundStatus = RoundStatus.Successful
                         )
@@ -138,7 +135,7 @@ internal class BMBannerAdImpl(
 
     override fun getToken(context: Context): String = BidMachine.getBidToken(context)
 
-    override fun bid(adParams: BMBannerAuctionParams) {
+    override fun adRequest(adParams: BMBannerAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         bannerFormat = adParams.bannerFormat
@@ -168,14 +165,6 @@ internal class BMBannerAdImpl(
             bannerView.setListener(bannerListener)
             bannerView.load(adRequest)
         }
-    }
-
-    override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
-        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
-    }
-
-    override fun notifyWin() {
-        adRequest?.notifyMediationWin()
     }
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
@@ -234,4 +223,4 @@ internal class BMBannerAdImpl(
     }
 }
 
-private const val Tag = "BidMachine Banner"
+private const val Tag = "BidMachineBanner"

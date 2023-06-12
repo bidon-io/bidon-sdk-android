@@ -1,6 +1,6 @@
 package org.bidon.sdk.stats.impl
 
-import org.bidon.sdk.stats.DemandStat
+import org.bidon.sdk.stats.models.DemandStat
 import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStatus
 
@@ -14,7 +14,7 @@ internal fun DemandStat?.asSuccessResultOrFail(auctionStartTs: Long, auctionFini
         status = "SUCCESS".takeIf { isSucceed } ?: "FAIL",
         demandId = this?.demandId?.demandId.takeIf { isSucceed },
         ecpm = this?.ecpm.takeIf { isSucceed },
-        adUnitId = this?.adUnitId.takeIf { isSucceed },
+        adUnitId = (this as? DemandStat.Network)?.adUnitId.takeIf { isSucceed },
         auctionStartTs = auctionStartTs,
         auctionFinishTs = auctionFinishTs
     )

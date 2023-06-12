@@ -43,14 +43,16 @@ class StatsRequestBodySerializerTest {
                     ),
                     pricefloor = 34.2,
                     winnerDemandId = "asd",
-                    winnerEcpm = 234.1
+                    winnerEcpm = 234.1,
+                    bidding = null
                 ),
                 Round(
                     id = "id43",
                     demands = listOf(),
                     pricefloor = 34.2,
                     winnerDemandId = null,
-                    winnerEcpm = null
+                    winnerEcpm = null,
+                    bidding = null
                 ),
             ),
             result = ResultBody(

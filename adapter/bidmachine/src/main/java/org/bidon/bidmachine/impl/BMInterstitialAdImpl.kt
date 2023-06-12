@@ -33,7 +33,6 @@ internal class BMInterstitialAdImpl(
     private val roundId: String,
     private val auctionId: String
 ) : AdSource.Interstitial<BMFullscreenAuctionParams>,
-    WinLossNotifiable,
     AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     StatisticsCollector by StatisticsCollectorImpl(
         auctionId = auctionId,
@@ -62,8 +61,7 @@ internal class BMInterstitialAdImpl(
                 adRequest = request
                 adEvent.tryEmit(
                     AdEvent.Bid(
-                        AuctionResult(
-                            ecpm = result.price,
+                        AuctionResult.Network(
                             adSource = this@BMInterstitialAdImpl,
                             roundStatus = RoundStatus.Successful
                         )
@@ -142,7 +140,7 @@ internal class BMInterstitialAdImpl(
 
     override fun getToken(context: Context): String = BidMachine.getBidToken(context)
 
-    override fun bid(adParams: BMFullscreenAuctionParams) {
+    override fun adRequest(adParams: BMFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         context = adParams.context
         InterstitialRequest.Builder()
@@ -180,14 +178,6 @@ internal class BMInterstitialAdImpl(
         } else {
             adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
         }
-    }
-
-    override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
-        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
-    }
-
-    override fun notifyWin() {
-        adRequest?.notifyMediationWin()
     }
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {

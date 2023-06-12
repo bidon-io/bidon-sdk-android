@@ -17,6 +17,8 @@ import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.AuctionStat
+import org.bidon.sdk.auction.usecases.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.BidRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.ConductBiddingAuctionUseCase
@@ -155,7 +157,12 @@ internal object DI {
                     adaptersSource = get(),
                     getAuctionRequest = get(),
                     executeRound = get(),
-                    sendStatisticsAsync = get()
+                    auctionStat = get()
+                )
+            }
+            factory<AuctionStat> {
+                AuctionStatImpl(
+                    statsRequest = get()
                 )
             }
             factory<SendStatisticsAsyncUseCase> {

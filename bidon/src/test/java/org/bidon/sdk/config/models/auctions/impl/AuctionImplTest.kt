@@ -32,7 +32,7 @@ import org.bidon.sdk.config.models.adapters.TestAdapter
 import org.bidon.sdk.config.models.adapters.TestAdapterParameters
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.RoundStat
+import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
 import org.bidon.sdk.utils.di.DI

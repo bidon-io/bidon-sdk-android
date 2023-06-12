@@ -6,9 +6,10 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.RoundStat
+import org.bidon.sdk.stats.models.Bidding
 import org.bidon.sdk.stats.models.Demand
 import org.bidon.sdk.stats.models.Round
+import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
@@ -78,6 +79,14 @@ internal class StatsRequestUseCaseImpl(
         auctionStartTs: Long,
         auctionFinishTs: Long,
     ): StatsRequestBody {
+        val winner = this
+            .flatMap { it.demands + it.bidding }
+            .filterNotNull()
+            .firstOrNull { it.roundStatus == RoundStatus.Win }
+            .asSuccessResultOrFail(
+                auctionStartTs = auctionStartTs,
+                auctionFinishTs = auctionFinishTs
+            )
         return StatsRequestBody(
             auctionId = auctionId,
             auctionConfigurationId = auctionConfigurationId,
@@ -98,16 +107,21 @@ internal class StatsRequestUseCaseImpl(
                             fillStartTs = demandStat.fillStartTs,
                             fillFinishTs = demandStat.fillFinishTs,
                         )
+                    },
+                    bidding = stat.bidding?.let {
+                        Bidding(
+                            demandId = it.demandId?.demandId,
+                            bidFinishTs = it.bidFinishTs,
+                            fillFinishTs = it.fillFinishTs,
+                            bidStartTs = it.bidStartTs,
+                            ecpm = it.ecpm,
+                            fillStartTs = it.fillStartTs,
+                            roundStatusCode = it.roundStatus.code
+                        )
                     }
                 )
             },
-            result = this
-                .flatMap { it.demands }
-                .firstOrNull { it.roundStatus == RoundStatus.Win }
-                .asSuccessResultOrFail(
-                    auctionStartTs = auctionStartTs,
-                    auctionFinishTs = auctionFinishTs
-                )
+            result = winner
         )
     }
 }

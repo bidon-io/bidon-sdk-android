@@ -1,8 +1,8 @@
 package org.bidon.sdk.auction.usecases
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -12,10 +12,10 @@ import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
@@ -27,7 +27,7 @@ internal interface ConductNetworkAuctionUseCase {
     /**
      * @param participantIds Bidding Demand Ids
      */
-    suspend fun invoke(
+    fun invoke(
         context: Context,
         networkSources: List<AdLoadingType.Network<AdAuctionParams>>,
         participantIds: List<String>,
@@ -35,12 +35,13 @@ internal interface ConductNetworkAuctionUseCase {
         demandAd: DemandAd,
         lineItems: List<LineItem>,
         round: Round,
-        pricefloor: Double
+        pricefloor: Double,
+        coroutineScope: CoroutineScope
     ): DeferredRoundResult
 }
 
 internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
-    override suspend fun invoke(
+    override fun invoke(
         context: Context,
         networkSources: List<AdLoadingType.Network<AdAuctionParams>>,
         participantIds: List<String>,
@@ -48,8 +49,9 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
         demandAd: DemandAd,
         lineItems: List<LineItem>,
         round: Round,
-        pricefloor: Double
-    ): DeferredRoundResult = coroutineScope {
+        pricefloor: Double,
+        scope: CoroutineScope
+    ): DeferredRoundResult {
         val mutableLineItems = lineItems.toMutableList()
         runCatching {
             val participants = networkSources.filter {
@@ -57,42 +59,48 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
             }
             logInfo(Tag, "participants: $participants")
             val deferredList = participants.map { adSource ->
-                adSource as AdSource<AdAuctionParams>
-                val availableLineItemsForDemand = mutableLineItems.filter { it.demandId == adSource.demandId.demandId }
-                logInfo(
-                    tag = Tag,
-                    message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts bidding. " +
-                        "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
-                )
-                async {
-                    PollItem(
-                        adEvent = startBidding(
-                            adSource = adSource,
-                            adTypeParam = adTypeParam,
-                            pricefloor = pricefloor,
-                            round = round,
-                            availableLineItemsForDemand = availableLineItemsForDemand,
-                            onLineItemConsumed = { lineItem ->
-                                mutableLineItems.remove(lineItem)
-                            }
-                        ),
+                scope.async {
+                    adSource as AdSource<AdAuctionParams>
+                    val availableLineItemsForDemand = mutableLineItems.filter { it.demandId == adSource.demandId.demandId }
+                    logInfo(
+                        tag = Tag,
+                        message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts fill. " +
+                            "PriceFloor=$pricefloor. LineItems: $availableLineItemsForDemand."
+                    )
+                    val adEvent = loadAd(
                         adSource = adSource,
+                        adTypeParam = adTypeParam,
+                        pricefloor = pricefloor,
+                        round = round,
+                        availableLineItemsForDemand = availableLineItemsForDemand,
+                        onLineItemConsumed = { lineItem ->
+                            mutableLineItems.remove(lineItem)
+                        }
+                    )
+                    AuctionResult.Network(
+                        adSource = adSource,
+                        roundStatus = when (adEvent) {
+                            is AdEvent.Fill -> RoundStatus.Successful
+                            is AdEvent.Expired -> RoundStatus.NoFill
+                            is AdEvent.LoadFailed -> adEvent.cause.asRoundStatus()
+                            else -> error("unexpected: $adEvent")
+                        }
                     )
                 }
             }
-            DeferredRoundResult(
+            return DeferredRoundResult(
                 results = deferredList,
                 remainingLineItems = mutableLineItems.toList()
             )
         }.getOrNull() ?: run {
-            DeferredRoundResult(
+            return DeferredRoundResult(
                 results = emptyList(),
                 remainingLineItems = lineItems
             )
         }
     }
 
-    private suspend fun startBidding(
+    private suspend fun loadAd(
         adSource: AdLoadingType.Network<AdAuctionParams>,
         adTypeParam: AdTypeParam,
         pricefloor: Double,
@@ -117,11 +125,11 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
             }
 
             // BID todo Should we remove it?
-            adSource.markBidStarted(adUnitId = adParam.adUnitId)
-            adSource.markBidFinished(
-                roundStatus = RoundStatus.Successful,
-                ecpm = adParam.pricefloor
-            )
+//            adSource.markBidStarted(adUnitId = adParam.adUnitId)
+//            adSource.markBidFinished(
+//                roundStatus = RoundStatus.Successful,
+//                ecpm = adParam.pricefloor
+//            )
             // FILL
             adSource.markFillStarted()
             adSource.fill(adParam)
@@ -138,7 +146,6 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
                 }
 
                 is AdEvent.LoadFailed -> {
-                    logError(Tag, "Failed to fill: ${adSource.demandId}", fillAdEvent.cause)
                     adSource.markFillFinished(
                         roundStatus = fillAdEvent.cause.asRoundStatus(),
                         ecpm = adParam.pricefloor
@@ -146,7 +153,6 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
                 }
 
                 is AdEvent.Expired -> {
-                    logError(Tag, "Failed to fill: ${adSource.demandId}", BidonError.Expired(adSource.demandId))
                     adSource.markFillFinished(
                         roundStatus = RoundStatus.NoFill,
                         ecpm = fillAdEvent.ad.ecpm

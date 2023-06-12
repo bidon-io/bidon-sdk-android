@@ -1,7 +1,7 @@
 package org.bidon.sdk.stats.usecases
 
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.stats.RoundStat
+import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.utils.networking.BaseResponse
 
 /**

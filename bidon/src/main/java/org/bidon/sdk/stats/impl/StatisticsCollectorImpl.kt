@@ -8,8 +8,8 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.models.BannerRequestBody
 import org.bidon.sdk.auction.models.InterstitialRequestBody
 import org.bidon.sdk.auction.models.RewardedRequestBody
-import org.bidon.sdk.stats.BidStat
 import org.bidon.sdk.stats.StatisticsCollector
+import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.ImpressionRequestBody
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase

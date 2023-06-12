@@ -28,7 +28,7 @@ internal class BidResponseParser : JsonParser<BidResponse> {
     override fun parseOrNull(jsonString: String): BidResponse? = runCatching {
         val json = JSONObject(jsonString)
         BidResponse(
-            bid = json.getJSONObject("bid")?.let { bidJson ->
+            bid = json.optJSONObject("bid")?.let { bidJson ->
                 Bid(
                     id = bidJson.getString("id"),
                     impressionId = bidJson.optString("impid"),

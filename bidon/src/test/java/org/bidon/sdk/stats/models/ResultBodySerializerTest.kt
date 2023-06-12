@@ -3,7 +3,6 @@ package org.bidon.sdk.stats.models
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.config.models.json_scheme_utils.assertEquals
 import org.bidon.sdk.config.models.json_scheme_utils.expectedJsonStructure
-import org.bidon.sdk.stats.DemandStat
 import org.bidon.sdk.stats.impl.asSuccessResultOrFail
 import org.bidon.sdk.utils.serializer.serialize
 import org.junit.Test
