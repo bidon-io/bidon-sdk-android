@@ -14,7 +14,7 @@ internal class ResultBodySerializerTest {
 
     @Test
     fun `it should serialize WINNER`() {
-        val actual = DemandStat(
+        val actual = DemandStat.Network(
             roundStatus = RoundStatus.Win,
             ecpm = 1.234,
             adUnitId = "id123",
@@ -22,7 +22,7 @@ internal class ResultBodySerializerTest {
             fillStartTs = 0L,
             fillFinishTs = 1L,
             bidStartTs = 2L,
-            bidFinishTs = 3L
+            bidFinishTs = 3L,
         ).asSuccessResultOrFail(100000, 100020).serialize()
 
         actual.assertEquals(
@@ -39,7 +39,7 @@ internal class ResultBodySerializerTest {
 
     @Test
     fun `it should serialize FAILURE`() {
-        val actual = DemandStat(
+        val actual = DemandStat.Network(
             roundStatus = RoundStatus.NoBid,
             ecpm = 1.234,
             adUnitId = "id123",

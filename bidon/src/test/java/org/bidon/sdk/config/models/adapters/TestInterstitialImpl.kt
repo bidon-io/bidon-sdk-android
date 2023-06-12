@@ -58,10 +58,9 @@ internal class TestInterstitialImpl(
             Process.Succeed -> {
                 adEvent.tryEmit(
                     AdEvent.Bid(
-                        AuctionResult(
-                            ecpm = adParams.lineItem.pricefloor,
+                        AuctionResult.Network(
                             adSource = this,
-                            roundStatus = RoundStatus.Successful
+                            roundStatus = RoundStatus.Successful,
                         )
                     )
                 )

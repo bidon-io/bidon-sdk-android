@@ -59,7 +59,7 @@ internal class AuctionImplTest : ConcurrentTest() {
         AuctionImpl(
             adaptersSource = adaptersSource,
             getAuctionRequest = getAuctionRequestUseCase,
-            sendStatisticsAsync = sendStatisticsAsyncUseCase,
+            auctionStat = mockk(),
             executeRound = mockk()
         )
     }
