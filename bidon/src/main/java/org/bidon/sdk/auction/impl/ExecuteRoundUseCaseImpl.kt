@@ -52,7 +52,9 @@ internal class ExecuteRoundUseCaseImpl(
             val logText = "Round '${round.id}' started with"
             logInfo(Tag, "$logText adapters [${filteredAdapters.joinToString { it.demandId.demandId }}]")
             logInfo(Tag, "$logText line items: $mutableLineItems")
-            val adSources = filteredAdapters.getAdSources(demandAd, round, auctionResponse)
+            val adSources = filteredAdapters.getAdSources(demandAd, round, auctionResponse).onEach { adSource ->
+                adSource.addAuctionConfigurationId(auctionResponse.auctionConfigurationId ?: 0)
+            }
             val roundDeferred = mutableListOf<Deferred<AuctionResult>>()
 
             // Start Bidding demands auction
