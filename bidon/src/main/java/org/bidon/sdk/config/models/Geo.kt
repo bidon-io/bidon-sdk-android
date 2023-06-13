@@ -12,7 +12,7 @@ data class Geo(
     @field:JsonName("lon")
     val lon: Double?,
     @field:JsonName("accuracy")
-    val accuracy: Float?,
+    val accuracy: Int?,
     @field:JsonName("lastfix")
     val lastFix: Long?,
     @field:JsonName("country")

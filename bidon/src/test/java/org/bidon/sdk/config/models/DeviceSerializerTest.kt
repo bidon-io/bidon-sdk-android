@@ -34,7 +34,7 @@ internal class DeviceSerializerTest {
             geo = Geo(
                 lat = 52.2388276,
                 lon = 20.9767103,
-                accuracy = 13.407f,
+                accuracy = 13,
                 lastFix = 1677171891497,
                 country = "Poland",
                 city = "Warsaw",
@@ -65,7 +65,7 @@ internal class DeviceSerializerTest {
                 "os_api_level" hasValue "33"
                 "geo" hasJson expectedJsonStructure {
                     "utcoffset" hasValue 1
-                    "accuracy" hasValue 13.407
+                    "accuracy" hasValue 13
                     "lon" hasValue 20.9767103
                     "lastfix" hasValue 1677171891497
                     "lat" hasValue 52.2388276
