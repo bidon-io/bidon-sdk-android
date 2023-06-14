@@ -51,10 +51,11 @@ Then sync project.
 Receive your `APP_KEY` in the dashboard app settings. Init Bidon SDK in your MainActivity class.
 
 ```kotlin
-Bidon
+BidonSdk
     .registerDefaultAdapters()
     // .registerAdapters("com.example.YourOwnAdapterClass") // for registering your custom Adapter (AdNetwork) by class name
     // .registerAdapters(YourOwnAdapter()) // for registering your custom Adapter (AdNetwork) by instance. Instance should be initialized and ready to work
+    .setBaseUrl("https://api.bidon.org")
     .setInitializationCallback {
         //  Bidon is initialized and ready to work
     }
@@ -66,7 +67,7 @@ Bidon
 
 Set logging.
 ```kotlin
-Bidon.setLogLevel(Logger.Level.Verbose)
+BidonSdk.setLogLevel(Logger.Level.Verbose)
 ```
 
 ## Configure Ad Types
