@@ -21,6 +21,9 @@ object BidonSdk {
 
     internal val bidon by lazy { Bidon() }
 
+    /**
+     * Represents User's [Segment]
+     */
     @JvmStatic
     val segment: Segment
         get() = bidon.segment

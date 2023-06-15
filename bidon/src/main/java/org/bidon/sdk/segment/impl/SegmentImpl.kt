@@ -7,12 +7,16 @@ import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.segment.models.Gender
 import org.bidon.sdk.segment.models.SegmentAttributes
+import org.bidon.sdk.utils.di.get
+import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.json.JSONObject
 
 /**
  * Created by Aleksei Cherniaev on 15/06/2023.
  */
 internal class SegmentImpl : Segment, SegmentSynchronizer {
+    private val keyValueStorage: KeyValueStorage get() = get()
+
     private var attributesFlow = MutableStateFlow(SegmentAttributes.Empty)
 
     override val attributes: SegmentAttributes
@@ -84,8 +88,9 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
         runCatching {
             JSONObject(rootJsonResponse).optJSONObject("segment")?.optString("id", "")
                 .takeIf { !it.isNullOrBlank() }
-                ?.let {
-                    setSegmentId(it)
+                ?.let { newSegmentId ->
+                    keyValueStorage.segmentId = newSegmentId
+                    setSegmentId(newSegmentId)
                 }
         }
     }
