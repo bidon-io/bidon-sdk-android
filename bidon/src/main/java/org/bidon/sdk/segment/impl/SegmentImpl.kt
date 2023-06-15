@@ -80,9 +80,9 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
         logInfo(Tag, "Updated isPaying=$isPaying")
     }
 
-    override fun parseSegmentId(jsonResponse: String) {
+    override fun parseSegmentId(rootJsonResponse: String) {
         runCatching {
-            JSONObject(jsonResponse).optString("segment_id", "")
+            JSONObject(rootJsonResponse).optJSONObject("segment")?.optString("id", "")
                 .takeIf { !it.isNullOrBlank() }
                 ?.let {
                     setSegmentId(it)

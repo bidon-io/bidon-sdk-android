@@ -8,6 +8,6 @@ import org.bidon.sdk.segment.models.SegmentAttributes
 internal interface SegmentSynchronizer {
     val attributes: SegmentAttributes
     val segmentId: String?
-    fun parseSegmentId(jsonResponse: String)
+    fun parseSegmentId(rootJsonResponse: String)
     fun setSegmentId(segmentId: String)
 }
