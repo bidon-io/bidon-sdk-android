@@ -1,0 +1,45 @@
+package org.bidon.sdk.segment
+
+import androidx.annotation.IntRange
+import org.bidon.sdk.segment.models.Gender
+
+/**
+ * Created by Aleksei Cherniaev on 14/06/2023.
+ */
+interface Segment {
+
+    val segmentId: String? //read only
+
+    fun setAge(@IntRange(from = 0, to = 150) age: Int?)
+    fun setGender(gender: Gender?)
+
+    /**
+     * Supported value types are bool, int, long, double, string, Json-object.
+     * This method replaces all current values.
+     */
+    fun setCustomAttributes(attributes: Map<String, Any>)
+
+    /**
+     * Supported value types are bool, int, long, double, string, Json-object.
+     * This method add new attribute without replacing other.
+     * If value is null, then the existing attribute will be removed.
+     */
+    fun putCustomAttribute(attribute: String, value: Any?)
+
+    /**
+     * How many levels user has passed (for games mostly)
+     */
+    fun setLevel(level: Int)
+
+    /**
+     * How many levels user has passed (for games mostly)
+     */
+    fun setInAppAmount(inAppAmount: Int)
+
+    /**
+     * Indicates whether or not user made at least one in-app purchase
+     */
+    fun setPaying(isPaying: Boolean)
+
+}
+

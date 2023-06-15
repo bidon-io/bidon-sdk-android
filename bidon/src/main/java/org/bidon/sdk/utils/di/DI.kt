@@ -49,6 +49,9 @@ import org.bidon.sdk.databinders.user.UserBinder
 import org.bidon.sdk.databinders.user.UserDataSource
 import org.bidon.sdk.databinders.user.impl.AdvertisingDataImpl
 import org.bidon.sdk.databinders.user.impl.UserDataSourceImpl
+import org.bidon.sdk.segment.Segment
+import org.bidon.sdk.segment.impl.SegmentImpl
+import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
@@ -123,6 +126,7 @@ internal object DI {
             // [SegmentDataSource] should be singleton per session
             singleton<SegmentDataSource> { SegmentDataSourceImpl() }
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
+            singleton<Segment> { SegmentImpl() }
 
             /**
              * Factories
@@ -153,6 +157,7 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
+            factory { get<Segment>() as SegmentSynchronizer }
 
             /**
              * Requests
@@ -196,7 +201,7 @@ internal object DI {
                     userBinder = UserBinder(dataSource = get()),
                     placementBinder = PlacementBinder(dataSource = get()),
                     adaptersBinder = AdaptersBinder(adaptersSource = get()),
-                    segmentBinder = SegmentBinder(dataSource = get()),
+                    segmentBinder = SegmentBinder(segmentSynchronizer = get()),
                 )
             }
             factory<Extras> { ExtrasImpl() }
