@@ -50,8 +50,6 @@ import org.bidon.sdk.databinders.reg.RegulationDataSource
 import org.bidon.sdk.databinders.reg.RegulationDataSourceImpl
 import org.bidon.sdk.databinders.reg.RegulationsBinder
 import org.bidon.sdk.databinders.segment.SegmentBinder
-import org.bidon.sdk.databinders.segment.SegmentDataSource
-import org.bidon.sdk.databinders.segment.SegmentDataSourceImpl
 import org.bidon.sdk.databinders.session.SessionBinder
 import org.bidon.sdk.databinders.session.SessionDataSource
 import org.bidon.sdk.databinders.session.SessionDataSourceImpl
@@ -67,15 +65,13 @@ import org.bidon.sdk.databinders.user.UserDataSource
 import org.bidon.sdk.databinders.user.impl.AdvertisingDataImpl
 import org.bidon.sdk.databinders.user.impl.UserDataSourceImpl
 import org.bidon.sdk.segment.Segment
-import org.bidon.sdk.segment.impl.SegmentImpl
 import org.bidon.sdk.segment.SegmentSynchronizer
+import org.bidon.sdk.segment.impl.SegmentImpl
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
-import org.bidon.sdk.stats.impl.SendStatisticsAsyncUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
-import org.bidon.sdk.stats.usecases.SendStatisticsAsyncUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
@@ -143,13 +139,16 @@ internal object DI {
             singleton<NetworkStateObserver> { NetworkStateObserverImpl() }
 
             // [SegmentDataSource] should be singleton per session
-            singleton<SegmentDataSource> { SegmentDataSourceImpl() }
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
+            /**
+             * [SegmentSynchronizer] depends on it
+             */
             singleton<Segment> { SegmentImpl() }
 
             /**
              * Factories
              */
+            factory { get<Segment>() as SegmentSynchronizer }
             factory<InitAndRegisterAdaptersUseCase> {
                 InitAndRegisterAdaptersUseCaseImpl(
                     adaptersSource = get()
@@ -169,11 +168,6 @@ internal object DI {
                     statsRequest = get()
                 )
             }
-            factory<SendStatisticsAsyncUseCase> {
-                SendStatisticsAsyncUseCaseImpl(
-                    statsRequest = get(),
-                )
-            }
             factoryWithParams { (param) ->
                 CountDownTimer(
                     activityLifecycleObserver = param as ActivityLifecycleObserver
@@ -186,7 +180,6 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
-            factory { get<Segment>() as SegmentSynchronizer }
             factory<ConductBiddingAuctionUseCase> {
                 ConductBiddingAuctionUseCaseImpl(
                     bidRequestUseCase = get()
@@ -250,7 +243,6 @@ internal object DI {
                     userBinder = UserBinder(dataSource = get()),
                     placementBinder = PlacementBinder(dataSource = get()),
                     adaptersBinder = AdaptersBinder(adaptersSource = get()),
-                    segmentBinder = SegmentBinder(dataSource = get()),
                     regulationsBinder = RegulationsBinder(dataSource = get()),
                     testModeBinder = TestModeBinder(),
                     segmentBinder = SegmentBinder(segmentSynchronizer = get()),

@@ -6,4 +6,3 @@ package org.bidon.sdk.segment
 internal interface Segmentation {
     val segment: Segment
 }
-

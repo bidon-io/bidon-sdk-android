@@ -14,5 +14,4 @@ internal data class SegmentRequestBody(
      */
     @field:JsonName("ext")
     val ext: String?,
-): Serializable
-
+) : Serializable

@@ -19,4 +19,4 @@ internal data class SegmentAttributesRequestBody(
     val isPaying: Boolean?,
     @field:JsonName("game_level")
     val gameLevel: Int?,
-): Serializable
+) : Serializable

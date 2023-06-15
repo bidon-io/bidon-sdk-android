@@ -16,10 +16,10 @@ internal class SegmentBinder(
     override suspend fun getJsonObject(): JSONObject? {
         val segmentId = segmentSynchronizer.segmentId
         val attr = segmentSynchronizer.attributes
-        val ext = if (attr.age != null || attr.gender != null
-            || attr.customAttributes.isNotEmpty()
-            || attr.inAppAmount != null || attr.isPaying != null
-            || attr.gameLevel != null
+        val ext = if (attr.age != null || attr.gender != null ||
+            attr.customAttributes.isNotEmpty() ||
+            attr.inAppAmount != null || attr.isPaying != null ||
+            attr.gameLevel != null
         ) {
             SegmentAttributesRequestBody(
                 age = attr.age,
@@ -32,7 +32,9 @@ internal class SegmentBinder(
         } else {
             null
         }
-
+        if (segmentId == null && ext == null) {
+            return null
+        }
         return SegmentRequestBody(
             id = segmentId,
             ext = ext?.serialize()?.toString()

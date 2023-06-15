@@ -2,11 +2,12 @@ package org.bidon.sdk.segment.impl
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import org.bidon.sdk.segment.models.Gender
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.segment.Segment
-import org.bidon.sdk.segment.models.SegmentAttributes
 import org.bidon.sdk.segment.SegmentSynchronizer
-
+import org.bidon.sdk.segment.models.Gender
+import org.bidon.sdk.segment.models.SegmentAttributes
+import org.json.JSONObject
 
 /**
  * Created by Aleksei Cherniaev on 15/06/2023.
@@ -24,12 +25,14 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
         attributesFlow.value = attributesFlow.value.copy(
             age = age
         )
+        logInfo(Tag, "Updated age=$age")
     }
 
     override fun setGender(gender: Gender?) {
         attributesFlow.value = attributesFlow.value.copy(
             gender = gender
         )
+        logInfo(Tag, "Updated gender=$gender")
     }
 
     override fun putCustomAttribute(attribute: String, value: Any?) {
@@ -46,33 +49,51 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
                     }
             )
         }
+        logInfo(Tag, "Updated attribute=($attribute, $value)")
     }
 
     override fun setCustomAttributes(attributes: Map<String, Any>) {
         this.attributesFlow.value = this.attributesFlow.value.copy(
             customAttributes = attributes
         )
+        logInfo(Tag, "Updated attributes=$attributes")
     }
 
     override fun setLevel(level: Int) {
         attributesFlow.value = attributesFlow.value.copy(
             gameLevel = level
         )
+        logInfo(Tag, "Updated level=$level")
     }
 
     override fun setInAppAmount(inAppAmount: Int) {
         attributesFlow.value = attributesFlow.value.copy(
             inAppAmount = inAppAmount
         )
+        logInfo(Tag, "Updated inAppAmount=$inAppAmount")
     }
 
     override fun setPaying(isPaying: Boolean) {
         attributesFlow.value = attributesFlow.value.copy(
             isPaying = isPaying
         )
+        logInfo(Tag, "Updated isPaying=$isPaying")
+    }
+
+    override fun parseSegmentId(jsonResponse: String) {
+        runCatching {
+            JSONObject(jsonResponse).optString("segment_id", "")
+                .takeIf { !it.isNullOrBlank() }
+                ?.let {
+                    setSegmentId(it)
+                }
+        }
     }
 
     override fun setSegmentId(segmentId: String) {
+        logInfo(Tag, "Updated SegmentId($segmentId)")
         this.segmentId = segmentId
     }
 }
+
+private const val Tag = "Segment"

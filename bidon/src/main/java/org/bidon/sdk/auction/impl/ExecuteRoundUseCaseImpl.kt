@@ -87,7 +87,7 @@ internal class ExecuteRoundUseCaseImpl(
                     lineItems = mutableLineItems,
                     round = round,
                     pricefloor = pricefloor,
-                    coroutineScope = this@coroutineScope
+                    scope = this@coroutineScope
                 )
                 mutableLineItems.clear()
                 mutableLineItems.addAll(networkResults.remainingLineItems)

@@ -8,7 +8,10 @@ import org.bidon.sdk.segment.models.Gender
  */
 interface Segment {
 
-    val segmentId: String? //read only
+    /**
+     * Current user's Segment ID
+     */
+    val segmentId: String?
 
     fun setAge(@IntRange(from = 0, to = 150) age: Int?)
     fun setGender(gender: Gender?)
@@ -21,7 +24,7 @@ interface Segment {
 
     /**
      * Supported value types are bool, int, long, double, string, Json-object.
-     * This method add new attribute without replacing other.
+     * This method add new or update existing attribute without replacing others.
      * If value is null, then the existing attribute will be removed.
      */
     fun putCustomAttribute(attribute: String, value: Any?)
@@ -40,6 +43,4 @@ interface Segment {
      * Indicates whether or not user made at least one in-app purchase
      */
     fun setPaying(isPaying: Boolean)
-
 }
-
