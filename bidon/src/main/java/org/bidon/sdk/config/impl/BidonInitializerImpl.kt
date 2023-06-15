@@ -49,6 +49,7 @@ internal class BidonInitializerImpl : BidonInitializer {
 
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
+    override var isTestMode: Boolean = false
 
     override fun registerDefaultAdapters() {
         useDefaultAdapters = true
@@ -139,6 +140,7 @@ internal class BidonInitializerImpl : BidonInitializer {
                     context = context,
                     adapters = (defaultAdapters + publisherAdapters.values).distinctBy { it::class },
                     configResponse = configResponse,
+                    isTestMode = isTestMode
                 )
             }.onFailure {
                 logError(Tag, "Error while Config-request", it)
