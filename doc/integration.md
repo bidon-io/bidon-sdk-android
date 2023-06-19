@@ -11,6 +11,11 @@ This page is describes how to import and configure the Bidon SDK.
 To integrate Bidon SDK through Dependencies, firstly add repository fo Bidon SDK dependencies
 ```ruby
 repositories {
+
+    // For using Bidon Artefactory
+    maven { url = uri("https://artifactory.bidon.org/bidon") }
+    
+    // Alternatively, you have the option to download Bidon SDK from GitHub Packages using your credential
     maven {
         url = uri("https://maven.pkg.github.com/bidon-io/bidon-sdk-android")
         credentials {
@@ -19,10 +24,6 @@ repositories {
         }
     }
 }        
-```
-or
-```ruby
-maven { url = uri("https://artifactory.bidon.org/artifactory/bidon") }
 ```
 
 secondly add the following lines to your `build.gradle` (:app):
