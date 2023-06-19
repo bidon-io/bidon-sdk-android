@@ -6,6 +6,7 @@ import kotlinx.coroutines.coroutineScope
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdProvider
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
@@ -58,7 +59,10 @@ internal class ExecuteRoundUseCaseImpl(
             val roundDeferred = mutableListOf<Deferred<AuctionResult>>()
 
             // Start Bidding demands auction
-            val biddingResultDeferred = if (round.biddingIds.isNotEmpty()) {
+            val biddingDemands = adSources.filterIsInstance<AdLoadingType.Bidding<AdAuctionParams>>().map {
+                (it as AdSource<*>).demandId.demandId
+            }
+            val biddingResultDeferred = if (biddingDemands.intersect(round.biddingIds.toSet()).isNotEmpty()) {
                 async {
                     conductBiddingAuction.invoke(
                         context = adTypeParam.activity.applicationContext,
