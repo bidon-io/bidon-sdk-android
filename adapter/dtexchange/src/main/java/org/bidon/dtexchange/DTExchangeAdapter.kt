@@ -57,6 +57,7 @@ class DTExchangeAdapter :
                     }
                 }
             }
+
             InneractiveAdManager.initialize(context, configParams.appId) { initStatus ->
                 when (initStatus) {
                     FyberInitStatus.SUCCESSFULLY -> {

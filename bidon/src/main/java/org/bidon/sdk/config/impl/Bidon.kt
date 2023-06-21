@@ -5,18 +5,17 @@ import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.databinders.extras.ExtrasImpl
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.LoggerImpl
-import org.bidon.sdk.regulation.Regulation
-import org.bidon.sdk.regulation.RegulationImpl
+import org.bidon.sdk.regulation.Consent
+import org.bidon.sdk.regulation.impl.ConsentImpl
 import org.bidon.sdk.segment.Segmentation
 import org.bidon.sdk.segment.impl.SegmentationImpl
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
-internal class Bidon(
-    val regulation: Regulation = RegulationImpl()
-) :
+internal class Bidon :
     BidonInitializer by BidonInitializerImpl(),
     Logger by LoggerImpl(),
     Extras by ExtrasImpl(),
-    Segmentation by SegmentationImpl()
+    Segmentation by SegmentationImpl(),
+    Consent by ConsentImpl()

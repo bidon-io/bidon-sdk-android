@@ -12,7 +12,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsTestMode
-import org.bidon.sdk.adapter.SupportsTestModeImpl
+import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.unityads.ext.adapterVersion
 import org.bidon.unityads.ext.asBidonError

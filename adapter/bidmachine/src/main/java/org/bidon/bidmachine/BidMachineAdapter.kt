@@ -10,6 +10,7 @@ import org.bidon.bidmachine.impl.BMInterstitialAdImpl
 import org.bidon.bidmachine.impl.BMRewardedAdImpl
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
+import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.logs.logging.Logger
 import org.json.JSONObject
 import kotlin.coroutines.resume
