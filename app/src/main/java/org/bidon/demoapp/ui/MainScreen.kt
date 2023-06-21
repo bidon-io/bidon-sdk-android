@@ -28,11 +28,18 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.bidon.demoapp.BannerViewActivity
 import org.bidon.demoapp.BuildConfig
-import org.bidon.demoapp.component.*
+import org.bidon.demoapp.component.AppButton
+import org.bidon.demoapp.component.AppOutlinedButton
+import org.bidon.demoapp.component.AppTextButton
+import org.bidon.demoapp.component.CaptionText
+import org.bidon.demoapp.component.H5Text
+import org.bidon.demoapp.component.ItemSelector
+import org.bidon.demoapp.component.MultiSelector
 import org.bidon.demoapp.navigation.Screen
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.logs.logging.Logger
+import org.bidon.sdk.segment.models.Gender
 import org.bidon.sdk.utils.networking.NetworkSettings
 import org.json.JSONObject
 import java.time.LocalDateTime
@@ -46,6 +53,9 @@ internal fun MainScreen(
 ) {
     val adapters = remember {
         mutableStateOf(DefaultAdapters.values().toList())
+    }
+    val testModeState = remember {
+        mutableStateOf(false)
     }
     Column(
         modifier = Modifier
@@ -87,6 +97,19 @@ internal fun MainScreen(
                             }
                         }
                     )
+                    ItemSelector(
+                        modifier = Modifier.padding(top = 16.dp),
+                        title = "Test mode",
+                        items = listOf(true, false),
+                        selectedItem = testModeState.value,
+                        getItemTitle = { testMode ->
+                            "True".takeIf { testMode } ?: "False"
+                        },
+                        onItemClicked = { testMode ->
+                            testModeState.value = testMode
+                            BidonSdk.setTestMode(testMode)
+                        }
+                    )
                     AppOutlinedButton(
                         modifier = Modifier.padding(top = 16.dp),
                         text = "Add SDK-level Extras"
@@ -95,6 +118,7 @@ internal fun MainScreen(
                         BidonSdk.addExtra("sdk_level_string_before_init", "string0")
                         BidonSdk.addExtra("sdk_level_int_before_init", 555)
                     }
+                    SegmentAttrButton()
                     AppButton(text = "Init") {
                         val baseUrl =
                             sharedPreferences.getString("host", NetworkSettings.BidonBaseUrl) ?: NetworkSettings.BidonBaseUrl
@@ -125,6 +149,7 @@ internal fun MainScreen(
                     navController.navigate(Screen.ServerSettings.route)
                 }
             }
+
             MainScreenState.Initialized -> {
                 H5Text(text = "Ad types")
                 CaptionText(
@@ -153,6 +178,7 @@ internal fun MainScreen(
                     BidonSdk.addExtra("token_json", JSONObject("""{"a":"after_init"}"""))
                     BidonSdk.addExtra("sdk_level_long_after_init", LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
                 }
+                SegmentAttrButton()
                 TextButton(modifier = Modifier.padding(top = 100.dp), onClick = {
                     val packageManager: PackageManager = context.packageManager
                     val intent: Intent = packageManager.getLaunchIntentForPackage(context.packageName)!!
@@ -165,6 +191,22 @@ internal fun MainScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SegmentAttrButton() {
+    AppOutlinedButton(
+        modifier = Modifier.padding(top = 0.dp),
+        text = "Add Segment attrs"
+    ) {
+        BidonSdk.segment.setAge(18)
+        BidonSdk.segment.setGender(Gender.Female)
+        BidonSdk.segment.setLevel(100500)
+        BidonSdk.segment.setPaying(isPaying = true)
+        BidonSdk.segment.setInAppAmount(15)
+        BidonSdk.segment.setCustomAttributes(mapOf("attr1" to "hello world"))
+        BidonSdk.segment.putCustomAttribute(attribute = "attr2", value = 28)
     }
 }
 

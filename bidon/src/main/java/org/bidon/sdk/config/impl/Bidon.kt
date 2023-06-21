@@ -7,6 +7,8 @@ import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.LoggerImpl
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.regulation.RegulationImpl
+import org.bidon.sdk.segment.Segmentation
+import org.bidon.sdk.segment.impl.SegmentationImpl
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -16,4 +18,5 @@ internal class Bidon(
 ) :
     BidonInitializer by BidonInitializerImpl(),
     Logger by LoggerImpl(),
-    Extras by ExtrasImpl()
+    Extras by ExtrasImpl(),
+    Segmentation by SegmentationImpl()
