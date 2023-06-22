@@ -18,6 +18,7 @@ import androidx.core.content.edit
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
+import org.bidon.demoapp.ui.settings.TestModeInfo
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Gdpr
@@ -39,7 +40,7 @@ fun SdkSettings() {
             .verticalScroll(rememberScrollState())
     ) {
         val testModeState = remember {
-            mutableStateOf(shared.getBoolean("test_mode", false))
+            mutableStateOf(shared.getBoolean(TestModeKey, false))
         }
         val coppaState = remember {
             mutableStateOf(
@@ -75,8 +76,9 @@ fun SdkSettings() {
             },
             onItemClicked = { testMode ->
                 shared.edit {
-                    putBoolean("test_mode", testMode)
+                    putBoolean(TestModeKey, testMode)
                 }
+                TestModeInfo.isTesMode.value = testMode
                 testModeState.value = testMode
                 BidonSdk.setTestMode(testMode)
             }
@@ -133,3 +135,5 @@ private fun SegmentAttrButton() {
         BidonSdk.segment.putCustomAttribute(attribute = "attr2", value = 28)
     }
 }
+
+internal const val TestModeKey = "test_mode"

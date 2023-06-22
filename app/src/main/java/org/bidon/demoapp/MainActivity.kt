@@ -1,5 +1,6 @@
 package org.bidon.demoapp
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
@@ -32,6 +34,8 @@ import kotlinx.coroutines.launch
 import org.bidon.demoapp.navigation.NavigationGraph
 import org.bidon.demoapp.theme.AppTheme
 import org.bidon.demoapp.ui.SdkSettings
+import org.bidon.demoapp.ui.TestModeKey
+import org.bidon.demoapp.ui.settings.TestModeInfo
 
 class MainActivity : FragmentActivity() {
     @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterialApi::class)
@@ -47,6 +51,10 @@ class MainActivity : FragmentActivity() {
 
             AppTheme {
                 val navController = rememberNavController()
+                LocalContext.current.getSharedPreferences("app_test", Context.MODE_PRIVATE).let {
+                    TestModeInfo.isTesMode.value = it.getBoolean(TestModeKey, false)
+                }
+
                 ModalBottomSheetLayout(
                     sheetState = modalSheetState,
                     sheetShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
