@@ -6,5 +6,5 @@ import org.bidon.sdk.regulation.Regulation
  * Created by Aleksei Cherniaev on 21/06/2023.
  */
 interface SupportsRegulation {
-    fun onRegulationUpdated(regulation: Regulation)
+    fun updateRegulation(regulation: Regulation)
 }

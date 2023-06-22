@@ -203,7 +203,8 @@ internal object DI {
                 ExecuteRoundUseCaseImpl(
                     conductNetworkAuction = get(),
                     conductBiddingAuction = get(),
-                    adaptersSource = get()
+                    adaptersSource = get(),
+                    regulation = get()
                 )
             }
 
