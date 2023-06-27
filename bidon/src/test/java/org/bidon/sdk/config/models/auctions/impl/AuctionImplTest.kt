@@ -1,13 +1,11 @@
 package org.bidon.sdk.config.models.auctions.impl
 
 import android.app.Activity
-import android.util.Log
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
-import io.mockk.mockkStatic
 import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -27,14 +25,12 @@ import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.models.ExecuteRoundUseCase
-import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.models.adapters.Process
 import org.bidon.sdk.config.models.adapters.TestAdapter
 import org.bidon.sdk.config.models.adapters.TestAdapterParameters
 import org.bidon.sdk.config.models.adapters.TestBiddingAdapter
-import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
@@ -60,7 +56,6 @@ internal class AuctionImplTest : ConcurrentTest() {
     private val adaptersSource: AdaptersSource by lazy { mockk(relaxed = true) }
     private val executeRoundUseCase: ExecuteRoundUseCase by lazy { mockk(relaxed = true) }
     private val statRequestUseCase: StatsRequestUseCase by lazy { mockk(relaxed = true) }
-
 
     private val auctionStat: AuctionStat by lazy {
         AuctionStatImpl(statRequestUseCase)

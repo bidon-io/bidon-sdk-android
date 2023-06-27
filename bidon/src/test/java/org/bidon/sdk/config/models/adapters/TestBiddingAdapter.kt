@@ -14,7 +14,8 @@ import org.bidon.sdk.regulation.Regulation
 internal class TestBiddingAdapter(
     override val demandId: DemandId,
     private val testAdapterParameters: TestAdapterParameters,
-) : Adapter, SupportsRegulation,
+) : Adapter,
+    SupportsRegulation,
     Initializable<TestAdapterParameters>,
     AdProvider.Interstitial<TestInterstitialParameters> {
 

@@ -196,7 +196,6 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
             pricefloor = 0.4,
             lineItems = emptyList(),
             onFinish = { remainingLineItems ->
-
             }
         )
         results
@@ -205,9 +204,9 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
                 error("unexpected")
             }
             .onSuccess {
-                assertThat(it).hasSize(3)
-                assertThat(it.filter { it.roundStatus==RoundStatus.UnknownAdapter }).hasSize(2)
-                assertThat(it.filter { it.roundStatus==RoundStatus.Successful }).hasSize(2)
+                assertThat(it).hasSize(4)
+                assertThat(it.filter { it.roundStatus == RoundStatus.UnknownAdapter }).hasSize(2)
+                assertThat(it.filter { it.roundStatus == RoundStatus.Successful }).hasSize(2)
             }
     }
 }
