@@ -28,7 +28,8 @@ internal interface AuctionStat {
         roundResults: List<AuctionResult>,
     )
 
-    fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd, auctionConfigurationId: Int?)
+    fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd)
+    fun markAuctionCanceled()
 }
 
 internal class AuctionStatImpl(
@@ -40,10 +41,15 @@ internal class AuctionStatImpl(
     private var auctionId: String = ""
     private var winner: DemandStat? = null
     private val statsRound = mutableListOf<RoundStat>()
+    private var isAuctionCanceled = false
 
     override fun markAuctionStarted(auctionId: String) {
         this.auctionId = auctionId
         this.auctionStartTs = SystemTimeNow
+    }
+
+    override fun markAuctionCanceled() {
+        isAuctionCanceled = true
     }
 
     override fun addRoundResults(
@@ -70,7 +76,7 @@ internal class AuctionStatImpl(
         updateWinnerIfNeed(roundWinner, pricefloor)
     }
 
-    override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd, auctionConfigurationId: Int?) {
+    override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd) {
         scope.launch(SdkDispatchers.Default) {
             // prepare data
             val roundResults = statsRound.map { roundStat ->
@@ -89,7 +95,7 @@ internal class AuctionStatImpl(
             // send data
             statsRequest.invoke(
                 auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId ?: -1,
+                auctionConfigurationId = auctionData.auctionConfigurationId ?: -1,
                 results = roundResults,
                 demandAd = demandAd,
                 auctionStartTs = auctionStartTs,

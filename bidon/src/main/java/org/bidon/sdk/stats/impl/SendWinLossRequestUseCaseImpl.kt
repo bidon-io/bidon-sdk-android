@@ -66,7 +66,7 @@ internal class SendWinLossRequestUseCaseImpl(
             }.onFailure {
                 logError(Tag, "Error while sending loss notification $urlPath", it)
             }.onSuccess {
-                logInfo(Tag, "Loss notification $urlPath was sent successfully")
+                logInfo(Tag, "$path-notification $urlPath was sent successfully")
             }
         }
 }

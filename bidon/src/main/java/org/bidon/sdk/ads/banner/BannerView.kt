@@ -12,7 +12,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.R
 import org.bidon.sdk.adapter.AdEvent
@@ -57,12 +56,11 @@ class BannerView @JvmOverloads constructor(
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
-    private val auction: Auction get() = get()
+    private val auction: Auction by lazy { get() }
     private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var winner: AuctionResult? = null
     private var winnerSubscriberJob: Job? = null
-    private var auctionJob: Job? = null
     private var loadingError: BidonError? = null
 
     init {
@@ -203,8 +201,7 @@ class BannerView @JvmOverloads constructor(
     override fun destroyAd() {
         adLifecycleFlow.value = AdLifecycle.Destroyed
         visibilityTracker.stop()
-        auctionJob?.cancel()
-        auctionJob = null
+        auction.cancel()
         winner?.adSource?.destroy()
         winner = null
         winnerSubscriberJob?.cancel()
@@ -239,18 +236,16 @@ class BannerView @JvmOverloads constructor(
     private fun conductAuction(activity: Activity, pricefloor: Double) {
         this.pricefloor = pricefloor
         logInfo(Tag, "Load (pricefloor=$pricefloor)")
-        auctionJob?.cancel()
-        auctionJob = scope.launch {
-            auction.start(
-                demandAd = demandAd,
-                resolver = MaxEcpmAuctionResolver,
-                adTypeParamData = AdTypeParam.Banner(
-                    activity = activity,
-                    pricefloor = pricefloor,
-                    bannerFormat = bannerFormat,
-                    containerWidth = width.toFloat()
-                ),
-            ).onSuccess { auctionResults ->
+        auction.start(
+            demandAd = demandAd,
+            resolver = MaxEcpmAuctionResolver,
+            adTypeParamData = AdTypeParam.Banner(
+                activity = activity,
+                pricefloor = pricefloor,
+                bannerFormat = bannerFormat,
+                containerWidth = width.toFloat()
+            ),
+            onSuccess = { auctionResults ->
                 /**
                  * Winner found
                  */
@@ -264,7 +259,9 @@ class BannerView @JvmOverloads constructor(
                         "[Ad] should exist when action succeeds"
                     }
                 )
-            }.onFailure {
+
+            },
+            onFailure = {
                 /**
                  * Auction failed
                  */
@@ -272,7 +269,7 @@ class BannerView @JvmOverloads constructor(
                 loadingError = it.asBidonErrorOrUnspecified()
                 listener.onAdLoadFailed(cause = it.asBidonErrorOrUnspecified())
             }
-        }
+        )
     }
 
     private fun subscribeToWinner(adSource: AdSource<*>) {
