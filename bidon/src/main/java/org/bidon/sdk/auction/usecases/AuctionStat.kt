@@ -69,7 +69,7 @@ internal class AuctionStatImpl(
             demands = networkResults.map {
                 it.asDemandStat(pricefloor) as DemandStat.Network
             },
-            bidding = biddingResult?.asDemandStatBidding(pricefloor)
+            bidding = biddingResult?.asDemandStatBidding()
         )
         statsRound.add(roundStat)
         updateWinnerIfNeed(roundWinner, pricefloor)
@@ -103,7 +103,7 @@ internal class AuctionStatImpl(
         }
     }
 
-    private fun Bidding.asDemandStatBidding(pricefloor: Double): DemandStat.Bidding {
+    private fun Bidding.asDemandStatBidding(): DemandStat.Bidding {
         return when (val biddingResult = this) {
             is Bidding.Success,
             is Bidding.Failure.NoFill -> {
