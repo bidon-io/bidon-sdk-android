@@ -64,6 +64,7 @@ internal class ExecuteRoundUseCaseImpl(
             logInfo(Tag, "$logText line items: $mutableLineItems")
             val adSources = filteredAdapters.getAdSources(demandAd, round, auctionResponse).onEach { adSource ->
                 adSource.addAuctionConfigurationId(auctionResponse.auctionConfigurationId ?: 0)
+                adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
             }
             val roundDeferred = mutableListOf<Deferred<AuctionResult>>()
 

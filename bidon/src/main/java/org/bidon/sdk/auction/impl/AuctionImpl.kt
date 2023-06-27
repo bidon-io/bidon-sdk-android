@@ -118,7 +118,10 @@ internal class AuctionImpl(
         finalResults.drop(1)
             .forEach { auctionResult ->
                 val adSource = auctionResult.adSource
-                if (adSource is WinLossNotifiable) {
+                /**
+                 *  Bidding demands should not be notified.
+                 */
+                if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(Tag, "Notified loss: ${adSource.demandId}")
                     adSource.notifyLoss(winner.adSource.demandId.demandId, winner.ecpm)
                 }

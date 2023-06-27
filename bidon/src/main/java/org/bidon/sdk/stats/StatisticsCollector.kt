@@ -13,6 +13,7 @@ interface StatisticsCollector {
     fun sendClickImpression(adType: AdType)
     fun sendRewardImpression()
     fun sendLoss(winnerDemandId: String, winnerEcpm: Double, adType: AdType)
+    fun sendWin(adType: AdType)
 
     fun markBidStarted(adUnitId: String? = null)
     fun markBidFinished(roundStatus: RoundStatus, ecpm: Double?)
@@ -21,7 +22,9 @@ interface StatisticsCollector {
     fun markWin()
     fun markLoss()
     fun markBelowPricefloor()
+
     fun addAuctionConfigurationId(auctionConfigurationId: Int)
+    fun addExternalWinNotificationsEnabled(enabled: Boolean)
 
     fun buildBidStatistic(): BidStat
 

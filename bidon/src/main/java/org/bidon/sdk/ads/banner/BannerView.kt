@@ -24,6 +24,7 @@ import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.LogLifecycleAdStateUseCase
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
+import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResult
@@ -57,6 +58,7 @@ class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
     private val auction: Auction get() = get()
+    private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var winner: AuctionResult? = null
     private var winnerSubscriberJob: Job? = null
@@ -180,15 +182,22 @@ class BannerView @JvmOverloads constructor(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
-        winner?.adSource?.sendLoss(
+        winLossNotifierHelper.notifyLoss(
+            adSource = winner?.adSource,
+            adType = demandAd.adType,
             winnerDemandId = winnerDemandId,
             winnerEcpm = winnerEcpm,
-            adType = StatisticsCollector.AdType.Banner(
-                format = bannerFormat.asStatBannerFormat()
-            )
+            bannerFormat = bannerFormat,
         )
         destroyAd()
+    }
+
+    override fun notifyWin() {
+        winLossNotifierHelper.notifyWin(
+            adSource = winner?.adSource,
+            adType = demandAd.adType,
+            bannerFormat = bannerFormat,
+        )
     }
 
     override fun destroyAd() {

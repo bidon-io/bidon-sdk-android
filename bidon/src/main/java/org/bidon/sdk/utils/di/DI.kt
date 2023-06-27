@@ -12,6 +12,7 @@ import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
 import org.bidon.sdk.ads.banner.helper.impl.ActivityLifecycleObserver
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
+import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
@@ -72,10 +73,10 @@ import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.segment.impl.SegmentImpl
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
-import org.bidon.sdk.stats.impl.SendLossRequestUseCaseImpl
+import org.bidon.sdk.stats.impl.SendWinLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
-import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
+import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
@@ -264,11 +265,12 @@ internal object DI {
                 )
             }
 
-            factory<SendLossRequestUseCase> {
-                SendLossRequestUseCaseImpl(
+            factory<SendWinLossRequestUseCase> {
+                SendWinLossRequestUseCaseImpl(
                     createRequestBody = get()
                 )
             }
+            factory { WinLossNotifierHelper() }
         }
     }
 }

@@ -8,12 +8,14 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.models.BannerRequestBody
 import org.bidon.sdk.auction.models.InterstitialRequestBody
 import org.bidon.sdk.auction.models.RewardedRequestBody
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.ImpressionRequestBody
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
-import org.bidon.sdk.stats.usecases.SendLossRequestUseCase
+import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
+import org.bidon.sdk.stats.usecases.WinLossRequestData
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
@@ -31,6 +33,7 @@ class StatisticsCollectorImpl(
 ) : StatisticsCollector {
 
     private var auctionConfigurationId: Int = 0
+    private var externalWinNotificationsEnabled: Boolean = true
 
     private val impressionId: String by lazy {
         UUID.randomUUID().toString()
@@ -40,7 +43,7 @@ class StatisticsCollectorImpl(
         get<SendImpressionRequestUseCase>()
     }
     private val sendLossRequest by lazy {
-        get<SendLossRequestUseCase>()
+        get<SendWinLossRequestUseCase>()
     }
 
     private val isShowSent = AtomicBoolean(false)
@@ -109,14 +112,36 @@ class StatisticsCollectorImpl(
     }
 
     override fun sendLoss(winnerDemandId: String, winnerEcpm: Double, adType: StatisticsCollector.AdType) {
+        if (!externalWinNotificationsEnabled) {
+            logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
+            return
+        }
         if (!isShowSent.getAndSet(true)) {
             scope.launch {
                 sendLossRequest.invoke(
-                    winnerDemandId = winnerDemandId,
-                    winnerEcpm = winnerEcpm,
-                    demandAd = demandAd,
-                    bodyKey = "bid",
-                    body = createImpressionRequestBody(adType)
+                    WinLossRequestData.Loss(
+                        winnerDemandId = winnerDemandId,
+                        winnerEcpm = winnerEcpm,
+                        demandAd = demandAd,
+                        body = createImpressionRequestBody(adType)
+                    )
+                )
+            }
+        }
+    }
+
+    override fun sendWin(adType: StatisticsCollector.AdType) {
+        if (!externalWinNotificationsEnabled) {
+            logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
+            return
+        }
+        if (!isShowSent.getAndSet(true)) {
+            scope.launch {
+                sendLossRequest.invoke(
+                    WinLossRequestData.Win(
+                        demandAd = demandAd,
+                        body = createImpressionRequestBody(adType)
+                    )
                 )
             }
         }
@@ -124,6 +149,10 @@ class StatisticsCollectorImpl(
 
     override fun addAuctionConfigurationId(auctionConfigurationId: Int) {
         this.auctionConfigurationId = auctionConfigurationId
+    }
+
+    override fun addExternalWinNotificationsEnabled(enabled: Boolean) {
+        externalWinNotificationsEnabled = enabled
     }
 
     override fun markBidStarted(adUnitId: String?) {
@@ -213,3 +242,5 @@ class StatisticsCollectorImpl(
         StatisticsCollector.AdType.Rewarded -> AdType.Rewarded
     }
 }
+
+private const val Tag = "StatisticsCollector"

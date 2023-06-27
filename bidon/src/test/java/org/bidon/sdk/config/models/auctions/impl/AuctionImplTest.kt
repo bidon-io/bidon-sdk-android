@@ -135,6 +135,7 @@ internal class AuctionImplTest : ConcurrentTest() {
             ),
             pricefloor = 0.01,
             token = null,
+            externalWinNotificationsEnabled = true
         )
         coEvery {
             getAuctionRequestUseCase.request(
@@ -368,5 +369,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         ),
         pricefloor = 0.01,
         token = null,
+        externalWinNotificationsEnabled = true
     )
 }

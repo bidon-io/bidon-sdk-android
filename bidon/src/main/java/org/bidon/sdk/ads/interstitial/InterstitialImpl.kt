@@ -10,6 +10,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.config.BidonError
@@ -27,6 +28,7 @@ internal class InterstitialImpl(
 ) : Interstitial, Extras by demandAd {
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
+    private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
     private val auctionHolder: AuctionHolder by lazy {
         get {
             params(demandAd)
@@ -99,6 +101,7 @@ internal class InterstitialImpl(
                 logInfo(Tag, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
             }
+
             else -> {
                 scope.launch(Dispatchers.Main.immediate) {
                     (adSource as AdSource.Interstitial).show(activity)
@@ -113,13 +116,20 @@ internal class InterstitialImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
-        auctionHolder.popWinner()?.sendLoss(
+        winLossNotifierHelper.notifyLoss(
+            adSource = auctionHolder.popWinner(),
+            adType = demandAd.adType,
             winnerDemandId = winnerDemandId,
-            winnerEcpm = winnerEcpm,
-            adType = StatisticsCollector.AdType.Interstitial
+            winnerEcpm = winnerEcpm
         )
         destroyAd()
+    }
+
+    override fun notifyWin() {
+        winLossNotifierHelper.notifyWin(
+            adSource = auctionHolder.popWinner(),
+            adType = demandAd.adType,
+        )
     }
 
     override fun destroyAd() {
@@ -147,15 +157,18 @@ internal class InterstitialImpl(
                 is AdEvent.Fill -> {
                     // do nothing
                 }
+
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
                     adSource.sendClickImpression(adType = StatisticsCollector.AdType.Interstitial)
                 }
+
                 is AdEvent.Closed -> listener.onAdClosed(adEvent.ad)
                 is AdEvent.Shown -> {
                     listener.onAdShown(adEvent.ad)
                     adSource.sendShowImpression(adType = StatisticsCollector.AdType.Interstitial)
                 }
+
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
                 is AdEvent.LoadFailed -> listener.onAdLoadFailed(adEvent.cause)
