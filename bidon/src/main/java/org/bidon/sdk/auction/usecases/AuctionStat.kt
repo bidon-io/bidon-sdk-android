@@ -78,6 +78,11 @@ internal class AuctionStatImpl(
     override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd) {
         scope.launch(SdkDispatchers.Default) {
             // prepare data
+            val canceledRounds = getCanceledRoundStats(
+                rounds = auctionData.rounds.orEmpty(),
+                completedRoundIds = statsRound.map { it.roundId },
+                isCanceled = isAuctionCanceled
+            )
             val roundResults = statsRound.map { roundStat ->
                 roundStat.copy(
                     demands = roundStat.demands.map { demandStat ->
@@ -89,7 +94,7 @@ internal class AuctionStatImpl(
                         roundStatus = roundStat.bidding.roundStatus.getFinalStatus(roundStat.bidding == winner)
                     )
                 )
-            }
+            } + canceledRounds
 
             // send data
             statsRequest.invoke(
@@ -100,6 +105,52 @@ internal class AuctionStatImpl(
                 auctionStartTs = auctionStartTs,
                 auctionFinishTs = SystemTimeNow
             )
+        }
+    }
+
+    private fun getCanceledRoundStats(
+        rounds: List<Round>,
+        completedRoundIds: List<String>,
+        isCanceled: Boolean
+    ): List<RoundStat> {
+        if (!isCanceled) return emptyList()
+        return buildList {
+            rounds.forEach { round: Round ->
+                if (round.id !in completedRoundIds) {
+                    add(
+                        RoundStat(
+                            auctionId = auctionId,
+                            roundId = round.id,
+                            pricefloor = null,
+                            demands = round.demandIds.map {
+                                DemandStat.Network(
+                                    roundStatus = RoundStatus.AuctionCancelled,
+                                    demandId = DemandId(it),
+                                    ecpm = null,
+                                    adUnitId = null,
+                                    fillStartTs = null,
+                                    bidStartTs = null,
+                                    fillFinishTs = null,
+                                    bidFinishTs = null
+                                )
+                            },
+                            bidding = if (round.biddingIds.isNotEmpty()) {
+                                DemandStat.Bidding(
+                                    roundStatus = RoundStatus.AuctionCancelled,
+                                    ecpm = null,
+                                    demandId = null,
+                                    bidStartTs = null,
+                                    bidFinishTs = null,
+                                    fillStartTs = null,
+                                    fillFinishTs = null,
+                                )
+                            } else null,
+                            winnerEcpm = null,
+                            winnerDemandId = null
+                        )
+                    )
+                }
+            }
         }
     }
 

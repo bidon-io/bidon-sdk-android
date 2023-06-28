@@ -82,7 +82,7 @@ internal class StatsRequestUseCaseImpl(
         val winner = this
             .flatMap { it.demands + it.bidding }
             .filterNotNull()
-            .firstOrNull { it.roundStatus == RoundStatus.Win }
+            .firstOrNull { it.roundStatus == RoundStatus.Win || it.roundStatus == RoundStatus.AuctionCancelled }
             .asSuccessResultOrFail(
                 auctionStartTs = auctionStartTs,
                 auctionFinishTs = auctionFinishTs
