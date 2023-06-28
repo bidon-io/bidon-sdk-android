@@ -58,8 +58,8 @@ internal class AuctionStatImpl(
         roundResults: List<AuctionResult>,
     ) {
         val roundWinner = roundResults.firstOrNull { it.roundStatus == RoundStatus.Successful }
-        val networkResults = roundResults.filterIsInstance<AuctionResult.Network>()
         val biddingResult = roundResults.filterIsInstance<Bidding>().firstOrNull()
+        val networkResults = roundResults.filterIsInstance<AuctionResult.Network>()
         val roundStat = RoundStat(
             auctionId = auctionId,
             roundId = round.id,
