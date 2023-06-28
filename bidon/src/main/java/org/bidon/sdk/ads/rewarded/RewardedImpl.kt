@@ -133,7 +133,7 @@ internal class RewardedImpl(
 
     override fun notifyWin() {
         winLossNotifierHelper.notifyWin(
-            adSource = auctionHolder.popWinner(),
+            adSource = auctionHolder.getNextLoadedWinner(),
             adType = demandAd.adType,
         )
     }

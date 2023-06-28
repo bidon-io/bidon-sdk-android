@@ -67,6 +67,10 @@ internal class AuctionHolderImpl(
         }
     }
 
+    override fun getNextLoadedWinner(): AdSource<*>? {
+        return nextWinner?.adSource
+    }
+
     override fun destroy() {
         (auctionState.value as? AuctionHolderState.InProgress)?.auction?.cancel()
         auctionState.value = AuctionHolderState.Idle

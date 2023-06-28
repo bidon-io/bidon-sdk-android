@@ -14,6 +14,7 @@ internal interface AuctionHolder {
     )
 
     fun popWinner(): AdSource<*>?
+    fun getNextLoadedWinner(): AdSource<*>?
     fun destroy()
     fun isAdReady(): Boolean
 }

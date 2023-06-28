@@ -47,7 +47,7 @@ class StatisticsCollectorImpl(
     }
 
     private val isShowSent = AtomicBoolean(false)
-    private val isWinSent = AtomicBoolean(false)
+    private val isWinLossSent = AtomicBoolean(false)
     private val isClickSent = AtomicBoolean(false)
     private val isRewardSent = AtomicBoolean(false)
     private val scope by lazy {
@@ -117,7 +117,7 @@ class StatisticsCollectorImpl(
             logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
-        if (!isShowSent.getAndSet(true)) {
+        if (!isShowSent.getAndSet(true) && !isWinLossSent.getAndSet(true)) {
             scope.launch {
                 sendLossRequest.invoke(
                     WinLossRequestData.Loss(
@@ -136,7 +136,7 @@ class StatisticsCollectorImpl(
             logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
-        if (!isShowSent.get() && !isWinSent.getAndSet(true)) {
+        if (!isShowSent.get() && !isWinLossSent.getAndSet(true)) {
             scope.launch {
                 sendLossRequest.invoke(
                     WinLossRequestData.Win(

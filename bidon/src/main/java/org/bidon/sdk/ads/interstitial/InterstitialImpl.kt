@@ -127,7 +127,7 @@ internal class InterstitialImpl(
 
     override fun notifyWin() {
         winLossNotifierHelper.notifyWin(
-            adSource = auctionHolder.popWinner(),
+            adSource = auctionHolder.getNextLoadedWinner(),
             adType = demandAd.adType,
         )
     }
