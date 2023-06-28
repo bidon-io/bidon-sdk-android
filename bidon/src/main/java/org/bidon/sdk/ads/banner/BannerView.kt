@@ -259,7 +259,6 @@ class BannerView @JvmOverloads constructor(
                         "[Ad] should exist when action succeeds"
                     }
                 )
-
             },
             onFailure = {
                 /**

@@ -11,7 +11,7 @@ internal interface Auction {
         resolver: AuctionResolver,
         adTypeParamData: AdTypeParam,
         onSuccess: (results: List<AuctionResult>) -> Unit,
-        onFailure: (Throwable)->Unit
+        onFailure: (Throwable) -> Unit
     )
 
     /**
