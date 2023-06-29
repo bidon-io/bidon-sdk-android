@@ -45,6 +45,7 @@ internal class AuctionImpl(
     private var job: Job? = null
     private val auctionDataResponse: AuctionResponse
         get() = requireNotNull(_auctionDataResponse)
+    private var adTypeParam: AdTypeParam? = null
 
     override fun start(
         demandAd: DemandAd,
@@ -62,6 +63,7 @@ internal class AuctionImpl(
                 require(job?.isActive != true) {
                     "Auction is active"
                 }
+                this.adTypeParam = adTypeParamData
                 job = scope.launch {
                     val auctionId = UUID.randomUUID().toString()
                     logInfo(Tag, "Action started $this")

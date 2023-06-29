@@ -22,7 +22,6 @@ import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 
@@ -126,22 +125,23 @@ internal class RewardedImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        if (!auctionHolder.isAuctionActive) {
-            userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-        }
+        val wasAuctionActive = auctionHolder.isAuctionActive
         winLossNotifierHelper.notifyLoss(
-            adSource = auctionHolder.popWinner(),
-            adType = demandAd.adType,
             winnerDemandId = winnerDemandId,
-            winnerEcpm = winnerEcpm
+            winnerEcpm = winnerEcpm,
+            adSource = auctionHolder.popWinner(),
+            onNotified = {
+                destroyAd()
+                if (wasAuctionActive) {
+                    userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+                }
+            }
         )
-        destroyAd()
     }
 
     override fun notifyWin() {
         winLossNotifierHelper.notifyWin(
             adSource = auctionHolder.getNextLoadedWinner(),
-            adType = demandAd.adType,
         )
     }
 
@@ -173,13 +173,13 @@ internal class RewardedImpl(
 
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
-                    adSource.sendClickImpression(adType = StatisticsCollector.AdType.Rewarded)
+                    adSource.sendClickImpression()
                 }
 
                 is AdEvent.Closed -> listener.onAdClosed(adEvent.ad)
                 is AdEvent.Shown -> {
                     listener.onAdShown(adEvent.ad)
-                    adSource.sendShowImpression(adType = StatisticsCollector.AdType.Rewarded)
+                    adSource.sendShowImpression()
                 }
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)

@@ -28,12 +28,10 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
@@ -180,24 +178,23 @@ class BannerView @JvmOverloads constructor(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        if (adLifecycleFlow.value in arrayOf(AdLifecycle.Loading, AdLifecycle.Created)) {
-            userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-        }
+        val wasAuctionActive = adLifecycleFlow.value == AdLifecycle.Loading
         winLossNotifierHelper.notifyLoss(
-            adSource = winner?.adSource,
-            adType = demandAd.adType,
             winnerDemandId = winnerDemandId,
             winnerEcpm = winnerEcpm,
-            bannerFormat = bannerFormat,
+            adSource = winner?.adSource,
+            onNotified = {
+                destroyAd()
+                if (wasAuctionActive) {
+                    userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+                }
+            }
         )
-        destroyAd()
     }
 
     override fun notifyWin() {
         winLossNotifierHelper.notifyWin(
             adSource = winner?.adSource,
-            adType = demandAd.adType,
-            bannerFormat = bannerFormat,
         )
     }
 
@@ -228,11 +225,7 @@ class BannerView @JvmOverloads constructor(
         checkBannerShown(adViewHolder.networkAdview, onBannerShown = {
             adLifecycleFlow.value = AdLifecycle.Displayed
             adSource.ad?.let { listener.onAdShown(ad = it) }
-            adSource.sendShowImpression(
-                StatisticsCollector.AdType.Banner(
-                    format = bannerFormat.asStatBannerFormat()
-                )
-            )
+            adSource.sendShowImpression()
         })
     }
 
@@ -288,11 +281,7 @@ class BannerView @JvmOverloads constructor(
 
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
-                    adSource.sendClickImpression(
-                        StatisticsCollector.AdType.Banner(
-                            format = bannerFormat.asStatBannerFormat()
-                        )
-                    )
+                    adSource.sendClickImpression()
                 }
 
                 is AdEvent.Shown -> {

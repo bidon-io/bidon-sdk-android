@@ -34,6 +34,7 @@ class StatisticsCollectorImpl(
 
     private var auctionConfigurationId: Int = 0
     private var externalWinNotificationsEnabled: Boolean = true
+    private lateinit var adType: StatisticsCollector.AdType
 
     private val impressionId: String by lazy {
         UUID.randomUUID().toString()
@@ -67,7 +68,7 @@ class StatisticsCollectorImpl(
         ecpm = null
     )
 
-    override fun sendShowImpression(adType: StatisticsCollector.AdType) {
+    override fun sendShowImpression() {
         if (!isShowSent.getAndSet(true)) {
             scope.launch {
                 val key = SendImpressionRequestUseCase.Type.Show.key
@@ -82,7 +83,7 @@ class StatisticsCollectorImpl(
         }
     }
 
-    override fun sendClickImpression(adType: StatisticsCollector.AdType) {
+    override fun sendClickImpression() {
         if (!isClickSent.getAndSet(true)) {
             scope.launch {
                 val key = SendImpressionRequestUseCase.Type.Click.key
@@ -112,7 +113,7 @@ class StatisticsCollectorImpl(
         }
     }
 
-    override fun sendLoss(winnerDemandId: String, winnerEcpm: Double, adType: StatisticsCollector.AdType) {
+    override fun sendLoss(winnerDemandId: String, winnerEcpm: Double) {
         if (!externalWinNotificationsEnabled) {
             logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
@@ -131,7 +132,7 @@ class StatisticsCollectorImpl(
         }
     }
 
-    override fun sendWin(adType: StatisticsCollector.AdType) {
+    override fun sendWin() {
         if (!externalWinNotificationsEnabled) {
             logInfo(Tag, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
@@ -146,6 +147,10 @@ class StatisticsCollectorImpl(
                 )
             }
         }
+    }
+
+    override fun setStatisticAdType(adType: StatisticsCollector.AdType) {
+        this.adType = adType
     }
 
     override fun addAuctionConfigurationId(auctionConfigurationId: Int) {
