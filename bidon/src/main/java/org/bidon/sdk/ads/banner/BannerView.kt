@@ -180,6 +180,9 @@ class BannerView @JvmOverloads constructor(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        if (adLifecycleFlow.value in arrayOf(AdLifecycle.Loading, AdLifecycle.Created)) {
+            userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+        }
         winLossNotifierHelper.notifyLoss(
             adSource = winner?.adSource,
             adType = demandAd.adType,

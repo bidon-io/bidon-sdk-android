@@ -1,9 +1,13 @@
 package org.bidon.sdk.ads.interstitial
 
 import android.app.Activity
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
@@ -52,7 +56,7 @@ internal class InterstitialImpl(
             return
         }
         logInfo(Tag, "Load (pricefloor=$pricefloor)")
-        if (!auctionHolder.isActive) {
+        if (!auctionHolder.isAuctionActive) {
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Interstitial(
                     activity = activity,
@@ -91,7 +95,7 @@ internal class InterstitialImpl(
             return
         }
         logInfo(Tag, "Show")
-        if (auctionHolder.isActive) {
+        if (auctionHolder.isAuctionActive) {
             logInfo(Tag, "Show failed. Auction in progress.")
             listener.onAdShowFailed(BidonError.AuctionInProgress)
             return
@@ -116,6 +120,9 @@ internal class InterstitialImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        if (!auctionHolder.isAuctionActive) {
+            userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+        }
         winLossNotifierHelper.notifyLoss(
             adSource = auctionHolder.popWinner(),
             adType = demandAd.adType,

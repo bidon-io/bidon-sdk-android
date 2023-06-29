@@ -24,7 +24,7 @@ internal class AuctionHolderImpl(
     private var displayingWinner: AuctionResult? = null
     private var nextWinner: AuctionResult? = null
 
-    override val isActive: Boolean
+    override val isAuctionActive: Boolean
         get() = auctionState.value is AuctionHolderState.InProgress
 
     override fun startAuction(

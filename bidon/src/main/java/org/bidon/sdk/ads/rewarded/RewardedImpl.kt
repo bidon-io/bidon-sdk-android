@@ -1,9 +1,13 @@
 package org.bidon.sdk.ads.rewarded
 
 import android.app.Activity
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
@@ -58,7 +62,7 @@ internal class RewardedImpl(
         observeCallbacksJob?.cancel()
         observeCallbacksJob = null
 
-        if (!auctionHolder.isActive) {
+        if (!auctionHolder.isAuctionActive) {
             auctionHolder.startAuction(
                 adTypeParam = AdTypeParam.Rewarded(
                     activity = activity,
@@ -97,7 +101,7 @@ internal class RewardedImpl(
             return
         }
         logInfo(Tag, "Show")
-        if (auctionHolder.isActive) {
+        if (auctionHolder.isAuctionActive) {
             logInfo(Tag, "Show failed. Auction in progress.")
             listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
             return
@@ -122,6 +126,9 @@ internal class RewardedImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        if (!auctionHolder.isAuctionActive) {
+            userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+        }
         winLossNotifierHelper.notifyLoss(
             adSource = auctionHolder.popWinner(),
             adType = demandAd.adType,
