@@ -12,8 +12,6 @@ import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
 import org.bidon.sdk.ads.banner.helper.impl.ActivityLifecycleObserver
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
-import org.bidon.sdk.ads.impl.WinLossNotifierHelper
-import org.bidon.sdk.ads.impl.WinLossNotifierHelperImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.impl.AuctionHolderImpl
@@ -271,7 +269,6 @@ internal object DI {
                     createRequestBody = get()
                 )
             }
-            factory<WinLossNotifierHelper> { WinLossNotifierHelperImpl() }
         }
     }
 }
