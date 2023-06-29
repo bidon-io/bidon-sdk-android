@@ -162,10 +162,11 @@ internal class AuctionImpl(
                  */
                 if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(Tag, "Notified loss: ${adSource.demandId}")
+                    adSource.notifyWin()
                     adSource.notifyLoss(winner.adSource.demandId.demandId, winner.ecpm)
                 }
                 if (auctionResult.roundStatus == RoundStatus.Successful) {
-                    (adSource as StatisticsCollector).markLoss()
+                    adSource.markLoss()
                 }
                 logInfo(Tag, "Destroying loser: ${adSource.demandId}")
                 adSource.destroy()

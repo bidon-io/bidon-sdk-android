@@ -23,7 +23,6 @@ import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.LogLifecycleAdStateUseCase
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
-import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResult
@@ -35,6 +34,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by Aleksei Cherniaev on 02/03/2023.
@@ -55,9 +55,14 @@ class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
     private val auction: Auction by lazy { get() }
-    private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var winner: AuctionResult? = null
+        set(value) {
+            wasNotified.set(false)
+            field = value
+        }
+    private val wasNotified = AtomicBoolean(false)
+
     private var winnerSubscriberJob: Job? = null
     private var loadingError: BidonError? = null
 
@@ -178,24 +183,34 @@ class BannerView @JvmOverloads constructor(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        val wasAuctionActive = adLifecycleFlow.value == AdLifecycle.Loading
-        winLossNotifierHelper.notifyLoss(
-            winnerDemandId = winnerDemandId,
-            winnerEcpm = winnerEcpm,
-            adSource = winner?.adSource,
-            onNotified = {
+        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
+        when (adLifecycleFlow.value) {
+            AdLifecycle.Loading -> {
                 destroyAd()
-                if (wasAuctionActive) {
-                    userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+            }
+
+            AdLifecycle.Loaded -> {
+                if (!wasNotified.getAndSet(true)) {
+                    winner?.adSource?.sendLoss(
+                        winnerDemandId = winnerDemandId,
+                        winnerEcpm = winnerEcpm,
+                    )
+                    destroyAd()
                 }
             }
-        )
+
+            else -> {
+                // do nothing
+            }
+        }
     }
 
     override fun notifyWin() {
-        winLossNotifierHelper.notifyWin(
-            adSource = winner?.adSource,
-        )
+        logInfo(Tag, "Notify Win was invoked")
+        if (adLifecycleFlow.value == AdLifecycle.Loaded && !wasNotified.getAndSet(true)) {
+            winner?.adSource?.sendWin()
+        }
     }
 
     override fun destroyAd() {

@@ -14,7 +14,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.config.BidonError
@@ -31,6 +30,7 @@ internal class InterstitialImpl(
 ) : Interstitial, Extras by demandAd {
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
+
     private val auctionHolder: AuctionHolder by lazy {
         get {
             params(demandAd)
@@ -98,7 +98,7 @@ internal class InterstitialImpl(
             listener.onAdShowFailed(BidonError.AuctionInProgress)
             return
         }
-        when (val adSource = auctionHolder.popWinner()) {
+        when (val adSource = auctionHolder.popWinnerForShow()) {
             null -> {
                 logInfo(Tag, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
@@ -116,27 +116,22 @@ internal class InterstitialImpl(
         logInfo(Tag, "Set interstitial listener")
         this.userListener = listener
     }
-    private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        val wasAuctionActive = auctionHolder.isAuctionActive
-        winLossNotifierHelper.notifyLoss(
-            adSource = auctionHolder.popWinner(),
+        auctionHolder.notifyLoss(
             winnerDemandId = winnerDemandId,
             winnerEcpm = winnerEcpm,
+            onAuctionCancelled = {
+                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+            },
             onNotified = {
                 destroyAd()
-                if (wasAuctionActive) {
-                    userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-                }
             }
         )
     }
 
     override fun notifyWin() {
-        winLossNotifierHelper.notifyWin(
-            adSource = auctionHolder.getNextLoadedWinner(),
-        )
+        auctionHolder.notifyWin()
     }
 
     override fun destroyAd() {

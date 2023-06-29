@@ -20,11 +20,13 @@ import org.bidon.sdk.auction.models.Round
 import org.bidon.sdk.config.models.auctions.impl.Admob
 import org.bidon.sdk.config.models.auctions.impl.Applovin
 import org.bidon.sdk.config.models.base.ConcurrentTest
+import org.bidon.sdk.freezeTime
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.mockkLog
-import org.bidon.sdk.stats.models.DemandStat
-import org.bidon.sdk.stats.models.RoundStat
+import org.bidon.sdk.stats.models.Demand
+import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.get
@@ -35,6 +37,9 @@ import org.junit.Test
 /**
  * Created by Aleksei Cherniaev on 27/06/2023.
  */
+internal typealias SRound = org.bidon.sdk.stats.models.Round
+internal typealias SBidding = org.bidon.sdk.stats.models.Bidding
+
 internal class AuctionStatImplTest : ConcurrentTest() {
 
     private val statRequest: StatsRequestUseCase = mockk(relaxed = true)
@@ -45,14 +50,15 @@ internal class AuctionStatImplTest : ConcurrentTest() {
 
     @Before
     fun before() {
-        mockkObject(DeviceType)
-        every { DeviceType.init(any()) } returns Unit
         try {
             get<Context>()
         } catch (e: Exception) {
+            mockkObject(DeviceType)
+            every { DeviceType.init(any()) } returns Unit
             DI.init(mockk(relaxed = true))
 //        DI.setFactories()
             mockkLog()
+            freezeTime()
         }
     }
 
@@ -63,7 +69,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
 
     @Test
     fun `it should send AUCTION_CANCELLED state`() = runTest {
-        val roundStat = slot<List<RoundStat>>()
+        val requestBodySlot = slot<StatsRequestBody>()
         val auctionConfig = AuctionResponse(
             auctionConfigurationId = 10,
             auctionId = "auctionId_123",
@@ -119,33 +125,37 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         )
         coVerify(exactly = 1) {
             statRequest.invoke(
-                auctionId = any(),
                 demandAd = any(),
-                auctionStartTs = any(),
-                auctionFinishTs = any(),
-                auctionConfigurationId = any(),
-                results = capture(roundStat)
+                statsRequestBody = capture(requestBodySlot)
             )
         }
-        val actual = roundStat.captured
-        assertThat(actual).isEqualTo(
-            listOf(
-                RoundStat(
-                    auctionId = "auctionId_123",
-                    roundId = "round1",
+        val actual = requestBodySlot.captured
+        val expect = StatsRequestBody(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            result = ResultBody(
+                status = RoundStatus.AuctionCancelled.code,
+                demandId = null,
+                ecpm = null,
+                adUnitId = null,
+                auctionStartTs = 1000,
+                auctionFinishTs = 1000
+            ),
+            rounds = listOf(
+                SRound(
+                    id = "round1",
                     pricefloor = 1.4,
                     winnerDemandId = null,
                     winnerEcpm = null,
                     demands = listOf(
                         asDemandStatNetwork("dem1", RoundStatus.UnknownAdapter),
-                        asDemandStatNetwork("dem2", RoundStatus.UnknownAdapter)
+                        asDemandStatNetwork("dem2", RoundStatus.UnknownAdapter),
                     ),
                     bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
                 ),
-                RoundStat(
-                    auctionId = "auctionId_123",
-                    roundId = "round2",
-                    pricefloor = null,
+                SRound(
+                    id = "round2",
+                    pricefloor = 0.0,
                     winnerDemandId = null,
                     winnerEcpm = null,
                     demands = listOf(
@@ -156,11 +166,143 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 )
             )
         )
+        assertThat(actual).isEqualTo(expect)
+    }
+
+    @Test
+    fun `it should send AUCTION_CANCELLED state 2`() = runTest {
+        val requestBodySlot = slot<StatsRequestBody>()
+        val auctionConfig = AuctionResponse(
+            auctionConfigurationId = 10,
+            auctionId = "auctionId_123",
+            rounds = listOf(
+                Round(
+                    id = "round1",
+                    timeoutMs = 1000L,
+                    biddingIds = listOf("bi1", "bi2"),
+                    demandIds = listOf("dem1", "dem2"),
+                ),
+                Round(
+                    id = "round2",
+                    timeoutMs = 25,
+                    demandIds = listOf("dem3", "dem4"),
+                    biddingIds = listOf("bi3"),
+                ),
+            ),
+            lineItems = listOf(
+                LineItem(
+                    demandId = Applovin,
+                    pricefloor = 0.25,
+                    adUnitId = "AAAA2"
+                ),
+                LineItem(
+                    demandId = Admob,
+                    pricefloor = 1.2235,
+                    adUnitId = "admob1"
+                ),
+                LineItem(
+                    demandId = Admob,
+                    pricefloor = 2.2235,
+                    adUnitId = "admob2"
+                ),
+            ),
+            pricefloor = 0.01,
+            token = null,
+            externalWinNotificationsEnabled = true
+        )
+        testee.markAuctionStarted(auctionId = "auctionId_123")
+        testee.addRoundResults(
+            round = auctionConfig.rounds?.first()!!,
+            pricefloor = 1.4,
+            roundResults = listOf(
+                AuctionResult.Network.UnknownAdapter("dem1"),
+                AuctionResult.Network.Success(
+                    adSource = mockk(relaxed = true) {
+                        val a = this
+                        every { a.demandId } returns DemandId("dem2")
+                        every { a.ad } returns Ad(
+                            demandAd = DemandAd(AdType.Interstitial),
+                            networkName = "dem2",
+                            ecpm = 1.5,
+                            adUnitId = null,
+                            roundId = "r123",
+                            currencyCode = AdValue.USD,
+                            demandAdObject = mockk(relaxed = true),
+                            dsp = null,
+                            auctionId = "a123"
+                        )
+                    },
+                    roundStatus = RoundStatus.Successful
+                ),
+                AuctionResult.Bidding.Failure.TimeoutReached,
+            )
+        )
+        testee.markAuctionCanceled()
+        testee.sendAuctionStats(
+            auctionData = auctionConfig,
+            demandAd = DemandAd(AdType.Interstitial)
+        )
+        coVerify(exactly = 1) {
+            statRequest.invoke(
+                demandAd = any(),
+                statsRequestBody = capture(requestBodySlot)
+            )
+        }
+        val actual = requestBodySlot.captured
+        val expect = StatsRequestBody(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            result = ResultBody(
+                status = RoundStatus.AuctionCancelled.code,
+                demandId = null,
+                ecpm = null,
+                adUnitId = null,
+                auctionStartTs = 1000,
+                auctionFinishTs = 1000
+            ),
+            rounds = listOf(
+                SRound(
+                    id = "round1",
+                    pricefloor = 1.4,
+                    winnerDemandId = "dem2",
+                    winnerEcpm = 1.5,
+                    demands = listOf(
+                        asDemandStatNetwork("dem1", RoundStatus.UnknownAdapter),
+                        Demand(
+                            /**
+                             * [RoundStatus.Win] should be mark as [RoundStatus.Loss]
+                             */
+                            roundStatusCode = RoundStatus.Loss.code,
+                            demandId = "dem2",
+                            bidStartTs = null,
+                            bidFinishTs = null,
+                            fillStartTs = 0,
+                            fillFinishTs = 0,
+                            adUnitId = "",
+                            ecpm = 1.5,
+                        )
+                    ),
+                    bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
+                ),
+                SRound(
+                    id = "round2",
+                    pricefloor = 0.0,
+                    winnerDemandId = null,
+                    winnerEcpm = null,
+                    demands = listOf(
+                        asDemandStatNetwork("dem3", RoundStatus.AuctionCancelled),
+                        asDemandStatNetwork("dem4", RoundStatus.AuctionCancelled)
+                    ),
+                    bidding = asDemandStatBidding(RoundStatus.AuctionCancelled)
+                )
+            )
+        )
+        assertThat(actual).isEqualTo(expect)
     }
 
     @Test
     fun `it should send WIN state`() {
-        val roundStat = slot<List<RoundStat>>()
+        val requestBodySlot = slot<StatsRequestBody>()
         val auctionConfig = AuctionResponse(
             auctionConfigurationId = 10,
             auctionId = "auctionId_123",
@@ -241,55 +383,171 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         )
         coVerify(exactly = 1) {
             statRequest.invoke(
-                auctionId = any(),
                 demandAd = any(),
-                auctionStartTs = any(),
-                auctionFinishTs = any(),
-                auctionConfigurationId = any(),
-                results = capture(roundStat)
+                statsRequestBody = capture(requestBodySlot)
             )
         }
-        val actual = roundStat.captured
-        val expect = listOf(
-            RoundStat(
-                auctionId = "auctionId_123",
-                roundId = "round1",
-                pricefloor = 1.4,
-                winnerDemandId = null,
-                winnerEcpm = null,
-                demands = listOf(
-                    asDemandStatNetwork("dem1", RoundStatus.UnknownAdapter),
-                    asDemandStatNetwork("dem2", RoundStatus.UnknownAdapter)
-                ),
-                bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
+        val actual = requestBodySlot.captured
+        val expect = StatsRequestBody(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            result = ResultBody(
+                status = "SUCCESS",
+                demandId = "bi3",
+                ecpm = 1.5,
+                adUnitId = null,
+                auctionStartTs = 1000,
+                auctionFinishTs = 1000
             ),
-            RoundStat(
-                auctionId = "auctionId_123",
-                roundId = "round2",
-                pricefloor = 1.5,
-                winnerDemandId = DemandId("bi3"),
-                winnerEcpm = 1.5,
-                demands = listOf(
-                    asDemandStatNetwork("dem3", RoundStatus.UnknownAdapter),
-                    asDemandStatNetwork("dem4", RoundStatus.UnknownAdapter)
+            rounds = listOf(
+                SRound(
+                    id = "round1",
+                    pricefloor = 1.4,
+                    winnerDemandId = null,
+                    winnerEcpm = null,
+                    demands = listOf(
+                        asDemandStatNetwork("dem1", RoundStatus.UnknownAdapter),
+                        asDemandStatNetwork("dem2", RoundStatus.UnknownAdapter)
+                    ),
+                    bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
                 ),
-                bidding = DemandStat.Bidding(
-                    roundStatus = RoundStatus.Win,
-                    demandId = DemandId("bi3"),
-                    bidStartTs = 0,
-                    bidFinishTs = 0,
-                    fillStartTs = 0,
-                    fillFinishTs = 0,
-                    ecpm = 1.5,
+                SRound(
+                    id = "round2",
+                    pricefloor = 1.5,
+                    winnerDemandId = "bi3",
+                    winnerEcpm = 1.5,
+                    demands = listOf(
+                        asDemandStatNetwork("dem3", RoundStatus.UnknownAdapter),
+                        asDemandStatNetwork("dem4", RoundStatus.UnknownAdapter)
+                    ),
+                    bidding = SBidding(
+                        roundStatusCode = RoundStatus.Win.code,
+                        demandId = "bi3",
+                        bidStartTs = 0,
+                        bidFinishTs = 0,
+                        fillStartTs = 0,
+                        fillFinishTs = 0,
+                        ecpm = 1.5,
+                    )
                 )
             )
         )
         assertThat(actual).isEqualTo(expect)
     }
 
-    private fun asDemandStatNetwork(demandId: String, roundStatus: RoundStatus) = DemandStat.Network(
-        roundStatus = roundStatus,
-        demandId = DemandId(demandId),
+    @Test
+    fun `it should send FAIL state`() {
+        val requestBodySlot = slot<StatsRequestBody>()
+        val auctionConfig = AuctionResponse(
+            auctionConfigurationId = 10,
+            auctionId = "auctionId_123",
+            rounds = listOf(
+                Round(
+                    id = "round1",
+                    timeoutMs = 1000L,
+                    biddingIds = listOf("bi1", "bi2"),
+                    demandIds = listOf("dem1", "dem2"),
+                ),
+                Round(
+                    id = "round2",
+                    timeoutMs = 25,
+                    demandIds = listOf("dem3", "dem4"),
+                    biddingIds = listOf("bi3"),
+                ),
+            ),
+            lineItems = listOf(
+                LineItem(
+                    demandId = Applovin,
+                    pricefloor = 0.25,
+                    adUnitId = "AAAA2"
+                ),
+                LineItem(
+                    demandId = Admob,
+                    pricefloor = 1.2235,
+                    adUnitId = "admob1"
+                ),
+                LineItem(
+                    demandId = Admob,
+                    pricefloor = 2.2235,
+                    adUnitId = "admob2"
+                ),
+            ),
+            pricefloor = 0.01,
+            token = null,
+            externalWinNotificationsEnabled = true
+        )
+        testee.markAuctionStarted(auctionId = "auctionId_123")
+        testee.addRoundResults(
+            round = auctionConfig.rounds?.first()!!,
+            pricefloor = 1.4,
+            roundResults = listOf(
+                AuctionResult.Network.UnknownAdapter("dem1"),
+                AuctionResult.Network.UnknownAdapter("dem2"),
+                AuctionResult.Bidding.Failure.TimeoutReached,
+            )
+        )
+        testee.addRoundResults(
+            round = auctionConfig.rounds[1],
+            pricefloor = 1.5,
+            roundResults = listOf(
+                AuctionResult.Network.UnknownAdapter("dem3"),
+                AuctionResult.Network.UnknownAdapter("dem4"),
+                AuctionResult.Bidding.Failure.TimeoutReached,
+            )
+        )
+        testee.sendAuctionStats(
+            auctionData = auctionConfig,
+            demandAd = DemandAd(AdType.Interstitial)
+        )
+        coVerify(exactly = 1) {
+            statRequest.invoke(
+                demandAd = any(),
+                statsRequestBody = capture(requestBodySlot)
+            )
+        }
+        val actual = requestBodySlot.captured
+        val expect = StatsRequestBody(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            result = ResultBody(
+                status = "FAIL",
+                demandId = null,
+                ecpm = null,
+                adUnitId = null,
+                auctionStartTs = 1000,
+                auctionFinishTs = 1000
+            ),
+            rounds = listOf(
+                SRound(
+                    id = "round1",
+                    pricefloor = 1.4,
+                    winnerDemandId = null,
+                    winnerEcpm = null,
+                    demands = listOf(
+                        asDemandStatNetwork("dem1", RoundStatus.UnknownAdapter),
+                        asDemandStatNetwork("dem2", RoundStatus.UnknownAdapter)
+                    ),
+                    bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
+                ),
+                SRound(
+                    id = "round2",
+                    pricefloor = 1.5,
+                    winnerDemandId = null,
+                    winnerEcpm = null,
+                    demands = listOf(
+                        asDemandStatNetwork("dem3", RoundStatus.UnknownAdapter),
+                        asDemandStatNetwork("dem4", RoundStatus.UnknownAdapter)
+                    ),
+                    bidding = asDemandStatBidding(RoundStatus.BidTimeoutReached)
+                )
+            )
+        )
+        assertThat(actual).isEqualTo(expect)
+    }
+
+    private fun asDemandStatNetwork(demandId: String, roundStatus: RoundStatus) = Demand(
+        roundStatusCode = roundStatus.code,
+        demandId = demandId,
         bidStartTs = null,
         bidFinishTs = null,
         fillStartTs = null,
@@ -298,8 +556,8 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         ecpm = null,
     )
 
-    private fun asDemandStatBidding(roundStatus: RoundStatus) = DemandStat.Bidding(
-        roundStatus = roundStatus,
+    private fun asDemandStatBidding(roundStatus: RoundStatus) = SBidding(
+        roundStatusCode = roundStatus.code,
         demandId = null,
         bidStartTs = null,
         bidFinishTs = null,

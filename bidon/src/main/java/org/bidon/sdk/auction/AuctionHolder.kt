@@ -5,7 +5,7 @@ import org.bidon.sdk.adapter.AdSource
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
-internal interface AuctionHolder {
+internal interface AuctionHolder : ExternalWinLossNotification {
     val isAuctionActive: Boolean
 
     fun startAuction(
@@ -13,7 +13,7 @@ internal interface AuctionHolder {
         onResult: (Result<List<AuctionResult>>) -> Unit
     )
 
-    fun popWinner(): AdSource<*>?
+    fun popWinnerForShow(): AdSource<*>?
     fun getNextLoadedWinner(): AdSource<*>?
     fun destroy()
     fun isAdReady(): Boolean

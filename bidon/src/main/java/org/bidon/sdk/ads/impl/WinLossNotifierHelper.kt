@@ -7,11 +7,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Created by Aleksei Cherniaev on 27/06/2023.
  */
+@Deprecated("")
 internal interface WinLossNotifierHelper {
+    @Deprecated("")
     fun notifyWin(
         adSource: AdSource<*>?,
     )
 
+    @Deprecated("")
     fun notifyLoss(
         winnerDemandId: String,
         winnerEcpm: Double,

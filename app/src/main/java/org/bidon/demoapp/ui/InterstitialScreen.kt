@@ -159,6 +159,7 @@ fun InterstitialScreen(
                         winnerDemandId = "som_winner_demand",
                         winnerEcpm = 234.567
                     )
+                    logFlow.log("NotifyLoss")
                 }
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 AppTextButton(text = "Notify Win") {

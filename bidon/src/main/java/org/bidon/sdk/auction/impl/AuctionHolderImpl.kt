@@ -13,6 +13,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.asFailure
 import org.bidon.sdk.utils.ext.asSuccess
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -23,6 +24,13 @@ internal class AuctionHolderImpl(
     private val auctionState = MutableStateFlow<AuctionHolderState>(AuctionHolderState.Idle)
     private var displayingWinner: AuctionResult? = null
     private var nextWinner: AuctionResult? = null
+        set(value) {
+            wasNotified.set(false)
+            wasShown.set(false)
+            field = value
+        }
+    private val wasNotified = AtomicBoolean(false)
+    private val wasShown = AtomicBoolean(false)
 
     override val isAuctionActive: Boolean
         get() = auctionState.value is AuctionHolderState.InProgress
@@ -58,11 +66,12 @@ internal class AuctionHolderImpl(
         }
     }
 
-    override fun popWinner(): AdSource<*>? {
+    override fun popWinnerForShow(): AdSource<*>? {
         synchronized(this) {
             displayingWinner?.adSource?.destroy()
             displayingWinner = nextWinner
             nextWinner = null
+            wasShown.set(true)
             return displayingWinner?.adSource
         }
     }
@@ -82,6 +91,45 @@ internal class AuctionHolderImpl(
 
     override fun isAdReady(): Boolean {
         return nextWinner?.adSource?.isAdReadyToShow == true
+    }
+
+    override fun notifyWin() {
+        logInfo(Tag, "Notify Win was invoked")
+        if (wasShown.get()) {
+            return
+        }
+        if (auctionState.value is AuctionHolderState.InProgress) {
+            return
+        }
+        if (!wasNotified.getAndSet(true)) {
+            nextWinner?.adSource?.sendWin()
+        }
+    }
+
+    override fun notifyLoss(
+        winnerDemandId: String,
+        winnerEcpm: Double,
+        onAuctionCancelled: () -> Unit,
+        onNotified: () -> Unit,
+    ) {
+        logInfo(Tag, "Notify Loss invoked with Winner($winnerDemandId, $winnerEcpm)")
+        when (val state = auctionState.value) {
+            AuctionHolderState.Idle -> {
+                if (!wasShown.get() && !wasNotified.getAndSet(true)) {
+                    nextWinner?.adSource?.sendLoss(
+                        winnerDemandId = winnerDemandId,
+                        winnerEcpm = winnerEcpm,
+                    )
+                    onNotified()
+                }
+            }
+
+            is AuctionHolderState.InProgress -> {
+                state.auction.cancel()
+                onAuctionCancelled()
+                onNotified()
+            }
+        }
     }
 }
 

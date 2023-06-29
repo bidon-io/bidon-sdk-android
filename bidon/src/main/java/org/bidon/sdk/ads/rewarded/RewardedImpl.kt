@@ -14,7 +14,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.impl.WinLossNotifierHelper
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.config.BidonError
@@ -32,7 +31,6 @@ internal class RewardedImpl(
 
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
-    private val winLossNotifierHelper: WinLossNotifierHelper get() = get()
     private val auctionHolder: AuctionHolder by lazy {
         get { params(demandAd) }
     }
@@ -105,7 +103,7 @@ internal class RewardedImpl(
             listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
             return
         }
-        when (val adSource = auctionHolder.popWinner()) {
+        when (val adSource = auctionHolder.popWinnerForShow()) {
             null -> {
                 logInfo(Tag, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
@@ -125,24 +123,20 @@ internal class RewardedImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        val wasAuctionActive = auctionHolder.isAuctionActive
-        winLossNotifierHelper.notifyLoss(
+        auctionHolder.notifyLoss(
             winnerDemandId = winnerDemandId,
             winnerEcpm = winnerEcpm,
-            adSource = auctionHolder.popWinner(),
+            onAuctionCancelled = {
+                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
+            },
             onNotified = {
                 destroyAd()
-                if (wasAuctionActive) {
-                    userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-                }
             }
         )
     }
 
     override fun notifyWin() {
-        winLossNotifierHelper.notifyWin(
-            adSource = auctionHolder.getNextLoadedWinner(),
-        )
+        auctionHolder.notifyWin()
     }
 
     override fun destroyAd() {
