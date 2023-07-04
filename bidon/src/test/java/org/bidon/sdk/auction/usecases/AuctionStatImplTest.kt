@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.usecases
 
-import android.content.Context
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -29,8 +28,6 @@ import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
-import org.bidon.sdk.utils.di.DI
-import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.asSuccess
 import org.bidon.sdk.utils.networking.BaseResponse
 import org.junit.After
@@ -49,20 +46,14 @@ internal class AuctionStatImplTest : ConcurrentTest() {
     private val statRequest: StatsRequestUseCase = mockk(relaxed = true)
 
     private val testee: AuctionStat by lazy {
+        mockkObject(DeviceType)
+        every { DeviceType.init(any()) } returns Unit
         AuctionStatImpl(statRequest)
     }
 
     @Before
     fun before() {
-        try {
-            get<Context>()
-        } catch (e: Exception) {
-            mockkObject(DeviceType)
-            every { DeviceType.init(any()) } returns Unit
-            DI.init(mockk(relaxed = true))
-//        DI.setFactories()
-            mockkLog()
-        }
+        mockkLog()
         freezeTime()
     }
 
@@ -307,7 +298,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 statsRequestBody = eq(expect)
             )
         }
-
     }
 
     @Test
