@@ -11,7 +11,7 @@ import org.json.JSONArray
 import kotlin.reflect.KClass
 
 /**
- * Created by Aleksei Cherniaev on 08/02/2023.
+ * Created by Bidon Team on 08/02/2023.
  */
 @Suppress("RemoveRedundantQualifierName", "UNCHECKED_CAST")
 internal object JsonParsers {

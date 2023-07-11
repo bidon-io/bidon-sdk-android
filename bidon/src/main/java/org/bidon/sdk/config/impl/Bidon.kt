@@ -11,7 +11,7 @@ import org.bidon.sdk.segment.Segmentation
 import org.bidon.sdk.segment.impl.SegmentationImpl
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 06/02/2023.
  */
 internal class Bidon :
     BidonInitializer by BidonInitializerImpl(),
