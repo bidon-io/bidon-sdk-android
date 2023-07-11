@@ -99,21 +99,11 @@ internal class DTExchangeBanner(
         adSpot.requestAd(adRequest)
     }
 
-    override fun fill() {
-        logInfo(Tag, "Starting fill: $this")
-        /**
-         * DataExchange fills the bid automatically. It's not needed to fill it manually.
-         */
-        adEvent.tryEmit(AdEvent.Fill(requireNotNull(adSpot?.asAd())))
-    }
-
     override fun getAdView(): AdViewHolder? {
         return adViewHolder ?: synchronized(this) {
             adViewHolder ?: createViewHolder(adSpot)
         }
     }
-
-    override fun show(activity: Activity) {}
 
     override fun destroy() {
         adSpot?.setRequestListener(null)
@@ -182,13 +172,6 @@ internal class DTExchangeBanner(
                 BannerFormat.Adaptive,
                 null -> controller.adContentHeight.pxToDp
             }
-        )
-    }
-
-    override fun destroy() {
-        adSpot?.setRequestListener(null)
-        adSpot?.destroy()
-        adSpot = null
         ).also {
             this.adViewHolder = it
         }

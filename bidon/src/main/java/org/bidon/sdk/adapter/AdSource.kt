@@ -27,6 +27,6 @@ sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector {
         fun show(activity: Activity)
     }
     interface Banner<T : AdAuctionParams> : AdSource<T> {
-        fun getAdView(): AdViewHolder
+        fun getAdView(): AdViewHolder?
     }
 }

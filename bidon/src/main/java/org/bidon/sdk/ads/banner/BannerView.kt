@@ -29,6 +29,7 @@ import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
@@ -226,7 +227,10 @@ class BannerView @JvmOverloads constructor(
     private fun FrameLayout.addViewOnScreen(adSource: AdSource.Banner<*>) {
         // add AdView to Screen
         removeAllViews()
-        val adViewHolder: AdViewHolder = adSource.getAdView() ?: return
+        val adViewHolder: AdViewHolder = adSource.getAdView() ?: run {
+            logError(Tag, "No AdView found.", NullPointerException())
+            return
+        }
         val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
         addView(adViewHolder.networkAdview, layoutParams)
         this.visibility = VISIBLE
