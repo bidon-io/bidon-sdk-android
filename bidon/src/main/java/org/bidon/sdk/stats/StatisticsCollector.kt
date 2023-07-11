@@ -17,7 +17,7 @@ interface StatisticsCollector {
 
     fun markBidStarted(adUnitId: String? = null)
     fun markBidFinished(roundStatus: RoundStatus, ecpm: Double?)
-    fun markFillStarted()
+    fun markFillStarted(adUnitId: String?)
     fun markFillFinished(roundStatus: RoundStatus, ecpm: Double?)
     fun markWin()
     fun markLoss()

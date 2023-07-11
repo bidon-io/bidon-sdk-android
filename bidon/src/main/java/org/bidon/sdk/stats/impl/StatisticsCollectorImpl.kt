@@ -176,9 +176,10 @@ class StatisticsCollectorImpl(
         )
     }
 
-    override fun markFillStarted() {
+    override fun markFillStarted(adUnitId: String?) {
         stat = stat.copy(
             fillStartTs = SystemTimeNow,
+            adUnitId = adUnitId
         )
     }
 
