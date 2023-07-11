@@ -33,7 +33,7 @@ internal class TestInterstitialImpl(
             demandAd = demandAd,
             ecpm = adParams.lineItem.pricefloor,
             roundId = roundId,
-            networkName = "monetizationNetwork-Appodeal",
+            networkName = "monetizationNetwork-Other",
             dsp = "DSP-bidmachine",
             demandAdObject = this,
             currencyCode = "USD",

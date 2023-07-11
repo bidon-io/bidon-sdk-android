@@ -4,8 +4,6 @@ import org.bidon.sdk.config.BidonError
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
- *
- * [StatsRequest](https://appodeal.atlassian.net/wiki/spaces/SX/pages/4490264831/SDK+Server+Schema#SDK%3C%3EServerSchema-StatsRequest)
  */
 enum class RoundStatus(val code: String) {
     Win("WIN"),

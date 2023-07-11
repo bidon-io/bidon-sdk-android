@@ -30,11 +30,6 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 
-/**
- * I have no idea how it works. There is no documentation.
- *
- * https://appodeal.slack.com/archives/C02PE4GAFU0/p1661421318406689
- */
 internal class ApplovinBannerImpl(
     override val demandId: DemandId,
     private val demandAd: DemandAd,

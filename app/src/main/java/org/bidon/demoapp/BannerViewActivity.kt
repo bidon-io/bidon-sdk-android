@@ -1,6 +1,7 @@
 package org.bidon.demoapp
 
 import android.os.Bundle
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -55,6 +56,7 @@ class BannerViewActivity : AppCompatActivity(R.layout.banner_view_layout) {
         showButton.setOnClickListener {
             bannerView?.let {
                 if (it !in bannerContainer.children) {
+                    (bannerView?.parent as? ViewGroup)?.removeView(it)
                     bannerContainer.removeAllViews()
                     bannerContainer.addView(it)
                     it.showAd()

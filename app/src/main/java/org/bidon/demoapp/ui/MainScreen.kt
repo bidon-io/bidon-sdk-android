@@ -33,7 +33,6 @@ import org.bidon.demoapp.navigation.Screen
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.logs.logging.Logger
-import org.bidon.sdk.utils.networking.NetworkSettings
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -95,9 +94,10 @@ internal fun MainScreen(
                         BidonSdk.addExtra("sdk_level_string_before_init", "string0")
                         BidonSdk.addExtra("sdk_level_int_before_init", 555)
                     }
+                    val url = "https://b.appbaqend.com"
                     AppButton(text = "Init") {
                         val baseUrl =
-                            sharedPreferences.getString("host", NetworkSettings.BidonBaseUrl) ?: NetworkSettings.BidonBaseUrl
+                            sharedPreferences.getString("host", url) ?: url
                         initState.value = MainScreenState.Initializing
                         BidonSdk
                             .setLoggerLevel(Logger.Level.Verbose)

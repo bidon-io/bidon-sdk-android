@@ -3,8 +3,6 @@ package org.bidon.sdk.databinders
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
  *
- *  [Scheme](https://appodeal.atlassian.net/wiki/spaces/SX/pages/4490264831/SDK+Server+Schema#SDK%3C%3EServerSchema-Session)
- *
  *  @see [DataBinderType] List of Binders
  */
 internal interface DataBinder<JsonElement> {

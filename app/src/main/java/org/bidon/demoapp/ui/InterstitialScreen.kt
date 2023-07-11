@@ -155,7 +155,7 @@ fun InterstitialScreen(
                     text = "Notify Loss"
                 ) {
                     interstitial.notifyLoss(
-                        winnerDemandId = "appodeal",
+                        winnerDemandId = "externalM",
                         winnerEcpm = 234.567
                     )
                 }
