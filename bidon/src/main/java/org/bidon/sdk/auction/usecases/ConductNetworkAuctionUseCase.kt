@@ -132,7 +132,7 @@ internal class ConductNetworkAuctionUseCaseImpl : ConductNetworkAuctionUseCase {
             }
 
             // FILL
-            adSource.markFillStarted()
+            adSource.markFillStarted(adParam.adUnitId)
             adSource.fill(adParam)
             val fillAdEvent = adSource.adEvent.first {
                 // wait for results

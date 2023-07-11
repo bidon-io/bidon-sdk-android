@@ -191,7 +191,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
         winnerAdSource as AdSource<AdAuctionParams>
 
         // Start Fill Ad
-        winnerAdSource.markFillStarted()
+        winnerAdSource.markFillStarted(adUnitId = null)
         winnerAdSource.fill()
         // Wait for fill result
         val fillAdEvent = winnerAdSource.adEvent.first {
