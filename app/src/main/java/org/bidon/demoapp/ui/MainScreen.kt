@@ -94,10 +94,9 @@ internal fun MainScreen(
                         BidonSdk.addExtra("sdk_level_string_before_init", "string0")
                         BidonSdk.addExtra("sdk_level_int_before_init", 555)
                     }
-                    val url = "https://b.appbaqend.com"
                     AppButton(text = "Init") {
                         val baseUrl =
-                            sharedPreferences.getString("host", url) ?: url
+                            sharedPreferences.getString("host", "https:/b.appbaqend.com") ?: "https:/b.appbaqend.com"
                         initState.value = MainScreenState.Initializing
                         BidonSdk
                             .setLoggerLevel(Logger.Level.Verbose)
@@ -106,9 +105,6 @@ internal fun MainScreen(
                                     registerAdapter(it.classPath)
                                 }
                             }
-//                            .registerDefaultAdapters()
-//                            .registerAdapters(ApplovinAdapter())
-//                            .registerAdapter("org.bidon.admob.AdmobAdapter")
                             .setBaseUrl(baseUrl)
                             .setInitializationCallback {
                                 initState.value = MainScreenState.Initialized

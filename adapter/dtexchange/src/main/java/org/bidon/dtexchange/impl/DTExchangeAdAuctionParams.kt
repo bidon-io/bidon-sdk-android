@@ -6,7 +6,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.LineItem
 
 /**
- * Created by Aleksei Cherniaev on 28/02/2023.
+ * Created by Bidon Team on 28/02/2023.
  */
 data class DTExchangeAdAuctionParams(
     val lineItem: LineItem

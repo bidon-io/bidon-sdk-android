@@ -68,7 +68,7 @@ class AppsflyerAnalytics : Adapter, Initializable<AppsflyerParameters>, AdRevenu
 
         AppsFlyerAdRevenue.logAdRevenue(
             monetizationNetwork, // demandId
-            MediationNetwork.,
+            MediationNetwork,
             eventRevenueCurrency,
             eventRevenue,
             nonMandatory

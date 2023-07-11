@@ -159,7 +159,7 @@ fun RewardedScreen(
                     text = "Notify Loss"
                 ) {
                     rewardedAd.notifyLoss(
-                        winnerDemandId = "externalM",
+                        winnerDemandId = "other_monetization_sdk",
                         winnerEcpm = 123.456
                     )
                 }

@@ -19,7 +19,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
- * Created by Aleksei Cherniaev on 28/02/2023.
+ * Created by Bidon Team on 28/02/2023.
  */
 internal class DTExchangeRewarded(
     override val demandId: DemandId,

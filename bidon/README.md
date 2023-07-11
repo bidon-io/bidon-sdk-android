@@ -1,3 +1,0 @@
-# Bidon SDK
-  
-## Decorators
