@@ -33,7 +33,6 @@ import org.bidon.demoapp.navigation.Screen
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.logs.logging.Logger
-import org.bidon.sdk.utils.networking.NetworkSettings
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.ZoneOffset
