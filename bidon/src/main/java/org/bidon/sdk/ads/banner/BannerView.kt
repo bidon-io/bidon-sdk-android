@@ -12,7 +12,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.R
 import org.bidon.sdk.adapter.AdEvent
@@ -27,16 +26,14 @@ import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
-import org.bidon.sdk.auction.models.BannerRequestBody.Companion.asStatBannerFormat
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -55,7 +52,6 @@ class BannerView @JvmOverloads constructor(
     private var userListener: BannerListener? = null
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
-    private var auctionJob: Job? = null
     private var loadingError: BidonError? = null
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
     private val auction: Auction by lazy { get() }
@@ -68,7 +64,6 @@ class BannerView @JvmOverloads constructor(
     private val wasNotified = AtomicBoolean(false)
 
     private var winnerSubscriberJob: Job? = null
-    private var loadingError: BidonError? = null
 
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.BannerView, 0, 0).apply {
@@ -247,7 +242,6 @@ class BannerView @JvmOverloads constructor(
             adSource.sendShowImpression()
         })
     }
-
 
     private fun conductAuction(activity: Activity, pricefloor: Double) {
         this.pricefloor = pricefloor
