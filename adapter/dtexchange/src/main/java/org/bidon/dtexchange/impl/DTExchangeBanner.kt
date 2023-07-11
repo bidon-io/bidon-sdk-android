@@ -25,6 +25,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.impl.pxToDp
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -48,6 +49,7 @@ internal class DTExchangeBanner(
 
     private var param: DTExchangeBannerAuctionParams? = null
     private var adSpot: InneractiveAdSpot? = null
+    private var adViewHolder: AdViewHolder? = null
 
     override val ad: Ad?
         get() = adSpot?.asAd()
@@ -97,11 +99,35 @@ internal class DTExchangeBanner(
         adSpot.requestAd(adRequest)
     }
 
-    override fun getAdView(): AdViewHolder {
+    override fun fill() {
+        logInfo(Tag, "Starting fill: $this")
+        /**
+         * DataExchange fills the bid automatically. It's not needed to fill it manually.
+         */
+        adEvent.tryEmit(AdEvent.Fill(requireNotNull(adSpot?.asAd())))
+    }
+
+    override fun getAdView(): AdViewHolder? {
+        return adViewHolder ?: synchronized(this) {
+            adViewHolder ?: createViewHolder(adSpot)
+        }
+    }
+
+    override fun show(activity: Activity) {}
+
+    override fun destroy() {
+        adSpot?.setRequestListener(null)
+        adSpot?.destroy()
+        adSpot = null
+        adViewHolder = null
+    }
+
+    private fun createViewHolder(adSpot: InneractiveAdSpot?): AdViewHolder? {
         // Getting the spot's controller
-        val controller = adSpot?.selectedUnitController as InneractiveAdViewUnitController
+        val controller = adSpot?.selectedUnitController as? InneractiveAdViewUnitController ?: return null
         // set to new container, because DTExchange does not expose its bannerView
-        val container = FrameLayout(requireNotNull(param?.context))
+        val context = param?.context ?: return null
+        val container = FrameLayout(context)
         controller.eventsListener = object : InneractiveAdViewEventsListenerWithImpressionData {
             override fun onAdImpression(
                 adSpot: InneractiveAdSpot?,
@@ -128,8 +154,9 @@ internal class DTExchangeBanner(
                 adSpot: InneractiveAdSpot?,
                 adDisplayError: InneractiveUnitController.AdDisplayError?
             ) {
-                logInfo(Tag, "onAdEnteredErrorState: $adSpot, $adDisplayError")
-                adEvent.tryEmit(AdEvent.ShowFailed(adDisplayError.asBidonError()))
+                val cause = adDisplayError.asBidonError()
+                logError(Tag, "onAdEnteredErrorState: $adSpot, $adDisplayError", cause)
+                adEvent.tryEmit(AdEvent.ShowFailed(cause))
             }
 
             override fun onAdExpanded(adSpot: InneractiveAdSpot?) {}
@@ -162,6 +189,9 @@ internal class DTExchangeBanner(
         adSpot?.setRequestListener(null)
         adSpot?.destroy()
         adSpot = null
+        ).also {
+            this.adViewHolder = it
+        }
     }
 
     private fun InneractiveAdSpot.asAd() = Ad(
