@@ -7,7 +7,7 @@ internal data class SegmentAttributes(
     val age: Int?,
     val gender: Gender?,
     val customAttributes: Map<String, Any>,
-    val inAppAmount: Int?,
+    val inAppAmount: Double?,
     val isPaying: Boolean?,
     val gameLevel: Int?,
 ) {

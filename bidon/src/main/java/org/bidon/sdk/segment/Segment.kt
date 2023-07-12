@@ -35,9 +35,9 @@ interface Segment {
     fun setLevel(level: Int)
 
     /**
-     * How many levels user has passed (for games mostly)
+     * Total amount of in-app purchases made by user
      */
-    fun setInAppAmount(inAppAmount: Int)
+    fun setTotalInAppAmount(inAppAmount: Double)
 
     /**
      * Indicates whether or not user made at least one in-app purchase

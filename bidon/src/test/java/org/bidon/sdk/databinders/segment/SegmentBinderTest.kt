@@ -33,7 +33,7 @@ internal class SegmentBinderTest {
             customAttributes = mapOf(
                 "k1" to "v1", "k2" to false
             ),
-            inAppAmount = 100,
+            inAppAmount = 100.0,
             isPaying = false,
             gameLevel = 58,
         )
@@ -55,7 +55,7 @@ internal class SegmentBinderTest {
         encodedJson.assertEquals(
             expectedJsonStructure {
                 "gender" hasValue "FEMALE"
-                "total_in_apps_amount" hasValue 100
+                "total_in_apps_amount" hasValue 100.0
                 "is_paying" hasValue false
                 "game_level" hasValue 58
                 "age" hasValue 28

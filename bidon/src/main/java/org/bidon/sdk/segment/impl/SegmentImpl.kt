@@ -70,7 +70,7 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
         logInfo(Tag, "Updated level=$level")
     }
 
-    override fun setInAppAmount(inAppAmount: Int) {
+    override fun setTotalInAppAmount(inAppAmount: Double) {
         attributesFlow.value = attributesFlow.value.copy(
             inAppAmount = inAppAmount
         )
