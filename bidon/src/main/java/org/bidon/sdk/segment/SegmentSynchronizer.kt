@@ -18,5 +18,5 @@ internal interface SegmentSynchronizer {
     /**
      * For reading previous segmentId from [KeyValueStorage]
      */
-    fun setSegmentId(segmentId: String)
+    fun setSegmentId(segmentId: String?)
 }

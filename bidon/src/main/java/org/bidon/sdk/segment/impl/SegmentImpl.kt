@@ -86,16 +86,16 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
 
     override fun parseSegmentId(rootJsonResponse: String) {
         runCatching {
-            JSONObject(rootJsonResponse).optJSONObject("segment")?.optString("id", "")
-                .takeIf { !it.isNullOrBlank() }
-                ?.let { newSegmentId ->
-                    keyValueStorage.segmentId = newSegmentId
-                    setSegmentId(newSegmentId)
-                }
+            val newSegmentId = JSONObject(rootJsonResponse)
+                .optJSONObject("segment")
+                ?.optString("id", "")
+                ?.takeIf { it.isNotEmpty() }
+            keyValueStorage.segmentId = newSegmentId
+            setSegmentId(newSegmentId)
         }
     }
 
-    override fun setSegmentId(segmentId: String) {
+    override fun setSegmentId(segmentId: String?) {
         logInfo(Tag, "Updated SegmentId($segmentId)")
         this.segmentId = segmentId
     }
