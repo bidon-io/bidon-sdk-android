@@ -14,7 +14,7 @@ internal data class SegmentAttributesRequestBody(
     @field:JsonName("custom_attributes")
     val customAttributes: Map<String, Any>,
     @field:JsonName("total_in_apps_amount")
-    val inAppAmount: Int?,
+    val inAppAmount: Double?,
     @field:JsonName("is_paying")
     val isPaying: Boolean?,
     @field:JsonName("game_level")

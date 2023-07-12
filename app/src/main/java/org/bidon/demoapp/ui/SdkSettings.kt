@@ -130,7 +130,7 @@ private fun SegmentAttrButton() {
         BidonSdk.segment.setGender(Gender.Female)
         BidonSdk.segment.setLevel(100500)
         BidonSdk.segment.setPaying(isPaying = true)
-        BidonSdk.segment.setInAppAmount(15)
+        BidonSdk.segment.setTotalInAppAmount(15.0)
         BidonSdk.segment.setCustomAttributes(mapOf("attr1" to "hello world"))
         BidonSdk.segment.putCustomAttribute(attribute = "attr2", value = 28)
     }
