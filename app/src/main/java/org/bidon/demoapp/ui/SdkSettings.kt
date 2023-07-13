@@ -18,14 +18,13 @@ import androidx.core.content.edit
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
+import org.bidon.demoapp.ui.ext.LocalDateTimeNow
+import org.bidon.demoapp.ui.settings.SegmentSettingsView
 import org.bidon.demoapp.ui.settings.TestModeInfo
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Gdpr
-import org.bidon.sdk.segment.models.Gender
 import org.json.JSONObject
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 
 /**
  * Created by Aleksei Cherniaev on 21/06/2023.
@@ -62,9 +61,9 @@ fun SdkSettings() {
             text = "Add SDK-level Extras"
         ) {
             BidonSdk.addExtra("token_json", JSONObject("""{"a":"sdk_level"}"""))
-            BidonSdk.addExtra("sdk_level_long", LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+            BidonSdk.addExtra("sdk_level_long", LocalDateTimeNow)
         }
-        SegmentAttrButton()
+        SegmentSettingsView()
         ItemSelector(
             modifier = Modifier.padding(top = 16.dp),
             horizontalAlignment = Alignment.Start,
@@ -117,22 +116,6 @@ fun SdkSettings() {
                 BidonSdk.regulation.gdpr = gdpr
             }
         )
-    }
-}
-
-@Composable
-private fun SegmentAttrButton() {
-    AppOutlinedButton(
-        modifier = Modifier.padding(top = 0.dp),
-        text = "Add Segment attrs"
-    ) {
-        BidonSdk.segment.setAge(18)
-        BidonSdk.segment.setGender(Gender.Female)
-        BidonSdk.segment.setLevel(100500)
-        BidonSdk.segment.setPaying(isPaying = true)
-        BidonSdk.segment.setTotalInAppAmount(15.23)
-        BidonSdk.segment.setCustomAttributes(mapOf("attr1" to "hello world"))
-        BidonSdk.segment.putCustomAttribute(attribute = "attr2", value = 28)
     }
 }
 
