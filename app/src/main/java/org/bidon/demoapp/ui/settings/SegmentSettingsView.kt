@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.CaptionText
-import org.bidon.demoapp.component.ItemSelector
+import org.bidon.demoapp.component.HorizontalItemSelector
 import org.bidon.demoapp.component.NumberSelector
 import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.segment.models.Gender
@@ -107,9 +107,8 @@ internal fun SegmentSettingsView(
                 )
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    ItemSelector(
+                    HorizontalItemSelector(
                         modifier = Modifier.padding(top = 0.dp),
-                        horizontalAlignment = Alignment.Start,
                         title = "Gender",
                         items = genders,
                         selectedItem = SegmentInfo.gender.collectAsState().value?.code ?: "Not set",
@@ -154,9 +153,8 @@ internal fun SegmentSettingsView(
                             SegmentInfo.setTotalInAppAmount(SegmentInfo.inAppAmount.value - 10.24)
                         }
                     )
-                    ItemSelector(
+                    HorizontalItemSelector(
                         modifier = Modifier.padding(top = 0.dp),
-                        horizontalAlignment = Alignment.Start,
                         title = "Is paying",
                         items = listOf(true, false),
                         selectedItem = SegmentInfo.isPaying.collectAsState().value,
