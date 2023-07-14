@@ -87,8 +87,9 @@ internal fun MainScreen(
                                 DefaultAdapters.AdmobAdapter -> "Admob"
                                 DefaultAdapters.BidmachineAdapter -> "BidMachine"
                                 DefaultAdapters.ApplovinAdapter -> "Applovin"
-                                DefaultAdapters.DataExchangeAdapter -> "DT Exchange"
+                                DefaultAdapters.DTExchangeAdapter -> "DT Exchange"
                                 DefaultAdapters.UnityAdsAdapter -> "Unity Ads"
+                                DefaultAdapters.VungleAdapter -> "Vungle"
                             }
                         },
                         onItemClicked = {

@@ -44,6 +44,7 @@ include(
     ":adapter:applovin",
     ":adapter:dtexchange",
     ":adapter:unityads",
+    ":adapter:vungle",
 //    ":adapter:fyber",
 //    ":adapter:ironsource",
 //    ":adapter:appsflyer"

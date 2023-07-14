@@ -92,6 +92,7 @@ dependencies {
     implementation(project(":adapter:applovin"))
     implementation(project(":adapter:dtexchange"))
     implementation(project(":adapter:unityads"))
+    implementation(project(":adapter:vungle"))
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 
