@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
 /**
  * Created by Aleksei Cherniaev on 25/07/2023.
  */
-internal val BigoAdsDemandId = DemandId("bigo_ads")
+internal val BigoAdsDemandId = DemandId("bigoads")
 
 class BigoAdsAdapter :
     Adapter,
