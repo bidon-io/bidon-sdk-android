@@ -56,7 +56,7 @@ internal class TestInterstitialImpl(
         this.adParams = adParams
         when (testParameters.bid) {
             Process.Succeed -> {
-                adEvent.tryEmit(
+                emitEvent(
                     AdEvent.Bid(
                         AuctionResult.Network.Success(
                             adSource = this,
@@ -66,7 +66,7 @@ internal class TestInterstitialImpl(
                 )
             }
             Process.Failed -> {
-                adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
             Process.Timeout -> {
                 CoroutineScope(Dispatchers.Main).launch {
@@ -76,8 +76,8 @@ internal class TestInterstitialImpl(
             }
         }
         when (testParameters.fill) {
-            Process.Succeed -> adEvent.tryEmit(AdEvent.Fill(ad))
-            Process.Failed -> adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+            Process.Succeed -> emitEvent(AdEvent.Fill(ad))
+            Process.Failed -> emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             Process.Timeout -> {
                 CoroutineScope(Dispatchers.Main).launch {
                     delay(60_000L)

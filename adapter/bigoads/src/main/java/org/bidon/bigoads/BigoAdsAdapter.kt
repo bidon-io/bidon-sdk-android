@@ -4,13 +4,13 @@ import android.content.Context
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.bigoads.ext.adapterVersion
 import org.bidon.bigoads.ext.sdkVersion
+import org.bidon.bigoads.impl.BigoAdsBannerImpl
 import org.bidon.bigoads.impl.BigoBannerAuctionParams
 import org.bidon.bigoads.impl.BigoFullscreenAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
@@ -65,27 +65,15 @@ class BigoAdsAdapter :
         )
     }
 
-    override fun banner(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Banner<BigoBannerAuctionParams> {
+    override fun banner(): AdSource.Banner<BigoBannerAuctionParams> {
+        return BigoAdsBannerImpl()
+    }
+
+    override fun interstitial(): AdSource.Interstitial<BigoFullscreenAuctionParams> {
         TODO("Not yet implemented")
     }
 
-    override fun interstitial(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Interstitial<BigoFullscreenAuctionParams> {
-        TODO("Not yet implemented")
-    }
-
-    override fun rewarded(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Rewarded<BigoFullscreenAuctionParams> {
+    override fun rewarded(): AdSource.Rewarded<BigoFullscreenAuctionParams> {
         TODO("Not yet implemented")
     }
 
