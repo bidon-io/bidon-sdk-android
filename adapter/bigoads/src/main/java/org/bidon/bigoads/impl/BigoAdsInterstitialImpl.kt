@@ -1,5 +1,6 @@
 package org.bidon.bigoads.impl
 
+import android.app.Activity
 import android.content.Context
 import org.bidon.bigoads.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -7,17 +8,12 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
-import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -28,30 +24,27 @@ import sg.bigo.ads.BigoAdSdk
 import sg.bigo.ads.api.AdError
 import sg.bigo.ads.api.AdInteractionListener
 import sg.bigo.ads.api.AdLoadListener
-import sg.bigo.ads.api.AdSize
-import sg.bigo.ads.api.BannerAd
-import sg.bigo.ads.api.BannerAdLoader
-import sg.bigo.ads.api.BannerAdRequest
+import sg.bigo.ads.api.InterstitialAd
+import sg.bigo.ads.api.InterstitialAdLoader
+import sg.bigo.ads.api.InterstitialAdRequest
 
 /**
  * Created by Aleksei Cherniaev on 25/07/2023.
  */
-internal class BigoAdsBannerImpl :
-    AdSource.Banner<BigoBannerAuctionParams>,
-    AdLoadingType.Bidding<BigoBannerAuctionParams>,
+internal class BigoAdsInterstitialImpl :
+    AdSource.Interstitial<BigoFullscreenAuctionParams>,
+    AdLoadingType.Bidding<BigoFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var bannerAd: BannerAd? = null
-    private var bannerFormat: BannerFormat? = null
-    private var adParam: BigoBannerAuctionParams? = null
+    private var interstitialAd: InterstitialAd? = null
 
     override val isAdReadyToShow: Boolean
-        get() = bannerAd != null
+        get() = interstitialAd != null && interstitialAd?.isExpired != false
 
     override fun destroy() {
-        bannerAd?.destroy()
-        bannerAd = null
+        interstitialAd?.destroy()
+        interstitialAd = null
     }
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
@@ -70,41 +63,24 @@ internal class BigoAdsBannerImpl :
         }
     }
 
-    override fun getAdView(): AdViewHolder? {
-        val bannerAd = bannerAd ?: return null
-        val width = bannerFormat?.getWidthDp() ?: return null
-        val height = bannerFormat?.getHeightDp() ?: return null
-        return AdViewHolder(bannerAd.adView(), width, height)
-    }
-
     override fun getToken(context: Context): String? = BigoAdSdk.getBidderToken()
 
-    override fun adRequest(adParams: BigoBannerAuctionParams) {
-        val builder = BannerAdRequest.Builder()
-        this.bannerFormat = adParams.bannerFormat
-        this.adParam = adParams
+    override fun adRequest(adParams: BigoFullscreenAuctionParams) {
+        val builder = InterstitialAdRequest.Builder()
         builder
             .withBid(adParams.payload)
             .withSlotId(adParams.slotId)
-            .withAdSizes(
-                when (adParams.bannerFormat) {
-                    BannerFormat.Banner -> AdSize.BANNER
-                    BannerFormat.MRec -> AdSize.MEDIUM_RECTANGLE
-                    BannerFormat.Adaptive -> AdSize.BANNER
-                    BannerFormat.LeaderBoard -> AdSize.BANNER
-                }
-            )
-        val loader = BannerAdLoader.Builder().withAdLoadListener(object : AdLoadListener<BannerAd> {
+        val loader = InterstitialAdLoader.Builder().withAdLoadListener(object : AdLoadListener<InterstitialAd> {
             override fun onError(adError: AdError) {
                 val error = adError.asBidonError()
                 logError(Tag, "Error while loading ad: $adError. $this", error)
                 emitEvent(AdEvent.LoadFailed(error))
             }
 
-            override fun onAdLoaded(bannerAd: BannerAd) {
-                logInfo(Tag, "onAdLoaded: $bannerAd, $this")
-                this@BigoAdsBannerImpl.bannerAd = bannerAd
-                bannerAd.setAdInteractionListener(object : AdInteractionListener {
+            override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                logInfo(Tag, "onAdLoaded: $interstitialAd, $this")
+                this@BigoAdsInterstitialImpl.interstitialAd = interstitialAd
+                interstitialAd.setAdInteractionListener(object : AdInteractionListener {
                     override fun onAdError(error: AdError) {
                         val cause = error.asBidonError()
                         logError(Tag, "onAdError: $this", cause)
@@ -113,15 +89,14 @@ internal class BigoAdsBannerImpl :
 
                     override fun onAdImpression() {
                         logInfo(Tag, "onAdImpression: $this")
-                        val ad = getAd(this@BigoAdsBannerImpl) ?: return
-                        // tracked impression/shown by [BannerView]
+                        val ad = getAd(this@BigoAdsInterstitialImpl) ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = ad,
                                 adValue = AdValue(
-                                    adRevenue = adParam?.pricefloor ?: 0.0,
+                                    adRevenue = adParams.pricefloor,
                                     precision = Precision.Precise,
-                                    currency = USD,
+                                    currency = AdValue.USD,
                                 )
                             )
                         )
@@ -129,17 +104,25 @@ internal class BigoAdsBannerImpl :
 
                     override fun onAdClicked() {
                         logInfo(Tag, "onAdClicked: $this")
-                        val ad = getAd(this@BigoAdsBannerImpl) ?: return
+                        val ad = getAd(this@BigoAdsInterstitialImpl) ?: return
                         emitEvent(AdEvent.Clicked(ad))
                     }
 
-                    override fun onAdOpened() {}
-                    override fun onAdClosed() {}
+                    override fun onAdOpened() {
+                        logInfo(Tag, "onAdOpened: $this")
+                        val ad = getAd(this@BigoAdsInterstitialImpl) ?: return
+                        emitEvent(AdEvent.Shown(ad))
+                    }
+                    override fun onAdClosed() {
+                        logInfo(Tag, "onAdClosed: $this")
+                        val ad = getAd(this@BigoAdsInterstitialImpl) ?: return
+                        emitEvent(AdEvent.Closed(ad))
+                    }
                 })
                 emitEvent(
                     AdEvent.Bid(
                         AuctionResult.Bidding.Success(
-                            adSource = this@BigoAdsBannerImpl,
+                            adSource = this@BigoAdsInterstitialImpl,
                             roundStatus = RoundStatus.Successful
                         )
                     )
@@ -150,9 +133,18 @@ internal class BigoAdsBannerImpl :
             .loadAd(builder.build())
     }
 
+    override fun show(activity: Activity) {
+        val interstitialAd = interstitialAd
+        if (interstitialAd == null) {
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+        } else {
+            interstitialAd.show()
+        }
+    }
+
     override fun fill() {
         val ad = getAd(this)
-        if (bannerAd != null && ad != null) {
+        if (interstitialAd != null && ad != null) {
             emitEvent(AdEvent.Fill(ad))
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
@@ -160,4 +152,4 @@ internal class BigoAdsBannerImpl :
     }
 }
 
-private const val Tag = "BigoAdsBanner"
+private const val Tag = "BigoAdsInterstitial"

@@ -13,6 +13,7 @@ data class BigoBannerAuctionParams(
 }
 
 data class BigoFullscreenAuctionParams(
+    val payload: String,
     val slotId: String,
     override val pricefloor: Double,
 ) : AdAuctionParams {

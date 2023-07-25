@@ -34,7 +34,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 // $1.0 ca-app-pub-9630071911882835/7790966049
 // $2.0 ca-app-pub-9630071911882835/1445049547
 
-internal class AdmobInterstitialImpl : AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
+internal class AdmobInterstitialImpl :
+    AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
     AdLoadingType.Network<AdmobFullscreenAdAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

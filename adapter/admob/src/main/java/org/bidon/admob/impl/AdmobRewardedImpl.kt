@@ -28,7 +28,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 // $2.0 ca-app-pub-9630071911882835/1445049547
 
 @Suppress("unused")
-internal class AdmobRewardedImpl : AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
+internal class AdmobRewardedImpl :
+    AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
     AdLoadingType.Network<AdmobFullscreenAdAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

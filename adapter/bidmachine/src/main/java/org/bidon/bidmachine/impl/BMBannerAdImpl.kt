@@ -36,7 +36,8 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 
-internal class BMBannerAdImpl : AdSource.Banner<BMBannerAuctionParams>,
+internal class BMBannerAdImpl :
+    AdSource.Banner<BMBannerAuctionParams>,
     AdLoadingType.Bidding<BMBannerAuctionParams>,
     AdLoadingType.Network<BMBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),

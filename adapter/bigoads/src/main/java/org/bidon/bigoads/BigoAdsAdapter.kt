@@ -5,6 +5,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.bigoads.ext.adapterVersion
 import org.bidon.bigoads.ext.sdkVersion
 import org.bidon.bigoads.impl.BigoAdsBannerImpl
+import org.bidon.bigoads.impl.BigoAdsInterstitialImpl
+import org.bidon.bigoads.impl.BigoAdsRewardedAdImpl
 import org.bidon.bigoads.impl.BigoBannerAuctionParams
 import org.bidon.bigoads.impl.BigoFullscreenAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -70,11 +72,11 @@ class BigoAdsAdapter :
     }
 
     override fun interstitial(): AdSource.Interstitial<BigoFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return BigoAdsInterstitialImpl()
     }
 
     override fun rewarded(): AdSource.Rewarded<BigoFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return BigoAdsRewardedAdImpl()
     }
 
     override fun updateRegulation(regulation: Regulation) {

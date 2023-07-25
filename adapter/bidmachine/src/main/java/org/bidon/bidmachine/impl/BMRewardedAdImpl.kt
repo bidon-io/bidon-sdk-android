@@ -31,12 +31,12 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 
-internal class BMRewardedAdImpl : AdSource.Rewarded<BMFullscreenAuctionParams>,
+internal class BMRewardedAdImpl :
+    AdSource.Rewarded<BMFullscreenAuctionParams>,
     AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     AdLoadingType.Network<BMFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
-
 
     private var context: Context? = null
     private var adRequest: RewardedRequest? = null

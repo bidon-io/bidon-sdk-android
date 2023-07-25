@@ -29,7 +29,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
  */
-internal class AdmobBannerImpl : AdSource.Banner<AdmobBannerAuctionParams>,
+internal class AdmobBannerImpl :
+    AdSource.Banner<AdmobBannerAuctionParams>,
     AdLoadingType.Network<AdmobBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

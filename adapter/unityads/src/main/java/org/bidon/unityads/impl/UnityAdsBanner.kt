@@ -26,7 +26,8 @@ import org.bidon.unityads.ext.asBidonError
 /**
  * Created by Aleksei Cherniaev on 12/04/2023.
  */
-internal class UnityAdsBanner : AdSource.Banner<UnityAdsBannerAuctionParams>,
+internal class UnityAdsBanner :
+    AdSource.Banner<UnityAdsBannerAuctionParams>,
     AdLoadingType.Network<UnityAdsBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

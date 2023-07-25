@@ -32,7 +32,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 /**
  * Created by Aleksei Cherniaev on 17/04/2023.
  */
-internal class DTExchangeBanner : AdSource.Banner<DTExchangeBannerAuctionParams>,
+internal class DTExchangeBanner :
+    AdSource.Banner<DTExchangeBannerAuctionParams>,
     AdLoadingType.Network<DTExchangeBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

@@ -32,12 +32,13 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.RoundStatus
 
-internal class BMInterstitialAdImpl : AdSource.Interstitial<BMFullscreenAuctionParams>,
+internal class BMInterstitialAdImpl :
+    AdSource.Interstitial<BMFullscreenAuctionParams>,
     AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     AdLoadingType.Network<BMFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl( ) {
-    
+    StatisticsCollector by StatisticsCollectorImpl() {
+
     private var context: Context? = null
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
