@@ -26,7 +26,7 @@ interface StatisticsCollector {
 
     fun markBidStarted(adUnitId: String? = null)
     fun markBidFinished(roundStatus: RoundStatus, ecpm: Double?)
-    fun markFillStarted(adUnitId: String?)
+    fun markFillStarted(adUnitId: String?, pricefloor: Double?)
     fun markFillFinished(roundStatus: RoundStatus, ecpm: Double?)
     fun markWin()
     fun markLoss()
@@ -38,7 +38,7 @@ interface StatisticsCollector {
     fun addDemandId(demandId: DemandId)
     fun addRoundInfo(auctionId: String, roundId: String, demandAd: DemandAd)
 
-    fun buildBidStatistic(): BidStat
+    fun getStats(): BidStat
 
     sealed interface AdType {
         object Rewarded : AdType

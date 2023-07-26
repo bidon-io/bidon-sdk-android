@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
@@ -37,6 +38,7 @@ internal class BMInterstitialAdImpl :
     AdLoadingType.Bidding<BMFullscreenAuctionParams>,
     AdLoadingType.Network<BMFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
+    WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var context: Context? = null
@@ -190,6 +192,14 @@ internal class BMInterstitialAdImpl :
         adRequest = null
         interstitialAd?.destroy()
         interstitialAd = null
+    }
+
+    override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
+        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+    }
+
+    override fun notifyWin() {
+        adRequest?.notifyMediationWin()
     }
 
     private fun request(adParams: BMFullscreenAuctionParams, requestListener: AdRequest.AdRequestListener<InterstitialRequest>) {

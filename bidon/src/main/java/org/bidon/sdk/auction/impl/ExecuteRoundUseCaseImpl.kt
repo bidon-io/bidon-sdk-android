@@ -95,9 +95,8 @@ internal class ExecuteRoundUseCaseImpl(
             val networkAdSources = filteredAdNetworkAdapters.getAdSources(demandAd.adType)
                 .onEach { applyParams(it, adTypeParam, auctionResponse, demandAd, round) }
                 .filterIsInstance<AdLoadingType.Network<AdAuctionParams>>()
-            val unknownNetworkDemands = findUnknownNetworkAdapters(round, networkAdSources).onEach {
-                resultsCollector.addAuctionResult(it)
-            }
+            val unknownNetworkDemands = findUnknownNetworkAdapters(round, networkAdSources)
+                .onEach { resultsCollector.addAuctionResult(listOf(it)) }
             // Start Regular AdNetwork demands auction
             if (round.demandIds.isNotEmpty()) {
                 val networkResults = conductNetworkAuction.invoke(
@@ -120,7 +119,7 @@ internal class ExecuteRoundUseCaseImpl(
             /**
              * Collecting results
              */
-            val biddingResult = biddingResultDeferred?.await()?.let { listOf(it) }.orEmpty()
+            val biddingResult = biddingResultDeferred?.await().orEmpty()
             roundDeferred
                 .map { deferred -> deferred.await() }
                 .let { dspResults -> dspResults + biddingResult }
@@ -128,11 +127,11 @@ internal class ExecuteRoundUseCaseImpl(
                     val details = when (result) {
 
                         is AuctionResult.Bidding.Success -> {
-                            "Bidding ${result.adSource.demandId.demandId}, ${result.adSource.buildBidStatistic()}"
+                            "Bidding ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
                         }
 
                         is AuctionResult.Network -> {
-                            "DSP ${result.adSource.demandId.demandId}, ${result.adSource.buildBidStatistic()}"
+                            "DSP ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
                         }
 
                         is AuctionResult.Bidding.Failure -> {
