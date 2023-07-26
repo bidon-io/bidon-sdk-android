@@ -56,7 +56,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
     private var stat: BidStat = BidStat(
         auctionId = null,
         roundId = null,
-        demandId = null,
+        demandId = DemandId(""),
         adUnitId = null,
         bidStartTs = null,
         bidFinishTs = null,
@@ -76,12 +76,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
         get() = requireNotNull(stat.roundId) { "RoundId is not set" }
 
     override fun getAd(demandAdObject: Any): Ad? {
-        val demandId = stat.demandId ?: return null
+        val demandId = stat.demandId
         val roundId = stat.roundId ?: return null
         val auctionId = stat.auctionId ?: return null
         return Ad(
             demandAd = demandAd,
-            ecpm = stat.ecpm ?: 0.0,
+            ecpm = stat.ecpm,
             networkName = demandId.demandId,
             adUnitId = stat.adUnitId,
             currencyCode = AdValue.USD,
