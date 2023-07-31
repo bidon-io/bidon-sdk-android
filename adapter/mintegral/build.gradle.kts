@@ -14,7 +14,7 @@ android {
     namespace = "org.bidon.mintegral"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.DTExchange
+        ADAPTER_VERSION = Versions.Adapters.Mintegral
     }
 }
 

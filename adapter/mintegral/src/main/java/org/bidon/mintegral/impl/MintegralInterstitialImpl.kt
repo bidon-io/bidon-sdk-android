@@ -7,17 +7,15 @@ import com.mbridge.msdk.newinterstitial.out.MBBidNewInterstitialHandler
 import com.mbridge.msdk.newinterstitial.out.NewInterstitialListener
 import com.mbridge.msdk.out.MBridgeIds
 import com.mbridge.msdk.out.RewardInfo
-import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.mintegral.MintegralAuctionParam
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.auction.AuctionResult
+import org.bidon.sdk.adapter.impl.AdEventFlow
+import org.bidon.sdk.adapter.impl.AdEventFlowImpl
+import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -33,65 +31,53 @@ import org.bidon.sdk.stats.models.RoundStatus
  *
  * [Mintegral Bidding](https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-in_app_header_bidding&lang=en)
  */
-internal class MintegralInterstitialImpl(
-    override val demandId: DemandId,
-    private val demandAd: DemandAd,
-    private val roundId: String,
-    private val auctionId: String,
-) : AdSource.Interstitial<MintegralAuctionParam>,
+internal class MintegralInterstitialImpl : AdSource.Interstitial<MintegralAuctionParam>,
     AdLoadingType.Bidding<MintegralAuctionParam>,
-    StatisticsCollector by StatisticsCollectorImpl(
-        auctionId = auctionId,
-        roundId = roundId,
-        demandId = demandId,
-        demandAd = demandAd
-    ) {
+    AdEventFlow by AdEventFlowImpl(),
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adParams: MintegralAuctionParam? = null
     private var interstitialAd: MBBidNewInterstitialHandler? = null
     private var mBridgeIds: MBridgeIds? = null
 
-    override val ad: Ad?
-        get() = adParams?.let {
-            Ad(
-                ecpm = it.pricefloor,
-                auctionId = auctionId,
-                roundId = roundId,
-                dsp = null,
-                demandAdObject = this,
-                currencyCode = USD,
-                adUnitId = mBridgeIds?.unitId,
-                demandAd = demandAd,
-                networkName = demandId.demandId
-            )
-        }
-    override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.isBidReady == true
 
 
     override fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 
-    override fun fill() {
-        logInfo(Tag, "Starting fill: $this")
-        ad?.let {
-            adEvent.tryEmit(AdEvent.Fill(it))
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
+            MintegralAuctionParam(
+                activity = activity,
+                pricefloor = pricefloor,
+                payload = requireNotNull(json?.getString("payload")) {
+                    "Payload is required for Mintegral"
+                },
+                adUnitId = json?.getString("unit_id"),
+                placementId = json?.getString("placement_id"),
+            )
         }
     }
 
     override fun adRequest(adParams: MintegralAuctionParam) {
-        logInfo(Tag, "Starting with $adParams: $this")
-        val handler = MBBidNewInterstitialHandler(adParams.activity, "placement id", "unit id").also {
+        logInfo(TAG, "Starting with $adParams: $this")
+        this.adParams = adParams
+        val handler = MBBidNewInterstitialHandler(
+            adParams.activity,
+            adParams.placementId,
+            adParams.adUnitId
+        ).also {
             interstitialAd = it
         }
         handler.setInterstitialVideoListener(object : NewInterstitialListener {
 
             override fun onResourceLoadSuccess(mBridgeIds: MBridgeIds?) {
-                logInfo(Tag, "onResourceLoadSuccess $mBridgeIds")
+                logInfo(TAG, "onResourceLoadSuccess $mBridgeIds")
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                adEvent.tryEmit(
+                emitEvent(
                     AdEvent.Bid(
-                        result = AuctionResult.Bidding.Success(
+                        result = AuctionResult.Bidding(
                             adSource = this@MintegralInterstitialImpl,
                             roundStatus = RoundStatus.Successful
                         )
@@ -100,17 +86,17 @@ internal class MintegralInterstitialImpl(
             }
 
             override fun onResourceLoadFail(mBridgeIds: MBridgeIds?, message: String?) {
-                logError(Tag, "onResourceLoadFail $mBridgeIds", Throwable(message))
+                logError(TAG, "onResourceLoadFail $mBridgeIds", Throwable(message))
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
 
             override fun onAdShow(mBridgeIds: MBridgeIds?) {
-                logInfo(Tag, "onAdShow $mBridgeIds")
+                logInfo(TAG, "onAdShow $mBridgeIds")
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                val ad = ad ?: return
-                adEvent.tryEmit(AdEvent.Shown(ad))
-                adEvent.tryEmit(
+                val ad = getAd(this@MintegralInterstitialImpl) ?: return
+                emitEvent(AdEvent.Shown(ad))
+                emitEvent(
                     AdEvent.PaidRevenue(
                         ad = ad,
                         adValue = AdValue(
@@ -123,28 +109,29 @@ internal class MintegralInterstitialImpl(
             }
 
             override fun onAdClose(mBridgeIds: MBridgeIds?, rewardInfo: RewardInfo?) {
-                logInfo(Tag, "onAdClose $mBridgeIds, $rewardInfo")
+                logInfo(TAG, "onAdClose $mBridgeIds, $rewardInfo")
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                val ad = ad ?: return
-                adEvent.tryEmit(AdEvent.Closed(ad))
+                val ad = getAd(this@MintegralInterstitialImpl) ?: return
+                emitEvent(AdEvent.Closed(ad))
             }
 
             override fun onShowFail(mBridgeIds: MBridgeIds?, message: String?) {
-                logError(Tag, "onShowFail $mBridgeIds", Throwable(message))
+                logError(TAG, "onShowFail $mBridgeIds", Throwable(message))
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                adEvent.tryEmit(AdEvent.ShowFailed(BidonError.Unspecified(demandId, Throwable(message))))
+                emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId, Throwable(message))))
             }
 
             override fun onAdClicked(mBridgeIds: MBridgeIds?) {
-                logInfo(Tag, "onAdClicked $mBridgeIds")
+                logInfo(TAG, "onAdClicked $mBridgeIds")
                 this@MintegralInterstitialImpl.mBridgeIds = mBridgeIds
-                val ad = ad ?: return
-                adEvent.tryEmit(AdEvent.Clicked(ad))
+                val ad = getAd(this@MintegralInterstitialImpl) ?: return
+                emitEvent(AdEvent.Clicked(ad))
             }
 
             override fun onVideoComplete(mBridgeIds: MBridgeIds?) {
-                logInfo(Tag, "onVideoComplete $mBridgeIds")
+                logInfo(TAG, "onVideoComplete $mBridgeIds")
             }
+
             override fun onLoadCampaignSuccess(mBridgeIds: MBridgeIds?) {}
             override fun onAdCloseWithNIReward(mBridgeIds: MBridgeIds?, rewardInfo: RewardInfo?) {}
             override fun onEndcardShow(mBridgeIds: MBridgeIds?) {}
@@ -152,32 +139,30 @@ internal class MintegralInterstitialImpl(
         handler.loadFromBid(adParams.payload)
     }
 
+    override fun fill() {
+        logInfo(TAG, "Starting fill: $this")
+        val ad = getAd(this)
+        if (mBridgeIds != null && ad != null) {
+            emitEvent(AdEvent.Fill(ad))
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+        }
+    }
+
     override fun show(activity: Activity) {
-        logInfo(Tag, "Starting show: $this")
+        logInfo(TAG, "Starting show: $this")
         if (isAdReadyToShow) {
             interstitialAd?.showFromBid()
         } else {
-            adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
         }
     }
 
     override fun destroy() {
-        logInfo(Tag, "destroy $this")
+        logInfo(TAG, "destroy $this")
         interstitialAd?.clearVideoCache()
         interstitialAd = null
     }
-
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            MintegralAuctionParam(
-                activity = activity,
-                pricefloor = pricefloor,
-                payload = requireNotNull(payload) {
-                    "Payload is expected non-null"
-                }
-            )
-        }
-    }
 }
 
-private const val Tag = "MintegralInterstitialImpl"
+private const val TAG = "MintegralInterstitialImpl"

@@ -72,27 +72,15 @@ class MintegralAdapter :
         )
     }
 
-    override fun banner(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Banner<MintegralAuctionParam> {
+    override fun banner(): AdSource.Banner<MintegralAuctionParam> {
         TODO("Not yet implemented")
     }
 
-    override fun interstitial(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Interstitial<MintegralAuctionParam> {
-        return MintegralInterstitialImpl(demandId, demandAd, roundId, auctionId)
+    override fun interstitial(): AdSource.Interstitial<MintegralAuctionParam> {
+        return MintegralInterstitialImpl()
     }
 
-    override fun rewarded(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Rewarded<MintegralAuctionParam> {
+    override fun rewarded(): AdSource.Rewarded<MintegralAuctionParam> {
         TODO("Not yet implemented")
     }
 }

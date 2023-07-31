@@ -6,10 +6,11 @@ import org.bidon.sdk.adapter.AdAuctionParams
 /**
  * Created by Aleksei Cherniaev on 20/06/2023.
  */
-data class MintegralAuctionParam(
+class MintegralAuctionParam(
     val activity: Activity,
     override val pricefloor: Double,
-    val payload: String
+    override val adUnitId: String?,
+    val payload: String,
+    val placementId: String?,
 ) : AdAuctionParams {
-    override val adUnitId: String? = null
 }
