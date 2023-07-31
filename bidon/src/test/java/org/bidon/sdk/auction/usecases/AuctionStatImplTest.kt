@@ -14,7 +14,6 @@ import org.bidon.sdk.ads.banner.helper.DeviceType
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BidDemandResponse
 import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
@@ -31,6 +30,7 @@ import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
+import org.bidon.sdk.utils.json.jsonObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -81,9 +81,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             impressionId = "imp1",
                             price = 1.2,
                             demands = listOf(
-                                BidDemandResponse.BidMachine(
-                                    payload = "payload123"
-                                )
+                                "bidmachine" to jsonObject {
+                                    "payload" hasValue "payload123"
+
+                                }
                             )
                         ),
                         BidResponse(
@@ -91,10 +92,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             impressionId = "imp1",
                             price = 1.15,
                             demands = listOf(
-                                BidDemandResponse.Meta(
-                                    payload = "payload123",
-                                    placementId = "placement_id_123"
-                                )
+                                "meta" to jsonObject {
+                                    "payload" hasValue "payload123"
+
+                                }
                             )
                         )
                     ),
@@ -258,9 +259,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             impressionId = "imp1",
                             price = 1.5,
                             demands = listOf(
-                                BidDemandResponse.BidMachine(
-                                    payload = "payload123"
-                                )
+                                "bidmachine" to jsonObject {
+                                    "payload" hasValue "payload123"
+
+                                }
                             )
                         )
                     ),
@@ -414,9 +416,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             impressionId = "imp1",
                             price = 1.5,
                             demands = listOf(
-                                BidDemandResponse.BidMachine(
-                                    payload = "payload123"
-                                )
+                                "bidmachine" to jsonObject {
+                                    "payload" hasValue "payload123"
+
+                                }
                             )
                         ),
                         BidResponse(
@@ -424,9 +427,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             impressionId = "imp1",
                             price = 1.5,
                             demands = listOf(
-                                BidDemandResponse.BidMachine(
-                                    payload = "payload123"
-                                )
+                                "bid2" to jsonObject {
+                                    "payload" hasValue "payload123"
+
+                                }
                             )
                         ),
                     ),

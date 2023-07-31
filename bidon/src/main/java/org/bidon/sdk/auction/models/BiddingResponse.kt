@@ -62,59 +62,6 @@ internal class BidResponseParser : JsonParser<BiddingResponse> {
             }
         )
     }.getOrNull()
-
-    private fun JSONObject.parseDemands(): List<BidDemandResponse> = buildList {
-        this@parseDemands.keys().forEach { demandId ->
-            runCatching {
-                val json = this@parseDemands.getJSONObject(demandId)
-                when (BiddingDemandName.getOrNull(demandId)) {
-                    BiddingDemandName.Mintegral -> {
-                        BidDemandResponse.Mintegral(
-                            payload = json.getString("payload"),
-                            unitId = json.getString("unit_id"),
-                            placementId = json.getString("placement_id")
-                        )
-                    }
-
-                    BiddingDemandName.BidMachine -> {
-                        BidDemandResponse.BidMachine(
-                            payload = json.getString("payload")
-                        )
-                    }
-
-                    BiddingDemandName.Mobilefuse -> {
-                        BidDemandResponse.Mobilefuse(
-                            payload = json.getString("payload"),
-                            placementId = json.getString("placement_id")
-                        )
-                    }
-
-                    BiddingDemandName.Vungle -> {
-                        BidDemandResponse.Vungle(
-                            payload = json.getString("payload"),
-                            placementId = json.getString("placement_id")
-                        )
-                    }
-
-                    BiddingDemandName.BigoAds -> {
-                        BidDemandResponse.BigoAds(
-                            payload = json.getString("payload"),
-                            slotId = json.getString("slot_id")
-                        )
-                    }
-
-                    BiddingDemandName.Meta -> {
-                        BidDemandResponse.Meta(
-                            payload = json.getString("payload"),
-                            placementId = json.getString("placement_id")
-                        )
-                    }
-
-                    null -> error("Unknown demandId: $demandId")
-                }
-            }.getOrNull()?.let(::add)
-        }
-    }
 }
 
 private const val TAG = "BiddingResponse"
