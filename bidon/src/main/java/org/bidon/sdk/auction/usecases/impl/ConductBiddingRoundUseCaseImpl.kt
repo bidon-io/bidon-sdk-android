@@ -80,7 +80,7 @@ internal class ConductBiddingRoundUseCaseImpl(
                     fillBids(
                         resultsCollector = resultsCollector,
                         bids = it,
-                        biddingSources = biddingSources,
+                        biddingSources = participants,
                         adTypeParam = adTypeParam,
                         round = round
                     )
@@ -104,7 +104,7 @@ internal class ConductBiddingRoundUseCaseImpl(
         var filled = false
         bids.forEach { bid ->
             val adSource = biddingSources.first {
-                (it as AdSource<*>).demandId.demandId == bid.demand.id.code
+                (it as AdSource<*>).demandId.demandId == bid.demandId
             } as AdSource<*>
             if (!filled) {
                 adSource.markFillStarted(null, bid.price)
@@ -136,16 +136,16 @@ internal class ConductBiddingRoundUseCaseImpl(
         round: RoundRequest,
     ): AuctionResult.Bidding {
         val adSource = biddingSources.first {
-            (it as AdSource<*>).demandId.demandId == bid.demand.id.code
+            (it as AdSource<*>).demandId.demandId == bid.demandId
         }
         val adParam = (adSource as AdSource<AdAuctionParams>).obtainAuctionParam(
             AdAuctionParamSource(
                 activity = adTypeParam.activity,
                 pricefloor = bid.price,
                 timeout = round.timeoutMs,
-                payload = bid.demand.payload,
                 optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
                 optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                json = bid.json
             )
         ).onFailure {
             return AuctionResult.Bidding(

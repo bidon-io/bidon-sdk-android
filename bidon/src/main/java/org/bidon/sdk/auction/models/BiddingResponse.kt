@@ -1,5 +1,6 @@
 package org.bidon.sdk.auction.models
 
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.utils.json.JsonParser
 import org.bidon.sdk.utils.serializer.JsonName
 import org.bidon.sdk.utils.serializer.Serializable
@@ -37,7 +38,19 @@ internal class BidResponseParser : JsonParser<BiddingResponse> {
                                     id = bidJson.getString("id"),
                                     impressionId = bidJson.optString("impid"),
                                     price = bidJson.getDouble("price"),
-                                    demands = bidJson.optJSONObject("demands")?.parseDemands() ?: emptyList()
+                                    demands = bidJson.optJSONObject("demands")?.let { jsonObject ->
+                                        jsonObject.keys().asSequence().mapNotNull { demandId ->
+                                            jsonObject.optJSONObject(demandId)?.let { demandId to it }.also {
+                                                if (it == null) {
+                                                    logError(
+                                                        TAG,
+                                                        "DemandId($demandId) does not have JSONObject",
+                                                        NullPointerException()
+                                                    )
+                                                }
+                                            }
+                                        }.toList()
+                                    } ?: emptyList()
                                 )
                                 add(bid)
                             }
@@ -103,3 +116,5 @@ internal class BidResponseParser : JsonParser<BiddingResponse> {
         }
     }
 }
+
+private const val TAG = "BiddingResponse"

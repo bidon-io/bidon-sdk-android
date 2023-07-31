@@ -162,7 +162,7 @@ internal class BMBannerAdImpl :
                 timeout = timeout,
                 context = activity.applicationContext,
                 bannerFormat = bannerFormat,
-                payload = payload
+                payload = json?.optString("payload")
             )
         }
     }

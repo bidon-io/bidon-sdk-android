@@ -192,7 +192,7 @@ internal class BMRewardedAdImpl :
                 pricefloor = pricefloor,
                 timeout = timeout,
                 context = activity.applicationContext,
-                payload = payload
+                payload = json?.optString("payload")
             )
         }
     }
