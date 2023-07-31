@@ -1,4 +1,4 @@
-package org.bidon.sdk.auction.usecases
+package org.bidon.sdk.auction.usecases.impl
 
 import android.content.Context
 import kotlinx.coroutines.flow.first
@@ -10,41 +10,22 @@ import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResult
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.models.Bid
-import org.bidon.sdk.auction.models.BidResponse.BidStatus
-import org.bidon.sdk.auction.models.Round
+import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.BidResponse
+import org.bidon.sdk.auction.models.BiddingResponse
+import org.bidon.sdk.auction.models.RoundRequest
+import org.bidon.sdk.auction.usecases.BidRequestUseCase
+import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 
-/**
- * Created by Aleksei Cherniaev on 31/05/2023.
- */
-internal interface ConductBiddingAuctionUseCase {
-    /**
-     * @param participantIds Bidding Demand Ids
-     */
-    suspend fun invoke(
-        context: Context,
-        biddingSources: List<AdLoadingType.Bidding<AdAuctionParams>>,
-        participantIds: List<String>,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        bidfloor: Double,
-        auctionId: String,
-        round: Round,
-        auctionConfigurationId: Int?,
-        resultsCollector: ResultsCollector,
-    )
-}
-
 @Suppress("UNCHECKED_CAST")
-internal class ConductBiddingAuctionUseCaseImpl(
+internal class ConductBiddingRoundUseCaseImpl(
     private val bidRequestUseCase: BidRequestUseCase
-) : ConductBiddingAuctionUseCase {
+) : ConductBiddingRoundUseCase {
 
     override suspend fun invoke(
         context: Context,
@@ -54,7 +35,7 @@ internal class ConductBiddingAuctionUseCaseImpl(
         demandAd: DemandAd,
         bidfloor: Double,
         auctionId: String,
-        round: Round,
+        round: RoundRequest,
         auctionConfigurationId: Int?,
         resultsCollector: ResultsCollector,
     ) {
@@ -65,6 +46,9 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 }
                 logInfo(TAG, "participants: $participants")
 
+                /**
+                 * Load bids
+                 */
                 /**
                  * Load bids
                  */
@@ -82,8 +66,12 @@ internal class ConductBiddingAuctionUseCaseImpl(
                 ).onFailure {
                     logError(TAG, "Error while server bidding", it)
                 }.getOrNull()
-                val bids = bidResponse?.bids?.takeIf { it.isNotEmpty() && bidResponse.status == BidStatus.Success }
+                val bids = bidResponse?.bids?.takeIf { it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success }
                 resultsCollector.serverBiddingFinished(bids)
+
+                /**
+                 * Finish bidding
+                 */
 
                 /**
                  * Finish bidding
@@ -108,10 +96,10 @@ internal class ConductBiddingAuctionUseCaseImpl(
 
     private suspend fun fillBids(
         resultsCollector: ResultsCollector,
-        bids: List<Bid>,
+        bids: List<BidResponse>,
         biddingSources: List<AdLoadingType.Bidding<AdAuctionParams>>,
         adTypeParam: AdTypeParam,
-        round: Round
+        round: RoundRequest
     ) {
         var filled = false
         bids.forEach { bid ->
@@ -143,9 +131,9 @@ internal class ConductBiddingAuctionUseCaseImpl(
 
     private suspend fun loadAd(
         biddingSources: List<AdLoadingType.Bidding<AdAuctionParams>>,
-        bid: Bid,
+        bid: BidResponse,
         adTypeParam: AdTypeParam,
-        round: Round,
+        round: RoundRequest,
     ): AuctionResult.Bidding {
         val adSource = biddingSources.first {
             (it as AdSource<*>).demandId.demandId == bid.demand.id.code

@@ -20,9 +20,9 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.auction.AuctionResult
+import org.bidon.sdk.auction.ext.minByPricefloorOrNull
+import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.LineItem
-import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo

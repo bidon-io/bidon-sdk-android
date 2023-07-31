@@ -1,9 +1,9 @@
-package org.bidon.sdk.config.domain
+package org.bidon.sdk.config.models.domain
 
 import com.google.common.truth.Truth.assertThat
 import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.auction.ext.minByPricefloorOrNull
 import org.bidon.sdk.auction.models.LineItem
-import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.junit.Test
 
 class LineItemTest {

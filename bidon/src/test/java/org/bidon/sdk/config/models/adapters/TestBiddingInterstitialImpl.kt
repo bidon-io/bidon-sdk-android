@@ -16,8 +16,8 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AuctionResult
-import org.bidon.sdk.auction.models.minByPricefloorOrNull
+import org.bidon.sdk.auction.ext.minByPricefloorOrNull
+import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
