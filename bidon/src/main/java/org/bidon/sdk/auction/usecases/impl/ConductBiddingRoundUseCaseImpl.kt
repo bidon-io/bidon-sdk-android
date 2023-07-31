@@ -53,7 +53,10 @@ internal class ConductBiddingRoundUseCaseImpl(
                  * Load bids
                  */
                 val tokens = participants.getTokens(context)
-                logInfo(TAG, "tokens: $tokens")
+                logInfo(TAG, "${tokens.size} token(s):")
+                tokens.forEachIndexed { index, (demandId, token) ->
+                    logInfo(TAG, "#$index ${demandId.demandId} {$token}")
+                }
                 resultsCollector.serverBiddingStarted()
                 val bidResponse = bidRequestUseCase.invoke(
                     adTypeParam = adTypeParam,
@@ -66,7 +69,8 @@ internal class ConductBiddingRoundUseCaseImpl(
                 ).onFailure {
                     logError(TAG, "Error while server bidding", it)
                 }.getOrNull()
-                val bids = bidResponse?.bids?.takeIf { it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success }
+                val bids =
+                    bidResponse?.bids?.takeIf { it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success }
                 resultsCollector.serverBiddingFinished(bids)
 
                 /**
@@ -229,4 +233,4 @@ internal class ConductBiddingRoundUseCaseImpl(
     }
 }
 
-private const val TAG = "ConductBiddingAuctionUseCase"
+private const val TAG = "ConductBiddingRoundUseCase"

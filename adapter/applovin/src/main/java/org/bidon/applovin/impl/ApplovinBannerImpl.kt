@@ -106,7 +106,7 @@ internal class ApplovinBannerImpl(
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(TAG, "adReceived: $this")
                 applovinAd = ad
-                emitEvent(AdEvent.Fill(requireNotNull(ad.asAd())))
+                emitEvent(AdEvent.Fill(ad.asAd()))
             }
 
             override fun failedToReceiveAd(errorCode: Int) {

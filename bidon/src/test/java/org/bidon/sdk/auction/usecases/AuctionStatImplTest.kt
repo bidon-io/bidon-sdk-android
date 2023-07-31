@@ -83,7 +83,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             demands = listOf(
                                 "bidmachine" to jsonObject {
                                     "payload" hasValue "payload123"
-
                                 }
                             )
                         ),
@@ -94,7 +93,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             demands = listOf(
                                 "meta" to jsonObject {
                                     "payload" hasValue "payload123"
-
                                 }
                             )
                         )
@@ -261,7 +259,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             demands = listOf(
                                 "bidmachine" to jsonObject {
                                     "payload" hasValue "payload123"
-
                                 }
                             )
                         )
@@ -418,7 +415,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             demands = listOf(
                                 "bidmachine" to jsonObject {
                                     "payload" hasValue "payload123"
-
                                 }
                             )
                         ),
@@ -429,7 +425,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             demands = listOf(
                                 "bid2" to jsonObject {
                                     "payload" hasValue "payload123"
-
                                 }
                             )
                         ),

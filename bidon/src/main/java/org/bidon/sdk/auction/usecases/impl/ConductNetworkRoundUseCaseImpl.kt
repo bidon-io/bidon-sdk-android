@@ -152,4 +152,4 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
     }
 }
 
-private const val TAG = "ConductNetworkAuctionUseCase"
+private const val TAG = "ConductNetworkNetworkUseCase"

@@ -123,7 +123,7 @@ internal class ApplovinRewardedImpl(
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(TAG, "adReceived: $this")
                 applovinAd = ad
-                emitEvent(AdEvent.Fill(requireNotNull(applovinAd?.asAd())))
+                emitEvent(AdEvent.Fill(ad.asAd()))
             }
 
             override fun failedToReceiveAd(errorCode: Int) {
@@ -131,6 +131,7 @@ internal class ApplovinRewardedImpl(
                 emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
         }
+        logInfo(TAG, "Starting fill: $this")
         incentivizedInterstitial.preload(requestListener)
     }
 
