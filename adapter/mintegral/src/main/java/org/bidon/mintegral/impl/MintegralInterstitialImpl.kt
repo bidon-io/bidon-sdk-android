@@ -31,7 +31,8 @@ import org.bidon.sdk.stats.models.RoundStatus
  *
  * [Mintegral Bidding](https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-in_app_header_bidding&lang=en)
  */
-internal class MintegralInterstitialImpl : AdSource.Interstitial<MintegralAuctionParam>,
+internal class MintegralInterstitialImpl :
+    AdSource.Interstitial<MintegralAuctionParam>,
     AdLoadingType.Bidding<MintegralAuctionParam>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -42,7 +43,6 @@ internal class MintegralInterstitialImpl : AdSource.Interstitial<MintegralAuctio
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.isBidReady == true
-
 
     override fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 

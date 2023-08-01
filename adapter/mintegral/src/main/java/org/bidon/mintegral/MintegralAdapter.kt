@@ -13,7 +13,6 @@ import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.config.BidonError
@@ -67,8 +66,8 @@ class MintegralAdapter :
     override fun parseConfigParam(json: String): MintegralInitParam {
         val jsonObject = JSONObject(json)
         return MintegralInitParam(
-            appId = jsonObject.optString("app_id") ,
-            appKey = jsonObject.optString("app_key")
+            appId = jsonObject.getString("app_id"),
+            appKey = jsonObject.getString("app_key")
         )
     }
 

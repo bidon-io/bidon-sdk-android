@@ -12,5 +12,4 @@ class MintegralAuctionParam(
     override val adUnitId: String?,
     val payload: String,
     val placementId: String?,
-) : AdAuctionParams {
-}
+) : AdAuctionParams
