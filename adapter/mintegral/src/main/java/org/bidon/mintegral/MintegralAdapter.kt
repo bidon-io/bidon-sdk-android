@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.bidon.mintegral.ext.adapterVersion
 import org.bidon.mintegral.ext.sdkVersion
 import org.bidon.mintegral.impl.MintegralInterstitialImpl
+import org.bidon.mintegral.impl.MintegralRewardedImpl
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -55,7 +56,7 @@ class MintegralAdapter :
                         }
 
                         override fun onInitFail(message: String?) {
-                            logError(Tag, "Error while initialization: $message", BidonError.Unspecified(demandId))
+                            logError(TAG, "Error while initialization: $message", BidonError.Unspecified(demandId))
                             continuation.resumeWithException(BidonError.Unspecified(demandId))
                         }
                     }
@@ -80,8 +81,8 @@ class MintegralAdapter :
     }
 
     override fun rewarded(): AdSource.Rewarded<MintegralAuctionParam> {
-        TODO("Not yet implemented")
+        return MintegralRewardedImpl()
     }
 }
 
-private const val Tag = "MintegralAdapter"
+private const val TAG = "MintegralAdapter"
