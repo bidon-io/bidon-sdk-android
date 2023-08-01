@@ -8,6 +8,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.bidon.mintegral.ext.adapterVersion
 import org.bidon.mintegral.ext.sdkVersion
+import org.bidon.mintegral.impl.MintegralBannerImpl
 import org.bidon.mintegral.impl.MintegralInterstitialImpl
 import org.bidon.mintegral.impl.MintegralRewardedImpl
 import org.bidon.sdk.adapter.AdProvider
@@ -33,7 +34,7 @@ internal val MintegralDemandId = DemandId("mintegral")
 class MintegralAdapter :
     Adapter,
     Initializable<MintegralInitParam>,
-    AdProvider.Banner<MintegralAuctionParam>,
+    AdProvider.Banner<MintegralBannerAuctionParam>,
     AdProvider.Interstitial<MintegralAuctionParam>,
     AdProvider.Rewarded<MintegralAuctionParam> {
 
@@ -72,8 +73,8 @@ class MintegralAdapter :
         )
     }
 
-    override fun banner(): AdSource.Banner<MintegralAuctionParam> {
-        TODO("Not yet implemented")
+    override fun banner(): AdSource.Banner<MintegralBannerAuctionParam> {
+        return MintegralBannerImpl()
     }
 
     override fun interstitial(): AdSource.Interstitial<MintegralAuctionParam> {
