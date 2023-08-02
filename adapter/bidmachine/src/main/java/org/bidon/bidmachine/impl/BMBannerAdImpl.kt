@@ -93,10 +93,17 @@ internal class BMBannerAdImpl :
 
     private val bannerListener by lazy {
         object : BannerListener {
+
             override fun onAdLoaded(bannerView: BannerView) {
                 logInfo(TAG, "onAdLoaded: $this")
                 this@BMBannerAdImpl.bannerView = bannerView
                 emitEvent(AdEvent.Fill(bannerView.asAd()))
+            }
+
+            override fun onAdShowFailed(bannerView: BannerView, bmError: BMError) {
+                logInfo(TAG, "onAdShowFailed: $this")
+                this@BMBannerAdImpl.bannerView = bannerView
+                emitEvent(AdEvent.ShowFailed(bmError.asBidonErrorOnFill(demandId)))
             }
 
             override fun onAdLoadFailed(bannerView: BannerView, bmError: BMError) {
