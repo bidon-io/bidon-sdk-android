@@ -6,18 +6,18 @@ import android.util.DisplayMetrics
 import android.view.WindowManager
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
-import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.admob.AdmobBannerAuctionParams
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
+import org.bidon.sdk.adapter.impl.AdEventFlow
+import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
-import org.bidon.sdk.auction.models.minByPricefloorOrNull
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logError
@@ -28,25 +28,11 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
  */
-internal class AdmobBannerImpl(
-    override val demandId: DemandId,
-    private val demandAd: DemandAd,
-    private val roundId: String,
-    private val auctionId: String
-) : AdSource.Banner<AdmobBannerAuctionParams>,
+internal class AdmobBannerImpl :
+    AdSource.Banner<AdmobBannerAuctionParams>,
     AdLoadingType.Network<AdmobBannerAuctionParams>,
-    StatisticsCollector by StatisticsCollectorImpl(
-        auctionId = auctionId,
-        roundId = roundId,
-        demandId = demandId,
-        demandAd = demandAd
-    ) {
-
-    override val ad: Ad?
-        get() = adView?.asAd()
-
-    override val adEvent =
-        MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
+    AdEventFlow by AdEventFlowImpl(),
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     override var isAdReadyToShow: Boolean = false
 
@@ -60,7 +46,7 @@ internal class AdmobBannerImpl(
      */
     private val paidListener by lazy {
         OnPaidEventListener { adValue ->
-            adEvent.tryEmit(
+            emitEvent(
                 AdEvent.PaidRevenue(
                     ad = Ad(
                         demandAd = demandAd,
@@ -80,7 +66,7 @@ internal class AdmobBannerImpl(
     }
 
     override fun destroy() {
-        logInfo(Tag, "destroy $this")
+        logInfo(TAG, "destroy $this")
         adView?.onPaidEventListener = null
         adView = null
         param = null
@@ -88,13 +74,9 @@ internal class AdmobBannerImpl(
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val lineItem = lineItems
-                .minByPricefloorOrNull(demandId, pricefloor)
-                ?.also(onLineItemConsumed)
             AdmobBannerAuctionParams(
-                lineItem = lineItem ?: error(BidonError.NoAppropriateAdUnitId),
+                lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
                 bannerFormat = bannerFormat,
-                pricefloor = pricefloor,
                 context = activity.applicationContext,
                 containerWidth = containerWidth
             )
@@ -103,42 +85,42 @@ internal class AdmobBannerImpl(
 
     @SuppressLint("MissingPermission")
     override fun fill(adParams: AdmobBannerAuctionParams) {
-        logInfo(Tag, "Starting with $adParams")
+        logInfo(TAG, "Starting with $adParams")
         param = adParams
         val adUnitId = param?.lineItem?.adUnitId
         if (!adUnitId.isNullOrBlank()) {
             val requestListener = object : AdListener() {
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                     logError(
-                        Tag,
+                        TAG,
                         "Error while loading ad: $loadAdError. $this",
                         loadAdError.asBidonError()
                     )
-                    adEvent.tryEmit(
+                    emitEvent(
                         AdEvent.LoadFailed(loadAdError.asBidonError())
                     )
                 }
 
                 override fun onAdLoaded() {
-                    logInfo(Tag, "onAdLoaded: $this")
+                    logInfo(TAG, "onAdLoaded: $this")
                     adView?.run {
                         isAdReadyToShow = true
-                        adEvent.tryEmit(AdEvent.Fill(ad = requireNotNull(adView?.asAd())))
+                        emitEvent(AdEvent.Fill(ad = requireNotNull(adView?.asAd())))
                     }
                 }
 
                 override fun onAdClicked() {
-                    logInfo(Tag, "onAdClicked: $this")
-                    adEvent.tryEmit(AdEvent.Clicked(requiredAdView.asAd()))
+                    logInfo(TAG, "onAdClicked: $this")
+                    emitEvent(AdEvent.Clicked(requiredAdView.asAd()))
                 }
 
                 override fun onAdClosed() {
-                    logInfo(Tag, "onAdClosed: $this")
-                    adEvent.tryEmit(AdEvent.Closed(requiredAdView.asAd()))
+                    logInfo(TAG, "onAdClosed: $this")
+                    emitEvent(AdEvent.Closed(requiredAdView.asAd()))
                 }
 
                 override fun onAdImpression() {
-                    logInfo(Tag, "onAdImpression: $this")
+                    logInfo(TAG, "onAdImpression: $this")
                     // tracked impression/shown by [BannerView]
                 }
 
@@ -166,11 +148,11 @@ internal class AdmobBannerImpl(
         } else {
             val error = BidonError.NoAppropriateAdUnitId
             logError(
-                tag = Tag,
+                tag = TAG,
                 message = "No appropriate AdUnitId found for price_floor=${adParams.lineItem.pricefloor}",
                 error = error
             )
-            adEvent.tryEmit(AdEvent.LoadFailed(error))
+            emitEvent(AdEvent.LoadFailed(error))
         }
     }
 
@@ -217,4 +199,4 @@ internal class AdmobBannerImpl(
     }
 }
 
-private const val Tag = "Admob Banner"
+private const val TAG = "Admob Banner"

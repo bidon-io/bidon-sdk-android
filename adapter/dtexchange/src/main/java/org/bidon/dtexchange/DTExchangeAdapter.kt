@@ -17,7 +17,6 @@ import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
@@ -71,7 +70,7 @@ class DTExchangeAdapter :
                     FyberInitStatus.FAILED,
                     FyberInitStatus.INVALID_APP_ID, null -> {
                         val cause = Throwable("Adapter(${DTExchangeDemandId.demandId}) not initialized ($initStatus)")
-                        logError(Tag, "Error while initialization", cause)
+                        logError(TAG, "Error while initialization", cause)
                         continuation.resumeWithException(cause)
                     }
                 }
@@ -95,40 +94,17 @@ class DTExchangeAdapter :
         }
     }
 
-    override fun rewarded(demandAd: DemandAd, roundId: String, auctionId: String): AdSource.Rewarded<DTExchangeAdAuctionParams> {
-        return DTExchangeRewarded(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun rewarded(): AdSource.Rewarded<DTExchangeAdAuctionParams> {
+        return DTExchangeRewarded()
     }
 
-    override fun interstitial(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Interstitial<DTExchangeAdAuctionParams> {
-        return DTExchangeInterstitial(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun interstitial(): AdSource.Interstitial<DTExchangeAdAuctionParams> {
+        return DTExchangeInterstitial()
     }
 
-    override fun banner(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Banner<DTExchangeBannerAuctionParams> {
-        return DTExchangeBanner(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun banner(): AdSource.Banner<DTExchangeBannerAuctionParams> {
+        return DTExchangeBanner()
     }
 }
 
-private const val Tag = "DTExchangeAdapter"
+private const val TAG = "DTExchangeAdapter"

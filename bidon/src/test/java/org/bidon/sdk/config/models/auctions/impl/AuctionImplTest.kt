@@ -12,18 +12,20 @@ import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.DeviceType
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.impl.AuctionImpl
+import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.LineItem
-import org.bidon.sdk.auction.models.Round
+import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.AuctionStatImpl
+import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
-import org.bidon.sdk.auction.usecases.models.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.models.adapters.Process
 import org.bidon.sdk.config.models.adapters.TestAdapter
@@ -39,13 +41,14 @@ import org.bidon.sdk.utils.di.SimpleDiStorage
 import org.bidon.sdk.utils.ext.asSuccess
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
-import kotlin.test.Ignore
 
 internal const val BidMachine = "bidmachine"
 internal const val Applovin = "applovin"
 internal const val Admob = "admob"
 
+@Ignore
 @ExperimentalCoroutinesApi
 internal class AuctionImplTest : ConcurrentTest() {
 
@@ -57,7 +60,10 @@ internal class AuctionImplTest : ConcurrentTest() {
     private val statRequestUseCase: StatsRequestUseCase by lazy { mockk(relaxed = true) }
 
     private val auctionStat: AuctionStat by lazy {
-        AuctionStatImpl(statRequestUseCase)
+        AuctionStatImpl(
+            statRequestUseCase,
+            resolver = MaxEcpmAuctionResolver
+        )
     }
 
     private val testee: Auction by lazy {
@@ -82,7 +88,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         SimpleDiStorage.instances.clear()
     }
 
-    @Ignore
     @Test
     fun `it should detect winner in #round_2 when 2 rounds are completed`() = runTest {
 
@@ -112,14 +117,14 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
         val auctionConfig = AuctionResponse(
             rounds = listOf(
-                Round(
+                RoundRequest(
                     id = "round_1",
                     timeoutMs = 15,
                     demandIds = listOf(Applovin, Admob),
                     biddingIds = listOf(),
                 ),
-                Round(
-                    id = "round_2",
+                RoundRequest(
+                    id = "ROUND_2",
                     timeoutMs = 25,
                     demandIds = listOf(Admob),
                     biddingIds = listOf(),
@@ -170,8 +175,8 @@ internal class AuctionImplTest : ConcurrentTest() {
                 requireNotNull(winnerAd)
                 assertThat(winnerAd.adUnitId).isEqualTo("admob2")
                 assertThat(winnerAd.ecpm).isEqualTo(2.2235)
-                assertThat(winnerAd.roundId).isEqualTo("round_2")
-                assertThat(winner.ecpm).isEqualTo(2.2235)
+                assertThat(winnerAd.roundId).isEqualTo("ROUND_2")
+                assertThat(winner.adSource.getStats().ecpm).isEqualTo(2.2235)
                 val roundStat = slot<List<RoundStat>>()
                 val demandAd = slot<DemandAd>()
                 // AND CHECK STAT REQUEST
@@ -181,17 +186,17 @@ internal class AuctionImplTest : ConcurrentTest() {
                 assertThat(actualRoundStat[0].auctionId).isEqualTo("auctionId_123")
                 assertThat(actualRoundStat[0].roundId).isEqualTo("round_1")
                 assertThat(actualRoundStat[0].demands).hasSize(2)
-                assertThat(actualRoundStat[0].demands[0].roundStatus).isEqualTo(RoundStatus.Loss)
+                assertThat(actualRoundStat[0].demands[0].roundStatusCode).isEqualTo(RoundStatus.Lose.code)
                 assertThat(actualRoundStat[0].demands[0].ecpm).isEqualTo(1.2235)
                 assertThat(actualRoundStat[0].demands[0].fillStartTs).isNull()
-                assertThat(actualRoundStat[0].demands[1].roundStatus).isEqualTo(RoundStatus.Loss)
+                assertThat(actualRoundStat[0].demands[1].roundStatusCode).isEqualTo(RoundStatus.Lose.code)
                 assertThat(actualRoundStat[0].demands[1].ecpm).isEqualTo(0.25)
                 assertThat(actualRoundStat[0].demands[1].fillStartTs).isNull()
                 // WINNER
                 assertThat(actualRoundStat[1].auctionId).isEqualTo("auctionId_123")
-                assertThat(actualRoundStat[1].roundId).isEqualTo("round_2")
+                assertThat(actualRoundStat[1].roundId).isEqualTo("ROUND_2")
                 assertThat(actualRoundStat[1].demands).hasSize(1)
-                assertThat(actualRoundStat[1].demands[0].roundStatus).isEqualTo(RoundStatus.Win)
+                assertThat(actualRoundStat[1].demands[0].roundStatusCode).isEqualTo(RoundStatus.Win.code)
                 assertThat(actualRoundStat[1].demands[0].ecpm).isEqualTo(2.2235)
                 assertThat(actualRoundStat[1].demands[0].adUnitId).isEqualTo("admob2")
                 assertThat(actualRoundStat[1].demands[0].fillStartTs).isNotNull()
@@ -203,7 +208,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
     }
 
-    @Ignore
     @Test
     fun `it should detect winner in #round_1 when 2 rounds are completed`() = runTest {
         // PREPARE
@@ -252,7 +256,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 assertThat(winnerAd.adUnitId).isEqualTo("AAAA2")
                 assertThat(winnerAd.ecpm).isEqualTo(2.25)
                 assertThat(winnerAd.roundId).isEqualTo("round_1")
-                assertThat(winner.ecpm).isEqualTo(2.25)
+                assertThat(winner.adSource.getStats().ecpm).isEqualTo(2.25)
             },
             onFailure = {
                 error("unexpected: $it")
@@ -260,7 +264,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
     }
 
-    @Ignore
     @Test
     fun `it should expose #NoAuctionResults when all bids failed`() = runTest {
         // PREPARE
@@ -304,7 +307,6 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
     }
 
-    @Ignore
     @Test
     fun `it should expose #NoAuctionResults when all fills failed`() = runTest {
         // PREPARE
@@ -350,14 +352,14 @@ internal class AuctionImplTest : ConcurrentTest() {
 
     private fun getAuctionResponse() = AuctionResponse(
         rounds = listOf(
-            Round(
+            RoundRequest(
                 id = "round_1",
                 timeoutMs = 15,
                 demandIds = listOf(Applovin, Admob),
                 biddingIds = listOf(),
             ),
-            Round(
-                id = "round_2",
+            RoundRequest(
+                id = "ROUND_2",
                 timeoutMs = 25,
                 demandIds = listOf(Admob),
                 biddingIds = listOf(),

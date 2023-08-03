@@ -8,7 +8,7 @@ import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.ext.asAdRequestBody
 import org.bidon.sdk.ads.ext.asAdType
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.AdObjectRequestBody
+import org.bidon.sdk.auction.models.AdObjectRequest
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.databinders.DataBinderType
@@ -49,7 +49,7 @@ internal class GetAuctionRequestUseCaseImpl(
     ): Result<AuctionResponse> {
         return withContext(SdkDispatchers.IO) {
             val (banner, interstitial, rewarded) = additionalData.asAdRequestBody()
-            val adObject = AdObjectRequestBody(
+            val adObject = AdObjectRequest(
                 auctionId = auctionId,
                 banner = banner,
                 interstitial = interstitial,
@@ -63,7 +63,7 @@ internal class GetAuctionRequestUseCaseImpl(
                 data = adObject,
                 extras = BidonSdk.getExtras() + demandAd.getExtras()
             )
-            logInfo(Tag, "Request body: $requestBody")
+            logInfo(TAG, "Request body: $requestBody")
             get<JsonHttpRequest>().invoke(
                 path = "$AuctionRequestPath/${additionalData.asAdType().code}",
                 body = requestBody,
@@ -71,13 +71,13 @@ internal class GetAuctionRequestUseCaseImpl(
                 segmentSynchronizer.parseSegmentId(jsonResponse)
                 requireNotNull(JsonParsers.parseOrNull<AuctionResponse>(jsonResponse))
             }.onFailure {
-                logError(Tag, "Error while loading auction data", it)
+                logError(TAG, "Error while loading auction data", it)
             }.onSuccess {
-                logInfo(Tag, "Loaded auction data: $it")
+                logInfo(TAG, "Loaded auction data: $it")
             }
         }
     }
 }
 
 private const val AuctionRequestPath = "auction"
-private const val Tag = "AuctionRequestUseCase"
+private const val TAG = "AuctionRequestUseCase"

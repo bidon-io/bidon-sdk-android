@@ -1,6 +1,9 @@
 package org.bidon.sdk.stats
 
-import org.bidon.sdk.auction.models.BannerRequestBody
+import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.RoundStatus
 
@@ -9,15 +12,19 @@ import org.bidon.sdk.stats.models.RoundStatus
  */
 interface StatisticsCollector {
 
+    val demandAd: DemandAd
+    val demandId: DemandId
+    val auctionId: String
+    val roundId: String
+    fun getAd(demandAdObject: Any): Ad?
+
     fun sendShowImpression()
     fun sendClickImpression()
     fun sendRewardImpression()
     fun sendLoss(winnerDemandId: String, winnerEcpm: Double)
     fun sendWin()
 
-    fun markBidStarted(adUnitId: String? = null)
-    fun markBidFinished(roundStatus: RoundStatus, ecpm: Double?)
-    fun markFillStarted(adUnitId: String?)
+    fun markFillStarted(adUnitId: String?, pricefloor: Double?)
     fun markFillFinished(roundStatus: RoundStatus, ecpm: Double?)
     fun markWin()
     fun markLoss()
@@ -26,12 +33,14 @@ interface StatisticsCollector {
     fun setStatisticAdType(adType: AdType)
     fun addAuctionConfigurationId(auctionConfigurationId: Int)
     fun addExternalWinNotificationsEnabled(enabled: Boolean)
+    fun addDemandId(demandId: DemandId)
+    fun addRoundInfo(auctionId: String, roundId: String, demandAd: DemandAd)
 
-    fun buildBidStatistic(): BidStat
+    fun getStats(): BidStat
 
     sealed interface AdType {
         object Rewarded : AdType
         object Interstitial : AdType
-        data class Banner(val format: BannerRequestBody.StatFormat) : AdType
+        data class Banner(val format: BannerRequest.StatFormat) : AdType
     }
 }

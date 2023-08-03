@@ -45,6 +45,8 @@ include(
     ":adapter:dtexchange",
     ":adapter:unityads",
     ":adapter:vungle",
+    ":adapter:bigoads",
+    ":adapter:mintegral",
 //    ":adapter:fyber",
 //    ":adapter:ironsource",
 //    ":adapter:appsflyer"

@@ -8,11 +8,11 @@ import org.json.JSONObject
  * Created by Bidon Team on 06/02/2023.
  */
 internal data class AuctionResponse(
-    val rounds: List<Round>?,
+    val rounds: List<RoundRequest>?,
     val lineItems: List<LineItem>?,
     val pricefloor: Double?,
     val token: String?,
-    val auctionId: String?,
+    val auctionId: String,
     val auctionConfigurationId: Int?,
     val externalWinNotificationsEnabled: Boolean,
 )
@@ -22,7 +22,7 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
         val json = JSONObject(jsonString)
         AuctionResponse(
             rounds = JsonParsers.parseList(json.optJSONArray("rounds")),
-            auctionId = json.optString("auction_id"),
+            auctionId = json.getString("auction_id"),
             pricefloor = json.optDouble("pricefloor"),
             auctionConfigurationId = json.optInt("auction_configuration_id"),
             lineItems = JsonParsers.parseList(json.optJSONArray("line_items")),

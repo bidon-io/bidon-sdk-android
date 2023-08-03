@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
@@ -67,7 +66,7 @@ class UnityAdsAdapter :
                     }
 
                     override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
-                        logError(Tag, "Error while initialization: $message, $error", error.asBidonError())
+                        logError(TAG, "Error while initialization: $message, $error", error.asBidonError())
                         continuation.resumeWithException(error.asBidonError())
                     }
                 }
@@ -87,44 +86,17 @@ class UnityAdsAdapter :
         }.commit()
     }
 
-    override fun interstitial(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Interstitial<UnityAdsFullscreenAuctionParams> {
-        return UnityAdsInterstitial(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun interstitial(): AdSource.Interstitial<UnityAdsFullscreenAuctionParams> {
+        return UnityAdsInterstitial()
     }
 
-    override fun rewarded(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Rewarded<UnityAdsFullscreenAuctionParams> {
-        return UnityAdsRewarded(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun rewarded(): AdSource.Rewarded<UnityAdsFullscreenAuctionParams> {
+        return UnityAdsRewarded()
     }
 
-    override fun banner(
-        demandAd: DemandAd,
-        roundId: String,
-        auctionId: String
-    ): AdSource.Banner<UnityAdsBannerAuctionParams> {
-        return UnityAdsBanner(
-            demandId = demandId,
-            demandAd = demandAd,
-            roundId = roundId,
-            auctionId = auctionId
-        )
+    override fun banner(): AdSource.Banner<UnityAdsBannerAuctionParams> {
+        return UnityAdsBanner()
     }
 }
 
-private const val Tag = "UnityAdsAdapter"
+private const val TAG = "UnityAdsAdapter"
