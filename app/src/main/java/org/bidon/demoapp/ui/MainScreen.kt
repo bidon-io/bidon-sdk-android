@@ -79,7 +79,7 @@ internal fun MainScreen(
                 TestModeView(isTestMode)
                 if (state == MainScreenState.NotInitialized) {
                     MultiSelector(
-                        modifier = Modifier.padding(horizontal = 60.dp, vertical = 16.dp),
+                        modifier = Modifier.padding(start = 60.dp, end = 60.dp, top = 16.dp),
                         items = DefaultAdapters.values().toList(),
                         selectedItems = adapters.value,
                         getItemTitle = {
@@ -102,6 +102,9 @@ internal fun MainScreen(
                             }
                         }
                     )
+                    AppTextButton(text = "Deselect All", modifier = Modifier.padding(bottom = 16.dp)) {
+                        adapters.value = emptyList()
+                    }
                     AppTextButton(text = "Server settings", modifier = Modifier.padding(top = 0.dp)) {
                         navController.navigate(Screen.ServerSettings.route)
                     }
