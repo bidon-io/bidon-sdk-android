@@ -49,7 +49,7 @@ internal class MintegralRewardedImpl :
         return auctionParamsScope {
             MintegralAuctionParam(
                 activity = activity,
-                pricefloor = pricefloor,
+                price = pricefloor,
                 payload = requireNotNull(json?.getString("payload")) {
                     "Payload is required for Mintegral"
                 },
@@ -118,7 +118,7 @@ internal class MintegralRewardedImpl :
                     AdEvent.PaidRevenue(
                         ad = ad,
                         adValue = AdValue(
-                            adRevenue = adParams.pricefloor / 1000.0,
+                            adRevenue = adParams.price / 1000.0,
                             precision = Precision.Precise,
                             currency = AdValue.USD
                         )

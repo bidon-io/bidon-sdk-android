@@ -165,7 +165,7 @@ internal class BMBannerAdImpl :
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BMBannerAuctionParams(
-                pricefloor = pricefloor,
+                price = pricefloor,
                 timeout = timeout,
                 context = activity.applicationContext,
                 bannerFormat = bannerFormat,
@@ -206,7 +206,7 @@ internal class BMBannerAdImpl :
         bannerFormat = adParams.bannerFormat
         val requestBuilder = BannerRequest.Builder()
             .setSize(adParams.bannerFormat.asBidMachineBannerSize())
-            .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.pricefloor))
+            .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(requestListener)

@@ -10,7 +10,7 @@ data class BigoBannerAuctionParams(
     val payload: String,
 ) : AdAuctionParams {
     override val adUnitId: String get() = slotId
-    override val pricefloor: Double get() = bidPrice
+    override val price: Double get() = bidPrice
 }
 
 data class BigoFullscreenAuctionParams(
@@ -19,5 +19,5 @@ data class BigoFullscreenAuctionParams(
     val payload: String,
 ) : AdAuctionParams {
     override val adUnitId: String get() = slotId
-    override val pricefloor: Double get() = bidPrice
+    override val price: Double get() = bidPrice
 }

@@ -10,17 +10,25 @@ import org.bidon.sdk.ads.banner.BannerFormat
  */
 class MintegralAuctionParam(
     val activity: Activity,
-    override val pricefloor: Double,
+    override val price: Double,
     override val adUnitId: String?,
     val payload: String,
     val placementId: String?,
-) : AdAuctionParams
+) : AdAuctionParams {
+    override fun toString(): String {
+        return "MintegralAuctionParam(price=$price, adUnitId=$adUnitId, placementId=$placementId, payload='$payload')"
+    }
+}
 
 class MintegralBannerAuctionParam(
     val context: Context,
     val bannerFormat: BannerFormat,
-    override val pricefloor: Double,
+    override val price: Double,
     override val adUnitId: String?,
     val payload: String,
     val placementId: String?,
-) : AdAuctionParams
+) : AdAuctionParams {
+    override fun toString(): String {
+        return "MintegralBannerAuctionParam($bannerFormat, price=$price, adUnitId=$adUnitId, placementId=$placementId, payload='$payload')"
+    }
+}

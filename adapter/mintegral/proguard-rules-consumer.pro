@@ -1,5 +1,7 @@
 -keeppackagenames org.bidon.**
 
+-keep class org.bidon.mintegral.MintegralAdapter { *; }
+
 -keepattributes Signature
 -keepattributes *Annotation*
 -keep class com.mbridge.** {*; }

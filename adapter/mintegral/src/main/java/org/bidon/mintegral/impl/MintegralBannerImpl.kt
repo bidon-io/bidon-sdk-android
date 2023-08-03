@@ -51,7 +51,7 @@ internal class MintegralBannerImpl :
         return auctionParamsScope {
             MintegralBannerAuctionParam(
                 context = activity.applicationContext,
-                pricefloor = pricefloor,
+                price = pricefloor,
                 payload = requireNotNull(json?.getString("payload")) {
                     "Payload is required for Mintegral"
                 },
@@ -105,7 +105,7 @@ internal class MintegralBannerImpl :
                     AdEvent.PaidRevenue(
                         ad = ad,
                         adValue = AdValue(
-                            adRevenue = adParams.pricefloor / 1000.0,
+                            adRevenue = adParams.price / 1000.0,
                             precision = Precision.Precise,
                             currency = AdValue.USD
                         )
