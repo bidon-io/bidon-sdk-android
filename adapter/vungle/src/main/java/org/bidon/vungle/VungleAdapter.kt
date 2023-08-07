@@ -21,6 +21,7 @@ import org.bidon.sdk.regulation.Regulation
 import org.bidon.vungle.ext.adapterVersion
 import org.bidon.vungle.ext.sdkVersion
 import org.bidon.vungle.impl.VungleInterstitialImpl
+import org.bidon.vungle.impl.VungleRewardedImpl
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -90,7 +91,7 @@ class VungleAdapter :
     }
 
     override fun rewarded(): AdSource.Rewarded<VungleFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return VungleRewardedImpl()
     }
 }
 
