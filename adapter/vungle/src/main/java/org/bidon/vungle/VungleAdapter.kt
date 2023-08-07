@@ -20,6 +20,7 @@ import org.bidon.sdk.regulation.Gdpr
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.vungle.ext.adapterVersion
 import org.bidon.vungle.ext.sdkVersion
+import org.bidon.vungle.impl.VungleBannerImpl
 import org.bidon.vungle.impl.VungleInterstitialImpl
 import org.bidon.vungle.impl.VungleRewardedImpl
 import org.json.JSONObject
@@ -87,7 +88,7 @@ class VungleAdapter :
     }
 
     override fun banner(): AdSource.Banner<VungleBannerAuctionParams> {
-        TODO("Not yet implemented")
+        return VungleBannerImpl()
     }
 
     override fun rewarded(): AdSource.Rewarded<VungleFullscreenAuctionParams> {
