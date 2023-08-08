@@ -6,16 +6,21 @@ import com.facebook.ads.AudienceNetworkAds
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.meta.ext.adapterVersion
 import org.bidon.meta.ext.sdkVersion
+import org.bidon.meta.impl.MetaFullscreenAuctionParams
+import org.bidon.meta.impl.MetaInterstitialImpl
+import org.bidon.meta.impl.MetaParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
+import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.regulation.Regulation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -26,6 +31,7 @@ val MetaDemandId = DemandId("meta")
 
 class MetaAudienceAdapter :
     Adapter,
+    SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Interstitial<MetaFullscreenAuctionParams>,
     AdProvider.Rewarded<MetaFullscreenAuctionParams>,
@@ -41,6 +47,7 @@ class MetaAudienceAdapter :
         if (isTestMode) {
             AdSettings.setIntegrationErrorMode(AdSettings.IntegrationErrorMode.INTEGRATION_ERROR_CRASH_DEBUG_MODE)
         }
+        AdSettings.setTestMode(isTestMode)
         AudienceNetworkAds
             .buildInitSettings(context)
             .withInitListener { initResult ->
@@ -56,8 +63,12 @@ class MetaAudienceAdapter :
 
     override fun parseConfigParam(json: String): MetaParams = MetaParams
 
+    override fun updateRegulation(regulation: Regulation) {
+        AdSettings.setMixedAudience(regulation.coppaApplies)
+    }
+
     override fun interstitial(): AdSource.Interstitial<MetaFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return MetaInterstitialImpl()
     }
 
     override fun banner(): AdSource.Banner<MetaFullscreenAuctionParams> {

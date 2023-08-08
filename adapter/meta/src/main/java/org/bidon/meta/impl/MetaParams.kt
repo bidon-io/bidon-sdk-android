@@ -1,4 +1,4 @@
-package org.bidon.meta
+package org.bidon.meta.impl
 
 import org.bidon.sdk.adapter.AdapterParameters
 
