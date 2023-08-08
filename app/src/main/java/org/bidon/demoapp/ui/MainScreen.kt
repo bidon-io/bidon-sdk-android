@@ -91,6 +91,7 @@ internal fun MainScreen(
                                 DefaultAdapters.UnityAdsAdapter -> "Unity Ads"
                                 DefaultAdapters.BigoAdsAdapter -> "Bigo Ads"
                                 DefaultAdapters.MintegralAdapter -> "Mintegral"
+                                DefaultAdapters.MetaAdapter -> "Meta/Facebook"
                             }
                         },
                         onItemClicked = {
