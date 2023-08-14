@@ -97,6 +97,7 @@ dependencies {
     implementation(project(":adapter:bigoads"))
     implementation(project(":adapter:mintegral"))
     implementation(project(":adapter:meta"))
+    implementation(project(":adapter:vungle"))
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 
