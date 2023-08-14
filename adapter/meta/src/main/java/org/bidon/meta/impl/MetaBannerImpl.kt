@@ -15,8 +15,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -140,8 +138,8 @@ class MetaBannerImpl :
         return bannerView?.let { adView ->
             AdViewHolder(
                 networkAdview = adView,
-                widthDp = adView.width.takeIf { it != 0 } ?: adParams.bannerFormat.getWidthDp(),
-                heightDp = adView.height.takeIf { it != 0 } ?: adParams.bannerFormat.getHeightDp()
+                widthDp = adParams.bannerSize.width,
+                heightDp = adParams.bannerSize.height
             )
         }
     }
