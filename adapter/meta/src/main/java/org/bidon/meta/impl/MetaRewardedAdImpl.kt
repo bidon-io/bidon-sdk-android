@@ -5,8 +5,8 @@ import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.BidderTokenProvider
-import com.facebook.ads.InterstitialAd
-import com.facebook.ads.InterstitialAdListener
+import com.facebook.ads.RewardedVideoAd
+import com.facebook.ads.RewardedVideoAdListener
 import org.bidon.meta.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -28,17 +28,17 @@ import org.bidon.sdk.stats.models.RoundStatus
 /**
  * Created by Aleksei Cherniaev on 08/08/2023.
  */
-class MetaInterstitialImpl :
-    AdSource.Interstitial<MetaFullscreenAuctionParams>,
+class MetaRewardedAdImpl :
+    AdSource.Rewarded<MetaFullscreenAuctionParams>,
     AdLoadingType.Bidding<MetaFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adParams: MetaFullscreenAuctionParams? = null
-    private var interstitialAd: InterstitialAd? = null
+    private var rewardedVideoAd: RewardedVideoAd? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd?.isAdLoaded ?: false
+        get() = rewardedVideoAd?.isAdLoaded ?: false
 
     override fun getToken(context: Context): String? {
         return BidderTokenProvider.getBidderToken(context)
@@ -63,24 +63,28 @@ class MetaInterstitialImpl :
 
     override fun adRequest(adParams: MetaFullscreenAuctionParams) {
         this.adParams = adParams
-        val interstitial = InterstitialAd(adParams.context, adParams.placementId).also {
-            interstitialAd = it
+        val rewardedAd = RewardedVideoAd(adParams.context, adParams.placementId).also {
+            rewardedVideoAd = it
         }
-        interstitial.loadAd(
-            interstitial.buildLoadAdConfig()
-                .withAdListener(object : InterstitialAdListener {
+        rewardedAd.loadAd(
+            rewardedAd.buildLoadAdConfig()
+                .withAdListener(object : RewardedVideoAdListener {
                     override fun onError(ad: Ad?, adError: AdError?) {
                         val error = adError.asBidonError()
-                        logError(TAG, "Error while loading ad: AdError(${adError?.errorCode}: ${adError?.errorMessage}). $this", error)
+                        logError(
+                            TAG,
+                            "Error while loading ad: AdError(${adError?.errorCode}: ${adError?.errorMessage}). $this",
+                            error
+                        )
                         emitEvent(AdEvent.LoadFailed(error))
                     }
 
                     override fun onAdLoaded(ad: Ad?) {
-                        logInfo(TAG, "onAdLoaded $ad: $interstitialAd, $this")
+                        logInfo(TAG, "onAdLoaded $ad: $rewardedVideoAd, $this")
                         emitEvent(
                             AdEvent.Bid(
                                 AuctionResult.Bidding(
-                                    adSource = this@MetaInterstitialImpl,
+                                    adSource = this@MetaRewardedAdImpl,
                                     roundStatus = RoundStatus.Successful
                                 )
                             )
@@ -89,13 +93,13 @@ class MetaInterstitialImpl :
 
                     override fun onAdClicked(ad: Ad?) {
                         logInfo(TAG, "onAdClicked: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
                         emitEvent(AdEvent.Clicked(bidonAd))
                     }
 
                     override fun onLoggingImpression(ad: Ad?) {
                         logInfo(TAG, "onAdImpression: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = bidonAd,
@@ -108,15 +112,16 @@ class MetaInterstitialImpl :
                         )
                     }
 
-                    override fun onInterstitialDisplayed(ad: Ad?) {
-                        logInfo(TAG, "onInterstitialDisplayed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                    override fun onRewardedVideoCompleted() {
+                        logInfo(TAG, "onRewardedVideoCompleted")
+                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
                         emitEvent(AdEvent.Shown(bidonAd))
+                        emitEvent(AdEvent.OnReward(bidonAd, null))
                     }
 
-                    override fun onInterstitialDismissed(ad: Ad?) {
-                        logInfo(TAG, "onInterstitialDismissed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                    override fun onRewardedVideoClosed() {
+                        logInfo(TAG, "onRewardedVideoClosed")
+                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
                         emitEvent(AdEvent.Closed(bidonAd))
                     }
                 })
@@ -127,7 +132,7 @@ class MetaInterstitialImpl :
 
     override fun fill() {
         val ad = getAd(this)
-        if (interstitialAd != null && ad != null) {
+        if (rewardedVideoAd != null && ad != null) {
             emitEvent(AdEvent.Fill(ad))
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
@@ -135,19 +140,19 @@ class MetaInterstitialImpl :
     }
 
     override fun destroy() {
-        interstitialAd?.destroy()
-        interstitialAd = null
+        rewardedVideoAd?.destroy()
+        rewardedVideoAd = null
         adParams = null
     }
 
     override fun show(activity: Activity) {
-        val interstitialAd = interstitialAd
-        if (interstitialAd != null && interstitialAd.isAdLoaded) {
-            interstitialAd.show()
+        val rewardedAd = rewardedVideoAd
+        if (rewardedAd != null && rewardedAd.isAdLoaded) {
+            rewardedAd.show()
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
         }
     }
 }
 
-private const val TAG = "MetaInterstitialImpl"
+private const val TAG = "MetaRewardedAdImpl"

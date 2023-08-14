@@ -6,9 +6,12 @@ import com.facebook.ads.AudienceNetworkAds
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.meta.ext.adapterVersion
 import org.bidon.meta.ext.sdkVersion
+import org.bidon.meta.impl.MetaBannerAuctionParams
+import org.bidon.meta.impl.MetaBannerImpl
 import org.bidon.meta.impl.MetaFullscreenAuctionParams
 import org.bidon.meta.impl.MetaInterstitialImpl
 import org.bidon.meta.impl.MetaParams
+import org.bidon.meta.impl.MetaRewardedAdImpl
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -20,6 +23,7 @@ import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -35,7 +39,7 @@ class MetaAudienceAdapter :
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Interstitial<MetaFullscreenAuctionParams>,
     AdProvider.Rewarded<MetaFullscreenAuctionParams>,
-    AdProvider.Banner<MetaFullscreenAuctionParams>,
+    AdProvider.Banner<MetaBannerAuctionParams>,
     Initializable<MetaParams> {
     override val demandId: DemandId = MetaDemandId
     override val adapterInfo = AdapterInfo(
@@ -46,11 +50,14 @@ class MetaAudienceAdapter :
     override suspend fun init(context: Context, configParams: MetaParams) = suspendCancellableCoroutine {
         if (isTestMode) {
             AdSettings.setIntegrationErrorMode(AdSettings.IntegrationErrorMode.INTEGRATION_ERROR_CRASH_DEBUG_MODE)
+            AdSettings.setDebugBuild(true)
         }
         AdSettings.setTestMode(isTestMode)
         AudienceNetworkAds
             .buildInitSettings(context)
             .withInitListener { initResult ->
+                logInfo(TAG, "AudienceNetworkAds.isInitialized: ${AudienceNetworkAds.isInitialized(context)}")
+
                 if (initResult.isSuccess) {
                     it.resume(Unit)
                 } else {
@@ -71,12 +78,12 @@ class MetaAudienceAdapter :
         return MetaInterstitialImpl()
     }
 
-    override fun banner(): AdSource.Banner<MetaFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+    override fun banner(): AdSource.Banner<MetaBannerAuctionParams> {
+        return MetaBannerImpl()
     }
 
     override fun rewarded(): AdSource.Rewarded<MetaFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return MetaRewardedAdImpl()
     }
 }
 

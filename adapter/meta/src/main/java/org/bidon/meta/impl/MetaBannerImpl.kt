@@ -1,20 +1,22 @@
 package org.bidon.meta.impl
 
-import android.app.Activity
 import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
+import com.facebook.ads.AdListener
+import com.facebook.ads.AdView
 import com.facebook.ads.BidderTokenProvider
-import com.facebook.ads.InterstitialAd
-import com.facebook.ads.InterstitialAdListener
 import org.bidon.meta.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
+import org.bidon.sdk.ads.banner.helper.getHeightDp
+import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -28,17 +30,17 @@ import org.bidon.sdk.stats.models.RoundStatus
 /**
  * Created by Aleksei Cherniaev on 08/08/2023.
  */
-class MetaInterstitialImpl :
-    AdSource.Interstitial<MetaFullscreenAuctionParams>,
-    AdLoadingType.Bidding<MetaFullscreenAuctionParams>,
+class MetaBannerImpl :
+    AdSource.Banner<MetaBannerAuctionParams>,
+    AdLoadingType.Bidding<MetaBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MetaFullscreenAuctionParams? = null
-    private var interstitialAd: InterstitialAd? = null
+    private var adParams: MetaBannerAuctionParams? = null
+    private var bannerView: AdView? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd?.isAdLoaded ?: false
+        get() = bannerView != null
 
     override fun getToken(context: Context): String? {
         return BidderTokenProvider.getBidderToken(context)
@@ -46,7 +48,7 @@ class MetaInterstitialImpl :
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            MetaFullscreenAuctionParams(
+            MetaBannerAuctionParams(
                 context = activity.applicationContext,
                 placementId = requireNotNull(json?.optString("placement_id")) {
                     "Placement id is required for Meta"
@@ -57,30 +59,35 @@ class MetaInterstitialImpl :
                 payload = requireNotNull(json?.optString("payload")) {
                     "Payload is required for Meta"
                 },
+                bannerFormat = bannerFormat
             )
         }
     }
 
-    override fun adRequest(adParams: MetaFullscreenAuctionParams) {
+    override fun adRequest(adParams: MetaBannerAuctionParams) {
         this.adParams = adParams
-        val interstitial = InterstitialAd(adParams.context, adParams.placementId).also {
-            interstitialAd = it
+        val banner = AdView(adParams.context, adParams.placementId, adParams.bannerSize).also {
+            bannerView = it
         }
-        interstitial.loadAd(
-            interstitial.buildLoadAdConfig()
-                .withAdListener(object : InterstitialAdListener {
+        banner.loadAd(
+            banner.buildLoadAdConfig()
+                .withAdListener(object : AdListener {
                     override fun onError(ad: Ad?, adError: AdError?) {
                         val error = adError.asBidonError()
-                        logError(TAG, "Error while loading ad: AdError(${adError?.errorCode}: ${adError?.errorMessage}). $this", error)
+                        logError(
+                            TAG,
+                            "Error while loading ad: AdError(${adError?.errorCode}: ${adError?.errorMessage}). $this",
+                            error
+                        )
                         emitEvent(AdEvent.LoadFailed(error))
                     }
 
                     override fun onAdLoaded(ad: Ad?) {
-                        logInfo(TAG, "onAdLoaded $ad: $interstitialAd, $this")
+                        logInfo(TAG, "onAdLoaded $ad: $bannerView, $this")
                         emitEvent(
                             AdEvent.Bid(
                                 AuctionResult.Bidding(
-                                    adSource = this@MetaInterstitialImpl,
+                                    adSource = this@MetaBannerImpl,
                                     roundStatus = RoundStatus.Successful
                                 )
                             )
@@ -89,13 +96,13 @@ class MetaInterstitialImpl :
 
                     override fun onAdClicked(ad: Ad?) {
                         logInfo(TAG, "onAdClicked: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd(this@MetaBannerImpl) ?: return
                         emitEvent(AdEvent.Clicked(bidonAd))
                     }
 
                     override fun onLoggingImpression(ad: Ad?) {
-                        logInfo(TAG, "onAdImpression: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        logInfo(TAG, "onLoggingImpression: $ad, $this")
+                        val bidonAd = getAd(this@MetaBannerImpl) ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = bidonAd,
@@ -107,18 +114,6 @@ class MetaInterstitialImpl :
                             )
                         )
                     }
-
-                    override fun onInterstitialDisplayed(ad: Ad?) {
-                        logInfo(TAG, "onInterstitialDisplayed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
-                        emitEvent(AdEvent.Shown(bidonAd))
-                    }
-
-                    override fun onInterstitialDismissed(ad: Ad?) {
-                        logInfo(TAG, "onInterstitialDismissed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
-                        emitEvent(AdEvent.Closed(bidonAd))
-                    }
                 })
                 .withBid(adParams.payload)
                 .build()
@@ -127,7 +122,7 @@ class MetaInterstitialImpl :
 
     override fun fill() {
         val ad = getAd(this)
-        if (interstitialAd != null && ad != null) {
+        if (bannerView != null && ad != null) {
             emitEvent(AdEvent.Fill(ad))
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
@@ -135,19 +130,21 @@ class MetaInterstitialImpl :
     }
 
     override fun destroy() {
-        interstitialAd?.destroy()
-        interstitialAd = null
+        bannerView?.destroy()
+        bannerView = null
         adParams = null
     }
 
-    override fun show(activity: Activity) {
-        val interstitialAd = interstitialAd
-        if (interstitialAd != null && interstitialAd.isAdLoaded) {
-            interstitialAd.show()
-        } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+    override fun getAdView(): AdViewHolder? {
+        val adParams = adParams ?: return null
+        return bannerView?.let { adView ->
+            AdViewHolder(
+                networkAdview = adView,
+                widthDp = adView.width.takeIf { it != 0 } ?: adParams.bannerFormat.getWidthDp(),
+                heightDp = adView.height.takeIf { it != 0 } ?: adParams.bannerFormat.getHeightDp()
+            )
         }
     }
 }
 
-private const val TAG = "MetaInterstitialImpl"
+private const val TAG = "MetaBannerImpl"
