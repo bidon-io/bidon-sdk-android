@@ -13,6 +13,7 @@ class AdmobBannerAuctionParams(
     val bannerFormat: BannerFormat,
     val lineItem: LineItem,
     val containerWidth: Float,
+    val payload: String,
 ) : AdAuctionParams {
     override val adUnitId: String? get() = lineItem.adUnitId
     override val price: Double get() = lineItem.pricefloor
@@ -25,6 +26,7 @@ class AdmobBannerAuctionParams(
 class AdmobFullscreenAdAuctionParams(
     val context: Context,
     val lineItem: LineItem,
+    val payload: String,
 ) : AdAuctionParams {
     override val adUnitId: String? get() = lineItem.adUnitId
     override val price: Double get() = lineItem.pricefloor

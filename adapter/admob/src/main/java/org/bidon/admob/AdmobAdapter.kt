@@ -24,7 +24,7 @@ class AdmobAdapter :
     override val demandId = AdmobDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
-        sdkVersion = sdkVersion
+        sdkVersion = sdkVersion.toString()
     )
 
     override suspend fun init(context: Context, configParams: AdmobInitParameters): Unit = suspendCoroutine { continuation ->
