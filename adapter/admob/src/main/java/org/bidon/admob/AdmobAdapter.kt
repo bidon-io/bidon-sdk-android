@@ -12,6 +12,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 val AdmobDemandId = DemandId("admob")
+const val DefaultTokenTimeoutMs = 1000L
 
 @Suppress("unused")
 class AdmobAdapter :

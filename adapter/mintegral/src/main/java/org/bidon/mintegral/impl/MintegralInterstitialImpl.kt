@@ -44,7 +44,7 @@ internal class MintegralInterstitialImpl :
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.isBidReady == true
 
-    override fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
+    override suspend fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {

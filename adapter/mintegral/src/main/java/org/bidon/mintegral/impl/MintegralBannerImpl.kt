@@ -45,7 +45,7 @@ internal class MintegralBannerImpl :
     override val isAdReadyToShow: Boolean
         get() = mBridgeIds != null && bannerView != null
 
-    override fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
+    override suspend fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {

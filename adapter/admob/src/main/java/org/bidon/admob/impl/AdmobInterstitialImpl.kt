@@ -16,8 +16,9 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.mediation.rtb.RtbAdapter
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
+import org.bidon.admob.DefaultTokenTimeoutMs
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
@@ -52,8 +53,8 @@ internal class AdmobInterstitialImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var _context: Context? = null
-    private val context: Context = requireNotNull(_context)
+    private var context: Context? = null
+    private val requiredContext: Context = requireNotNull(context)
     private var param: AdmobFullscreenAdAuctionParams? = null
     private var interstitialAd: InterstitialAd? = null
     private val requiredInterstitialAd: InterstitialAd get() = requireNotNull(interstitialAd)
@@ -125,9 +126,7 @@ internal class AdmobInterstitialImpl :
             AdmobFullscreenAdAuctionParams(
                 lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
                 context = activity.applicationContext,
-                payload = requireNotNull(json?.getString("payload")) {
-                    "Payload is required for GoogleBidding"
-                },
+                payload = json?.getString("payload")
             )
         }
     }
@@ -150,15 +149,15 @@ internal class AdmobInterstitialImpl :
         }
     }
 
-    override fun getToken(context: Context): String {
-        _context = context
-        return runBlocking {
-            val query: String? = try {
-                suspendCoroutine { continuation ->
+    override suspend fun getToken(context: Context): String? {
+        this.context = context
+        return withTimeoutOrNull(DefaultTokenTimeoutMs) {
+            suspendCoroutine { continuation ->
+                try {
                     QueryInfo.generate(
                         context,
-                        AdFormat.BANNER,
-                        null,
+                        AdFormat.INTERSTITIAL,
+                        adRequestBuilder.build(),
                         object : QueryInfoGenerationCallback() {
                             override fun onSuccess(queryInfo: QueryInfo) {
                                 continuation.resume(queryInfo.query)
@@ -169,12 +168,10 @@ internal class AdmobInterstitialImpl :
                             }
                         }
                     )
+                } catch (e: Exception) {
+                    continuation.resumeWithException(e)
                 }
-            } catch (e: Exception) {
-
-                null
             }
-            query ?: ""
         }
     }
 
@@ -185,17 +182,19 @@ internal class AdmobInterstitialImpl :
 
     override fun adRequest(adParams: AdmobFullscreenAdAuctionParams) {
         param = adParams
-        _context = adParams.context
+        context = adParams.context
 
         val networkExtras = Bundle().apply {
             putAll(getDefaultBiddingParams())
             putString("placement_req_id", adParams.adUnitId)
         }
 
-        val bidResponse = adParams.payload
+        val bidResponse = requireNotNull(adParams.payload) {
+            "Payload is required for GoogleBidding"
+        }
+
         adRequestBuilder.setAdString(bidResponse)
         adRequestBuilder.setRequestAgent("bidon")
-
         adRequestBuilder.addNetworkExtrasBundle(RtbAdapter::class.java, networkExtras)
     }
 
@@ -234,7 +233,7 @@ internal class AdmobInterstitialImpl :
                     emitEvent(AdEvent.Fill(requireNotNull(interstitialAd.asAd())))
                 }
             }
-            InterstitialAd.load(context, adUnitId, adRequest, requestListener)
+            InterstitialAd.load(requiredContext, adUnitId, adRequest, requestListener)
         } else {
             val error = BidonError.NoAppropriateAdUnitId
             logError(

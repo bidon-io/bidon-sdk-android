@@ -8,8 +8,9 @@ import com.google.android.gms.ads.*
 import com.google.android.gms.ads.mediation.rtb.RtbAdapter
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.admob.AdmobBannerAuctionParams
+import org.bidon.admob.DefaultTokenTimeoutMs
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.adaptiveAdSize
 import org.bidon.admob.ext.asBidonAdValue
@@ -89,9 +90,7 @@ internal class AdmobBannerImpl :
                 bannerFormat = bannerFormat,
                 context = activity.applicationContext,
                 containerWidth = containerWidth,
-                payload = requireNotNull(json?.getString("payload")) {
-                    "Payload is required for GoogleBidding"
-                },
+                payload = json?.getString("payload")
             )
         }
     }
@@ -125,14 +124,14 @@ internal class AdmobBannerImpl :
         )
     }
 
-    override fun getToken(context: Context): String {
-        return runBlocking {
-            val query: String? = try {
-                suspendCoroutine { continuation ->
+    override suspend fun getToken(context: Context): String? {
+        return withTimeoutOrNull(DefaultTokenTimeoutMs) {
+            suspendCoroutine { continuation ->
+                try {
                     QueryInfo.generate(
                         context,
                         AdFormat.BANNER,
-                        null,
+                        adRequestBuilder.build(),
                         object : QueryInfoGenerationCallback() {
                             override fun onSuccess(queryInfo: QueryInfo) {
                                 continuation.resume(queryInfo.query)
@@ -143,12 +142,10 @@ internal class AdmobBannerImpl :
                             }
                         }
                     )
+                } catch (e: Exception) {
+                    continuation.resumeWithException(e)
                 }
-            } catch (e: Exception) {
-
-                null
             }
-            query ?: ""
         }
     }
 
@@ -164,10 +161,12 @@ internal class AdmobBannerImpl :
             putString("placement_req_id", adParams.adUnitId)
         }
 
-        val bidResponse = adParams.payload
+        val bidResponse = requireNotNull(adParams.payload) {
+            "Payload is required for GoogleBidding"
+        }
+
         adRequestBuilder.setAdString(bidResponse)
         adRequestBuilder.setRequestAgent("bidon")
-
         adRequestBuilder.addNetworkExtrasBundle(RtbAdapter::class.java, networkExtras)
     }
 

@@ -62,7 +62,7 @@ internal class BigoAdsRewardedAdImpl :
         }
     }
 
-    override fun getToken(context: Context): String? = BigoAdSdk.getBidderToken()
+    override suspend fun getToken(context: Context): String? = BigoAdSdk.getBidderToken()
 
     override fun adRequest(adParams: BigoFullscreenAuctionParams) {
         val builder = RewardVideoAdRequest.Builder()

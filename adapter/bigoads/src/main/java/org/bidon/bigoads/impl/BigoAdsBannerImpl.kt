@@ -77,7 +77,7 @@ internal class BigoAdsBannerImpl :
         return AdViewHolder(bannerAd.adView(), width, height)
     }
 
-    override fun getToken(context: Context): String? = BigoAdSdk.getBidderToken()
+    override suspend fun getToken(context: Context): String? = BigoAdSdk.getBidderToken()
 
     override fun adRequest(adParams: BigoBannerAuctionParams) {
         val builder = BannerAdRequest.Builder()
