@@ -43,20 +43,29 @@ internal class AdmobBannerImpl :
 
     override var isAdReadyToShow: Boolean = false
 
+    private var isBiddingMode: Boolean = false
     private var param: AdmobBannerAuctionParams? = null
     private var adView: AdView? = null
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
-            AdmobBannerAuctionParams(
-                lineItem = lineItem,
-                bannerFormat = bannerFormat,
-                context = activity.applicationContext,
-                containerWidth = containerWidth,
-                adUnitId = requireNotNull(lineItem.adUnitId),
-                payload = json?.getString("payload")
-            )
+            if (isBiddingMode) {
+                AdmobBannerAuctionParams.Bidding(
+                    context = activity.applicationContext,
+                    bannerFormat = bannerFormat,
+                    containerWidth = containerWidth,
+                    price = pricefloor,
+                    unitId = requireNotNull(json?.getString("unit_id")),
+                    payload = requireNotNull(json?.getString("payload"))
+                )
+            } else {
+                AdmobBannerAuctionParams.Network(
+                    lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
+                    bannerFormat = bannerFormat,
+                    context = activity.applicationContext,
+                    containerWidth = containerWidth,
+                )
+            }
         }
     }
 
@@ -72,6 +81,7 @@ internal class AdmobBannerImpl :
     }
 
     override suspend fun getToken(context: Context): String? {
+        isBiddingMode = true
         val adRequest = AdRequest.Builder()
             .bindBiddingParams()
             .build()
@@ -106,6 +116,9 @@ internal class AdmobBannerImpl :
     }
 
     override fun adRequest(adParams: AdmobBannerAuctionParams) {
+        require(adParams is AdmobBannerAuctionParams.Bidding) {
+            "AdmobBannerAuctionParams.Bidding expected, but ${adParams::class.java.simpleName} found"
+        }
         param = adParams
 
         val adRequest = AdRequest.Builder()
@@ -162,14 +175,14 @@ internal class AdmobBannerImpl :
                     AdEvent.PaidRevenue(
                         ad = Ad(
                             demandAd = demandAd,
-                            ecpm = adParams.lineItem.pricefloor,
+                            ecpm = adParams.price,
                             demandAdObject = adView,
                             networkName = demandId.demandId,
                             dsp = null,
                             roundId = roundId,
                             currencyCode = AdValue.USD,
                             auctionId = auctionId,
-                            adUnitId = adParams.lineItem.adUnitId
+                            adUnitId = adParams.adUnitId
                         ),
                         adValue = adValue.asBidonAdValue()
                     )
@@ -197,7 +210,7 @@ internal class AdmobBannerImpl :
     private fun AdView.asAd(): Ad {
         return Ad(
             demandAd = demandAd,
-            ecpm = param?.lineItem?.pricefloor ?: 0.0,
+            ecpm = param?.price ?: 0.0,
             demandAdObject = this,
             networkName = demandId.demandId,
             dsp = null,
