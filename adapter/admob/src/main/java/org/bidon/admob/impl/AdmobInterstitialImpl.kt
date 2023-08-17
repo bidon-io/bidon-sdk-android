@@ -39,11 +39,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-// $0.1 ca-app-pub-9630071911882835/9299488830
-// $0.5 ca-app-pub-9630071911882835/4234864416
-// $1.0 ca-app-pub-9630071911882835/7790966049
-// $2.0 ca-app-pub-9630071911882835/1445049547
-
 internal class AdmobInterstitialImpl :
     AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
     AdLoadingType.Bidding<AdmobFullscreenAdAuctionParams>,
@@ -53,57 +48,6 @@ internal class AdmobInterstitialImpl :
 
     private var param: AdmobFullscreenAdAuctionParams? = null
     private var interstitialAd: InterstitialAd? = null
-    private val requiredInterstitialAd: InterstitialAd get() = requireNotNull(interstitialAd)
-
-    /**
-     * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
-     */
-    private val paidListener by lazy {
-        OnPaidEventListener { adValue ->
-            emitEvent(
-                AdEvent.PaidRevenue(
-                    ad = Ad(
-                        demandAd = demandAd,
-                        ecpm = param?.lineItem?.pricefloor ?: 0.0,
-                        demandAdObject = requiredInterstitialAd,
-                        networkName = demandId.demandId,
-                        dsp = null,
-                        roundId = roundId,
-                        currencyCode = "USD",
-                        auctionId = auctionId,
-                        adUnitId = param?.lineItem?.adUnitId
-                    ),
-                    adValue = adValue.asBidonAdValue()
-                )
-            )
-        }
-    }
-
-    private val interstitialListener by lazy {
-        object : FullScreenContentCallback() {
-            override fun onAdClicked() {
-                logInfo(TAG, "onAdClicked: $this")
-                emitEvent(AdEvent.Clicked(requiredInterstitialAd.asAd()))
-            }
-
-            override fun onAdDismissedFullScreenContent() {
-                logInfo(TAG, "onAdDismissedFullScreenContent: $this")
-                emitEvent(AdEvent.Closed(requiredInterstitialAd.asAd()))
-            }
-
-            override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                logError(TAG, "onAdFailedToShowFullScreenContent: $this", error.asBidonError())
-                emitEvent(AdEvent.ShowFailed(error.asBidonError()))
-            }
-
-            override fun onAdImpression() {
-                logInfo(TAG, "onAdShown: $this")
-                emitEvent(AdEvent.Shown(requiredInterstitialAd.asAd()))
-            }
-
-            override fun onAdShowedFullScreenContent() {}
-        }
-    }
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null
@@ -118,9 +62,11 @@ internal class AdmobInterstitialImpl :
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
+            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
             AdmobFullscreenAdAuctionParams(
-                lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
+                lineItem = lineItem,
                 context = activity.applicationContext,
+                adUnitId = requireNotNull(lineItem.adUnitId),
                 payload = json?.getString("payload")
             )
         }
@@ -201,41 +147,70 @@ internal class AdmobInterstitialImpl :
             roundId = roundId,
             currencyCode = "USD",
             auctionId = auctionId,
-            adUnitId = param?.lineItem?.adUnitId
+            adUnitId = param?.adUnitId
         )
     }
 
     private fun fillInterstitial(context: Context, adRequest: AdRequest) {
-        val adUnitId = param?.lineItem?.adUnitId
-        if (!adUnitId.isNullOrBlank()) {
-            val requestListener = object : InterstitialAdLoadCallback() {
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    logError(
-                        TAG,
-                        "onAdFailedToLoad: $loadAdError. $this",
-                        loadAdError.asBidonError()
-                    )
-                    emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
-                }
-
-                override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                    logInfo(TAG, "onAdLoaded: $this")
-                    this@AdmobInterstitialImpl.interstitialAd = interstitialAd
-                    interstitialAd.onPaidEventListener = paidListener
-                    interstitialAd.fullScreenContentCallback = interstitialListener
-                    emitEvent(AdEvent.Fill(requireNotNull(interstitialAd.asAd())))
-                }
+        val adUnitId = param?.adUnitId
+        val requestListener = object : InterstitialAdLoadCallback() {
+            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                logError(
+                    TAG,
+                    "onAdFailedToLoad: $loadAdError. $this",
+                    loadAdError.asBidonError()
+                )
+                emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
-            InterstitialAd.load(context, adUnitId, adRequest, requestListener)
-        } else {
-            val error = BidonError.NoAppropriateAdUnitId
-            logError(
-                tag = TAG,
-                message = "No appropriate AdUnitId found for price_floor=${param?.lineItem?.pricefloor}",
-                error = error
-            )
-            emitEvent(AdEvent.LoadFailed(error))
+
+            override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                logInfo(TAG, "onAdLoaded: $this")
+                this@AdmobInterstitialImpl.interstitialAd = interstitialAd
+                interstitialAd.onPaidEventListener = OnPaidEventListener { adValue ->
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = Ad(
+                                demandAd = demandAd,
+                                ecpm = param.lineItem.pricefloor,
+                                demandAdObject = interstitialAd,
+                                networkName = demandId.demandId,
+                                dsp = null,
+                                roundId = roundId,
+                                currencyCode = "USD",
+                                auctionId = auctionId,
+                                adUnitId = param.lineItem.adUnitId
+                            ),
+                            adValue = adValue.asBidonAdValue()
+                        )
+                    )
+                }
+                interstitialAd.fullScreenContentCallback = object : FullScreenContentCallback() {
+                    override fun onAdClicked() {
+                        logInfo(TAG, "onAdClicked: $this")
+                        emitEvent(AdEvent.Clicked(interstitialAd.asAd()))
+                    }
+
+                    override fun onAdDismissedFullScreenContent() {
+                        logInfo(TAG, "onAdDismissedFullScreenContent: $this")
+                        emitEvent(AdEvent.Closed(interstitialAd.asAd()))
+                    }
+
+                    override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                        logError(TAG, "onAdFailedToShowFullScreenContent: $this", error.asBidonError())
+                        emitEvent(AdEvent.ShowFailed(error.asBidonError()))
+                    }
+
+                    override fun onAdImpression() {
+                        logInfo(TAG, "onAdShown: $this")
+                        emitEvent(AdEvent.Shown(interstitialAd.asAd()))
+                    }
+
+                    override fun onAdShowedFullScreenContent() {}
+                }
+                emitEvent(AdEvent.Fill(requireNotNull(interstitialAd.asAd())))
+            }
         }
+        InterstitialAd.load(context, adUnitId, adRequest, requestListener)
     }
 }
 
