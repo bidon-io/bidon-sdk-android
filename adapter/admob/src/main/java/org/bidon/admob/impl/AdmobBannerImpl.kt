@@ -54,7 +54,7 @@ internal class AdmobBannerImpl :
                 bannerFormat = bannerFormat,
                 context = activity.applicationContext,
                 containerWidth = containerWidth,
-                adUnitId = requireNotNull(lineItem.adUnitId)
+                adUnitId = requireNotNull(lineItem.adUnitId),
                 payload = json?.getString("payload")
             )
         }
@@ -63,36 +63,35 @@ internal class AdmobBannerImpl :
     override fun fill(adParams: AdmobBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
         param = adParams
+
         val adRequest = AdRequest.Builder()
             .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
             .build()
-        fillBanner(adRequest)
+
+        fillBanner(adRequest = adRequest, adParams = adParams)
     }
 
     override suspend fun getToken(context: Context): String? {
-        val adRequestBuilder = AdRequest.Builder().apply {
-            bindBiddingParams()
-        }
+        val adRequest = AdRequest.Builder()
+            .bindBiddingParams()
+            .build()
+
         return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
-                try {
-                    QueryInfo.generate(
-                        context,
-                        AdFormat.BANNER,
-                        adRequestBuilder.build(),
-                        object : QueryInfoGenerationCallback() {
-                            override fun onSuccess(queryInfo: QueryInfo) {
-                                continuation.resume(queryInfo.query)
-                            }
-
-                            override fun onFailure(errorMessage: String) {
-                                continuation.resumeWithException(Exception(errorMessage))
-                            }
+                QueryInfo.generate(
+                    context,
+                    AdFormat.BANNER,
+                    adRequest,
+                    object : QueryInfoGenerationCallback() {
+                        override fun onSuccess(queryInfo: QueryInfo) {
+                            continuation.resume(queryInfo.query)
                         }
-                    )
-                } catch (e: Exception) {
-                    continuation.resumeWithException(e)
-                }
+
+                        override fun onFailure(errorMessage: String) {
+                            continuation.resumeWithException(Exception(errorMessage))
+                        }
+                    }
+                )
             }
         }
     }
@@ -109,92 +108,74 @@ internal class AdmobBannerImpl :
     override fun adRequest(adParams: AdmobBannerAuctionParams) {
         param = adParams
 
-        val adRequestBuilder = AdRequest.Builder().apply {
-            bindFillParams(adParams.payload, adParams.adUnitId)
-        }
+        val adRequest = AdRequest.Builder()
+            .bindFillParams(adParams.payload, adParams.adUnitId)
+            .build()
 
-        fillBanner(adRequestBuilder.build())
+        fillBanner(adRequest = adRequest, adParams = adParams)
     }
 
     @SuppressLint("MissingPermission")
-    private fun fillBanner(adRequest: AdRequest) {
-        val adParams = param
-        val adUnitId = adParams?.lineItem?.adUnitId
-        if (!adUnitId.isNullOrBlank()) {
-            val adView = AdView(adParams.context).also {
-                adView = it
+    private fun fillBanner(adRequest: AdRequest, adParams: AdmobBannerAuctionParams) {
+        val adView = AdView(adParams.context).also {
+            adView = it
+        }
+        val requestListener = object : AdListener() {
+            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                logError(TAG, "Error while loading ad: $loadAdError. $this", loadAdError.asBidonError())
+                emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
-            val requestListener = object : AdListener() {
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    logError(
-                        TAG,
-                        "Error while loading ad: $loadAdError. $this",
-                        loadAdError.asBidonError()
-                    )
-                    emitEvent(
-                        AdEvent.LoadFailed(loadAdError.asBidonError())
-                    )
-                }
 
-                override fun onAdLoaded() {
-                    logInfo(TAG, "onAdLoaded: $this")
-                    isAdReadyToShow = true
-                    emitEvent(AdEvent.Fill(ad = adView.asAd()))
-                }
-
-                override fun onAdClicked() {
-                    logInfo(TAG, "onAdClicked: $this")
-                    emitEvent(AdEvent.Clicked(adView.asAd()))
-                }
-
-                override fun onAdClosed() {
-                    logInfo(TAG, "onAdClosed: $this")
-                    emitEvent(AdEvent.Closed(adView.asAd()))
-                }
-
-                override fun onAdImpression() {
-                    logInfo(TAG, "onAdImpression: $this")
-                    // tracked impression/shown by [BannerView]
-                }
-
-                override fun onAdOpened() {}
+            override fun onAdLoaded() {
+                logInfo(TAG, "onAdLoaded: $this")
+                isAdReadyToShow = true
+                emitEvent(AdEvent.Fill(ad = adView.asAd()))
             }
-            adView.apply {
-                this.setAdSize(adParams.adSize)
-                this.adUnitId = adUnitId
-                this.adListener = requestListener
 
-                /**
-                 * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
-                 */
-                this.onPaidEventListener = OnPaidEventListener { adValue ->
-                    emitEvent(
-                        AdEvent.PaidRevenue(
-                            ad = Ad(
-                                demandAd = demandAd,
-                                ecpm = adParams.lineItem.pricefloor,
-                                demandAdObject = adView,
-                                networkName = demandId.demandId,
-                                dsp = null,
-                                roundId = roundId,
-                                currencyCode = AdValue.USD,
-                                auctionId = auctionId,
-                                adUnitId = adParams.lineItem.adUnitId
-                            ),
-                            adValue = adValue.asBidonAdValue()
-                        )
+            override fun onAdClicked() {
+                logInfo(TAG, "onAdClicked: $this")
+                emitEvent(AdEvent.Clicked(adView.asAd()))
+            }
+
+            override fun onAdClosed() {
+                logInfo(TAG, "onAdClosed: $this")
+                emitEvent(AdEvent.Closed(adView.asAd()))
+            }
+
+            override fun onAdImpression() {
+                logInfo(TAG, "onAdImpression: $this")
+                // tracked impression/shown by [BannerView]
+            }
+
+            override fun onAdOpened() {}
+        }
+        adView.apply {
+            this.setAdSize(adParams.adSize)
+            this.adUnitId = adUnitId
+            this.adListener = requestListener
+
+            /**
+             * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
+             */
+            this.onPaidEventListener = OnPaidEventListener { adValue ->
+                emitEvent(
+                    AdEvent.PaidRevenue(
+                        ad = Ad(
+                            demandAd = demandAd,
+                            ecpm = adParams.lineItem.pricefloor,
+                            demandAdObject = adView,
+                            networkName = demandId.demandId,
+                            dsp = null,
+                            roundId = roundId,
+                            currencyCode = AdValue.USD,
+                            auctionId = auctionId,
+                            adUnitId = adParams.lineItem.adUnitId
+                        ),
+                        adValue = adValue.asBidonAdValue()
                     )
-                }
+                )
+            }
             adView.loadAd(adRequest)
-        } else {
-            val (error, message) = if (adParams == null) {
-                BidonError.BannerAdNotReady to "Banner param is null"
-            } else {
-                BidonError.NoAppropriateAdUnitId to
-                        "No appropriate AdUnitId found for price_floor=${param?.lineItem?.pricefloor}"
-            }
-            logError(tag = TAG, message = message, error = error)
-            emitEvent(AdEvent.LoadFailed(error))
         }
     }
 

@@ -1,6 +1,9 @@
 package org.bidon.admob
 
 import android.content.Context
+import android.util.DisplayMetrics
+import android.view.WindowManager
+import com.google.android.gms.ads.AdSize
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat

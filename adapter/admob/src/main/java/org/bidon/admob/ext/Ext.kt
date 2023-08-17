@@ -34,24 +34,24 @@ internal fun Context.adaptiveAdSize(width: Float): AdSize {
     return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
 }
 
-internal fun AdRequest.Builder.bindBiddingParams() {
+internal fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
         // TODO chartboost set "requester_type_3", MAX, IS - "requester_type_2"
         putString("query_info_type", "requester_type_2")
     }
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
+    return this
 }
 
-internal fun AdRequest.Builder.bindFillParams(bidResponse: String?, adUnitId: String?) {
+internal fun AdRequest.Builder.bindFillParams(bidResponse: String?, adUnitId: String): AdRequest.Builder {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
-        putString("placement_req_id", requireNotNull(adUnitId) {
-            "AdUnitId is required for GoogleBidding"
-        })
+        putString("placement_req_id", adUnitId)
     }
     setAdString(requireNotNull(bidResponse) {
         "Payload is required for GoogleBidding"
     })
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
+    return this
 }
