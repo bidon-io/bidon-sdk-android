@@ -1,9 +1,7 @@
 package org.bidon.admob.impl
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-import android.os.Bundle
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdFormat
@@ -13,7 +11,6 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.OnPaidEventListener
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.google.android.gms.ads.mediation.rtb.RtbAdapter
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
@@ -22,7 +19,8 @@ import org.bidon.admob.DefaultTokenTimeoutMs
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
-import org.bidon.admob.ext.getDefaultBiddingParams
+import org.bidon.admob.ext.bindBiddingParams
+import org.bidon.admob.ext.bindFillParams
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -53,12 +51,9 @@ internal class AdmobInterstitialImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var context: Context? = null
-    private val requiredContext: Context = requireNotNull(context)
     private var param: AdmobFullscreenAdAuctionParams? = null
     private var interstitialAd: InterstitialAd? = null
     private val requiredInterstitialAd: InterstitialAd get() = requireNotNull(interstitialAd)
-    private val adRequestBuilder: AdRequest.Builder by lazy { AdRequest.Builder() }
 
     /**
      * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
@@ -137,7 +132,7 @@ internal class AdmobInterstitialImpl :
         val adRequest = AdRequest.Builder()
             .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
             .build()
-        fillInterstitial(adRequest)
+        fillInterstitial(adParams.context, adRequest)
     }
 
     override fun show(activity: Activity) {
@@ -150,7 +145,9 @@ internal class AdmobInterstitialImpl :
     }
 
     override suspend fun getToken(context: Context): String? {
-        this.context = context
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindBiddingParams()
+        }
         return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 try {
@@ -175,27 +172,23 @@ internal class AdmobInterstitialImpl :
         }
     }
 
-    @SuppressLint("MissingPermission")
     override fun fill() {
-        fillInterstitial(adRequestBuilder.build())
+        val ad = getAd(this)
+        if (param != null && ad != null) {
+            emitEvent(AdEvent.Fill(ad))
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+        }
     }
 
     override fun adRequest(adParams: AdmobFullscreenAdAuctionParams) {
         param = adParams
-        context = adParams.context
 
-        val networkExtras = Bundle().apply {
-            putAll(getDefaultBiddingParams())
-            putString("placement_req_id", adParams.adUnitId)
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindFillParams(adParams.payload, adParams.adUnitId)
         }
 
-        val bidResponse = requireNotNull(adParams.payload) {
-            "Payload is required for GoogleBidding"
-        }
-
-        adRequestBuilder.setAdString(bidResponse)
-        adRequestBuilder.setRequestAgent("bidon")
-        adRequestBuilder.addNetworkExtrasBundle(RtbAdapter::class.java, networkExtras)
+        fillInterstitial(context = adParams.context, adRequest = adRequestBuilder.build())
     }
 
     private fun InterstitialAd.asAd(): Ad {
@@ -212,7 +205,7 @@ internal class AdmobInterstitialImpl :
         )
     }
 
-    private fun fillInterstitial(adRequest: AdRequest) {
+    private fun fillInterstitial(context: Context, adRequest: AdRequest) {
         val adUnitId = param?.lineItem?.adUnitId
         if (!adUnitId.isNullOrBlank()) {
             val requestListener = object : InterstitialAdLoadCallback() {
@@ -233,7 +226,7 @@ internal class AdmobInterstitialImpl :
                     emitEvent(AdEvent.Fill(requireNotNull(interstitialAd.asAd())))
                 }
             }
-            InterstitialAd.load(requiredContext, adUnitId, adRequest, requestListener)
+            InterstitialAd.load(context, adUnitId, adRequest, requestListener)
         } else {
             val error = BidonError.NoAppropriateAdUnitId
             logError(

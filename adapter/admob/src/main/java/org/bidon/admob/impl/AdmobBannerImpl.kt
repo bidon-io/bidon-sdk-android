@@ -2,10 +2,8 @@ package org.bidon.admob.impl
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Bundle
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
-import com.google.android.gms.ads.mediation.rtb.RtbAdapter
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
@@ -15,7 +13,8 @@ import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.adaptiveAdSize
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
-import org.bidon.admob.ext.getDefaultBiddingParams
+import org.bidon.admob.ext.bindBiddingParams
+import org.bidon.admob.ext.bindFillParams
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.AdEventFlow
@@ -50,7 +49,6 @@ internal class AdmobBannerImpl :
     private var param: AdmobBannerAuctionParams? = null
     private var adView: AdView? = null
     private val requiredAdView: AdView get() = requireNotNull(adView)
-    private val adRequestBuilder: AdRequest.Builder by lazy { AdRequest.Builder() }
 
     /**
      * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
@@ -125,6 +123,9 @@ internal class AdmobBannerImpl :
     }
 
     override suspend fun getToken(context: Context): String? {
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindBiddingParams()
+        }
         return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 try {
@@ -150,24 +151,22 @@ internal class AdmobBannerImpl :
     }
 
     override fun fill() {
-        fillBanner(adRequestBuilder.build())
+        val ad = getAd(this)
+        if (param != null && ad != null) {
+            emitEvent(AdEvent.Fill(ad))
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
+        }
     }
 
     override fun adRequest(adParams: AdmobBannerAuctionParams) {
         param = adParams
 
-        val networkExtras = Bundle().apply {
-            putAll(getDefaultBiddingParams())
-            putString("placement_req_id", adParams.adUnitId)
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindFillParams(adParams.payload, adParams.adUnitId)
         }
 
-        val bidResponse = requireNotNull(adParams.payload) {
-            "Payload is required for GoogleBidding"
-        }
-
-        adRequestBuilder.setAdString(bidResponse)
-        adRequestBuilder.setRequestAgent("bidon")
-        adRequestBuilder.addNetworkExtrasBundle(RtbAdapter::class.java, networkExtras)
+        fillBanner(adRequestBuilder.build())
     }
 
     private fun BannerFormat.asAdmobAdSize(context: Context, containerWidth: Float) = when (this) {
@@ -179,9 +178,9 @@ internal class AdmobBannerImpl :
 
     @SuppressLint("MissingPermission")
     private fun fillBanner(adRequest: AdRequest) {
-        val adUnitId = param?.lineItem?.adUnitId
         val adParams = param
-        if (!adUnitId.isNullOrBlank() && adParams != null) {
+        val adUnitId = adParams?.lineItem?.adUnitId
+        if (!adUnitId.isNullOrBlank()) {
             val requestListener = object : AdListener() {
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                     logError(
@@ -237,15 +236,10 @@ internal class AdmobBannerImpl :
             adView.loadAd(adRequest)
         } else {
             val (error, message) = if (adParams == null) {
-                Pair(
-                    BidonError.BannerAdNotReady,
-                    "Banner param is null"
-                )
+                BidonError.BannerAdNotReady to "Banner param is null"
             } else {
-                Pair(
-                    BidonError.NoAppropriateAdUnitId,
-                    "No appropriate AdUnitId found for price_floor=${param?.lineItem?.pricefloor}"
-                )
+                BidonError.NoAppropriateAdUnitId to
+                        "No appropriate AdUnitId found for price_floor=${param?.lineItem?.pricefloor}"
             }
             logError(tag = TAG, message = message, error = error)
             emitEvent(AdEvent.LoadFailed(error))

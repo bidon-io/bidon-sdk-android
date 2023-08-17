@@ -2,10 +2,8 @@ package org.bidon.admob.impl
 
 import android.app.Activity
 import android.content.Context
-import android.os.Bundle
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
-import com.google.android.gms.ads.mediation.rtb.RtbAdapter
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
@@ -16,7 +14,8 @@ import org.bidon.admob.DefaultTokenTimeoutMs
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
-import org.bidon.admob.ext.getDefaultBiddingParams
+import org.bidon.admob.ext.bindBiddingParams
+import org.bidon.admob.ext.bindFillParams
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.AdEventFlow
@@ -45,12 +44,9 @@ internal class AdmobRewardedImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var context: Context? = null
-    private val requiredContext: Context = requireNotNull(context)
     private var param: AdmobFullscreenAdAuctionParams? = null
     private var rewardedAd: RewardedAd? = null
     private val requiredRewardedAd: RewardedAd get() = requireNotNull(rewardedAd)
-    private val adRequestBuilder: AdRequest.Builder by lazy { AdRequest.Builder() }
 
     private val onUserEarnedRewardListener by lazy {
         OnUserEarnedRewardListener { rewardItem ->
@@ -142,7 +138,7 @@ internal class AdmobRewardedImpl :
         val adRequest = AdRequest.Builder()
             .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
             .build()
-        fillRewarded(adRequest)
+        fillRewarded(context = adParams.context, adRequest = adRequest)
     }
 
     override fun show(activity: Activity) {
@@ -155,7 +151,9 @@ internal class AdmobRewardedImpl :
     }
 
     override suspend fun getToken(context: Context): String? {
-        this.context = context
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindBiddingParams()
+        }
         return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 try {
@@ -181,25 +179,22 @@ internal class AdmobRewardedImpl :
     }
 
     override fun fill() {
-        fillRewarded(adRequestBuilder.build())
+        val ad = getAd(this)
+        if (param != null && ad != null) {
+            emitEvent(AdEvent.Fill(ad))
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+        }
     }
 
     override fun adRequest(adParams: AdmobFullscreenAdAuctionParams) {
         param = adParams
-        context = adParams.context
 
-        val networkExtras = Bundle().apply {
-            putAll(getDefaultBiddingParams())
-            putString("placement_req_id", adParams.adUnitId)
+        val adRequestBuilder = AdRequest.Builder().apply {
+            bindFillParams(adParams.payload, adParams.adUnitId)
         }
 
-        val bidResponse = requireNotNull(adParams.payload) {
-            "Payload is required for GoogleBidding"
-        }
-
-        adRequestBuilder.setAdString(bidResponse)
-        adRequestBuilder.setRequestAgent("bidon")
-        adRequestBuilder.addNetworkExtrasBundle(RtbAdapter::class.java, networkExtras)
+        fillRewarded(context = adParams.context, adRequest = adRequestBuilder.build())
     }
 
     private fun RewardedAd.asAd(): Ad {
@@ -216,7 +211,7 @@ internal class AdmobRewardedImpl :
         )
     }
 
-    private fun fillRewarded(adRequest: AdRequest) {
+    private fun fillRewarded(context: Context, adRequest: AdRequest) {
         val adUnitId = param?.lineItem?.adUnitId
         if (!adUnitId.isNullOrBlank()) {
             val requestListener = object : RewardedAdLoadCallback() {
@@ -237,7 +232,7 @@ internal class AdmobRewardedImpl :
                     emitEvent(AdEvent.Fill(requiredRewardedAd.asAd()))
                 }
             }
-            RewardedAd.load(requiredContext, adUnitId, adRequest, requestListener)
+            RewardedAd.load(context, adUnitId, adRequest, requestListener)
         } else {
             val error = BidonError.NoAppropriateAdUnitId
             logError(
