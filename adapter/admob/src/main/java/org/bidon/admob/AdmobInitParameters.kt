@@ -22,7 +22,7 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
         override val containerWidth: Float,
         val lineItem: LineItem,
     ) : AdmobBannerAuctionParams {
-        override val adUnitId: String? get() = lineItem.adUnitId
+        override val adUnitId: String = requireNotNull(lineItem.adUnitId)
         override val price: Double get() = lineItem.pricefloor
 
         override fun toString(): String {
@@ -46,16 +46,31 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
     }
 }
 
-class AdmobFullscreenAdAuctionParams(
-    val context: Context,
-    val lineItem: LineItem,
-    val payload: String?,
-    override val adUnitId: String
-) : AdAuctionParams {
+sealed interface AdmobFullscreenAdAuctionParams : AdAuctionParams {
+    val context: Context
 
-    override val price: Double get() = lineItem.pricefloor
+    class Network(
+        override val context: Context,
+        val lineItem: LineItem,
+    ) : AdmobFullscreenAdAuctionParams {
+        override val adUnitId: String = requireNotNull(lineItem.adUnitId)
+        override val price: Double get() = lineItem.pricefloor
 
-    override fun toString(): String {
-        return "AdmobFullscreenAdAuctionParams(lineItem=$lineItem)"
+        override fun toString(): String {
+            return "AdmobFullscreenAdAuctionParams($lineItem)"
+        }
+    }
+
+    class Bidding(
+        override val context: Context,
+        override val price: Double,
+        val payload: String,
+        val unitId: String
+    ) : AdmobFullscreenAdAuctionParams {
+        override val adUnitId: String get() = unitId
+
+        override fun toString(): String {
+            return "AdmobFullscreenAdAuctionParams($unitId, bidPrice=$price)"
+        }
     }
 }

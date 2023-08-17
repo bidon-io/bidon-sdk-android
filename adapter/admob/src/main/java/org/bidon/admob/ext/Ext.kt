@@ -7,34 +7,34 @@ import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.MobileAds
+import org.bidon.admob.AdmobDemandId
+import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.admob.BuildConfig
 import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.config.BidonError
 
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = MobileAds.getVersion()
 private const val REQUEST_AGENT = "Bidon" // TODO should
 
-internal fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder {
+internal fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder = this.apply {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
         // TODO chartboost set "requester_type_3", MAX, IS - "requester_type_2"
         putString("query_info_type", "requester_type_2")
     }
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
-    return this
 }
 
-internal fun AdRequest.Builder.bindFillParams(bidResponse: String?, adUnitId: String): AdRequest.Builder {
+internal fun AdRequest.Builder.bindFillParams(payload: String, adUnitId: String): AdRequest.Builder = this.apply {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
         putString("placement_req_id", adUnitId)
     }
-    setAdString(requireNotNull(bidResponse) {
-        "Payload is required for GoogleBidding"
-    })
+    setAdString(payload)
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
-    return this
 }
 
 internal fun BannerFormat.toAdmobAdSize(
@@ -60,3 +60,21 @@ internal fun BannerFormat.toAdmobAdSize(
         }
     }
 }
+
+internal fun AdAuctionParamSource.getAdAuctionParams(isBiddingMode: Boolean) =
+    this.invoke {
+        if (isBiddingMode) {
+            AdmobFullscreenAdAuctionParams.Bidding(
+                context = activity.applicationContext,
+                price = pricefloor,
+                unitId = requireNotNull(json?.getString("unit_id")),
+                payload = requireNotNull(json?.getString("payload"))
+            )
+        } else {
+            val lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId)
+            AdmobFullscreenAdAuctionParams.Network(
+                lineItem = lineItem,
+                context = activity.applicationContext,
+            )
+        }
+    }

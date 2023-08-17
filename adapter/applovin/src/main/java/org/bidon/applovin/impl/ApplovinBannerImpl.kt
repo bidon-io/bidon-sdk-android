@@ -12,7 +12,6 @@ import org.bidon.applovin.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
@@ -34,7 +33,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 internal class ApplovinBannerImpl(
     private val applovinSdk: AppLovinSdk,
 ) : AdSource.Banner<ApplovinBannerAuctionParams>,
-    AdLoadingType.Network<ApplovinBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -87,7 +85,7 @@ internal class ApplovinBannerImpl(
         }
     }
 
-    override fun fill(adParams: ApplovinBannerAuctionParams) {
+    override fun load(adParams: ApplovinBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         param = adParams
         val adSize = adParams.bannerFormat.asApplovinAdSize() ?: error(

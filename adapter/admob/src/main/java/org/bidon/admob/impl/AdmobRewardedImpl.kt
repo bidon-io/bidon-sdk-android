@@ -21,12 +21,13 @@ import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.admob.ext.asBundle
 import org.bidon.admob.ext.bindBiddingParams
 import org.bidon.admob.ext.bindFillParams
+import org.bidon.admob.ext.getAdAuctionParams
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
@@ -43,64 +44,20 @@ import kotlin.coroutines.suspendCoroutine
 
 internal class AdmobRewardedImpl :
     AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
-    AdLoadingType.Bidding<AdmobFullscreenAdAuctionParams>,
-    AdLoadingType.Network<AdmobFullscreenAdAuctionParams>,
+    Mode.Bidding,
+    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var param: AdmobFullscreenAdAuctionParams? = null
     private var rewardedAd: RewardedAd? = null
+    private var isBiddingMode: Boolean = false
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
-            AdmobFullscreenAdAuctionParams(
-                lineItem = lineItem,
-                context = activity.applicationContext,
-                adUnitId = requireNotNull(lineItem.adUnitId),
-                payload = json?.getString("payload")
-            )
-        }
-    }
-
-    override fun fill(adParams: AdmobFullscreenAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
-        param = adParams
-
-        val adRequest = AdRequest.Builder()
-            .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
-            .build()
-
-        fillRewarded(
-            context = adParams.context,
-            adRequest = adRequest,
-            adUnitId = adParams.adUnitId
-        )
-    }
-
-    override fun show(activity: Activity) {
-        logInfo(TAG, "Starting show: $this")
-        val rewardedAd = rewardedAd
-        if (rewardedAd == null) {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
-        } else {
-            rewardedAd.show(activity) { rewardItem ->
-                logInfo(TAG, "onUserEarnedReward $rewardItem: $this")
-                emitEvent(
-                    AdEvent.OnReward(
-                        ad = rewardedAd.asAd(),
-                        reward = Reward(rewardItem.type, rewardItem.amount)
-                    )
-                )
-                sendRewardImpression()
-            }
-        }
-    }
-
     override suspend fun getToken(context: Context): String? {
+        isBiddingMode = true
         val adRequestBuilder = AdRequest.Builder().apply {
             bindBiddingParams()
         }
@@ -124,30 +81,25 @@ internal class AdmobRewardedImpl :
         }
     }
 
-    override fun fill() {
-        val ad = getAd(this)
-        if (param != null && ad != null) {
-            emitEvent(AdEvent.Fill(ad))
-        } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope.getAdAuctionParams(isBiddingMode)
+    }
+
+    override fun load(adParams: AdmobFullscreenAdAuctionParams) {
+        val adRequest = when (adParams) {
+            is AdmobFullscreenAdAuctionParams.Bidding -> {
+                AdRequest.Builder()
+                    .bindFillParams(adParams.payload, adParams.adUnitId)
+                    .build()
+            }
+
+            is AdmobFullscreenAdAuctionParams.Network -> {
+                AdRequest.Builder()
+                    .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
+                    .build()
+            }
         }
-    }
-
-    override fun adRequest(adParams: AdmobFullscreenAdAuctionParams) {
         param = adParams
-
-        val adRequest = AdRequest.Builder()
-            .bindFillParams(adParams.payload, adParams.adUnitId)
-            .build()
-
-        fillRewarded(
-            context = adParams.context,
-            adRequest = adRequest,
-            adUnitId = adParams.adUnitId
-        )
-    }
-
-    private fun fillRewarded(context: Context, adRequest: AdRequest, adUnitId: String) {
         val requestListener = object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 logError(
@@ -164,17 +116,7 @@ internal class AdmobRewardedImpl :
                 rewardedAd.onPaidEventListener = OnPaidEventListener { adValue ->
                     emitEvent(
                         AdEvent.PaidRevenue(
-                            ad = Ad(
-                                demandAd = demandAd,
-                                ecpm = param?.lineItem?.pricefloor ?: 0.0,
-                                demandAdObject = rewardedAd,
-                                networkName = demandId.demandId,
-                                dsp = null,
-                                roundId = roundId,
-                                currencyCode = "USD",
-                                auctionId = auctionId,
-                                adUnitId = param?.lineItem?.adUnitId
-                            ),
+                            ad = rewardedAd.asAd(),
                             adValue = adValue.asBidonAdValue()
                         )
                     )
@@ -205,7 +147,30 @@ internal class AdmobRewardedImpl :
                 emitEvent(AdEvent.Fill(rewardedAd.asAd()))
             }
         }
-        RewardedAd.load(context, adUnitId, adRequest, requestListener)
+        val adUnitId = when (adParams) {
+            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.unitId
+            is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
+        }
+        RewardedAd.load(adParams.context, adUnitId, adRequest, requestListener)
+    }
+
+    override fun show(activity: Activity) {
+        logInfo(TAG, "Starting show: $this")
+        val rewardedAd = rewardedAd
+        if (rewardedAd == null) {
+            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+        } else {
+            rewardedAd.show(activity) { rewardItem ->
+                logInfo(TAG, "onUserEarnedReward $rewardItem: $this")
+                emitEvent(
+                    AdEvent.OnReward(
+                        ad = rewardedAd.asAd(),
+                        reward = Reward(rewardItem.type, rewardItem.amount)
+                    )
+                )
+                sendRewardImpression()
+            }
+        }
     }
 
     override fun destroy() {
@@ -219,7 +184,7 @@ internal class AdmobRewardedImpl :
     private fun RewardedAd.asAd(): Ad {
         return Ad(
             demandAd = demandAd,
-            ecpm = param?.lineItem?.pricefloor ?: 0.0,
+            ecpm = param?.price ?: 0.0,
             demandAdObject = this,
             networkName = demandId.demandId,
             dsp = null,
@@ -231,4 +196,4 @@ internal class AdmobRewardedImpl :
     }
 }
 
-private const val TAG = "Admob Rewarded"
+private const val TAG = "AdmobRewarded"

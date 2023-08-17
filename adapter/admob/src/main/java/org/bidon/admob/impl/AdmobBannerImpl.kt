@@ -33,11 +33,13 @@ import kotlin.coroutines.suspendCoroutine
 
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
+ *
+ * [OnPaidEventListener](https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener)
  */
 internal class AdmobBannerImpl :
     AdSource.Banner<AdmobBannerAuctionParams>,
-    AdLoadingType.Bidding<AdmobBannerAuctionParams>,
-    AdLoadingType.Network<AdmobBannerAuctionParams>,
+    Mode.Bidding,
+    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -46,39 +48,6 @@ internal class AdmobBannerImpl :
     private var isBiddingMode: Boolean = false
     private var param: AdmobBannerAuctionParams? = null
     private var adView: AdView? = null
-
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            if (isBiddingMode) {
-                AdmobBannerAuctionParams.Bidding(
-                    context = activity.applicationContext,
-                    bannerFormat = bannerFormat,
-                    containerWidth = containerWidth,
-                    price = pricefloor,
-                    unitId = requireNotNull(json?.getString("unit_id")),
-                    payload = requireNotNull(json?.getString("payload"))
-                )
-            } else {
-                AdmobBannerAuctionParams.Network(
-                    lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
-                    bannerFormat = bannerFormat,
-                    context = activity.applicationContext,
-                    containerWidth = containerWidth,
-                )
-            }
-        }
-    }
-
-    override fun fill(adParams: AdmobBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
-        param = adParams
-
-        val adRequest = AdRequest.Builder()
-            .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
-            .build()
-
-        fillBanner(adRequest = adRequest, adParams = adParams)
-    }
 
     override suspend fun getToken(context: Context): String? {
         isBiddingMode = true
@@ -106,30 +75,45 @@ internal class AdmobBannerImpl :
         }
     }
 
-    override fun fill() {
-        val ad = getAd(this)
-        if (param != null && ad != null) {
-            emitEvent(AdEvent.Fill(ad))
-        } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
+    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return auctionParamsScope {
+            if (isBiddingMode) {
+                AdmobBannerAuctionParams.Bidding(
+                    context = activity.applicationContext,
+                    bannerFormat = bannerFormat,
+                    containerWidth = containerWidth,
+                    price = pricefloor,
+                    unitId = requireNotNull(json?.getString("unit_id")),
+                    payload = requireNotNull(json?.getString("payload"))
+                )
+            } else {
+                AdmobBannerAuctionParams.Network(
+                    lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
+                    bannerFormat = bannerFormat,
+                    context = activity.applicationContext,
+                    containerWidth = containerWidth,
+                )
+            }
         }
-    }
-
-    override fun adRequest(adParams: AdmobBannerAuctionParams) {
-        require(adParams is AdmobBannerAuctionParams.Bidding) {
-            "AdmobBannerAuctionParams.Bidding expected, but ${adParams::class.java.simpleName} found"
-        }
-        param = adParams
-
-        val adRequest = AdRequest.Builder()
-            .bindFillParams(adParams.payload, adParams.adUnitId)
-            .build()
-
-        fillBanner(adRequest = adRequest, adParams = adParams)
     }
 
     @SuppressLint("MissingPermission")
-    private fun fillBanner(adRequest: AdRequest, adParams: AdmobBannerAuctionParams) {
+    override fun load(adParams: AdmobBannerAuctionParams) {
+        logInfo(TAG, "Starting with $adParams")
+        val adRequest = when (adParams) {
+            is AdmobBannerAuctionParams.Bidding -> {
+                AdRequest.Builder()
+                    .bindFillParams(adParams.payload, adParams.adUnitId)
+                    .build()
+            }
+
+            is AdmobBannerAuctionParams.Network -> {
+                AdRequest.Builder()
+                    .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
+                    .build()
+            }
+        }
+        param = adParams
         val adView = AdView(adParams.context).also {
             adView = it
         }
@@ -167,23 +151,10 @@ internal class AdmobBannerImpl :
             this.adUnitId = adUnitId
             this.adListener = requestListener
 
-            /**
-             * @see [https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener]
-             */
             this.onPaidEventListener = OnPaidEventListener { adValue ->
                 emitEvent(
                     AdEvent.PaidRevenue(
-                        ad = Ad(
-                            demandAd = demandAd,
-                            ecpm = adParams.price,
-                            demandAdObject = adView,
-                            networkName = demandId.demandId,
-                            dsp = null,
-                            roundId = roundId,
-                            currencyCode = AdValue.USD,
-                            auctionId = auctionId,
-                            adUnitId = adParams.adUnitId
-                        ),
+                        ad = adView.asAd(),
                         adValue = adValue.asBidonAdValue()
                     )
                 )
@@ -222,4 +193,4 @@ internal class AdmobBannerImpl :
     }
 }
 
-private const val TAG = "Admob Banner"
+private const val TAG = "AdmobBanner"

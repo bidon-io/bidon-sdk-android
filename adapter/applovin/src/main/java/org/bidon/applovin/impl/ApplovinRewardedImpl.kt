@@ -14,7 +14,6 @@ import org.bidon.applovin.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdLoadingType
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
@@ -34,7 +33,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 internal class ApplovinRewardedImpl(
     private val applovinSdk: AppLovinSdk,
 ) : AdSource.Rewarded<ApplovinFullscreenAdAuctionParams>,
-    AdLoadingType.Network<ApplovinFullscreenAdAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -112,7 +110,7 @@ internal class ApplovinRewardedImpl(
         }
     }
 
-    override fun fill(adParams: ApplovinFullscreenAdAuctionParams) {
+    override fun load(adParams: ApplovinFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         lineItem = adParams.lineItem
         val incentivizedInterstitial =
