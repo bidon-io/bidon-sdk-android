@@ -41,13 +41,11 @@ internal class BMRewardedAdImpl :
     private var context: Context? = null
     private var adRequest: RewardedRequest? = null
     private var rewardedAd: RewardedAd? = null
+
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canShow() == true
 
-    private var isBiddingRequest = true
-
     override suspend fun getToken(context: Context): String {
-        isBiddingRequest = true
         return BidMachine.getBidToken(context)
     }
 

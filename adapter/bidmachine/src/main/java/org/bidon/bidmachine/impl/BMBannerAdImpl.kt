@@ -48,13 +48,10 @@ internal class BMBannerAdImpl :
     private var bannerView: BannerView? = null
     private var bannerFormat: BannerFormat? = null
 
-    private var isBiddingRequest = true
-
     override val isAdReadyToShow: Boolean
         get() = bannerView?.canShow() == true
 
     override suspend fun getToken(context: Context): String {
-        isBiddingRequest = true
         return BidMachine.getBidToken(context)
     }
 

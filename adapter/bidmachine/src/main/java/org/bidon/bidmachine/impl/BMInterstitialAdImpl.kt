@@ -42,13 +42,11 @@ internal class BMInterstitialAdImpl :
     private var context: Context? = null
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
+
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
 
-    private var isBiddingRequest = true
-
     override suspend fun getToken(context: Context): String {
-        isBiddingRequest = true
         return BidMachine.getBidToken(context)
     }
 
