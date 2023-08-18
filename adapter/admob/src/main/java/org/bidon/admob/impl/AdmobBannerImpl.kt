@@ -85,6 +85,10 @@ internal class AdmobBannerImpl(
 
             override fun onAdOpened() {}
         }
+        val adUnitId = when (adParams) {
+            is AdmobBannerAuctionParams.Bidding -> adParams.adUnitId
+            is AdmobBannerAuctionParams.Network -> adParams.adUnitId
+        }
         adView.apply {
             this.setAdSize(adParams.adSize)
             this.adUnitId = adUnitId

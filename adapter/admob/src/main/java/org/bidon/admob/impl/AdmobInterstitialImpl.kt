@@ -82,7 +82,7 @@ internal class AdmobInterstitialImpl(
             }
         }
         val adUnitId = when (adParams) {
-            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.unitId
+            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
         }
         InterstitialAd.load(adParams.context, adUnitId, adRequest, requestListener)
