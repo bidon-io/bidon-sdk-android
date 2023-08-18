@@ -88,6 +88,9 @@ dependencies {
 //    implementation("io.bidon:bigoads-adapter:0.1.0.1-Beta")
 //    implementation("io.bidon:mintegral-adapter:0.1.0.1-Beta")
 
+    implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
+    implementation("com.google.android.gms:play-services-ads:22.2.0")
+
     implementation(project(":bidon"))
     implementation(project(":adapter:bidmachine"))
     implementation(project(":adapter:admob"))
