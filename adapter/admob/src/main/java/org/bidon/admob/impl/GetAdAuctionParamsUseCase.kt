@@ -49,9 +49,8 @@ internal class GetAdAuctionParamsUseCase {
                             payload = requireNotNull(json?.getString("payload"))
                         )
                     } else {
-                        val lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId)
                         AdmobFullscreenAdAuctionParams.Network(
-                            lineItem = lineItem,
+                            lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId),
                             context = activity.applicationContext,
                         )
                     }
