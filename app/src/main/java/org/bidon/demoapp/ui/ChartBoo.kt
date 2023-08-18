@@ -7,18 +7,11 @@ import com.chartboost.heliumsdk.HeliumImpressionData
 import com.chartboost.heliumsdk.HeliumSdk
 import com.chartboost.heliumsdk.ad.HeliumFullscreenAdListener
 import com.chartboost.heliumsdk.ad.HeliumInterstitialAd
-import com.chartboost.heliumsdk.domain.AdFormat
-import com.chartboost.heliumsdk.domain.AdInteractionListener
 import com.chartboost.heliumsdk.domain.ChartboostMediationAdException
-import com.chartboost.heliumsdk.domain.PartnerAd
-import com.chartboost.heliumsdk.domain.PartnerAdListener
-import com.chartboost.heliumsdk.domain.PartnerAdLoadRequest
-import com.chartboost.heliumsdk.domain.PreBidRequest
-import com.chartboost.mediation.googlebiddingadapter.GoogleBiddingAdapter
 import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
@@ -26,96 +19,21 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  */
 object ChartBoo {
     fun st(coroutineScope: CoroutineScope, activity: Activity) {
+        BidonSdk.setLoggerLevel(Logger.Level.Verbose)
         initChartboost(
             context = activity,
-            appId = "64d10336ec5b182b9e101000",
-            appSignature = "331d6a248a70f9264c32259512f1321eba47c608",
         ) {
-            loadInterstitial(coroutineScope, activity)
+            logInfo(TAG, "HeliumSdk start")
+            loadInterstitial(activity)
             return@initChartboost
-            coroutineScope.launch {
-                val adapter = GoogleBiddingAdapter()
-                adapter.setUp(activity).onSuccess {
-                    logInfo(TAG, "Chartboost bidding adapter setup success")
-                    val map = adapter.fetchBidderInformation(
-                        context = activity,
-                        request = PreBidRequest(
-                            chartboostPlacement = "chartboostTestInterstitial",
-                            format = AdFormat.INTERSTITIAL,
-                        )
-                    )
-                    logInfo(TAG, "Chartboost bidding adapter fetchBidderInformation success: $map")
-                    adapter.load(activity,
-                        PartnerAdLoadRequest(
-                            partnerId = adapter.partnerId,
-                            format = AdFormat.INTERSTITIAL,
-                            chartboostPlacement = "chartboostTestInterstitial",
-                            size = null,
-                            adm = "",
-                            adInteractionListener = object : AdInteractionListener {
-                                override fun onClicked(partnerAd: PartnerAd) {
-                                    logInfo(TAG, "AdInteractionListener onClicked $partnerAd")
-                                }
-
-                                override fun onDismissed(partnerAd: PartnerAd, error: ChartboostMediationAdException?) {
-                                    logInfo(TAG, "AdInteractionListener onDismissed $partnerAd")
-                                }
-
-                                override fun onExpired(partnerAd: PartnerAd) {
-                                    logInfo(TAG, "AdInteractionListener onExpired $partnerAd")
-                                }
-
-                                override fun onImpressionTracked(partnerAd: PartnerAd) {
-                                    logInfo(TAG, "AdInteractionListener onImpressionTracked $partnerAd")
-                                }
-
-                                override fun onRewarded(partnerAd: PartnerAd) {
-                                    logInfo(TAG, "AdInteractionListener onRewarded $partnerAd")
-                                }
-                            },
-                            identifier = "125",
-                            partnerPlacement = "124",
-                            partnerSettings = map,
-                        ),
-                        object : PartnerAdListener {
-                            override fun onPartnerAdClicked(partnerAd: PartnerAd) {
-                                logInfo(TAG, "PartnerAdListener onPartnerAdClicked $partnerAd")
-                            }
-
-                            override fun onPartnerAdDismissed(partnerAd: PartnerAd, error: ChartboostMediationAdException?) {
-                                logInfo(TAG, "PartnerAdListener onPartnerAdDismissed $partnerAd")
-                            }
-
-                            override fun onPartnerAdExpired(partnerAd: PartnerAd) {
-                                logInfo(TAG, "PartnerAdListener onPartnerAdExpired $partnerAd")
-                            }
-
-                            override fun onPartnerAdImpression(partnerAd: PartnerAd) {
-                                logInfo(TAG, "PartnerAdListener onPartnerAdImpression $partnerAd")
-                            }
-
-                            override fun onPartnerAdRewarded(partnerAd: PartnerAd) {
-                                logInfo(TAG, "PartnerAdListener onPartnerAdRewarded $partnerAd")
-                            }
-                        }
-                    ).onSuccess {
-                        logInfo(TAG, "Chartboost bidding adapter load success")
-                    }.onFailure {
-                        logError(TAG, "Chartboost bidding adapter load failed", it)
-                    }
-
-                }.onFailure {
-                    logError(TAG, "Chartboost bidding adapter setup failed", it)
-                }
-            }
         }
     }
 
-    private fun loadInterstitial(coroutineScope: CoroutineScope, activity: Activity) {
+    private fun loadInterstitial(activity: Activity) {
         logInfo(TAG, "HeliumFullscreenAdListener loadInterstitial")
-        HeliumInterstitialAd(activity,
+        val a = HeliumInterstitialAd(activity,
             placementName = "chartboostTestInterstitial",
-            heliumFullscreenAdListener = object : HeliumFullscreenAdListener{
+            heliumFullscreenAdListener = object : HeliumFullscreenAdListener {
                 override fun onAdCached(
                     placementName: String,
                     loadId: String,
@@ -146,17 +64,21 @@ object ChartBoo {
                 }
 
             })
+        a.load()
     }
 
     private fun initChartboost(
         context: Context,
-        appId: String,
-        appSignature: String,
         onFinished: () -> Unit
 
     ) {
+        logInfo(TAG, "HeliumSdk initChartboost")
         MobileAds.disableMediationAdapterInitialization(context)
-        HeliumSdk.start(context, appId, appSignature) { error ->
+        HeliumSdk.start(
+            /* context = */ context,
+            /* appId = */ "64d10336ec5b182b9e101000",
+            /* appSignature = */ "331d6a248a70f9264c32259512f1321eba47c608"
+        ) { error ->
             HeliumSdk.setTestMode(true)
             when (error) {
                 null -> {

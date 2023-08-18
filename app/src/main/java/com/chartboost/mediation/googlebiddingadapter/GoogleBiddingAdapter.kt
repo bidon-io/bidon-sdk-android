@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.ext.asFailure
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -522,6 +523,8 @@ class GoogleBiddingAdapter : PartnerAdapter {
     ): Result<PartnerAd> {
         // Save the listener for later use.
         logInfo("ChartboostMediation", "loadInterstitialAd $request")
+        logInfo("ChartboostMediation", "${request.adm};;;")
+        return Throwable().asFailure()
         listeners[request.identifier] = listener
 
         return suspendCoroutine { continuation ->

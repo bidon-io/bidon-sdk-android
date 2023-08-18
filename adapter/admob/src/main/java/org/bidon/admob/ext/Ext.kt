@@ -13,7 +13,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = MobileAds.getVersion()
-private const val REQUEST_AGENT = "Bidon" // TODO should
+private const val REQUEST_AGENT = "Chartboost" // TODO should
 
 internal fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder = this.apply {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
