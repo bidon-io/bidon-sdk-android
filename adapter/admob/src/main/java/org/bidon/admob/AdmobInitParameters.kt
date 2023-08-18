@@ -35,13 +35,12 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
         override val price: Double,
+        override val adUnitId: String,
         val payload: String,
-        val unitId: String
     ) : AdmobBannerAuctionParams {
-        override val adUnitId: String get() = unitId
 
         override fun toString(): String {
-            return "AdmobBannerAuctionParams($unitId, bidPrice=$price)"
+            return "AdmobBannerAuctionParams($adUnitId, bidPrice=$price)"
         }
     }
 }
@@ -64,13 +63,12 @@ sealed interface AdmobFullscreenAdAuctionParams : AdAuctionParams {
     class Bidding(
         override val context: Context,
         override val price: Double,
+        override val adUnitId: String,
         val payload: String,
-        val unitId: String
     ) : AdmobFullscreenAdAuctionParams {
-        override val adUnitId: String get() = unitId
 
         override fun toString(): String {
-            return "AdmobFullscreenAdAuctionParams($unitId, bidPrice=$price)"
+            return "AdmobFullscreenAdAuctionParams($adUnitId, bidPrice=$price)"
         }
     }
 }

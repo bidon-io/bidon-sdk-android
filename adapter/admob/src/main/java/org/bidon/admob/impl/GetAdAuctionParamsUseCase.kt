@@ -26,7 +26,7 @@ internal class GetAdAuctionParamsUseCase {
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
                             price = pricefloor,
-                            unitId = requireNotNull(json?.getString("unit_id")),
+                            adUnitId = requireNotNull(json?.getString("ad_unit_id")),
                             payload = requireNotNull(json?.getString("payload"))
                         )
                     } else {
@@ -45,7 +45,7 @@ internal class GetAdAuctionParamsUseCase {
                         AdmobFullscreenAdAuctionParams.Bidding(
                             context = activity.applicationContext,
                             price = pricefloor,
-                            unitId = requireNotNull(json?.getString("unit_id")),
+                            adUnitId = requireNotNull(json?.getString("ad_unit_id")),
                             payload = requireNotNull(json?.getString("payload"))
                         )
                     } else {

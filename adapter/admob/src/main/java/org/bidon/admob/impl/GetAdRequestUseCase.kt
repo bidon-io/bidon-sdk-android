@@ -16,7 +16,7 @@ internal class GetAdRequestUseCase {
         return when (adParams) {
             is AdmobFullscreenAdAuctionParams.Bidding -> {
                 AdRequest.Builder()
-                    .bindFillParams(adParams.payload, adParams.adUnitId)
+                    .bindFillParams(adParams.payload)
                     .build()
             }
 
@@ -32,7 +32,7 @@ internal class GetAdRequestUseCase {
         return when (adParams) {
             is AdmobBannerAuctionParams.Bidding -> {
                 AdRequest.Builder()
-                    .bindFillParams(adParams.payload, adParams.adUnitId)
+                    .bindFillParams(adParams.payload)
                     .build()
             }
 

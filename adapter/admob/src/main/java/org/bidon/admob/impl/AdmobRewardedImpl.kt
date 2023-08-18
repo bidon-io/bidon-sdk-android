@@ -83,7 +83,7 @@ internal class AdmobRewardedImpl(
             }
         }
         val adUnitId = when (adParams) {
-            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.unitId
+            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
         }
         RewardedAd.load(adParams.context, adUnitId, adRequest, requestListener)
