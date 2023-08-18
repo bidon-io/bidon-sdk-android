@@ -2,19 +2,10 @@ package org.bidon.admob.impl
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
-import com.google.android.gms.ads.query.QueryInfo
-import com.google.android.gms.ads.query.QueryInfoGenerationCallback
-import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.admob.AdmobBannerAuctionParams
-import org.bidon.admob.DefaultTokenTimeoutMs
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
-import org.bidon.admob.ext.asBundle
-import org.bidon.admob.ext.bindBiddingParams
-import org.bidon.admob.ext.bindFillParams
-import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
@@ -27,16 +18,16 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
  *
  * [OnPaidEventListener](https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener)
  */
-internal class AdmobBannerImpl :
+internal class AdmobBannerImpl(
+    private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(),
+    private val obtainToken: GetTokenUseCase = GetTokenUseCase(),
+) :
     AdSource.Banner<AdmobBannerAuctionParams>,
     Mode.Bidding,
     Mode.Network,
@@ -51,28 +42,7 @@ internal class AdmobBannerImpl :
 
     override suspend fun getToken(context: Context): String? {
         isBiddingMode = true
-        val adRequest = AdRequest.Builder()
-            .bindBiddingParams()
-            .build()
-
-        return withTimeoutOrNull(DefaultTokenTimeoutMs) {
-            suspendCoroutine { continuation ->
-                QueryInfo.generate(
-                    context,
-                    AdFormat.BANNER,
-                    adRequest,
-                    object : QueryInfoGenerationCallback() {
-                        override fun onSuccess(queryInfo: QueryInfo) {
-                            continuation.resume(queryInfo.query)
-                        }
-
-                        override fun onFailure(errorMessage: String) {
-                            continuation.resumeWithException(Exception(errorMessage))
-                        }
-                    }
-                )
-            }
-        }
+        return obtainToken(context, demandAd.adType)
     }
 
     override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
@@ -100,26 +70,14 @@ internal class AdmobBannerImpl :
     @SuppressLint("MissingPermission")
     override fun load(adParams: AdmobBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        val adRequest = when (adParams) {
-            is AdmobBannerAuctionParams.Bidding -> {
-                AdRequest.Builder()
-                    .bindFillParams(adParams.payload, adParams.adUnitId)
-                    .build()
-            }
-
-            is AdmobBannerAuctionParams.Network -> {
-                AdRequest.Builder()
-                    .addNetworkExtrasBundle(AdMobAdapter::class.java, BidonSdk.regulation.asBundle())
-                    .build()
-            }
-        }
+        val adRequest = getAdRequest(adParams)
         param = adParams
         val adView = AdView(adParams.context).also {
             adView = it
         }
         val requestListener = object : AdListener() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                logError(TAG, "Error while loading ad: $loadAdError. $this", loadAdError.asBidonError())
+                logError(TAG, "onAdFailedToLoad: $loadAdError. $this", loadAdError.asBidonError())
                 emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
 

@@ -80,7 +80,6 @@ internal class ApplovinRewardedImpl(
             override fun userRewardVerified(ad: AppLovinAd, response: MutableMap<String, String>?) {
                 logInfo(TAG, "userRewardVerified: $this")
                 emitEvent(AdEvent.OnReward(ad.asAd(), reward = null))
-                sendRewardImpression()
             }
 
             override fun userOverQuota(ad: AppLovinAd?, response: MutableMap<String, String>?) {}

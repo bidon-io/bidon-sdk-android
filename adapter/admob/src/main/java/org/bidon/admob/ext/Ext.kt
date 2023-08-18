@@ -37,6 +37,7 @@ internal fun AdRequest.Builder.bindFillParams(payload: String, adUnitId: String)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
 }
 
+@Suppress("DEPRECATION")
 internal fun BannerFormat.toAdmobAdSize(
     context: Context,
     containerWidth: Float
@@ -62,7 +63,7 @@ internal fun BannerFormat.toAdmobAdSize(
 }
 
 internal fun AdAuctionParamSource.getAdAuctionParams(isBiddingMode: Boolean) =
-    this.invoke {
+    this {
         if (isBiddingMode) {
             AdmobFullscreenAdAuctionParams.Bidding(
                 context = activity.applicationContext,

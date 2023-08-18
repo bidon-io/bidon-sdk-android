@@ -98,7 +98,6 @@ internal class DTExchangeRewarded :
                     reward = null
                 )
             )
-            sendRewardImpression()
         }
         spot.addUnitController(controller)
 
