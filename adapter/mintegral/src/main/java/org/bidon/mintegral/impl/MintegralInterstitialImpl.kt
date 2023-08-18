@@ -44,7 +44,7 @@ internal class MintegralInterstitialImpl :
 
     override suspend fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             MintegralAuctionParam(
                 activity = activity,

@@ -96,7 +96,7 @@ internal class BMBannerAdImpl :
             .request(adParams.context)
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BMBannerAuctionParams(
                 price = pricefloor,

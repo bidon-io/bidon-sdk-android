@@ -102,7 +102,7 @@ internal class BMInterstitialAdImpl :
         }
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BMFullscreenAuctionParams(
                 price = pricefloor,

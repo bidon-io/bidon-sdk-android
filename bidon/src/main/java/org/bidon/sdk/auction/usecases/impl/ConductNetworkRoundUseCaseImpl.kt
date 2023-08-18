@@ -97,7 +97,7 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
     ): AdEvent {
         adSource as AdSource<AdAuctionParams>
         return withTimeoutOrNull(round.timeoutMs) {
-            val adParam = adSource.obtainAuctionParam(
+            val adParam = adSource.getAuctionParam(
                 AdAuctionParamSource(
                     activity = adTypeParam.activity,
                     timeout = round.timeoutMs,

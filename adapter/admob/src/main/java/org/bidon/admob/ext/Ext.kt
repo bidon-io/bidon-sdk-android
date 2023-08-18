@@ -7,13 +7,9 @@ import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.MobileAds
-import org.bidon.admob.AdmobDemandId
-import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.admob.BuildConfig
 import org.bidon.sdk.BidonSdk
-import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.config.BidonError
 
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = MobileAds.getVersion()
@@ -61,21 +57,3 @@ internal fun BannerFormat.toAdmobAdSize(
         }
     }
 }
-
-internal fun AdAuctionParamSource.getAdAuctionParams(isBiddingMode: Boolean) =
-    this {
-        if (isBiddingMode) {
-            AdmobFullscreenAdAuctionParams.Bidding(
-                context = activity.applicationContext,
-                price = pricefloor,
-                unitId = requireNotNull(json?.getString("unit_id")),
-                payload = requireNotNull(json?.getString("payload"))
-            )
-        } else {
-            val lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId)
-            AdmobFullscreenAdAuctionParams.Network(
-                lineItem = lineItem,
-                context = activity.applicationContext,
-            )
-        }
-    }

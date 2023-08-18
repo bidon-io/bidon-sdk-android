@@ -42,7 +42,7 @@ class MetaInterstitialImpl :
         return BidderTokenProvider.getBidderToken(context)
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             MetaFullscreenAuctionParams(
                 context = activity.applicationContext,

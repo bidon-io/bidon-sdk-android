@@ -35,7 +35,7 @@ internal class UnityAdsRewarded :
 
     override var isAdReadyToShow: Boolean = false
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             UnityAdsFullscreenAuctionParams(
                 lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)

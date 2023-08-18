@@ -76,7 +76,7 @@ internal class ApplovinInterstitialImpl(
         applovinAd = null
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             ApplovinFullscreenAdAuctionParams(
                 lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),

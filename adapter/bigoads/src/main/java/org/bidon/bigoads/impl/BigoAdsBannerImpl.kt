@@ -51,7 +51,7 @@ internal class BigoAdsBannerImpl :
         bannerAd = null
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BigoBannerAuctionParams(
                 bannerFormat = bannerFormat,

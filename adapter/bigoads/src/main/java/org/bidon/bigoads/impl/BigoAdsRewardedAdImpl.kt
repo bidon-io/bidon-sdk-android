@@ -44,7 +44,7 @@ internal class BigoAdsRewardedAdImpl :
         rewardVideoAd = null
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BigoFullscreenAuctionParams(
                 payload = requireNotNull(json?.optString("payload")) {

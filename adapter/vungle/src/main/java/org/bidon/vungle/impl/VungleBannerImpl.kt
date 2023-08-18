@@ -48,7 +48,7 @@ internal class VungleBannerImpl :
             )
         } ?: false
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             VungleBannerAuctionParams(
                 bannerFormat = bannerFormat,

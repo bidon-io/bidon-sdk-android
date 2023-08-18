@@ -45,7 +45,7 @@ internal class VungleInterstitialImpl :
             )
         } ?: false
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             VungleFullscreenAuctionParams(
                 placementId = requireNotNull(json?.getString("placement_id")) {

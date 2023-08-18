@@ -149,7 +149,7 @@ internal class ConductBiddingRoundUseCaseImpl(
         val adSource = biddingSources.first {
             (it as AdSource<*>).demandId.demandId == bid.demandId
         }
-        val adParam = (adSource as AdSource<AdAuctionParams>).obtainAuctionParam(
+        val adParam = (adSource as AdSource<AdAuctionParams>).getAuctionParam(
             AdAuctionParamSource(
                 activity = adTypeParam.activity,
                 pricefloor = bid.price,

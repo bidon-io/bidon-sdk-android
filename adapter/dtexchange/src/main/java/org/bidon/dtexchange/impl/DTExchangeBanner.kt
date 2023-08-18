@@ -44,7 +44,7 @@ internal class DTExchangeBanner :
 
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
             DTExchangeBannerAuctionParams(

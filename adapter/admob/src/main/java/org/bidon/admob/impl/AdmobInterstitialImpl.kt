@@ -9,7 +9,6 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
-import org.bidon.admob.ext.getAdAuctionParams
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -29,8 +28,8 @@ internal class AdmobInterstitialImpl(
     private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(),
     private val getFullScreenContentCallback: GetFullScreenContentCallbackUseCase = GetFullScreenContentCallbackUseCase(),
     private val obtainToken: GetTokenUseCase = GetTokenUseCase(),
-) :
-    AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
+    private val obtainAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
+) : AdSource.Interstitial<AdmobFullscreenAdAuctionParams>,
     Mode.Bidding,
     Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
@@ -48,8 +47,8 @@ internal class AdmobInterstitialImpl(
         return obtainToken(context, demandAd.adType)
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope.getAdAuctionParams(isBiddingMode)
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return obtainAdAuctionParams(auctionParamsScope, demandAd.adType, isBiddingMode)
     }
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {

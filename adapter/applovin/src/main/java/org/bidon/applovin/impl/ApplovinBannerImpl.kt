@@ -77,7 +77,7 @@ internal class ApplovinBannerImpl(
         applovinAd = null
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             ApplovinBannerAuctionParams(
                 context = activity.applicationContext,

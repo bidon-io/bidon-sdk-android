@@ -12,7 +12,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -27,8 +26,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 internal class AdmobBannerImpl(
     private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(),
     private val obtainToken: GetTokenUseCase = GetTokenUseCase(),
-) :
-    AdSource.Banner<AdmobBannerAuctionParams>,
+    private val getAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
+) : AdSource.Banner<AdmobBannerAuctionParams>,
     Mode.Bidding,
     Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
@@ -45,26 +44,8 @@ internal class AdmobBannerImpl(
         return obtainToken(context, demandAd.adType)
     }
 
-    override fun obtainAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            if (isBiddingMode) {
-                AdmobBannerAuctionParams.Bidding(
-                    context = activity.applicationContext,
-                    bannerFormat = bannerFormat,
-                    containerWidth = containerWidth,
-                    price = pricefloor,
-                    unitId = requireNotNull(json?.getString("unit_id")),
-                    payload = requireNotNull(json?.getString("payload"))
-                )
-            } else {
-                AdmobBannerAuctionParams.Network(
-                    lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
-                    bannerFormat = bannerFormat,
-                    context = activity.applicationContext,
-                    containerWidth = containerWidth,
-                )
-            }
-        }
+    override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
+        return getAdAuctionParams(auctionParamsScope, demandAd.adType, isBiddingMode)
     }
 
     @SuppressLint("MissingPermission")
