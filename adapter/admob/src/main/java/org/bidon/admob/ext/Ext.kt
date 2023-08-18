@@ -12,22 +12,20 @@ import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.banner.BannerFormat
 
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
-internal var sdkVersion = MobileAds.getVersion()
+internal var sdkVersion = MobileAds.getVersion().toString()
 private const val REQUEST_AGENT = "Bidon" // TODO should
 
 internal fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder = this.apply {
     val networkExtras = BidonSdk.regulation.asBundle().apply {
-        // TODO chartboost set "requester_type_3", MAX, IS - "requester_type_2"
-        putString("query_info_type", "requester_type_2")
+        putString("query_info_type", "requester_type_2") // AppLovin MAX, IronSource - "requester_type_2"
+//      putString("query_info_type", "requester_type_3") // Chartboost - "requester_type_3"
     }
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
 }
 
-internal fun AdRequest.Builder.bindFillParams(payload: String, adUnitId: String): AdRequest.Builder = this.apply {
-    val networkExtras = BidonSdk.regulation.asBundle().apply {
-        putString("placement_req_id", adUnitId)
-    }
+internal fun AdRequest.Builder.bindFillParams(payload: String): AdRequest.Builder = this.apply {
+    val networkExtras = BidonSdk.regulation.asBundle()
     setAdString(payload)
     setRequestAgent(REQUEST_AGENT)
     addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
