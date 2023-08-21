@@ -8,7 +8,10 @@ import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.LineItem
 
-object AdmobInitParameters : AdapterParameters
+data class AdmobInitParameters(
+    val requestAgent: String?,
+    val queryInfoType: String?
+) : AdapterParameters
 
 sealed interface AdmobBannerAuctionParams : AdAuctionParams {
     val bannerFormat: BannerFormat
@@ -40,7 +43,7 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
     ) : AdmobBannerAuctionParams {
 
         override fun toString(): String {
-            return "AdmobBannerAuctionParams($adUnitId, bidPrice=$price)"
+            return "AdmobBannerAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
         }
     }
 }
@@ -68,7 +71,7 @@ sealed interface AdmobFullscreenAdAuctionParams : AdAuctionParams {
     ) : AdmobFullscreenAdAuctionParams {
 
         override fun toString(): String {
-            return "AdmobFullscreenAdAuctionParams($adUnitId, bidPrice=$price)"
+            return "AdmobFullscreenAdAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
         }
     }
 }

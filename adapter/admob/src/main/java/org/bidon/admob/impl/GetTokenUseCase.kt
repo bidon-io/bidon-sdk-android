@@ -1,12 +1,15 @@
 package org.bidon.admob.impl
 
 import android.content.Context
+import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdFormat
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
-import org.bidon.admob.ext.bindBiddingParams
+import org.bidon.admob.AdmobInitParameters
+import org.bidon.admob.ext.asBundle
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.AdType
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -15,10 +18,20 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * Created by Aleksei Cherniaev on 18/08/2023.
  */
-internal class GetTokenUseCase {
+internal class GetTokenUseCase(private val configParams: AdmobInitParameters?) {
     suspend operator fun invoke(context: Context, adType: AdType): String? {
         val adRequest = AdRequest.Builder()
-            .bindBiddingParams()
+            .apply {
+                val networkExtras = BidonSdk.regulation.asBundle().apply {
+                    configParams?.queryInfoType?.let {
+                        putString("query_info_type", it)
+                    }
+                }
+                configParams?.requestAgent?.let { agent ->
+                    setRequestAgent(agent)
+                }
+                addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
+            }
             .build()
         val adFormat = when (adType) {
             AdType.Banner -> AdFormat.BANNER
