@@ -71,7 +71,7 @@ fun SdkSettings() {
                 modifier = Modifier.background(
                     if (tempAdmobBid is DeleteMe.AdType.Interstitial) Color.Green else Color.Transparent
                 ),
-                text = "Chart Interstitial",
+                text = "Interstitial",
             ) {
                 ChartBoo.st(AdFormat.INTERSTITIAL, activity)
             }

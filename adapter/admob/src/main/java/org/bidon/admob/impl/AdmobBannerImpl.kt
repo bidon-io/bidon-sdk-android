@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.google.android.gms.ads.*
 import org.bidon.admob.AdmobBannerAuctionParams
+import org.bidon.admob.AdmobInitParameters
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
@@ -24,8 +25,9 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  * [OnPaidEventListener](https://developers.google.com/android/reference/com/google/android/gms/ads/OnPaidEventListener)
  */
 internal class AdmobBannerImpl(
-    private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(),
-    private val obtainToken: GetTokenUseCase = GetTokenUseCase(),
+    configParams: AdmobInitParameters?,
+    private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(configParams),
+    private val obtainToken: GetTokenUseCase = GetTokenUseCase(configParams),
     private val getAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
 ) : AdSource.Banner<AdmobBannerAuctionParams>,
     Mode.Bidding,

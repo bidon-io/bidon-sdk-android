@@ -8,7 +8,10 @@ import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.LineItem
 
-object AdmobInitParameters : AdapterParameters
+data class AdmobInitParameters(
+    val requestAgent: String?,
+    val queryInfoType: String?
+) : AdapterParameters
 
 sealed interface AdmobBannerAuctionParams : AdAuctionParams {
     val bannerFormat: BannerFormat

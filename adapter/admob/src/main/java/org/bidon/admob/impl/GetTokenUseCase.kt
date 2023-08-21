@@ -7,11 +7,10 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
-import org.bidon.admob.REQUEST_AGENT
+import org.bidon.admob.AdmobInitParameters
 import org.bidon.admob.ext.asBundle
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.logs.logging.impl.logInfo
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -19,17 +18,27 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * Created by Aleksei Cherniaev on 18/08/2023.
  */
-internal class GetTokenUseCase {
+internal class GetTokenUseCase(private val configParams: AdmobInitParameters?) {
     suspend operator fun invoke(context: Context, adType: AdType): String? {
         val adRequest = AdRequest.Builder()
-            .bindBiddingParams()
+            .apply {
+                val networkExtras = BidonSdk.regulation.asBundle().apply {
+                    configParams?.queryInfoType?.let {
+                        putString("query_info_type", it)
+                    }
+                }
+                configParams?.requestAgent?.let { agent ->
+                    setRequestAgent(agent)
+                }
+                addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
+            }
             .build()
         val adFormat = when (adType) {
             AdType.Banner -> AdFormat.BANNER
             AdType.Interstitial -> AdFormat.INTERSTITIAL
             AdType.Rewarded -> AdFormat.REWARDED
         }
-        return withTimeoutOrNull<String?>(DefaultTokenTimeoutMs) {
+        return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 QueryInfo.generate(
                     context,
@@ -46,18 +55,7 @@ internal class GetTokenUseCase {
                     }
                 )
             }
-        }.also {
-            logInfo("GetTokenUseCase", "token: $it")
         }
-    }
-
-    private fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder = this.apply {
-        val networkExtras = BidonSdk.regulation.asBundle().apply {
-//            putString("query_info_type", "requester_type_2") // AppLovin MAX, IronSource - "requester_type_2"
-            putString("query_info_type", "requester_type_3") // Chartboost - "requester_type_3"
-        }
-        setRequestAgent(REQUEST_AGENT)
-        addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
     }
 
     companion object {

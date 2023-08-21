@@ -12,7 +12,6 @@ import com.chartboost.heliumsdk.ad.HeliumInterstitialAd
 import com.chartboost.heliumsdk.ad.HeliumRewardedAd
 import com.chartboost.heliumsdk.domain.AdFormat
 import com.chartboost.heliumsdk.domain.ChartboostMediationAdException
-import com.google.android.gms.ads.MobileAds
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -148,7 +147,6 @@ object ChartBoo {
 
     ) {
         logInfo(TAG, "HeliumSdk initChartboost")
-        MobileAds.disableMediationAdapterInitialization(context)
         HeliumSdk.start(
             /* context = */ context,
             /* appId = */ "64d10336ec5b182b9e101000",
