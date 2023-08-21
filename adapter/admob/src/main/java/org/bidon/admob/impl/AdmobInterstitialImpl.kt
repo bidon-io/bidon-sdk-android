@@ -44,6 +44,7 @@ internal class AdmobInterstitialImpl(
 
     override suspend fun getToken(context: Context): String? {
         isBiddingMode = true
+        logInfo(TAG, "getToken: $demandAd")
         return obtainToken(context, demandAd.adType)
     }
 

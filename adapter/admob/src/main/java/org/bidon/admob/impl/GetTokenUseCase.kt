@@ -1,13 +1,17 @@
 package org.bidon.admob.impl
 
 import android.content.Context
+import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdFormat
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
-import org.bidon.admob.ext.bindBiddingParams
+import org.bidon.admob.REQUEST_AGENT
+import org.bidon.admob.ext.asBundle
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.logs.logging.impl.logInfo
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -25,7 +29,7 @@ internal class GetTokenUseCase {
             AdType.Interstitial -> AdFormat.INTERSTITIAL
             AdType.Rewarded -> AdFormat.REWARDED
         }
-        return withTimeoutOrNull(DefaultTokenTimeoutMs) {
+        return withTimeoutOrNull<String?>(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 QueryInfo.generate(
                     context,
@@ -42,7 +46,18 @@ internal class GetTokenUseCase {
                     }
                 )
             }
+        }.also {
+            logInfo("GetTokenUseCase", "token: $it")
         }
+    }
+
+    private fun AdRequest.Builder.bindBiddingParams(): AdRequest.Builder = this.apply {
+        val networkExtras = BidonSdk.regulation.asBundle().apply {
+//            putString("query_info_type", "requester_type_2") // AppLovin MAX, IronSource - "requester_type_2"
+            putString("query_info_type", "requester_type_3") // Chartboost - "requester_type_3"
+        }
+        setRequestAgent(REQUEST_AGENT)
+        addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
     }
 
     companion object {

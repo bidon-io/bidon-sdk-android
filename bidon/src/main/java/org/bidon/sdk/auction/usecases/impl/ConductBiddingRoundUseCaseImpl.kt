@@ -121,7 +121,9 @@ internal class ConductBiddingRoundUseCaseImpl(
                     adTypeParam = adTypeParam,
                     round = round,
                 ).also {
+                    logInfo(TAG, "fillResult: ${it.roundStatus}, ${(it as? AuctionResult.Bidding)?.adSource}")
                     if (it.roundStatus == RoundStatus.Successful) {
+                        logInfo(TAG, "fillResult: ${it.roundStatus}")
                         filled = true
                     }
                 }
@@ -168,6 +170,7 @@ internal class ConductBiddingRoundUseCaseImpl(
          */
         // Load AdRequest
         adSource.load(adParam)
+        logInfo(TAG, "adSource.load($adParam)")
         // Wait for ad-request result
         val bidAdEvent = adSource.adEvent.first {
             it is AdEvent.Fill || it is AdEvent.LoadFailed || it is AdEvent.Expired

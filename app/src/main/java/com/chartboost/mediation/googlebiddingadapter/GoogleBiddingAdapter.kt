@@ -32,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import org.bidon.admob.DeleteMe
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.asFailure
 import kotlin.coroutines.resume
@@ -50,8 +51,8 @@ class GoogleBiddingAdapter : PartnerAdapter {
                 PartnerLogController.log(
                     CUSTOM,
                     "Google Bidding test device ID(s) to be set: ${
-                        if (value.isEmpty()) "none"
-                        else value.joinToString()
+                    if (value.isEmpty()) "none"
+                    else value.joinToString()
                     }"
                 )
                 MobileAds.setRequestConfiguration(
@@ -306,22 +307,44 @@ class GoogleBiddingAdapter : PartnerAdapter {
     ): Result<PartnerAd> {
         PartnerLogController.log(LOAD_STARTED)
 
+        logInfo("ChartboostMediation", "loadInterstitialAd $request")
+        logInfo("ChartboostMediation", "${request.adm};;;")
+        DeleteMe.setPayload(
+            when (request.format) {
+                AdFormat.INTERSTITIAL -> {
+                    DeleteMe.AdType.Interstitial(request.adm ?: "no adm")
+                }
+
+                AdFormat.REWARDED -> {
+                    DeleteMe.AdType.Rewarded(request.adm ?: "no adm")
+                }
+
+                AdFormat.BANNER -> {
+                    DeleteMe.AdType.Banner(request.adm ?: "no adm")
+                }
+            }
+        )
+        return Throwable().asFailure()
+
         return when (request.format) {
             AdFormat.INTERSTITIAL -> loadInterstitialAd(
                 context,
                 request,
                 partnerAdListener
             )
+
             AdFormat.REWARDED -> loadRewardedAd(
                 context,
                 request,
                 partnerAdListener
             )
+
             AdFormat.BANNER -> loadBannerAd(
                 context,
                 request,
                 partnerAdListener
             )
+
             else -> {
                 if (request.format.key == "rewarded_interstitial") {
                     loadRewardedInterstitialAd(
@@ -355,6 +378,7 @@ class GoogleBiddingAdapter : PartnerAdapter {
                 PartnerLogController.log(SHOW_SUCCEEDED)
                 Result.success(partnerAd)
             }
+
             AdFormat.INTERSTITIAL -> showInterstitialAd(context, partnerAd, listener)
             AdFormat.REWARDED -> showRewardedAd(context, partnerAd, listener)
             else -> {
@@ -522,9 +546,6 @@ class GoogleBiddingAdapter : PartnerAdapter {
         listener: PartnerAdListener
     ): Result<PartnerAd> {
         // Save the listener for later use.
-        logInfo("ChartboostMediation", "loadInterstitialAd $request")
-        logInfo("ChartboostMediation", "${request.adm};;;")
-        return Throwable().asFailure()
         listeners[request.identifier] = listener
 
         return suspendCoroutine { continuation ->
@@ -542,7 +563,8 @@ class GoogleBiddingAdapter : PartnerAdapter {
                     return@launch
                 }
 
-                InterstitialAd.load(context,
+                InterstitialAd.load(
+                    context,
                     request.partnerPlacement,
                     buildRequest(adm),
                     object : InterstitialAdLoadCallback() {
@@ -607,7 +629,8 @@ class GoogleBiddingAdapter : PartnerAdapter {
                     return@launch
                 }
 
-                RewardedAd.load(context,
+                RewardedAd.load(
+                    context,
                     request.partnerPlacement,
                     buildRequest(adm),
                     object : RewardedAdLoadCallback() {
@@ -676,7 +699,8 @@ class GoogleBiddingAdapter : PartnerAdapter {
                     return@launch
                 }
 
-                RewardedInterstitialAd.load(context,
+                RewardedInterstitialAd.load(
+                    context,
                     request.partnerPlacement,
                     buildRequest(adm),
                     object : RewardedInterstitialAdLoadCallback() {
@@ -710,7 +734,6 @@ class GoogleBiddingAdapter : PartnerAdapter {
             }
         }
     }
-
 
     /**
      * Attempt to show a Google Bidding interstitial ad on the main thread.
@@ -965,7 +988,6 @@ class GoogleBiddingAdapter : PartnerAdapter {
             }
         }
     }
-
 
     /**
      * Destroy the current Google Bidding banner ad.

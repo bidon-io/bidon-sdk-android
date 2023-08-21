@@ -6,10 +6,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,7 +24,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,11 +54,9 @@ internal fun MainScreen(
     initState: MutableState<MainScreenState>,
     sharedPreferences: SharedPreferences
 ) {
-    val scope = rememberCoroutineScope()
     val adapters = remember {
         mutableStateOf(DefaultAdapters.values().toList())
     }
-    val activity = LocalContext.current as Activity
     val isTestMode = TestModeInfo.isTesMode.collectAsState()
     Column(
         modifier = Modifier
@@ -75,13 +70,6 @@ internal fun MainScreen(
         when (val state = initState.value) {
             MainScreenState.NotInitialized,
             MainScreenState.Initializing -> {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    AppTextButton(
-                        text = "ChartBoo"
-                    ) {
-                        ChartBoo.st(scope, activity)
-                    }
-                }
                 H5Text(text = "Bidon")
                 CaptionText(
                     text = BuildConfig.APPLICATION_ID,

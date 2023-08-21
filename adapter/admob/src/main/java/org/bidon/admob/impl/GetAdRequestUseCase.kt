@@ -4,8 +4,8 @@ import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.AdRequest
 import org.bidon.admob.AdmobBannerAuctionParams
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
+import org.bidon.admob.REQUEST_AGENT
 import org.bidon.admob.ext.asBundle
-import org.bidon.admob.ext.bindFillParams
 import org.bidon.sdk.BidonSdk
 
 /**
@@ -42,5 +42,12 @@ internal class GetAdRequestUseCase {
                     .build()
             }
         }
+    }
+
+    private fun AdRequest.Builder.bindFillParams(payload: String): AdRequest.Builder = this.apply {
+        val networkExtras = BidonSdk.regulation.asBundle()
+        setAdString(payload)
+        setRequestAgent(REQUEST_AGENT)
+        addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
     }
 }

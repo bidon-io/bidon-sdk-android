@@ -5,11 +5,14 @@ import android.content.Context
 import com.chartboost.heliumsdk.HeliumIlrdObserver
 import com.chartboost.heliumsdk.HeliumImpressionData
 import com.chartboost.heliumsdk.HeliumSdk
+import com.chartboost.heliumsdk.ad.HeliumBannerAd
+import com.chartboost.heliumsdk.ad.HeliumBannerAdListener
 import com.chartboost.heliumsdk.ad.HeliumFullscreenAdListener
 import com.chartboost.heliumsdk.ad.HeliumInterstitialAd
+import com.chartboost.heliumsdk.ad.HeliumRewardedAd
+import com.chartboost.heliumsdk.domain.AdFormat
 import com.chartboost.heliumsdk.domain.ChartboostMediationAdException
 import com.google.android.gms.ads.MobileAds
-import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -18,20 +21,25 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * Created by Aleksei Cherniaev on 18/08/2023.
  */
 object ChartBoo {
-    fun st(coroutineScope: CoroutineScope, activity: Activity) {
+    fun st(adFormat: AdFormat, activity: Activity) {
         BidonSdk.setLoggerLevel(Logger.Level.Verbose)
         initChartboost(
             context = activity,
         ) {
             logInfo(TAG, "HeliumSdk start")
-            loadInterstitial(activity)
+            when (adFormat) {
+                AdFormat.INTERSTITIAL -> loadInterstitial(activity)
+                AdFormat.REWARDED -> loadRewarded(activity)
+                AdFormat.BANNER -> loadBanner(activity)
+            }
             return@initChartboost
         }
     }
 
     private fun loadInterstitial(activity: Activity) {
         logInfo(TAG, "HeliumFullscreenAdListener loadInterstitial")
-        val a = HeliumInterstitialAd(activity,
+        val a = HeliumInterstitialAd(
+            activity,
             placementName = "chartboostTestInterstitial",
             heliumFullscreenAdListener = object : HeliumFullscreenAdListener {
                 override fun onAdCached(
@@ -62,8 +70,75 @@ object ChartBoo {
                 override fun onAdShown(placementName: String, error: ChartboostMediationAdException?) {
                     logInfo(TAG, "HeliumFullscreenAdListener onAdShown $placementName $error")
                 }
+            }
+        )
+        a.load()
+    }
 
-            })
+    private fun loadRewarded(activity: Activity) {
+        logInfo(TAG, "HeliumFullscreenAdListener loadInterstitial")
+        val a = HeliumRewardedAd(
+            activity,
+            placementName = "startup",
+            heliumFullscreenAdListener = object : HeliumFullscreenAdListener {
+                override fun onAdCached(
+                    placementName: String,
+                    loadId: String,
+                    winningBidInfo: Map<String, String>,
+                    error: ChartboostMediationAdException?
+                ) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdCached $placementName $loadId $winningBidInfo $error")
+                }
+
+                override fun onAdClicked(placementName: String) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdClicked $placementName")
+                }
+
+                override fun onAdClosed(placementName: String, error: ChartboostMediationAdException?) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdClosed $placementName $error")
+                }
+
+                override fun onAdImpressionRecorded(placementName: String) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdImpressionRecorded $placementName")
+                }
+
+                override fun onAdRewarded(placementName: String) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdRewarded $placementName")
+                }
+
+                override fun onAdShown(placementName: String, error: ChartboostMediationAdException?) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdShown $placementName $error")
+                }
+            }
+        )
+        a.load()
+    }
+
+    private fun loadBanner(activity: Activity) {
+        logInfo(TAG, "HeliumBannerAdListener loadBanner")
+        val a = HeliumBannerAd(
+            activity,
+            placementName = "chartboostTestBanner",
+            size = HeliumBannerAd.HeliumBannerSize.STANDARD,
+            heliumBannerAdListener = object : HeliumBannerAdListener {
+                override fun onAdCached(
+                    placementName: String,
+                    loadId: String,
+                    winningBidInfo: Map<String, String>,
+                    error: ChartboostMediationAdException?
+                ) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdCached $placementName $loadId $winningBidInfo $error")
+                }
+
+                override fun onAdClicked(placementName: String) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdClicked $placementName")
+                }
+
+                override fun onAdImpressionRecorded(placementName: String) {
+                    logInfo(TAG, "HeliumFullscreenAdListener onAdImpressionRecorded $placementName")
+                }
+            }
+        )
         a.load()
     }
 
@@ -97,6 +172,5 @@ object ChartBoo {
         }
     }
 }
-
 
 private const val TAG = "ChartBoo"

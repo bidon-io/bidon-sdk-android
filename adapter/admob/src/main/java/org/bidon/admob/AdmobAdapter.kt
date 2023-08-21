@@ -12,6 +12,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 val AdmobDemandId = DemandId("admob")
+internal const val REQUEST_AGENT = "Chartboost" // TODO should
 
 @Suppress("unused")
 class AdmobAdapter :
@@ -36,6 +37,7 @@ class AdmobAdapter :
          * Don't forget set Automatic refresh is Disabled for each AdUnit.
          * Manage refresh rate with [BannerView.startAutoRefresh].
          */
+        MobileAds.disableMediationAdapterInitialization(context)
         MobileAds.initialize(context) {
             continuation.resume(Unit)
         }
