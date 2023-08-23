@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.chartboost.heliumsdk.domain.AdFormat
-import org.bidon.admob.DeleteMe
+import com.chartboost.mediation.googlebiddingadapter.DeleteMe
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.ItemSelector

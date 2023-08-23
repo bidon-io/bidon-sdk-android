@@ -1,4 +1,4 @@
-package org.bidon.admob
+package com.chartboost.mediation.googlebiddingadapter
 
 import kotlinx.coroutines.flow.MutableStateFlow
 
