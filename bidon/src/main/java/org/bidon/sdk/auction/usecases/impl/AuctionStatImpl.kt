@@ -89,8 +89,8 @@ internal class AuctionStatImpl(
                             it.code == demandStat.roundStatusCode
                         }.getFinalStatus(
                             isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
-                                    demandStat.adUnitId == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnitId &&
-                                    demandStat.ecpm == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
+                                demandStat.adUnitId == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnitId &&
+                                demandStat.ecpm == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
                         ).code
                     )
                 },
@@ -101,8 +101,8 @@ internal class AuctionStatImpl(
                                 it.code == bid.roundStatusCode
                             }.getFinalStatus(
                                 isWinner = bid.demandId != null &&
-                                        bid.demandId == (winner as? AuctionResult.Bidding)?.adSource?.demandId?.demandId &&
-                                        bid.ecpm == (winner as? AuctionResult.Bidding)?.adSource?.getStats()?.ecpm
+                                    bid.demandId == (winner as? AuctionResult.Bidding)?.adSource?.demandId?.demandId &&
+                                    bid.ecpm == (winner as? AuctionResult.Bidding)?.adSource?.getStats()?.ecpm
                             ).code
                         )
                     }
