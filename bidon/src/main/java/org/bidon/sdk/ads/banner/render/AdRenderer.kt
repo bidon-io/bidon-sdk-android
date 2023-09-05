@@ -2,9 +2,8 @@ package org.bidon.sdk.ads.banner.render
 
 import android.app.Activity
 import android.view.View
-import android.view.ViewGroup
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerPosition
+import org.bidon.sdk.ads.banner.BannerView
 
 /**
  * Created by Aleksei Cherniaev on 05/09/2023.
@@ -12,13 +11,12 @@ import org.bidon.sdk.ads.banner.BannerPosition
 internal interface AdRenderer {
     fun render(
         activity: Activity,
-        adView: ViewGroup,
+        bannerView: BannerView,
         position: BannerPosition,
         useSafeArea: Boolean,
         animate: Boolean,
         isRotated: Boolean,
         handleConfigurationChanges: Boolean,
-        format: BannerFormat,
         renderListener: RenderListener
     ): Boolean
 

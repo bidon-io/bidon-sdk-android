@@ -56,8 +56,6 @@ class MetaAudienceAdapter :
         AudienceNetworkAds
             .buildInitSettings(context)
             .withInitListener { initResult ->
-                logInfo(TAG, "AudienceNetworkAds.isInitialized: ${AudienceNetworkAds.isInitialized(context)}")
-
                 if (initResult.isSuccess) {
                     it.resume(Unit)
                 } else {

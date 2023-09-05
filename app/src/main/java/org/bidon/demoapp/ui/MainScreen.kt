@@ -173,6 +173,9 @@ internal fun MainScreen(
                         Intent(context, BannerViewActivity::class.java)
                     )
                 }
+                AppButton(text = "Positioned Banner") {
+                    navController.navigate(Screen.PositionedBanners.route)
+                }
                 TextButton(modifier = Modifier.padding(top = 0.dp), onClick = {
                     val packageManager: PackageManager = context.packageManager
                     val intent: Intent = packageManager.getLaunchIntentForPackage(context.packageName)!!

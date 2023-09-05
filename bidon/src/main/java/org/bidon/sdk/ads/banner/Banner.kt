@@ -33,58 +33,65 @@ class Banner(
     }
 
     override fun setPosition(position: BannerPosition) {
+        logInfo(TAG, "setPosition: $position")
         positionState = PositionState.Place(position)
         render(bannerView, positionState)
     }
 
     override fun setPosition(left: Int, top: Int) {
+        logInfo(TAG, "setPosition by coordinates: [$left, $top]")
         positionState = PositionState.Coordinate(left, top)
         render(bannerView, positionState)
     }
 
     override fun setRotation(degree: Int) {
-        rotation = 0
+        logInfo(TAG, "setRotation: $degree")
+        rotation = degree
         render(bannerView, positionState)
     }
 
-    override fun showAd(pricefloor: Double) {
-        if (!BidonSdk.isInitialized()) {
-            publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
-            return
-        }
-        cache.load(
-            activity = activity,
-            pricefloor = pricefloor,
-            onLoaded = { bannerView ->
-                render(bannerView, positionState)
-            },
-            onFailed = {
-                publisherListener?.onAdLoadFailed(it)
-            }
-        )
-    }
+//    override fun showAd() {
+//        val pricefloor: Double = 0.0
+//        logInfo(TAG, "showAd: $pricefloor")
+//        if (!BidonSdk.isInitialized()) {
+//            publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
+//            return
+//        }
+//        cache.load(
+//            activity = activity,
+//            pricefloor = pricefloor,
+//            onLoaded = { ad, bannerView ->
+//                publisherListener?.onAdLoaded(ad)
+//                render(bannerView, positionState)
+//            },
+//            onFailed = {
+//                publisherListener?.onAdLoadFailed(it)
+//            }
+//        )
+//    }
 
     override fun hideAd() {
+        logInfo(TAG, "hideAd")
         adRenderer.hide()
     }
 
-    override fun setBannerListener(listener: BannerListener?) {
-        publisherListener = listener
-        bannerView.setBannerListener(publisherListener)
-    }
+//    override fun setBannerListener(listener: BannerListener?) {
+//        publisherListener = listener
+//    }
 
     private fun render(bannerView: BannerView, positionState: PositionState) {
+        logInfo(TAG, "render: $positionState, $bannerView")
         when (positionState) {
             is PositionState.Coordinate -> TODO()
             is PositionState.Place -> {
+                bannerView.setBannerListener(publisherListener)
                 adRenderer.render(
                     activity = activity,
-                    adView = bannerView,
+                    bannerView = bannerView,
                     position = positionState.position,
                     animate = true,
                     isRotated = positionState.position in arrayOf(BannerPosition.MiddleLeft, BannerPosition.MiddleRight),
                     handleConfigurationChanges = false,
-                    format = format,
                     useSafeArea = true,
                     renderListener = object : AdRenderer.RenderListener {
                         override fun onRendered() {

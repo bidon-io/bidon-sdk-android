@@ -33,6 +33,9 @@ fun NavigationGraph(
         composable(Screen.Banners.route) {
             BannerScreen(navController)
         }
+        composable(Screen.PositionedBanners.route) {
+            PositionedBannerScreen(navController)
+        }
         composable(Screen.ServerSettings.route) {
             ServerSettingsScreen(navController, shared)
         }

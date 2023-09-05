@@ -10,9 +10,9 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import android.widget.FrameLayout.LayoutParams
-import androidx.lifecycle.LifecycleObserver
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerPosition
+import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.lang.ref.WeakReference
 
@@ -41,19 +41,18 @@ internal class AdRendererImpl(
 
     override fun render(
         activity: Activity,
-        adView: ViewGroup,
+        bannerView: BannerView,
         position: BannerPosition,
         useSafeArea: Boolean,
         animate: Boolean,
         isRotated: Boolean,
         handleConfigurationChanges: Boolean,
-        format: BannerFormat,
         renderListener: AdRenderer.RenderListener
     ): Boolean {
         observeActivities(activity)
         logInfo(
             Tag,
-            "--> AdContainer($adContainer), AdView($adView), BannerPosition($bannerPosition), BannerFormat($format), useSafeArea($useSafeArea), animate($animate), isRotated($isRotated)"
+            "--> AdContainer($adContainer), AdView($bannerView), BannerPosition($bannerPosition), BannerFormat(${bannerView.format}), useSafeArea($useSafeArea), animate($animate), isRotated($isRotated)"
         )
         if (!inspector.isActivityValid(activity)) {
             renderListener.onRenderFailed()
@@ -72,20 +71,21 @@ internal class AdRendererImpl(
                     Tag,
                     "new AdContainer: visible=${inspector.isViewVisibleOnScreen(view = adContainer)}, position new = ${position != bannerPosition}"
                 )
-                createAdContainer(activity, position, useSafeArea, format)
+                createAdContainer(activity, position, useSafeArea, bannerView.format)
             }
+            bannerView.showAd()
             adContainer?.addAdView(
-                adView = adView,
+                adView = bannerView,
                 position = position,
-                format = format,
+                format = bannerView.format,
                 isRotated = isRotated
             )
             bannerPosition = position
             this.activity = WeakReference(activity)
-            setAdViewsVisible(adView)
+            setAdViewsVisible(bannerView)
             logInfo(
                 Tag,
-                "<-- AdContainer($adContainer), AdView($adView), BannerPosition($bannerPosition), BannerFormat($format), useSafeArea($useSafeArea), animate($animate), isRotated($isRotated)"
+                "<-- AdContainer($adContainer), AdView($bannerView), BannerPosition($bannerPosition), BannerFormat(${bannerView.format}), useSafeArea($useSafeArea), animate($animate), isRotated($isRotated)"
             )
             renderListener.onRendered()
             true
