@@ -68,17 +68,9 @@ internal class AdRendererImpl(
             bannerPosition = position
             this.activity = WeakReference(activity)
             if (!inspector.isViewVisibleOnScreen(view = rootContainer) || activity != this.activity.get()) {
-                logInfo(
-                    Tag,
-                    "new RootContainer: visible=${inspector.isViewVisibleOnScreen(view = rootContainer)}, activity new = ${activity != this.activity.get()}"
-                )
                 createRootContainer(activity)
             }
-            if (!inspector.isViewVisibleOnScreen(view = adContainer) || position != bannerPosition) {
-                logInfo(
-                    Tag,
-                    "new AdContainer: visible=${inspector.isViewVisibleOnScreen(view = adContainer)}, position new = ${position != bannerPosition}"
-                )
+            if (!inspector.isViewVisibleOnScreen(view = adContainer)) {
                 createAdContainer(activity, position, useSafeArea, bannerView.format)
             }
             bannerView.showAd()
@@ -112,9 +104,6 @@ internal class AdRendererImpl(
         rootContainer?.visibility = View.VISIBLE
         rootContainer?.bringToFront()
         adContainer?.bringToFront()
-        logInfo(Tag, "1 ${inspector.isViewVisibleOnScreen(adView)}")
-        logInfo(Tag, "2 ${inspector.isViewVisibleOnScreen(adContainer)}")
-        logInfo(Tag, "3 ${inspector.isViewVisibleOnScreen(rootContainer)}")
     }
 
     private fun createAdContainer(
