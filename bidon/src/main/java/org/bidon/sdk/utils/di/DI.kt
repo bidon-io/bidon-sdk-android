@@ -5,6 +5,7 @@ import android.content.Context
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.CountDownTimer
 import org.bidon.sdk.ads.banner.helper.DeviceType
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
@@ -12,6 +13,11 @@ import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
 import org.bidon.sdk.ads.banner.helper.impl.ActivityLifecycleObserver
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
+import org.bidon.sdk.ads.banner.refresh.BannersCache
+import org.bidon.sdk.ads.banner.refresh.BannersCacheImpl
+import org.bidon.sdk.ads.banner.render.AdRenderer
+import org.bidon.sdk.ads.banner.render.AdRendererImpl
+import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.AuctionResolver
@@ -277,6 +283,19 @@ internal object DI {
             }
             factory<ResultsCollector> {
                 ResultsCollectorImpl(resolver = get())
+            }
+            factory<AdRenderer> {
+                AdRendererImpl(
+                    inspector = get()
+                )
+            }
+            factory<AdRenderer.RenderInspector> {
+                RenderInspectorImpl()
+            }
+            factoryWithParams<BannersCache> { (bannerFormat) ->
+                BannersCacheImpl(
+                    format = bannerFormat as BannerFormat
+                )
             }
         }
     }

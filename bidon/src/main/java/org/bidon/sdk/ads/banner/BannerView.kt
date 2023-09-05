@@ -49,7 +49,8 @@ class BannerView @JvmOverloads constructor(
     BannerAd,
     Extras by demandAd {
 
-    private var bannerFormat: BannerFormat = BannerFormat.Banner
+    var format: BannerFormat = BannerFormat.Banner
+        private set
     private var pricefloor: Double = BidonSdk.DefaultPricefloor
     private var userListener: BannerListener? = null
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
@@ -90,7 +91,7 @@ class BannerView @JvmOverloads constructor(
         }
 
     override fun setBannerFormat(bannerFormat: BannerFormat) {
-        this.bannerFormat = bannerFormat
+        this.format = bannerFormat
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
@@ -255,7 +256,7 @@ class BannerView @JvmOverloads constructor(
             adTypeParamData = AdTypeParam.Banner(
                 activity = activity,
                 pricefloor = pricefloor,
-                bannerFormat = bannerFormat,
+                bannerFormat = format,
                 containerWidth = width.toFloat()
             ),
             onSuccess = { auctionResults ->
