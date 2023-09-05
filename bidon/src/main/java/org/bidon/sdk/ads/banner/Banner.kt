@@ -1,10 +1,8 @@
 package org.bidon.sdk.ads.banner
 
 import android.app.Activity
-import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.banner.refresh.BannersCache
 import org.bidon.sdk.ads.banner.render.AdRenderer
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG

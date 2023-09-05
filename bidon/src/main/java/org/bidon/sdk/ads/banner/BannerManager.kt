@@ -123,13 +123,14 @@ class BannerManager private constructor(
     override fun isReady(): Boolean = bannerView.isReady()
 
     override fun showAd() {
+        logInfo(TAG, "showAd")
         if (!BidonSdk.isInitialized()) {
             publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
             return
         }
         logInfo(TAG, "showAd")
         showAfterLoad.set(true)
-        if (bannerView.isReady() && !shown.getAndSet(true)) {
+        if (true || bannerView.isReady() && !shown.getAndSet(true)) {
             render(
                 bannerView = bannerView,
                 positionState = positionState,
@@ -166,7 +167,6 @@ class BannerManager private constructor(
         when (positionState) {
             is Banner.PositionState.Coordinate -> TODO()
             is Banner.PositionState.Place -> {
-                bannerView.setBannerListener(publisherListener)
                 adRenderer.render(
                     activity = activity,
                     bannerView = bannerView,
@@ -192,5 +192,4 @@ class BannerManager private constructor(
             }
         }
     }
-
 }

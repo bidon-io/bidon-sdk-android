@@ -51,14 +51,22 @@ internal class AdRendererImpl(
     ): Boolean {
         observeActivities(activity)
         logInfo(
-            Tag,
-            "--> AdContainer($adContainer), AdView($bannerView), BannerPosition($bannerPosition), BannerFormat(${bannerView.format}), useSafeArea($useSafeArea), animate($animate), isRotated($isRotated)"
+            tag = Tag,
+            message = "--> AdContainer($adContainer), AdView($bannerView), $position, " +
+                "${bannerView.format}, useSafeArea($useSafeArea), animate($animate), " +
+                "isRotated($isRotated)"
         )
         if (!inspector.isActivityValid(activity)) {
             renderListener.onRenderFailed()
             return false
         }
+        if (bannerPosition != position) {
+            logInfo(Tag, "Position changed: $bannerPosition -> $position")
+            hide()
+        }
         return if (inspector.isRenderPermitted()) {
+            bannerPosition = position
+            this.activity = WeakReference(activity)
             if (!inspector.isViewVisibleOnScreen(view = rootContainer) || activity != this.activity.get()) {
                 logInfo(
                     Tag,
@@ -80,8 +88,6 @@ internal class AdRendererImpl(
                 format = bannerView.format,
                 isRotated = isRotated
             )
-            bannerPosition = position
-            this.activity = WeakReference(activity)
             setAdViewsVisible(bannerView)
             logInfo(
                 Tag,

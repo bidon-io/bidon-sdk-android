@@ -49,7 +49,9 @@ fun PositionedBannerScreen(navController: NavHostController) {
     val bannerPosition = remember {
         mutableStateOf(BannerPosition.BottomCenter)
     }
-    var banner: BannerManager? = null
+    val banner = remember {
+        mutableStateOf<BannerManager?>(null)
+    }
 
     Column(
         modifier = Modifier
@@ -77,7 +79,7 @@ fun PositionedBannerScreen(navController: NavHostController) {
                 },
                 onItemClicked = {
                     bannerFormat.value = it
-                    banner?.setBannerFormat(it)
+                    banner.value?.setBannerFormat(it)
                 }
             )
             Spacer(modifier = Modifier.padding(top = 10.dp))
@@ -91,14 +93,14 @@ fun PositionedBannerScreen(navController: NavHostController) {
                 },
                 onItemClicked = {
                     bannerPosition.value = it
-                    banner?.setPosition(it)
+                    banner.value?.setPosition(it)
                 }
             )
             Spacer(modifier = Modifier.padding(top = 10.dp))
             AppButton(
                 text = "Create",
             ) {
-                banner = BannerManager(activity, bannerFormat.value).apply {
+                banner.value = BannerManager(activity, bannerFormat.value).apply {
                     setBannerListener(
                         object : BannerListener {
                             override fun onAdLoaded(ad: Ad) {
@@ -136,27 +138,29 @@ fun PositionedBannerScreen(navController: NavHostController) {
                 AppButton(
                     text = "Load",
                 ) {
-                    banner?.loadAd(activity, pricefloor = 0.02)
+                    banner.value?.loadAd(activity, pricefloor = 0.02)
                 }
                 AppButton(
                     modifier = Modifier.padding(start = 12.dp),
                     text = "Show",
                 ) {
-                    banner?.showAd()
+                    logFlow.log("Show $banner")
+                    banner.value?.setPosition(bannerPosition.value)
+                    banner.value?.showAd()
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppButton(
                     text = "Hide",
                 ) {
-                    banner?.hideAd()
+                    banner.value?.hideAd()
                 }
                 AppButton(
                     modifier = Modifier.padding(start = 12.dp),
                     text = "Destroy",
                 ) {
-                    banner?.destroyAd()
-                    banner = null
+                    banner.value?.destroyAd()
+                    banner.value = null
                 }
             }
         }
