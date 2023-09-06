@@ -2,15 +2,17 @@ package org.bidon.demoapp.ui
 
 import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -41,149 +43,162 @@ fun PositionedBannerScreen(navController: NavHostController) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val logFlow = remember {
-        mutableStateOf(listOf("Log"))
+        mutableStateOf(listOf<String>())
     }
     val bannerFormat = remember {
         mutableStateOf(BannerFormat.Banner)
     }
     val bannerPosition = remember {
-        mutableStateOf(BannerPosition.BottomCenter)
+        mutableStateOf(BannerPosition.HorizontalBottom)
     }
     val banner = remember {
         mutableStateOf<BannerManager?>(null)
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(52.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        AppToolbar(
-            title = "Positioned Banners",
-            onNavigationButtonClicked = { navController.popBackStack() }
-        )
-        Column(modifier = Modifier.padding(8.dp)) {
-            ItemSelector(
-                title = "Format",
-                items = BannerFormat.values().toList(),
-                selectedItem = bannerFormat.value,
-                horizontalAlignment = Alignment.Start,
-                getItemTitle = {
-                    when (it) {
-                        BannerFormat.Banner -> "Banner 320x50"
-                        BannerFormat.LeaderBoard -> "Leader Board 728x90"
-                        BannerFormat.MRec -> "MRec 300x250"
-                        BannerFormat.Adaptive -> "Smart/Adaptive 320x50"
-                    }
-                },
-                onItemClicked = {
-                    bannerFormat.value = it
-                    banner.value?.setBannerFormat(it)
-                }
+        item {
+            AppToolbar(
+                title = "Positioned Banners",
+                onNavigationButtonClicked = { navController.popBackStack() }
             )
-            Spacer(modifier = Modifier.padding(top = 10.dp))
-            ItemSelector(
-                title = "Position",
-                items = BannerPosition.values().toList(),
-                selectedItem = bannerPosition.value,
-                horizontalAlignment = Alignment.Start,
-                getItemTitle = {
-                    it.name
-                },
-                onItemClicked = {
-                    bannerPosition.value = it
-                    banner.value?.setPosition(it)
-                }
-            )
-            Spacer(modifier = Modifier.padding(top = 10.dp))
-            AppButton(
-                text = "Create",
-            ) {
-                banner.value = BannerManager(activity, bannerFormat.value).apply {
-                    setBannerListener(
-                        object : BannerListener {
-                            override fun onAdLoaded(ad: Ad) {
-                                logFlow.log("onAdLoaded WINNER:\n$ad")
-                            }
-
-                            override fun onAdLoadFailed(cause: BidonError) {
-                                logFlow.log("onAdLoadFailed: $cause")
-                            }
-
-                            override fun onAdShown(ad: Ad) {
-                                logFlow.log("onAdShown: $ad")
-                            }
-
-                            override fun onAdClicked(ad: Ad) {
-                                logFlow.log("onAdClicked: $ad")
-                            }
-
-                            override fun onAdExpired(ad: Ad) {
-                                logFlow.log("onAdExpired: $ad")
-                            }
-
-                            override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                                logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
-                            }
-
-                            override fun onAdShowFailed(cause: BidonError) {
-                                logFlow.log("onAdShowFailed: $cause")
-                            }
+            Column(modifier = Modifier.padding(8.dp)) {
+                ItemSelector(
+                    title = "Format",
+                    items = BannerFormat.values().toList(),
+                    selectedItem = bannerFormat.value,
+                    horizontalAlignment = Alignment.Start,
+                    getItemTitle = {
+                        when (it) {
+                            BannerFormat.Banner -> "Banner 320x50"
+                            BannerFormat.LeaderBoard -> "Leader Board 728x90"
+                            BannerFormat.MRec -> "MRec 300x250"
+                            BannerFormat.Adaptive -> "Smart/Adaptive 320x50"
                         }
-                    )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                    },
+                    onItemClicked = {
+                        bannerFormat.value = it
+                        banner.value?.setBannerFormat(it)
+                    }
+                )
+                Spacer(modifier = Modifier.padding(top = 10.dp))
+                ItemSelector(
+                    title = "Position",
+                    items = BannerPosition.values().toList(),
+                    selectedItem = bannerPosition.value,
+                    horizontalAlignment = Alignment.Start,
+                    getItemTitle = {
+                        when (it) {
+                            BannerPosition.HorizontalTop -> "Top"
+                            BannerPosition.HorizontalBottom -> "Bottom"
+                            BannerPosition.VerticalLeft -> "Left"
+                            BannerPosition.VerticalRight -> "Right"
+                        }
+                    },
+                    onItemClicked = {
+                        bannerPosition.value = it
+                        banner.value?.setPosition(it)
+                    }
+                )
+                Spacer(modifier = Modifier.padding(top = 10.dp))
                 AppButton(
-                    text = "Load",
+                    text = "Create",
                 ) {
-                    banner.value?.loadAd(activity, pricefloor = 0.02)
+                    banner.value = BannerManager(activity, bannerFormat.value).apply {
+                        setBannerListener(
+                            object : BannerListener {
+                                override fun onAdLoaded(ad: Ad) {
+                                    logFlow.log("onAdLoaded WINNER:\n$ad")
+                                }
+
+                                override fun onAdLoadFailed(cause: BidonError) {
+                                    logFlow.log("onAdLoadFailed: $cause")
+                                }
+
+                                override fun onAdShown(ad: Ad) {
+                                    logFlow.log("onAdShown: $ad")
+                                }
+
+                                override fun onAdClicked(ad: Ad) {
+                                    logFlow.log("onAdClicked: $ad")
+                                }
+
+                                override fun onAdExpired(ad: Ad) {
+                                    logFlow.log("onAdExpired: $ad")
+                                }
+
+                                override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
+                                    logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                                }
+
+                                override fun onAdShowFailed(cause: BidonError) {
+                                    logFlow.log("onAdShowFailed: $cause")
+                                }
+                            }
+                        )
+                    }
                 }
-                AppButton(
-                    modifier = Modifier.padding(start = 12.dp),
-                    text = "Show",
-                ) {
-                    logFlow.log("Show $banner")
-                    banner.value?.setPosition(bannerPosition.value)
-                    banner.value?.showAd()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppButton(
+                        text = "Load",
+                    ) {
+                        banner.value?.loadAd(activity, pricefloor = 0.02)
+                    }
+                    AppButton(
+                        modifier = Modifier.padding(start = 12.dp),
+                        text = "Show",
+                    ) {
+                        logFlow.log("Show $banner")
+                        banner.value?.setPosition(bannerPosition.value)
+                        banner.value?.showAd()
+                    }
                 }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppButton(
-                    text = "Hide",
-                ) {
-                    banner.value?.hideAd()
-                }
-                AppButton(
-                    modifier = Modifier.padding(start = 12.dp),
-                    text = "Destroy",
-                ) {
-                    banner.value?.destroyAd()
-                    banner.value = null
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppButton(
+                        text = "Hide",
+                    ) {
+                        banner.value?.hideAd()
+                    }
+                    AppButton(
+                        modifier = Modifier.padding(start = 12.dp),
+                        text = "Destroy",
+                    ) {
+                        banner.value?.destroyAd()
+                        banner.value = null
+                    }
                 }
             }
         }
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 0.dp),
-            state = listState
-        ) {
-            items(logFlow.value) { logLine ->
-                Column(
+        if (logFlow.value.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Clear Log",
                     modifier = Modifier
-                        .padding(bottom = 2.dp)
-                        .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
-                        .padding(4.dp)
-                ) {
-                    Body2Text(text = logLine)
-                }
+                        .padding(2.dp)
+                        .clickable {
+                            logFlow.value = listOf()
+                        },
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
-            coroutineScope.launch {
-                listState.animateScrollToItem(index = logFlow.value.lastIndex)
+        }
+        items(logFlow.value) { logLine ->
+            Column(
+                modifier = Modifier
+                    .padding(bottom = 2.dp)
+                    .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                    .padding(4.dp)
+            ) {
+                Body2Text(text = logLine)
             }
+        }
+        coroutineScope.launch {
+            listState.animateScrollToItem(index = logFlow.value.lastIndex)
         }
     }
 }

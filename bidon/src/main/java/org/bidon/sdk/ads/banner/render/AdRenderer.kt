@@ -1,6 +1,8 @@
 package org.bidon.sdk.ads.banner.render
 
 import android.app.Activity
+import android.graphics.Point
+import android.graphics.PointF
 import android.view.View
 import org.bidon.sdk.ads.banner.BannerPosition
 import org.bidon.sdk.ads.banner.BannerView
@@ -12,10 +14,9 @@ internal interface AdRenderer {
     fun render(
         activity: Activity,
         bannerView: BannerView,
-        position: BannerPosition,
+        positionState: PositionState,
         useSafeArea: Boolean,
         animate: Boolean,
-        isRotated: Boolean,
         handleConfigurationChanges: Boolean,
         renderListener: RenderListener
     ): Boolean
@@ -32,5 +33,26 @@ internal interface AdRenderer {
         fun isRenderPermitted(): Boolean
         fun isActivityValid(activity: Activity): Boolean
         fun isViewVisibleOnScreen(view: View?): Boolean
+    }
+
+    /**
+     * Offset presents top and left offset in pixels.
+     * Pivot presents pivot/anchor point in relative coordinates started from left/top corner.
+     * @param pivot min value is 0f, max value is 1f
+     * @param rotation in degrees
+     */
+    data class AdContainerParams(
+        val offset: Point,
+        val rotation: Int,
+        val pivot: PointF
+    )
+
+    sealed interface PositionState {
+        data class Place(val position: BannerPosition) : PositionState
+        data class Coordinate(val adContainerParams: AdRenderer.AdContainerParams) : PositionState
+
+        companion object {
+            val Default get() = Place(BannerPosition.HorizontalBottom)
+        }
     }
 }

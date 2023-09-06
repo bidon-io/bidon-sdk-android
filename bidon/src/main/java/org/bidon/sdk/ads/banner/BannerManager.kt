@@ -1,9 +1,12 @@
 package org.bidon.sdk.ads.banner
 
 import android.app.Activity
+import android.graphics.Point
+import android.graphics.PointF
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.render.AdRenderer
+import org.bidon.sdk.ads.banner.render.AdRenderer.PositionState
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
@@ -20,7 +23,6 @@ class BannerManager private constructor(
     private val activity: Activity,
     private val bannerView: BannerView,
 ) : PositionedBanner,
-    BannerAd,
     WinLossNotifier by bannerView,
     Extras by bannerView {
 
@@ -39,8 +41,7 @@ class BannerManager private constructor(
     private val loaded = AtomicBoolean(false)
     private val shown = AtomicBoolean(false)
     private val showAfterLoad = AtomicBoolean(false)
-    private var rotation = 0
-    private var positionState: Banner.PositionState = Banner.PositionState.Default
+    private var positionState: PositionState = PositionState.Default
     private var publisherListener: BannerListener? = null
     private val adRenderer: AdRenderer by lazy { get() }
 
@@ -52,17 +53,14 @@ class BannerManager private constructor(
      */
     override fun setPosition(position: BannerPosition) {
         logInfo(TAG, "setPosition: $position")
-        positionState = Banner.PositionState.Place(position)
+        positionState = PositionState.Place(position)
     }
 
-    override fun setPosition(left: Int, top: Int) {
-        logInfo(TAG, "setPosition by coordinates: [$left, $top]")
-        positionState = Banner.PositionState.Coordinate(left, top)
-    }
-
-    override fun setRotation(degree: Int) {
-        logInfo(TAG, "setRotation: $degree")
-        this.rotation = degree
+    override fun setCustomPosition(offset: Point, rotation: Int, anchor: PointF) {
+        logInfo(TAG, "setPosition by coordinates Offset($offset), Rotation($rotation), Anchor($anchor)")
+        positionState = PositionState.Coordinate(
+            AdRenderer.AdContainerParams(offset, rotation, anchor)
+        )
     }
 
     /**
@@ -130,11 +128,11 @@ class BannerManager private constructor(
         }
         logInfo(TAG, "showAd")
         showAfterLoad.set(true)
+        // TODO remove true
         if (true || bannerView.isReady() && !shown.getAndSet(true)) {
             render(
                 bannerView = bannerView,
                 positionState = positionState,
-                rotation = rotation
             )
         } else {
             publisherListener?.onAdShowFailed(BidonError.BannerAdNotReady)
@@ -162,17 +160,20 @@ class BannerManager private constructor(
         return bannerView.getExtras()
     }
 
-    private fun render(bannerView: BannerView, positionState: Banner.PositionState, rotation: Int) {
+    private fun render(
+        bannerView: BannerView,
+        positionState: PositionState,
+    ) {
         logInfo(TAG, "render: $positionState, $bannerView")
+        val TAG = TAG
         when (positionState) {
-            is Banner.PositionState.Coordinate -> TODO()
-            is Banner.PositionState.Place -> {
+            is PositionState.Coordinate -> TODO()
+            is PositionState.Place -> {
                 adRenderer.render(
                     activity = activity,
                     bannerView = bannerView,
-                    position = positionState.position,
+                    positionState = positionState,
                     animate = true,
-                    isRotated = positionState.position in arrayOf(BannerPosition.MiddleLeft, BannerPosition.MiddleRight),
                     handleConfigurationChanges = false,
                     useSafeArea = true,
                     renderListener = object : AdRenderer.RenderListener {

@@ -5,6 +5,7 @@ import android.content.Context
 /**
  * Created by Aleksei Cherniaev on 05/09/2023.
  */
+@Deprecated("")
 internal class BannerDisplayContainer @JvmOverloads constructor(
     context: Context,
     private val isRotated: Boolean = false,

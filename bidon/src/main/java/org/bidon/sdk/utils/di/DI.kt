@@ -17,6 +17,7 @@ import org.bidon.sdk.ads.banner.refresh.BannersCache
 import org.bidon.sdk.ads.banner.refresh.BannersCacheImpl
 import org.bidon.sdk.ads.banner.render.AdRenderer
 import org.bidon.sdk.ads.banner.render.AdRendererImpl
+import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionHolder
@@ -286,7 +287,8 @@ internal object DI {
             }
             factory<AdRenderer> {
                 AdRendererImpl(
-                    inspector = get()
+                    inspector = get(),
+                    calculateAdContainerParams = get()
                 )
             }
             factory<AdRenderer.RenderInspector> {
@@ -297,6 +299,7 @@ internal object DI {
                     format = bannerFormat as BannerFormat
                 )
             }
+            factory { CalculateAdContainerParamsUseCase() }
         }
     }
 }
