@@ -68,6 +68,7 @@ class MainActivity : FragmentActivity() {
                 }
 
                 ModalBottomSheetLayout(
+                    modifier = Modifier,
                     sheetState = modalSheetState,
                     sheetShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                     sheetContent = {

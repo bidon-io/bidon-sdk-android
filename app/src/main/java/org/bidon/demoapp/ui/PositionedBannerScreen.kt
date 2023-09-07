@@ -109,6 +109,7 @@ fun PositionedBannerScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.padding(top = 10.dp))
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                     AppButton(
+                        modifier = Modifier.padding(end = 12.dp),
                         text = "Create",
                     ) {
                         logFlow.log("Created $banner")
@@ -147,26 +148,26 @@ fun PositionedBannerScreen(navController: NavHostController) {
                         }
                     }
                     AppButton(
-                        modifier = Modifier.padding(start = 12.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         text = "Load",
                     ) {
                         banner.value?.loadAd(activity, pricefloor = 0.02)
                     }
                     AppButton(
-                        modifier = Modifier.padding(start = 12.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         text = "Show",
                     ) {
                         banner.value?.setPosition(bannerPosition.value)
                         banner.value?.showAd()
                     }
                     AppButton(
-                        modifier = Modifier.padding(start = 12.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         text = "Hide",
                     ) {
                         banner.value?.hideAd()
                     }
                     AppButton(
-                        modifier = Modifier.padding(start = 12.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         text = "Destroy",
                     ) {
                         banner.value?.destroyAd()
