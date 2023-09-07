@@ -7,11 +7,16 @@ import android.graphics.PointF
  * Created by Aleksei Cherniaev on 04/09/2023.
  */
 interface PositionedBanner : BannerAd {
+    /**
+     * Predefined [BannerPosition].
+     * Always uses safe area insets.
+     */
     fun setPosition(position: BannerPosition)
 
     /**
      * Offset presents top and left offset in pixels.
-     * Pivot presents pivot/anchor point in relative coordinates started from left/top corner.
+     * Anchor point presents pivot point in relative coordinates started from left/top corner.
+     * @param offset in physical pixels
      * @param rotation in degrees
      * @param anchor min value is 0f, max value is 1f
      */

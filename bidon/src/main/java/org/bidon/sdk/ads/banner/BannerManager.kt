@@ -39,7 +39,6 @@ class BannerManager private constructor(
     }
 
     private val loaded = AtomicBoolean(false)
-    private val shown = AtomicBoolean(false)
     private val showAfterLoad = AtomicBoolean(false)
     private var positionState: PositionState = PositionState.Default
     private var publisherListener: BannerListener? = null
@@ -82,7 +81,7 @@ class BannerManager private constructor(
                     override fun onAdLoaded(ad: Ad) {
                         publisherListener?.onAdLoaded(ad)
                         loaded.set(true)
-                        if (showAfterLoad.get()) {
+                        if (showAfterLoad.getAndSet(false)) {
                             showAd()
                         }
                     }
@@ -121,15 +120,14 @@ class BannerManager private constructor(
     override fun isReady(): Boolean = bannerView.isReady()
 
     override fun showAd() {
-        logInfo(TAG, "showAd")
         if (!BidonSdk.isInitialized()) {
             publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
             return
         }
         logInfo(TAG, "showAd")
         showAfterLoad.set(true)
-        // TODO remove true
-        if (true || bannerView.isReady() && !shown.getAndSet(true)) {
+        if (bannerView.isReady()) {
+            loaded.set(false)
             render(
                 bannerView = bannerView,
                 positionState = positionState,
@@ -166,30 +164,27 @@ class BannerManager private constructor(
     ) {
         logInfo(TAG, "render: $positionState, $bannerView")
         val TAG = TAG
-        when (positionState) {
-            is PositionState.Coordinate -> TODO()
-            is PositionState.Place -> {
-                adRenderer.render(
-                    activity = activity,
-                    bannerView = bannerView,
-                    positionState = positionState,
-                    animate = true,
-                    handleConfigurationChanges = false,
-                    renderListener = object : AdRenderer.RenderListener {
-                        override fun onRendered() {
-                            logInfo(TAG, "RenderListener.onRendered")
-                        }
+        adRenderer.render(
+            activity = activity,
+            bannerView = bannerView,
+            positionState = positionState,
+            animate = true,
+            handleConfigurationChanges = false,
+            renderListener = object : AdRenderer.RenderListener {
+                override fun onRendered() {
+                    logInfo(TAG, "RenderListener.onRendered")
+                }
 
-                        override fun onRenderFailed() {
-                            logInfo(TAG, "RenderListener.onRenderFailed")
-                        }
+                override fun onRenderFailed() {
+                    logInfo(TAG, "RenderListener.onRenderFailed")
+                }
 
-                        override fun onVisibilityIssued() {
-                            logInfo(TAG, "RenderListener.onVisibilityIssued")
-                        }
-                    }
-                )
+                override fun onVisibilityIssued() {
+                    bannerView.destroyAd()
+                    publisherListener?.onAdShowFailed(BidonError.BannerAdNotReady)
+                    logInfo(TAG, "RenderListener.onVisibilityIssued")
+                }
             }
-        }
+        )
     }
 }

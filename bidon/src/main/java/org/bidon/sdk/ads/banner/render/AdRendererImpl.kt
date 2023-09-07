@@ -75,6 +75,11 @@ internal class AdRendererImpl(
             this.positionState = positionState
             this.activity = WeakReference(activity)
             withRootContainer(activity) {
+                if (!bannerView.fits(positionState)) {
+                    logInfo(Tag, "Banner does not fit")
+                    renderListener.onVisibilityIssued()
+                    return@withRootContainer
+                }
                 if (!inspector.isViewVisibleOnScreen(view = adContainer)) {
                     createAdContainer(activity, positionState, bannerView)
                 }
@@ -87,6 +92,19 @@ internal class AdRendererImpl(
         } else {
             renderListener.onRenderFailed()
             false
+        }
+    }
+
+    private fun BannerView.fits(positionState: PositionState): Boolean {
+        if (positionState !is PositionState.Place) return true
+        return when (positionState.position) {
+            BannerPosition.HorizontalTop,
+            BannerPosition.HorizontalBottom -> true
+
+            BannerPosition.VerticalLeft,
+            BannerPosition.VerticalRight -> {
+                screenSize.y > obtainWidth()
+            }
         }
     }
 
