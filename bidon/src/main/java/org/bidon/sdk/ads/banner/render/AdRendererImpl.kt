@@ -99,12 +99,10 @@ internal class AdRendererImpl(
         if (positionState !is PositionState.Place) return true
         return when (positionState.position) {
             BannerPosition.HorizontalTop,
-            BannerPosition.HorizontalBottom -> true
+            BannerPosition.HorizontalBottom -> screenSize.x > this.obtainWidth()
 
             BannerPosition.VerticalLeft,
-            BannerPosition.VerticalRight -> {
-                screenSize.y > obtainWidth()
-            }
+            BannerPosition.VerticalRight -> screenSize.y > this.obtainWidth()
         }
     }
 
