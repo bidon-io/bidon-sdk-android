@@ -7,12 +7,11 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -86,6 +85,7 @@ class MainActivity : FragmentActivity() {
                         }
                         FloatingActionButton(
                             modifier = Modifier
+                                .safeDrawingPadding()
                                 .align(Alignment.BottomEnd)
                                 .padding(24.dp),
                             onClick = {
@@ -100,17 +100,17 @@ class MainActivity : FragmentActivity() {
                                 tint = Color.White,
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .background(Color.Red)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .background(Color.Red)
-                                .align(Alignment.BottomEnd)
-                        )
+//                        Box(
+//                            modifier = Modifier
+//                                .size(100.dp)
+//                                .background(Color.Red)
+//                        )
+//                        Box(
+//                            modifier = Modifier
+//                                .size(100.dp)
+//                                .background(Color.Red)
+//                                .align(Alignment.BottomEnd)
+//                        )
                     }
                 }
             }
