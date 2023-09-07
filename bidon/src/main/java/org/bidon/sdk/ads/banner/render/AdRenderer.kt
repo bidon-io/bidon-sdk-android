@@ -15,7 +15,6 @@ internal interface AdRenderer {
         activity: Activity,
         bannerView: BannerView,
         positionState: PositionState,
-        useSafeArea: Boolean,
         animate: Boolean,
         handleConfigurationChanges: Boolean,
         renderListener: RenderListener

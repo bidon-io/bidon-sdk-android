@@ -175,7 +175,6 @@ class BannerManager private constructor(
                     positionState = positionState,
                     animate = true,
                     handleConfigurationChanges = false,
-                    useSafeArea = true,
                     renderListener = object : AdRenderer.RenderListener {
                         override fun onRendered() {
                             logInfo(TAG, "RenderListener.onRendered")

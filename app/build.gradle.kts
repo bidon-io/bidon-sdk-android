@@ -16,7 +16,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    compileSdk = 33
+    compileSdk = 34
     namespace = defaultPackage
 
     defaultConfig {
@@ -133,6 +133,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha07")
     implementation("androidx.navigation:navigation-compose:2.6.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.33.1-alpha")
     implementation("com.google.accompanist:accompanist-flowlayout:0.23.1")
     // Tests
     testImplementation("junit:junit:4.13.2")
