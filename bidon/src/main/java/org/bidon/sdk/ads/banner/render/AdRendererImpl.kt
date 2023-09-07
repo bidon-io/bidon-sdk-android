@@ -32,7 +32,7 @@ internal class AdRendererImpl(
 ) : AdRenderer {
 
     private var activity = WeakReference<Activity>(null)
-    private var screenSize = Point(0, 0)
+    private var safeAreaScreenSize = Point(0, 0)
 
     /**
      * RootContainer is the only one view for every [activity]
@@ -99,10 +99,10 @@ internal class AdRendererImpl(
         if (positionState !is PositionState.Place) return true
         return when (positionState.position) {
             BannerPosition.HorizontalTop,
-            BannerPosition.HorizontalBottom -> screenSize.x >= this.obtainWidth()
+            BannerPosition.HorizontalBottom -> safeAreaScreenSize.x >= this.obtainWidth()
 
             BannerPosition.VerticalLeft,
-            BannerPosition.VerticalRight -> screenSize.y >= this.obtainWidth()
+            BannerPosition.VerticalRight -> safeAreaScreenSize.y >= this.obtainWidth()
         }
     }
 
@@ -138,7 +138,7 @@ internal class AdRendererImpl(
         rootContainer?.viewTreeObserver?.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
-                    screenSize = Point(rootContainer?.width ?: screenSize.x, rootContainer?.height ?: screenSize.y)
+                    safeAreaScreenSize = Point(rootContainer?.width ?: safeAreaScreenSize.x, rootContainer?.height ?: safeAreaScreenSize.y)
                     rootContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
                     onFinished()
                 }
@@ -160,7 +160,7 @@ internal class AdRendererImpl(
             is PositionState.Coordinate -> state.adContainerParams
             is PositionState.Place -> calculateAdContainerParams(
                 position = state.position,
-                screenSize = screenSize,
+                screenSize = safeAreaScreenSize,
                 bannerHeight = bannerView.obtainHeight(),
             )
         }
