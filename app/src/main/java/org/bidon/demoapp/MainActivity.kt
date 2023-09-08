@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
@@ -52,7 +51,6 @@ class MainActivity : FragmentActivity() {
     @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hideSystemUI()
         setContent {
             val coroutineScope = rememberCoroutineScope()
             val modalSheetState = rememberModalBottomSheetState(
@@ -129,35 +127,6 @@ class MainActivity : FragmentActivity() {
                     ?.launchPermissionRequest()
             })
         }
-    }
-
-    private fun hideSystemUI() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
-
-        // Hides the ugly action bar at the top
-        actionBar?.hide()
-
-        // Hide the status bars
-
-        // WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,
-            WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
-        )
-        window.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS, WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-//            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-//        } else {
-//            window.insetsController!!.apply {
-//                hide(WindowInsets.Type.statusBars())
-//                hide(WindowInsets.Type.systemBars())
-//                systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-//            }
     }
 }
 

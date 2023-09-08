@@ -154,7 +154,7 @@ fun PositionedBannerScreen(
                             (random() * configuration.screenWidthDp).toInt(),
                             (random() * configuration.screenHeightDp).toInt(),
                         ),
-                        rotation = (random() * 360).toInt() ,
+                        rotation = (random() * 360).toInt(),
                         anchor = android.graphics.PointF(random().toFloat(), random().toFloat())
                     )
                 }
