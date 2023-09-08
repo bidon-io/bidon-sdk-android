@@ -1,12 +1,14 @@
 package org.bidon.sdk.ads.banner
 
+import android.app.Activity
 import android.graphics.Point
 import android.graphics.PointF
+import org.bidon.sdk.BidonSdk
 
 /**
  * Created by Aleksei Cherniaev on 04/09/2023.
  */
-interface PositionedBanner : BannerAd {
+interface PositionedBanner {
     /**
      * Predefined [BannerPosition].
      * Always uses safe area insets.
@@ -27,4 +29,20 @@ interface PositionedBanner : BannerAd {
     )
 
     fun hideAd()
+
+    /**
+     * Common interface for [BannerView]
+     */
+    val adSize: AdSize?
+
+    fun setBannerFormat(bannerFormat: BannerFormat)
+    fun loadAd(activity: Activity, pricefloor: Double = BidonSdk.DefaultPricefloor)
+
+    /**
+     * Shows if banner is ready to show
+     */
+    fun isReady(): Boolean
+    fun showAd(activity: Activity)
+    fun destroyAd()
+    fun setBannerListener(listener: BannerListener?)
 }

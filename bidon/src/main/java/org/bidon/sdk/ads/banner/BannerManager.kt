@@ -3,6 +3,7 @@ package org.bidon.sdk.ads.banner
 import android.app.Activity
 import android.graphics.Point
 import android.graphics.PointF
+import androidx.core.view.children
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.refresh.BannersCache
@@ -32,9 +33,10 @@ class BannerManager private constructor(
         bannersCache = get(),
         extras = get()
     ) {
-        logInfo(TAG, "Created $this")
+        logInfo(tag, "Created $this")
     }
 
+    private val tag get() = TAG
     private var weakActivity = WeakReference<Activity>(null)
     private var nextBannerView: BannerView? = null
     private var currentBannerView: BannerView? = null
@@ -51,12 +53,12 @@ class BannerManager private constructor(
      * Positioning functions
      */
     override fun setPosition(position: BannerPosition) {
-        logInfo(TAG, "setPosition: $position")
+        logInfo(tag, "Set position $position")
         positionState = PositionState.Place(position)
     }
 
     override fun setCustomPosition(offset: Point, rotation: Int, anchor: PointF) {
-        logInfo(TAG, "setPosition by coordinates Offset($offset), Rotation($rotation), Anchor($anchor)")
+        logInfo(tag, "Set position by coordinates Offset($offset), Rotation($rotation), Anchor($anchor)")
         positionState = PositionState.Coordinate(
             AdRenderer.AdContainerParams(offset, rotation, anchor)
         )
@@ -85,7 +87,9 @@ class BannerManager private constructor(
                 this.nextBannerView = bannerView
                 publisherListener?.onAdLoaded(ad)
                 if (showAfterLoad.getAndSet(false)) {
-                    showAd()
+                    weakActivity.get()?.let { activity ->
+                        showAd(activity)
+                    }
                 }
             },
             onFailed = { cause ->
@@ -94,25 +98,33 @@ class BannerManager private constructor(
         )
     }
 
-    override fun isReady(): Boolean = currentBannerView?.isReady() == true
+    override fun isReady(): Boolean = currentBannerView?.isReady() == true || nextBannerView?.isReady() == true
 
-    override fun showAd() {
-        logInfo(TAG, "showAd curr = $currentBannerView")
-        logInfo(TAG, "showAd next = $nextBannerView")
+    override fun showAd(activity: Activity) {
+        weakActivity = WeakReference(activity)
+        logInfo(tag, "Show ad")
         if (!BidonSdk.isInitialized()) {
             publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
             return
         }
-        logInfo(TAG, "showAd")
-        val banner = nextBannerView ?: currentBannerView
-        if (banner?.isReady() != true) {
+        val bannerView = nextBannerView ?: currentBannerView
+        if (bannerView == null) {
+            logInfo(tag, "No loaded ad")
             showAfterLoad.set(true)
             publisherListener?.onAdShowFailed(BidonError.BannerAdNotReady)
             return
         }
+        if (!bannerView.isReady()) {
+            logInfo(tag, "Source network banner is not ready ${bannerView.children.firstOrNull()}")
+        }
         nextBannerView = null
-        currentBannerView = banner
-        banner.setBannerListener(
+        currentBannerView = bannerView
+
+        /**
+         * RenderAd
+         */
+        logInfo(tag, "RenderAd at $activity")
+        bannerView.setBannerListener(
             object : BannerListener {
                 override fun onAdLoaded(ad: Ad) {}
                 override fun onAdLoadFailed(cause: BidonError) {}
@@ -138,22 +150,43 @@ class BannerManager private constructor(
                 }
             }
         )
-        render(
-            bannerView = banner,
+        adRenderer.render(
+            activity = activity,
+            bannerView = bannerView,
             positionState = positionState,
+            animate = true,
+            handleConfigurationChanges = false,
+            renderListener = object : AdRenderer.RenderListener {
+                override fun onRendered() {
+                    logInfo(tag, "RenderListener.onRendered")
+                }
+
+                override fun onRenderFailed() {
+                    logInfo(tag, "RenderListener.onRenderFailed")
+                }
+
+                override fun onVisibilityIssued() {
+                    bannerView.destroyAd()
+                    publisherListener?.onAdShowFailed(BidonError.BannerAdNotReady)
+                    logInfo(tag, "RenderListener.onVisibilityIssued")
+                }
+            }
         )
     }
 
     override fun hideAd() {
+        logInfo(tag, "Hide ad")
         adRenderer.hide()
     }
 
     override fun destroyAd() {
+        logInfo(tag, "Destroy ad")
         hideAd()
         currentBannerView?.destroyAd()
         currentBannerView = null
         nextBannerView?.destroyAd()
         nextBannerView = null
+        bannersCache.clear()
     }
 
     override fun setBannerListener(listener: BannerListener?) {
@@ -177,32 +210,5 @@ class BannerManager private constructor(
 
     override fun notifyWin() {
         nextBannerView?.notifyWin()
-    }
-
-    private fun render(
-        bannerView: BannerView,
-        positionState: PositionState,
-    ) {
-        val activity = weakActivity.get() ?: run {
-            publisherListener?.onAdShowFailed(BidonError.NoContextFound)
-            return
-        }
-        val TAG = TAG
-        adRenderer.render(
-            activity = activity,
-            bannerView = bannerView,
-            positionState = positionState,
-            animate = true,
-            handleConfigurationChanges = false,
-            renderListener = object : AdRenderer.RenderListener {
-                override fun onRendered() {}
-                override fun onRenderFailed() {}
-                override fun onVisibilityIssued() {
-                    bannerView.destroyAd()
-                    publisherListener?.onAdShowFailed(BidonError.BannerAdNotReady)
-                    logInfo(TAG, "RenderListener.onVisibilityIssued")
-                }
-            }
-        )
     }
 }

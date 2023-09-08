@@ -85,9 +85,13 @@ class BannerView @JvmOverloads constructor(
         }
     }
 
+    private var internalAdSize: AdSize? = null
+
     override val adSize: AdSize?
-        get() = (winner?.adSource as? AdSource.Banner)?.getAdView()?.let {
-            AdSize(widthDp = it.widthDp, heightDp = it.heightDp)
+        get() = internalAdSize ?: (winner?.adSource as? AdSource.Banner)?.getAdView()?.let { holder ->
+            AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp).also {
+                internalAdSize = it
+            }
         }
 
     override fun setBannerFormat(bannerFormat: BannerFormat) {
@@ -169,7 +173,7 @@ class BannerView @JvmOverloads constructor(
             }
 
             AdLifecycle.Displayed -> {
-                winner?.adSource?.ad?.let { userListener?.onAdShown(ad = it) }
+                // do nothing
             }
 
             AdLifecycle.LoadingFailed,

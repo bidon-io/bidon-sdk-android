@@ -18,6 +18,7 @@ import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.ads.banner.render.AdRenderer.PositionState
 import org.bidon.sdk.ads.banner.render.ApplyInsetUseCase.applyWindowInsets
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.ext.TAG
 import org.bidon.sdk.utils.ext.dp
 import java.lang.ref.WeakReference
 
@@ -33,6 +34,7 @@ internal class AdRendererImpl(
 
     private var activity = WeakReference<Activity>(null)
     private var safeAreaScreenSize = Point(0, 0)
+    private val tag get() = TAG
 
     /**
      * RootContainer is the only one view for every [activity]
@@ -54,21 +56,21 @@ internal class AdRendererImpl(
         handleConfigurationChanges: Boolean,
         renderListener: AdRenderer.RenderListener
     ): Boolean {
-        observeActivities(activity)
+        observeActivity(activity)
+        logInfo(tag, "Render banner $bannerView at $activity")
         logInfo(
-            tag = Tag,
+            tag = tag,
             message = "--> AdContainer($adContainer), AdView($bannerView), $positionState, " +
-                "${bannerView.format}, animate($animate), "
+                    "${bannerView.format}, animate($animate), "
         )
-        logInfo(Tag, "${bannerView.adSize}")
-        logInfo(Tag, "Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}")
+        logInfo(tag, "${bannerView.adSize}. Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}")
         if (!inspector.isActivityValid(activity)) {
             hide()
             renderListener.onRenderFailed()
             return false
         }
         if (this.positionState != positionState) {
-            logInfo(Tag, "Position changed: ${this.positionState} -> $positionState")
+            logInfo(tag, "Position changed: ${this.positionState} -> $positionState")
             hide()
         }
         return if (inspector.isRenderPermitted()) {
@@ -76,7 +78,7 @@ internal class AdRendererImpl(
             this.activity = WeakReference(activity)
             withRootContainer(activity) {
                 if (!bannerView.fits(positionState)) {
-                    logInfo(Tag, "Banner does not fit")
+                    logInfo(tag, "Banner does not fit")
                     renderListener.onVisibilityIssued()
                     return@withRootContainer
                 }
@@ -138,7 +140,8 @@ internal class AdRendererImpl(
         rootContainer?.viewTreeObserver?.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
-                    safeAreaScreenSize = Point(rootContainer?.width ?: safeAreaScreenSize.x, rootContainer?.height ?: safeAreaScreenSize.y)
+                    safeAreaScreenSize =
+                        Point(rootContainer?.width ?: safeAreaScreenSize.x, rootContainer?.height ?: safeAreaScreenSize.y)
                     rootContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
                     onFinished()
                 }
@@ -189,7 +192,7 @@ internal class AdRendererImpl(
         val oldAdView = adContainer.getChildAt(0)
         val isViewsTheSame = oldAdView == bannerView
         if (isViewsTheSame) {
-            logInfo(Tag, "View and position does not changed")
+            logInfo(this@AdRendererImpl.tag, "View and position does not changed")
             return
         }
         adContainer.setBackgroundColor(Color.TRANSPARENT)
@@ -203,10 +206,11 @@ internal class AdRendererImpl(
             ?.start()
     }
 
-    private fun observeActivities(activity: Activity) {
+    private fun observeActivity(activity: Activity) {
         lifecycleObserver.observe(
             applicationContext = activity.applicationContext,
             onActivityDestroyed = { destroyedActivity ->
+                logInfo(tag, "Activity destroyed: $destroyedActivity")
                 if (this@AdRendererImpl.activity.get() == destroyedActivity) {
                     hide()
                     rootContainer?.removeAllViews()
@@ -231,5 +235,3 @@ internal class AdRendererImpl(
         BannerFormat.Adaptive -> WRAP_CONTENT
     }
 }
-
-private const val Tag = "AdRenderer"

@@ -21,11 +21,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.AppButton
+import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body2Text
 import org.bidon.demoapp.component.ItemSelector
@@ -37,6 +39,7 @@ import org.bidon.sdk.ads.banner.BannerPosition
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
+import java.lang.Math.random
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -47,6 +50,7 @@ fun PositionedBannerScreen(
     val logFlow = remember {
         mutableStateOf(listOf<String>())
     }
+    val configuration = LocalConfiguration.current
     val banner = viewModel.bannerManager.apply {
         setBannerListener(
             object : BannerListener {
@@ -88,7 +92,7 @@ fun PositionedBannerScreen(
         mutableStateOf(BannerFormat.Banner)
     }
     val bannerPosition = remember {
-        mutableStateOf(BannerPosition.HorizontalBottom)
+        mutableStateOf<BannerPosition?>(BannerPosition.HorizontalBottom)
     }
 
     logInfo("PositionedBannerScreen", "banner: $banner")
@@ -143,6 +147,18 @@ fun PositionedBannerScreen(
                     }
                 )
                 Spacer(modifier = Modifier.padding(top = 10.dp))
+                AppTextButton(text = "Custom Position") {
+                    bannerPosition.value = null
+                    banner.setCustomPosition(
+                        offset = android.graphics.Point(
+                            (random() * configuration.screenWidthDp).toInt(),
+                            (random() * configuration.screenHeightDp).toInt(),
+                        ),
+                        rotation = (random() * 360).toInt() ,
+                        anchor = android.graphics.PointF(random().toFloat(), random().toFloat())
+                    )
+                }
+                Spacer(modifier = Modifier.padding(top = 10.dp))
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),
@@ -154,8 +170,7 @@ fun PositionedBannerScreen(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Show",
                     ) {
-                        banner.setPosition(bannerPosition.value)
-                        banner.showAd()
+                        banner.showAd(activity)
                     }
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),

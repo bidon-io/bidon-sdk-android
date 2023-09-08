@@ -48,7 +48,7 @@ internal interface AdRenderer {
 
     sealed interface PositionState {
         data class Place(val position: BannerPosition) : PositionState
-        data class Coordinate(val adContainerParams: AdRenderer.AdContainerParams) : PositionState
+        data class Coordinate(val adContainerParams: AdContainerParams) : PositionState
 
         companion object {
             val Default get() = Place(BannerPosition.HorizontalBottom)

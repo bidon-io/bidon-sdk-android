@@ -36,6 +36,8 @@ internal interface BannersCache {
         onLoaded: (Ad, BannerView) -> Unit,
         onFailed: (BidonError) -> Unit,
     )
+
+    fun clear()
 }
 
 internal class BannersCacheImpl : BannersCache {
@@ -107,6 +109,10 @@ internal class BannersCacheImpl : BannersCache {
             }
         })
         banner.loadAd(activity, pricefloor)
+    }
+
+    override fun clear() {
+        cache.clear()
     }
 
     private fun SortedMap<Ad, BannerView>.pop(): Pair<Ad, BannerView>? {
