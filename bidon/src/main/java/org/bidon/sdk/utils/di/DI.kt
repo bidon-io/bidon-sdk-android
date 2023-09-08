@@ -5,7 +5,6 @@ import android.content.Context
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.CountDownTimer
 import org.bidon.sdk.ads.banner.helper.DeviceType
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
@@ -294,11 +293,7 @@ internal object DI {
             factory<AdRenderer.RenderInspector> {
                 RenderInspectorImpl()
             }
-            factoryWithParams<BannersCache> { (bannerFormat) ->
-                BannersCacheImpl(
-                    format = bannerFormat as BannerFormat
-                )
-            }
+            factory<BannersCache> { BannersCacheImpl() }
             factory { CalculateAdContainerParamsUseCase() }
         }
     }

@@ -29,10 +29,10 @@ import org.bidon.demoapp.component.AppButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body2Text
 import org.bidon.demoapp.component.ItemSelector
+import org.bidon.demoapp.ui.domain.BannerManagerViewModel
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
-import org.bidon.sdk.ads.banner.BannerManager
 import org.bidon.sdk.ads.banner.BannerPosition
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -40,22 +40,58 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PositionedBannerScreen(navController: NavHostController) {
-    val activity = LocalContext.current as Activity
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+fun PositionedBannerScreen(
+    navController: NavHostController,
+    viewModel: BannerManagerViewModel
+) {
     val logFlow = remember {
         mutableStateOf(listOf<String>())
     }
+    val banner = viewModel.bannerManager.apply {
+        setBannerListener(
+            object : BannerListener {
+                override fun onAdLoaded(ad: Ad) {
+                    logFlow.log("onAdLoaded WINNER:\n$ad")
+                }
+
+                override fun onAdLoadFailed(cause: BidonError) {
+                    logFlow.log("onAdLoadFailed: $cause")
+                }
+
+                override fun onAdShown(ad: Ad) {
+                    logFlow.log("onAdShown: $ad")
+                }
+
+                override fun onAdClicked(ad: Ad) {
+                    logFlow.log("onAdClicked: $ad")
+                }
+
+                override fun onAdExpired(ad: Ad) {
+                    logFlow.log("onAdExpired: $ad")
+                }
+
+                override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
+                    logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                }
+
+                override fun onAdShowFailed(cause: BidonError) {
+                    logFlow.log("onAdShowFailed: $cause")
+                }
+            }
+        )
+    }
+    val activity = LocalContext.current as Activity
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     val bannerFormat = remember {
         mutableStateOf(BannerFormat.Banner)
     }
     val bannerPosition = remember {
         mutableStateOf(BannerPosition.HorizontalBottom)
     }
-    val banner = remember {
-        mutableStateOf<BannerManager?>(null)
-    }
+
+    logInfo("PositionedBannerScreen", "banner: $banner")
 
     LazyColumn(
         modifier = Modifier
@@ -84,7 +120,7 @@ fun PositionedBannerScreen(navController: NavHostController) {
                     },
                     onItemClicked = {
                         bannerFormat.value = it
-                        banner.value?.setBannerFormat(it)
+                        banner.setBannerFormat(it)
                     }
                 )
                 Spacer(modifier = Modifier.padding(top = 10.dp))
@@ -103,75 +139,35 @@ fun PositionedBannerScreen(navController: NavHostController) {
                     },
                     onItemClicked = {
                         bannerPosition.value = it
-                        banner.value?.setPosition(it)
+                        banner.setPosition(it)
                     }
                 )
                 Spacer(modifier = Modifier.padding(top = 10.dp))
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),
-                        text = "Create",
-                    ) {
-                        logFlow.log("Created $banner")
-                        banner.value = BannerManager(activity, bannerFormat.value).apply {
-                            setBannerListener(
-                                object : BannerListener {
-                                    override fun onAdLoaded(ad: Ad) {
-                                        logFlow.log("onAdLoaded WINNER:\n$ad")
-                                    }
-
-                                    override fun onAdLoadFailed(cause: BidonError) {
-                                        logFlow.log("onAdLoadFailed: $cause")
-                                    }
-
-                                    override fun onAdShown(ad: Ad) {
-                                        logFlow.log("onAdShown: $ad")
-                                    }
-
-                                    override fun onAdClicked(ad: Ad) {
-                                        logFlow.log("onAdClicked: $ad")
-                                    }
-
-                                    override fun onAdExpired(ad: Ad) {
-                                        logFlow.log("onAdExpired: $ad")
-                                    }
-
-                                    override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                                        logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
-                                    }
-
-                                    override fun onAdShowFailed(cause: BidonError) {
-                                        logFlow.log("onAdShowFailed: $cause")
-                                    }
-                                }
-                            )
-                        }
-                    }
-                    AppButton(
-                        modifier = Modifier.padding(end = 12.dp),
                         text = "Load",
                     ) {
-                        banner.value?.loadAd(activity, pricefloor = 0.02)
+                        banner.loadAd(activity, pricefloor = 0.02)
                     }
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Show",
                     ) {
-                        banner.value?.setPosition(bannerPosition.value)
-                        banner.value?.showAd()
+                        banner.setPosition(bannerPosition.value)
+                        banner.showAd()
                     }
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Hide",
                     ) {
-                        banner.value?.hideAd()
+                        banner.hideAd()
                     }
                     AppButton(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Destroy",
                     ) {
-                        banner.value?.destroyAd()
-                        banner.value = null
+                        banner.destroyAd()
                     }
                 }
             }

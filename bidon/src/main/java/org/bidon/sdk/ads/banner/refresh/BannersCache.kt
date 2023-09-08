@@ -6,6 +6,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
 import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.TAG
 import java.util.SortedMap
@@ -14,22 +15,30 @@ import java.util.SortedMap
  * Created by Aleksei Cherniaev on 05/09/2023.
  */
 internal interface BannersCache {
+    /**
+     * Just load next banner
+     */
     fun load(
         activity: Activity,
-        pricefloor: Double
+        format: BannerFormat,
+        pricefloor: Double,
+        extras: Extras,
     )
 
-    fun load(
+    /**
+     * Get and automatically load next banner
+     */
+    fun get(
         activity: Activity,
+        format: BannerFormat,
         pricefloor: Double,
+        extras: Extras,
         onLoaded: (Ad, BannerView) -> Unit,
         onFailed: (BidonError) -> Unit,
     )
 }
 
-internal class BannersCacheImpl(
-    private val format: BannerFormat,
-) : BannersCache {
+internal class BannersCacheImpl : BannersCache {
     private val Tag get() = TAG
     private val cache = sortedMapOf<Ad, BannerView>({ ad1, ad2 ->
         ((ad2.ecpm - ad1.ecpm) * 1000000).toInt()
@@ -37,10 +46,13 @@ internal class BannersCacheImpl(
 
     override fun load(
         activity: Activity,
-        pricefloor: Double
+        format: BannerFormat,
+        pricefloor: Double,
+        extras: Extras,
     ) {
-        val banner = BannerView(activity)
+        val banner = BannerView(activity.applicationContext)
         banner.setBannerFormat(format)
+        banner.setExtras(extras)
         banner.setBannerListener(object : BannerListener {
             override fun onAdLoaded(ad: Ad) {
                 logInfo(Tag, "Banner loaded: $ad")
@@ -61,18 +73,22 @@ internal class BannersCacheImpl(
         banner.loadAd(activity, pricefloor)
     }
 
-    override fun load(
+    override fun get(
         activity: Activity,
+        format: BannerFormat,
         pricefloor: Double,
+        extras: Extras,
         onLoaded: (Ad, BannerView) -> Unit,
-        onFailed: (BidonError) -> Unit
+        onFailed: (BidonError) -> Unit,
     ) {
         if (cache.isNotEmpty()) {
             val (ad, banner) = cache.pop() ?: return
             onLoaded(ad, banner)
             return
         }
-        val banner = BannerView(activity)
+        val banner = BannerView(activity.applicationContext)
+        banner.setExtras(extras)
+        banner.setBannerFormat(format)
         banner.setBannerListener(object : BannerListener {
             override fun onAdLoaded(ad: Ad) {
                 logInfo(Tag, "Banner loaded: $ad")
@@ -109,6 +125,12 @@ internal class BannersCacheImpl(
                 banner == bannerView
             }.entries.first()
             this.remove(key)
+        }
+    }
+
+    private fun BannerView.setExtras(extras: Extras) {
+        extras.getExtras().forEach { (key, value) ->
+            this.addExtra(key, value)
         }
     }
 }
