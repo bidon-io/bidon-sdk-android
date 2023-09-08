@@ -58,6 +58,12 @@ Set the desired banner format.
 ```kotlin
 fun setBannerFormat(bannerFormat: BannerFormat)
 ```
+| Ad View Format | Size        | Description                    |
+|----------------|-------------|--------------------------------|
+| Banner         | 320 x 50    | Fixed size banner for phones   |
+| LeaderBoard    | 728 x 90    | Fixed size banner for pads     |
+| MRec           | 300 x 250   | Fixed medium rectangle banners |
+| Adaptive       | -/- x 50/90 | Flexible width banners         |
 
 ### BannerListener <a name="setbannerlistener"></a>
 Set a listener to receive callbacks for banner ad events.
@@ -81,8 +87,6 @@ Show the banner ad on the specified activity.
 ```kotlin
 fun showAd(activity: Activity)
 ```
-
-#### `isReady`
 
 Check if the banner ad is ready to be shown.
 
