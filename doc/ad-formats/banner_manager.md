@@ -5,17 +5,6 @@ Certainly! Here's the integration documentation for the `BannerManager` interfac
 The `BannerManager` interface offers methods for integrating banner advertisements into your Android application. This
 documentation will walk you through the integration process and explain the available functions.
 
-## Table of Contents
-
-1. [Creating instance](#introduction)
-2. [Position](#setposition)
-3. [BannerFormat](#setbannerformat)
-4. [BannerListener](#setbannerlistener)
-5. [Loading Ad](#loadad)
-6. [Displaying Ad](#showad)
-7. [Hiding Ad](#hidead)
-8. [Destroying Ad](#destroyad)
-
 ## Creating instance <a name="introduction"></a>
 
 The `BannerManager` interface is designed for integrating banner advertisements into your Android application.
