@@ -1,5 +1,3 @@
-Certainly! Here's the integration documentation for the `BannerManager` interface in Markdown format:
-
 # BannerManager Integration Documentation
 
 The `BannerManager` interface offers methods for integrating banner advertisements into your Android application. This
