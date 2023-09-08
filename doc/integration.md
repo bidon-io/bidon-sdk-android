@@ -75,5 +75,5 @@ BidonSdk.setLogLevel(Logger.Level.Verbose)
 
 - [Interstitials](ad-formats/interstitial.md)
 - [Rewarded Ads](ad-formats/rewarded.md)
-- [BannersManager](ad-formats/banner_manager.md)
+- [BannerManager](ad-formats/banner_manager.md)
 - [Banners](ad-formats/banner.md)
