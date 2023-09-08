@@ -24,7 +24,7 @@ Create an instance of the `BannerManager` interface and use its methods to load 
 val banner = BannerManager()
 ```
  
-## `Banner position`  <a name="setposition"></a>
+## Banner position  <a name="setposition"></a>
 
 ### Predefined Banner Positions
 
@@ -51,15 +51,6 @@ Set a custom position for the banner. You can specify the top-left offset in pix
 fun setCustomPosition(offset: Point, rotation: Int, anchor: PointF)
 ```
 
-### Hiding Ad <a name="hidead"></a>
-
-Hide the banner ad.
-
-```kotlin
-fun hideAd()
-```
-
-
 ### BannerFormat <a name="setbannerformat"></a>
 
 Set the desired banner format.
@@ -68,6 +59,12 @@ Set the desired banner format.
 fun setBannerFormat(bannerFormat: BannerFormat)
 ```
 
+### BannerListener <a name="setbannerlistener"></a>
+Set a listener to receive callbacks for banner ad events.
+
+```kotlin
+fun setBannerListener(listener: BannerListener?)
+```
 
 ### Loading Ad <a name="loadad"></a>
 
@@ -93,6 +90,14 @@ Check if the banner ad is ready to be shown.
 fun isReady(): Boolean
 ```
 
+### Hiding Ad <a name="hidead"></a>
+
+Hide the banner ad.
+
+```kotlin
+fun hideAd()
+```
+
 ### Destroying Ad <a name="destroyad"></a>
 
 Destroy the banner ad when it's no longer needed.
@@ -101,10 +106,3 @@ Destroy the banner ad when it's no longer needed.
 fun destroyAd()
 ```
 
-
-### BannerListener <a name="setbannerlistener"></a>
-Set a listener to receive callbacks for banner ad events.
-
-```kotlin
-fun setBannerListener(listener: BannerListener?)
-```
