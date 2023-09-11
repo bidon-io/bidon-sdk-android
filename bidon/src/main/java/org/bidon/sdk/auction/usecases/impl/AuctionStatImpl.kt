@@ -94,7 +94,7 @@ internal class AuctionStatImpl(
                         ).code
                     )
                 },
-                bidding = roundStat.bidding?.copy(
+                bidding = roundStat.bidding?.takeIf { it.bids.isNotEmpty() }?.copy(
                     bids = roundStat.bidding.bids.map { bid ->
                         bid.copy(
                             roundStatusCode = RoundStatus.values().first {
