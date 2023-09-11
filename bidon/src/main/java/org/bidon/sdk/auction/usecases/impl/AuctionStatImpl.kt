@@ -382,7 +382,8 @@ internal class AuctionStatImpl(
             adUnitId = stat?.adUnitId.takeIf { isSucceed },
             auctionStartTs = auctionStartTs,
             auctionFinishTs = auctionFinishTs,
-            roundId = stat?.roundId
+            roundId = stat?.roundId,
+            bidType = stat?.bidType?.code,
         )
     }
 }
