@@ -13,5 +13,4 @@ class InmobiFullscreenAuctionParams(
     override fun toString(): String {
         return "InmobiFullscreenAuctionParams(placementId=$placementId, price=$price)"
     }
-    }
 }

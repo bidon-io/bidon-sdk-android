@@ -29,7 +29,10 @@ import kotlin.coroutines.resumeWithException
  */
 internal val InmobiDemandId = DemandId("inmobi")
 
-class InmobiAdapter : Adapter, Initializable<InmobiParams>, SupportsRegulation,
+class InmobiAdapter :
+    Adapter,
+    Initializable<InmobiParams>,
+    SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<InmobiBannerAuctionParams>,
     AdProvider.Interstitial<InmobiFullscreenAuctionParams>,

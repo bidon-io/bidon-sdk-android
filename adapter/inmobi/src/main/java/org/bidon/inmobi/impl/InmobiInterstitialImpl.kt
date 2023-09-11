@@ -20,7 +20,8 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 /**
  * Created by Aleksei Cherniaev on 11/09/2023.
  */
-internal class InmobiInterstitialImpl : AdSource.Interstitial<InmobiFullscreenAuctionParams>,
+internal class InmobiInterstitialImpl :
+    AdSource.Interstitial<InmobiFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl(),
     Mode.Network {
@@ -43,30 +44,33 @@ internal class InmobiInterstitialImpl : AdSource.Interstitial<InmobiFullscreenAu
 
     override fun load(adParams: InmobiFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        val interstitialAd = InMobiInterstitial(adParams.activity, adParams.placementId, object : InterstitialAdEventListener() {
-            override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
-                logInfo(TAG, "onAdLoadSucceeded: $this")
-                emitEvent(AdEvent.Fill(getAd(interstitial) ?: return))
-            }
+        val interstitialAd = InMobiInterstitial(
+            adParams.activity, adParams.placementId,
+            object : InterstitialAdEventListener() {
+                override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
+                    logInfo(TAG, "onAdLoadSucceeded: $this")
+                    emitEvent(AdEvent.Fill(getAd(interstitial) ?: return))
+                }
 
-            override fun onAdLoadFailed(interstitial: InMobiInterstitial, status: InMobiAdRequestStatus) {
-            }
+                override fun onAdLoadFailed(interstitial: InMobiInterstitial, status: InMobiAdRequestStatus) {
+                }
 
-            override fun onAdClicked(interstitial: InMobiInterstitial, map: MutableMap<Any, Any>?) {
-            }
+                override fun onAdClicked(interstitial: InMobiInterstitial, map: MutableMap<Any, Any>?) {
+                }
 
-            override fun onAdImpression(interstitial: InMobiInterstitial) {
-            }
+                override fun onAdImpression(interstitial: InMobiInterstitial) {
+                }
 
-            override fun onAdDisplayed(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
-            }
+                override fun onAdDisplayed(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
+                }
 
-            override fun onAdDisplayFailed(interstitial: InMobiInterstitial) {
-            }
+                override fun onAdDisplayFailed(interstitial: InMobiInterstitial) {
+                }
 
-            override fun onAdDismissed(interstitial: InMobiInterstitial) {
+                override fun onAdDismissed(interstitial: InMobiInterstitial) {
+                }
             }
-        })
+        )
         this.interstitial = interstitialAd
         interstitialAd.load()
     }
@@ -84,7 +88,6 @@ internal class InmobiInterstitialImpl : AdSource.Interstitial<InmobiFullscreenAu
         logInfo(TAG, "destroy")
         interstitial = null
     }
-
 }
 
 private const val TAG = "InmobiInterstitialImpl"
