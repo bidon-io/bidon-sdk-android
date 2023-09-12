@@ -16,8 +16,11 @@ internal data class ImpressionRequestBody(
     val roundId: String,
     @field:JsonName("round_idx")
     val roundIndex: Int,
+    @Deprecated("Use auctionConfigurationUid instead")
     @field:JsonName("auction_configuration_id")
     val auctionConfigurationId: Int,
+    @field:JsonName("auction_configuration_uid")
+    val auctionConfigurationUid: ULong,
     @field:JsonName("imp_id")
     val impressionId: String,
     @field:JsonName("demand_id")

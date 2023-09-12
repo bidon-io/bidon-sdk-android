@@ -33,7 +33,7 @@ interface StatisticsCollector {
     fun markBelowPricefloor()
 
     fun setStatisticAdType(adType: AdType)
-    fun addAuctionConfigurationId(auctionConfigurationId: Int)
+    fun addAuctionConfigurationId(auctionConfigurationId: Int, auctionConfigurationUid: ULong)
     fun addExternalWinNotificationsEnabled(enabled: Boolean)
     fun addDemandId(demandId: DemandId)
     fun addRoundInfo(

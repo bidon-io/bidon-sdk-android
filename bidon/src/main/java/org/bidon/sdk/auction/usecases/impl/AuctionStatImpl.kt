@@ -115,7 +115,8 @@ internal class AuctionStatImpl(
             auctionId = auctionId,
             auctionConfigurationId = auctionData.auctionConfigurationId ?: -1,
             auctionStartTs = auctionStartTs,
-            auctionFinishTs = SystemTimeNow
+            auctionFinishTs = SystemTimeNow,
+            auctionConfigurationUid = auctionData.auctionConfigurationUid ?: 0UL
         )
         scope.launch(SdkDispatchers.Default) {
             statsRequest.invoke(
@@ -344,6 +345,7 @@ internal class AuctionStatImpl(
     private fun List<RoundStat>.asStatsRequestBody(
         auctionId: String,
         auctionConfigurationId: Int,
+        auctionConfigurationUid: ULong,
         auctionStartTs: Long,
         auctionFinishTs: Long,
     ): StatsRequestBody {
@@ -358,9 +360,10 @@ internal class AuctionStatImpl(
                     winnerDemandId = stat.winnerDemandId?.demandId,
                     pricefloor = stat.pricefloor,
                     demands = stat.demands,
-                    bidding = stat.bidding
+                    bidding = stat.bidding,
                 )
-            }
+            },
+            auctionConfigurationUid = auctionConfigurationUid
         )
     }
 
