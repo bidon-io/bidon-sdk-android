@@ -6,8 +6,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.inmobi.ext.adapterVersion
 import org.bidon.inmobi.ext.sdkVersion
 import org.bidon.inmobi.impl.InmobiBannerAuctionParams
+import org.bidon.inmobi.impl.InmobiBannerImpl
 import org.bidon.inmobi.impl.InmobiFullscreenAuctionParams
 import org.bidon.inmobi.impl.InmobiInterstitialImpl
+import org.bidon.inmobi.impl.InmobiRewardedImpl
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -71,7 +73,7 @@ class InmobiAdapter :
     }
 
     override fun parseConfigParam(json: String): InmobiParams {
-        return InmobiParams(JSONObject(json).optString("account_id"))
+        return InmobiParams(JSONObject(json).optString("app_key"))
     }
 
     override fun updateRegulation(regulation: Regulation) {
@@ -90,11 +92,11 @@ class InmobiAdapter :
     }
 
     override fun banner(): AdSource.Banner<InmobiBannerAuctionParams> {
-        TODO("Not yet implemented")
+        return InmobiBannerImpl()
     }
 
     override fun rewarded(): AdSource.Rewarded<InmobiFullscreenAuctionParams> {
-        TODO("Not yet implemented")
+        return InmobiRewardedImpl()
     }
 }
 

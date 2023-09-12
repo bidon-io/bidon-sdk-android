@@ -23,16 +23,16 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 /**
  * Created by Aleksei Cherniaev on 11/09/2023.
  */
-internal class InmobiInterstitialImpl :
-    AdSource.Interstitial<InmobiFullscreenAuctionParams>,
+internal class InmobiRewardedImpl :
+    AdSource.Rewarded<InmobiFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl(),
     Mode.Network {
 
-    private var interstitial: InMobiInterstitial? = null
+    private var rewardedAd: InMobiInterstitial? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitial?.isReady == true
+        get() = rewardedAd?.isReady == true
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -96,16 +96,21 @@ internal class InmobiInterstitialImpl :
                     logInfo(TAG, "onAdClosed: $this")
                     emitEvent(AdEvent.Closed(getAd(interstitial) ?: return))
                 }
+
+                override fun onRewardsUnlocked(interstitial: InMobiInterstitial, rewards: MutableMap<Any, Any>?) {
+                    logInfo(TAG, "onAdRewarded: $rewards, $this")
+                    emitEvent(AdEvent.OnReward(getAd(interstitial) ?: return, null))
+                }
             }
         )
-        this.interstitial = interstitialAd
+        this.rewardedAd = interstitialAd
         interstitialAd.load()
     }
 
     override fun show(activity: Activity) {
         logInfo(TAG, "Starting show: $this")
         if (isAdReadyToShow) {
-            interstitial?.show()
+            rewardedAd?.show()
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
         }
@@ -113,8 +118,8 @@ internal class InmobiInterstitialImpl :
 
     override fun destroy() {
         logInfo(TAG, "destroy")
-        interstitial = null
+        rewardedAd = null
     }
 }
 
-private const val TAG = "InmobiInterstitialImpl"
+private const val TAG = "InmobiRewardedImpl"
