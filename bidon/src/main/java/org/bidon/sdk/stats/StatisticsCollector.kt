@@ -4,6 +4,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.models.BannerRequest
+import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
@@ -26,7 +27,7 @@ interface StatisticsCollector {
     fun sendLoss(winnerDemandId: String, winnerEcpm: Double)
     fun sendWin()
 
-    fun markFillStarted(adUnitId: String?, pricefloor: Double?)
+    fun markFillStarted(lineItem: LineItem?, pricefloor: Double?)
     fun markFillFinished(roundStatus: RoundStatus, ecpm: Double?)
     fun markWin()
     fun markLoss()

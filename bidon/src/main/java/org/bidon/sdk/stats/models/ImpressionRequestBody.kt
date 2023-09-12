@@ -29,6 +29,8 @@ internal data class ImpressionRequestBody(
     val bidType: String?,
     @field:JsonName("ad_unit_id")
     val adUnitId: String?,
+    @field:JsonName("line_item_uid")
+    val lineItemUid: ULong?,
     @field:JsonName("ecpm")
     val ecpm: Double,
     @field:JsonName("banner")

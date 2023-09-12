@@ -8,6 +8,7 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.InterstitialRequest
+import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.RewardedRequest
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -61,6 +62,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
         roundIndex = null,
         demandId = DemandId(""),
         adUnitId = null,
+        lineItemUid = null,
         fillStartTs = null,
         fillFinishTs = null,
         roundStatus = null,
@@ -212,11 +214,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
         externalWinNotificationsEnabled = enabled
     }
 
-    override fun markFillStarted(adUnitId: String?, pricefloor: Double?) {
+    override fun markFillStarted(lineItem: LineItem?, pricefloor: Double?) {
         stat = stat.copy(
             fillStartTs = SystemTimeNow,
-            adUnitId = adUnitId,
-            ecpm = pricefloor ?: stat.ecpm
+            adUnitId = lineItem?.adUnitId,
+            ecpm = pricefloor ?: stat.ecpm,
+            lineItemUid = lineItem?.uid
         )
     }
 
@@ -258,6 +261,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
             impressionId = impressionId,
             demandId = demandId.demandId,
             adUnitId = stat.adUnitId,
+            lineItemUid = stat.lineItemUid,
             ecpm = stat.ecpm,
             banner = banner,
             interstitial = interstitial,

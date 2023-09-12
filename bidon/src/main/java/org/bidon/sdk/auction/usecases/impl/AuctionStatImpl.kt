@@ -156,6 +156,7 @@ internal class AuctionStatImpl(
                 adUnitId = null,
                 fillStartTs = null,
                 fillFinishTs = null,
+                lineItemUid = null,
             )
         }
     }
@@ -180,6 +181,7 @@ internal class AuctionStatImpl(
                                     adUnitId = null,
                                     fillStartTs = null,
                                     fillFinishTs = null,
+                                    lineItemUid = null,
                                 )
                             },
                             bidding = if (round.biddingIds.isNotEmpty()) {
@@ -226,7 +228,8 @@ internal class AuctionStatImpl(
                     demandId = stat.demandId.demandId,
                     fillStartTs = stat.fillStartTs,
                     fillFinishTs = stat.fillFinishTs,
-                    adUnitId = stat.adUnitId
+                    adUnitId = stat.adUnitId,
+                    lineItemUid = stat.lineItemUid,
                 )
             }
 
@@ -237,7 +240,8 @@ internal class AuctionStatImpl(
                     fillStartTs = null,
                     fillFinishTs = null,
                     ecpm = null,
-                    adUnitId = null
+                    adUnitId = null,
+                    lineItemUid = null,
                 )
             }
 
@@ -387,6 +391,7 @@ internal class AuctionStatImpl(
             auctionFinishTs = auctionFinishTs,
             roundId = stat?.roundId,
             bidType = stat?.bidType?.code,
+            lineItemUid = stat?.lineItemUid,
         )
     }
 }
