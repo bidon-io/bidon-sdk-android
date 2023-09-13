@@ -44,8 +44,8 @@ internal class InmobiBannerImpl :
             InmobiBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                placementId = requireNotNull(lineItem.adUnitId).toLong(),
                 price = lineItem.pricefloor,
+                lineItem = lineItem
             )
         }
     }

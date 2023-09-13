@@ -39,7 +39,7 @@ internal class InmobiInterstitialImpl :
             val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
             InmobiFullscreenAuctionParams(
                 activity = activity,
-                placementId = requireNotNull(lineItem.adUnitId).toLong(),
+                lineItem = lineItem,
                 price = lineItem.pricefloor,
             )
         }
