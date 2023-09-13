@@ -1,3 +1,9 @@
+# Release 0.3.3 (2023.09.13
+)
+## Bugfixes:
+[BDN-391](https://appodeal.atlassian.net/browse/BDN-391) Sync Adapter version between Appodeal vs Bidon
+
+
 # Release 0.3.2
 
 ## New Features:
