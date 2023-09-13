@@ -2,7 +2,9 @@ package org.bidon.inmobi
 
 import android.content.Context
 import com.inmobi.sdk.InMobiSdk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import org.bidon.inmobi.ext.adapterVersion
 import org.bidon.inmobi.ext.sdkVersion
 import org.bidon.inmobi.impl.InmobiBannerAuctionParams
@@ -49,31 +51,33 @@ class InmobiAdapter :
             sdkVersion = sdkVersion
         )
 
-    override suspend fun init(context: Context, configParams: InmobiParams) = suspendCancellableCoroutine {
-        val consentObject = JSONObject()
-        if (isTestMode) {
-            InMobiSdk.setLogLevel(InMobiSdk.LogLevel.DEBUG)
-        }
-        regulation?.let { reg ->
-            // Provide correct consent value to sdk which is obtained by User
-            consentObject.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, reg.gdprConsent)
-            // Provide 0 if GDPR is not applicable and 1 if applicable
-            consentObject.put("gdpr", "1".takeIf { reg.gdprConsent } ?: "0")
-            // Provide user consent in IAB format
-            consentObject.put(InMobiSdk.IM_GDPR_CONSENT_IAB, reg.gdprConsentString)
-        }
-        InMobiSdk.init(context, configParams.accountId, consentObject) { error ->
-            if (null != error) {
-                logError(TAG, "InMobi Init Failed", error)
-                it.resumeWithException(BidonError.SdkNotInitialized)
-            } else {
-                it.resume(Unit)
+    override suspend fun init(context: Context, configParams: InmobiParams) = withContext(Dispatchers.Main.immediate) {
+        suspendCancellableCoroutine {
+            val consentObject = JSONObject()
+            if (isTestMode) {
+                InMobiSdk.setLogLevel(InMobiSdk.LogLevel.DEBUG)
+            }
+            regulation?.let { reg ->
+                // Provide correct consent value to sdk which is obtained by User
+                consentObject.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, reg.gdprConsent)
+                // Provide 0 if GDPR is not applicable and 1 if applicable
+                consentObject.put("gdpr", "1".takeIf { reg.gdprConsent } ?: "0")
+                // Provide user consent in IAB format
+                consentObject.put(InMobiSdk.IM_GDPR_CONSENT_IAB, reg.gdprConsentString)
+            }
+            InMobiSdk.init(context, configParams.accountId, consentObject) { error ->
+                if (null != error) {
+                    logError(TAG, "InMobi Init Failed", error)
+                    it.resumeWithException(BidonError.SdkNotInitialized)
+                } else {
+                    it.resume(Unit)
+                }
             }
         }
     }
 
     override fun parseConfigParam(json: String): InmobiParams {
-        return InmobiParams(JSONObject(json).optString("app_key"))
+        return InmobiParams(JSONObject(json).optString("account_id"))
     }
 
     override fun updateRegulation(regulation: Regulation) {
