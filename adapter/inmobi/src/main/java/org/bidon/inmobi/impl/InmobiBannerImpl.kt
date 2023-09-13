@@ -56,6 +56,7 @@ internal class InmobiBannerImpl :
         val bannerView = InMobiBanner(adParams.activity.applicationContext, adParams.placementId)
         bannerView.setBannerSize(adParams.bannerFormat.getWidthDp(), adParams.bannerFormat.getHeightDp())
         bannerView.setEnableAutoRefresh(false)
+        bannerView.setAnimationType(InMobiBanner.AnimationType.ANIMATION_OFF)
         bannerView.setListener(object : BannerAdEventListener() {
             override fun onAdLoadSucceeded(inMobiBanner: InMobiBanner, adMetaInfo: AdMetaInfo) {
                 this@InmobiBannerImpl.adMetaInfo = adMetaInfo
