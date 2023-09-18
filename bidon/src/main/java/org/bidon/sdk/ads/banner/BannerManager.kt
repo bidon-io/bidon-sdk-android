@@ -13,7 +13,6 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.WinLossNotifier
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 import java.lang.ref.WeakReference
@@ -26,7 +25,6 @@ class BannerManager private constructor(
     private val bannersCache: BannersCache,
     private val extras: Extras
 ) : PositionedBanner,
-    WinLossNotifier,
     Extras {
 
     constructor() : this(
@@ -207,9 +205,11 @@ class BannerManager private constructor(
         return extras.getExtras()
     }
 
-    override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        nextBannerView?.notifyLoss(winnerDemandId, winnerEcpm)
-        nextBannerView = null
+    override fun notifyLoss(activity: Activity, winnerDemandId: String, winnerEcpm: Double) {
+        activity.runOnUiThread {
+            nextBannerView?.notifyLoss(winnerDemandId, winnerEcpm)
+            nextBannerView = null
+        }
     }
 
     override fun notifyWin() {
