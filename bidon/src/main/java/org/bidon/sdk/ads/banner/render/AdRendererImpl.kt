@@ -61,7 +61,7 @@ internal class AdRendererImpl(
         logInfo(
             tag = tag,
             message = "--> AdContainer($adContainer), AdView($bannerView), $positionState, " +
-                "${bannerView.format}, animate($animate), "
+                    "${bannerView.format}, animate($animate), "
         )
         logInfo(tag, "${bannerView.adSize}. Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}")
         if (!inspector.isActivityValid(activity)) {
@@ -119,10 +119,8 @@ internal class AdRendererImpl(
     }
 
     override fun hide(activity: Activity) {
-        activity.runOnUiThread {
-            adContainer?.removeAllViews()
-            adContainer = null
-        }
+        adContainer?.removeAllViews()
+        adContainer = null
     }
 
     private fun setAdViewsVisible(adView: ViewGroup) {
