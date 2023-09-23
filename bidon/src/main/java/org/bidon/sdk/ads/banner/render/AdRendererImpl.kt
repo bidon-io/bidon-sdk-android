@@ -61,9 +61,12 @@ internal class AdRendererImpl(
         logInfo(
             tag = tag,
             message = "--> AdContainer($adContainer), AdView($bannerView), $positionState, " +
-                "${bannerView.format}, animate($animate), "
+                    "${bannerView.format}, animate($animate), "
         )
-        logInfo(tag, "${bannerView.adSize}. Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}")
+        logInfo(
+            tag,
+            "${bannerView.adSize}. Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}"
+        )
         if (!inspector.isActivityValid(activity)) {
             hide(activity)
             renderListener.onRenderFailed()
@@ -168,7 +171,10 @@ internal class AdRendererImpl(
                 bannerHeight = bannerView.obtainHeight(),
             )
         }
-        logInfo(tag, "Create ad container with params: offset:$offset, rotation:$rotation, anchor:$anchor")
+        logInfo(
+            tag,
+            "Create ad container with params: offset:$offset, rotation:$rotation, anchor:$anchor"
+        )
         adContainer.setParams(
             offset = offset,
             pivot = anchor,
@@ -176,10 +182,24 @@ internal class AdRendererImpl(
             width = bannerView.obtainWidth(),
             height = bannerView.obtainHeight()
         )
-        rootContainer?.addView(adContainer, LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight()))
+        rootContainer?.addView(
+            adContainer,
+            LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight())
+        )
     }
 
-    private fun FrameLayout.setParams(offset: Point, pivot: PointF, rotation: Int, width: Int, height: Int) {
+    private fun FrameLayout.setParams(
+        offset: Point,
+        pivot: PointF,
+        rotation: Int,
+        width: Int,
+        height: Int
+    ) {
+        logInfo(
+            this@AdRendererImpl.tag,
+            "Set params before: offset(${offset.x}, ${offset.y}), pivot(${pivot.x}, ${pivot.y}), rotation(${rotation}), width(${width}), height(${height})"
+        )
+
         val translatedX = offset.x - pivot.x * width
         val translatedY = offset.y - pivot.y * height
         this.pivotX = width * pivot.x
@@ -191,8 +211,7 @@ internal class AdRendererImpl(
         this.y = translatedY
         logInfo(
             this@AdRendererImpl.tag,
-            "Set params: pivotX(${this.pivotX}), pivotY(${this.pivotY}), rotation(${this.rotation}), " +
-                    "x(${this.x}), y(${this.y}), width(${width}), height(${height})"
+            "Set params after: pivotX(${this.pivotX}), pivotY(${this.pivotY}), rotation(${this.rotation}), x(${this.x}), y(${this.y})"
         )
     }
 
@@ -209,7 +228,7 @@ internal class AdRendererImpl(
         bannerView.parent?.let {
             (it as ViewGroup).removeView(bannerView)
         }
-        adContainer.setBackgroundColor(Color.TRANSPARENT)
+//        adContainer.setBackgroundColor(Color.TRANSPARENT)
         adContainer.addView(bannerView, LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight(), Gravity.CENTER))
         oldAdView?.animate()
             ?.alpha(0.0f)
