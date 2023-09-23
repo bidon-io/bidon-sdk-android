@@ -2,6 +2,7 @@ package org.bidon.sdk.ads.banner
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Color
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -170,6 +171,7 @@ class BannerView @JvmOverloads constructor(
                 }
                 // Success
                 addViewOnScreen(bannerSource)
+                setBackgroundColor(Color.BLUE)
             }
 
             AdLifecycle.Displayed -> {
@@ -240,6 +242,7 @@ class BannerView @JvmOverloads constructor(
         val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
         addView(adViewHolder.networkAdview, layoutParams)
         this.visibility = VISIBLE
+        adViewHolder.networkAdview.setBackgroundColor(Color.RED)
         adViewHolder.networkAdview.visibility = VISIBLE
         logInfo(
             TAG,

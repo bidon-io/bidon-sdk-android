@@ -168,6 +168,7 @@ internal class AdRendererImpl(
                 bannerHeight = bannerView.obtainHeight(),
             )
         }
+        logInfo(tag, "Create ad container with params: offset:$offset, rotation:$rotation, anchor:$anchor")
         adContainer.setParams(
             offset = offset,
             pivot = anchor,
@@ -188,6 +189,11 @@ internal class AdRendererImpl(
         this.rotation = rotation.toFloat()
         this.x = translatedX
         this.y = translatedY
+        logInfo(
+            this@AdRendererImpl.tag,
+            "Set params: pivotX(${this.pivotX}), pivotY(${this.pivotY}), rotation(${this.rotation}), " +
+                    "x(${this.x}), y(${this.y}), width(${width}), height(${height})"
+        )
     }
 
     private fun FrameLayout.addAdView(bannerView: BannerView) {
