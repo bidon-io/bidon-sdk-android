@@ -3,7 +3,6 @@ package org.bidon.sdk.ads.banner.render
 import android.graphics.Point
 import android.graphics.PointF
 import org.bidon.sdk.ads.banner.BannerPosition
-import org.bidon.sdk.logs.logging.impl.logInfo
 
 internal class CalculateAdContainerParamsUseCase {
     operator fun invoke(
