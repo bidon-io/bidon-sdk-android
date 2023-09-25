@@ -1,12 +1,14 @@
 package org.bidon.sdk.ads.banner.render
 
 import android.app.Activity
+import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PointF
 import android.view.Display
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import android.widget.FrameLayout.LayoutParams
@@ -145,7 +147,7 @@ internal class AdRendererImpl(
         )
         activity.addContentView(
             adContainer,
-            LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight())
+            LayoutParams(MATCH_PARENT, bannerView.obtainHeight())
         )
         adContainer.bringToFront()
     }
@@ -166,9 +168,10 @@ internal class AdRendererImpl(
         val translatedY = offset.y - pivot.y * height
         this.pivotX = width * pivot.x
         this.pivotY = height * pivot.y
-        this.clipChildren = false
-        this.clipToPadding = false
+//        this.clipChildren = false
+//        this.clipToPadding = false
         this.rotation = rotation.toFloat()
+
         this.x = translatedX
         this.y = translatedY
         logInfo(
@@ -178,8 +181,8 @@ internal class AdRendererImpl(
     }
 
     private fun FrameLayout.addAdView(bannerView: BannerView) {
-        bannerView.clipChildren = false
-        bannerView.clipToPadding = false
+//        bannerView.clipChildren = false
+//        bannerView.clipToPadding = false
         val adContainer: FrameLayout = this
         val oldAdView = adContainer.getChildAt(0)
         val isViewsTheSame = oldAdView == bannerView
@@ -190,11 +193,10 @@ internal class AdRendererImpl(
         bannerView.parent?.let {
             (it as ViewGroup).removeView(bannerView)
         }
-//        adContainer.setBackgroundColor(Color.RED)
-//        adContainer.setBackgroundColor(Color.TRANSPARENT)
+        adContainer.setBackgroundColor(Color.TRANSPARENT)
         adContainer.addView(
             bannerView,
-            LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight(), Gravity.CENTER)
+            LayoutParams(MATCH_PARENT, bannerView.obtainHeight(), Gravity.CENTER)
         )
         oldAdView?.animate()
             ?.alpha(0.0f)
