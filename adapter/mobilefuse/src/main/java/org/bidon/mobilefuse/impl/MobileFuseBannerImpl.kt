@@ -24,6 +24,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseBannerImpl(private val isTestMode: Boolean) :
@@ -52,6 +53,7 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
                 adUnitId = null,
                 ecpm = it.winningBidInfo?.cpmPrice?.toDouble() ?: 0.0,
                 networkName = demandId.demandId,
+                bidType = BidType.RTB
             )
         }
 
@@ -139,7 +141,7 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
                 logError(Tag, "onAdError $adError", Throwable(adError?.errorMessage))
                 when (adError) {
                     AdError.AD_ALREADY_RENDERED -> {
-                        adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+                        adEvent.tryEmit(AdEvent.ShowFailed(BidonError.AdNotReady))
                     }
 
                     AdError.AD_ALREADY_LOADED,

@@ -22,6 +22,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
@@ -49,6 +50,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                 adUnitId = null,
                 ecpm = it.winningBidInfo?.cpmPrice?.toDouble() ?: 0.0,
                 networkName = demandId.demandId,
+                bidType = BidType.RTB
             )
         }
 
@@ -127,7 +129,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                 logError(Tag, "onAdError $adError", Throwable(adError?.errorMessage))
                 when (adError) {
                     AdError.AD_ALREADY_RENDERED -> {
-                        adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+                        adEvent.tryEmit(AdEvent.ShowFailed(BidonError.AdNotReady))
                     }
 
                     AdError.AD_ALREADY_LOADED,
@@ -160,7 +162,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
         if (interstitialAd?.isLoaded == true) {
             interstitialAd?.showAd()
         } else {
-            adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            adEvent.tryEmit(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
     }
 
