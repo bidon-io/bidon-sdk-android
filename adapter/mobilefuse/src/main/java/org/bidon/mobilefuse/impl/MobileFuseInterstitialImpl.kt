@@ -62,18 +62,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            MobileFuseFullscreenAuctionParams(
-                activity = activity,
-                signalData = requireNotNull(json?.getString("signaldata")) {
-                    "SignalData is required for MobileFuse"
-                },
-                price = pricefloor,
-                placementId = requireNotNull(json?.getString("placement_id")) {
-                    "PlacementId is required for MobileFuse"
-                }
-            )
-        }
+        return ObtainAuctionParamUseCase().getFullscreenParam(auctionParamsScope)
     }
 
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {

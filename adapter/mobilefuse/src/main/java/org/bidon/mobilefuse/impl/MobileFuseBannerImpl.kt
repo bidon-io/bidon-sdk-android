@@ -65,19 +65,7 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            MobileFuseBannerAuctionParams(
-                activity = activity,
-                signalData = requireNotNull(json?.getString("signaldata")) {
-                    "SignalData is required for MobileFuse"
-                },
-                price = pricefloor,
-                bannerFormat = bannerFormat,
-                placementId = requireNotNull(json?.getString("placement_id")) {
-                    "PlacementId is required for MobileFuse"
-                }
-            )
-        }
+        return ObtainAuctionParamUseCase().getBannerParam(auctionParamsScope)
     }
 
     override fun load(adParams: MobileFuseBannerAuctionParams) {
