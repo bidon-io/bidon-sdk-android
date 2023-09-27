@@ -24,7 +24,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseBannerImpl(private val isTestMode: Boolean) :
