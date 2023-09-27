@@ -64,10 +64,13 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
         return auctionParamsScope {
             MobileFuseFullscreenAuctionParams(
                 activity = activity,
-                signalData = requireNotNull(json?.getString("payload")?.let { JSONObject(it).getString("signaldata") }) {
-                    "Payload is required for MobileFuse"
+                signalData = requireNotNull(json?.getString("signaldata")) {
+                    "SignalData is required for MobileFuse"
                 },
-                price = pricefloor
+                price = pricefloor,
+                placementId = requireNotNull(json?.getString("placement_id")) {
+                    "PlacementId is required for MobileFuse"
+                }
             )
         }
     }
@@ -75,7 +78,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, "").also {
+        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, adParams.placementId).also {
             interstitialAd = it
         }
         interstitialAd.setListener(object : MobileFuseInterstitialAd.Listener {

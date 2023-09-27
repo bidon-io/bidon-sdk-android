@@ -67,11 +67,14 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
         return auctionParamsScope {
             MobileFuseBannerAuctionParams(
                 activity = activity,
-                signalData = requireNotNull(json?.getString("payload")?.let { JSONObject(it).getString("signaldata") }) {
-                    "Payload is required for MobileFuse"
+                signalData = requireNotNull(json?.getString("signaldata")) {
+                    "SignalData is required for MobileFuse"
                 },
                 price = pricefloor,
-                bannerFormat = bannerFormat
+                bannerFormat = bannerFormat,
+                placementId = requireNotNull(json?.getString("placement_id")) {
+                    "PlacementId is required for MobileFuse"
+                }
             )
         }
     }
@@ -86,7 +89,7 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
             BannerFormat.MRec -> MobileFuseBannerAd.AdSize.BANNER_300x250
             BannerFormat.Adaptive -> MobileFuseBannerAd.AdSize.BANNER_ADAPTIVE
         }
-        val bannerAd = MobileFuseBannerAd(adParams.activity, "", adSize).also {
+        val bannerAd = MobileFuseBannerAd(adParams.activity, adParams.placementId, adSize).also {
             fuseBannerAd = it
         }
         bannerAd.autorefreshEnabled = false

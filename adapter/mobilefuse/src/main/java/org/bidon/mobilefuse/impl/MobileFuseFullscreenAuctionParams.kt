@@ -11,6 +11,7 @@ import org.bidon.sdk.auction.models.LineItem
 class MobileFuseFullscreenAuctionParams(
     val activity: Activity,
     val signalData: String,
+    val placementId: String,
     override val price: Double
 ) : AdAuctionParams {
     override val lineItem: LineItem? = null
@@ -20,6 +21,8 @@ class MobileFuseBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
     val signalData: String,
+    val placementId: String,
     override val price: Double,
+) : AdAuctionParams {
     override val lineItem: LineItem? = null
-) : AdAuctionParams
+}

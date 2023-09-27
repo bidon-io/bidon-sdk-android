@@ -21,7 +21,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
@@ -63,10 +62,13 @@ class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
         return auctionParamsScope {
             MobileFuseFullscreenAuctionParams(
                 activity = activity,
-                signalData = requireNotNull(json?.getString("payload")?.let { JSONObject(it).getString("signaldata") }) {
-                    "Payload is required for MobileFuse"
+                signalData = requireNotNull(json?.getString("signaldata")) {
+                    "SignalData is required for MobileFuse"
                 },
-                price = pricefloor
+                price = pricefloor,
+                placementId = requireNotNull(json?.getString("placement_id")) {
+                    "PlacementId is required for MobileFuse"
+                }
             )
         }
     }
@@ -74,7 +76,7 @@ class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val rewardedAd = MobileFuseRewardedAd(adParams.activity, "").also {
+        val rewardedAd = MobileFuseRewardedAd(adParams.activity, adParams.placementId).also {
             rewardedAd = it
         }
         rewardedAd.setListener(object : MobileFuseRewardedAd.Listener {

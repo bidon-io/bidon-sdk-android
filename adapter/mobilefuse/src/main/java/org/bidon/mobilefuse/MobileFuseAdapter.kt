@@ -51,7 +51,6 @@ class MobileFuseAdapter :
 
     override suspend fun init(context: Context, configParams: MobileFuseParams) = suspendCancellableCoroutine { continuation ->
         MobileFuseSettings.setTestMode(isTestMode)
-//        MobileFuse.initSdkServices(context)
         MobileFuse.init(
             object : SdkInitListener {
                 override fun onInitSuccess() {
@@ -60,10 +59,7 @@ class MobileFuseAdapter :
 
                 override fun onInitError() {
                     return continuation.resumeWithException(
-                        BidonError.Unspecified(
-                            demandId,
-                            Throwable("Error while initialization")
-                        )
+                        BidonError.Unspecified(demandId, Throwable("Error while initialization"))
                     )
                 }
             }
