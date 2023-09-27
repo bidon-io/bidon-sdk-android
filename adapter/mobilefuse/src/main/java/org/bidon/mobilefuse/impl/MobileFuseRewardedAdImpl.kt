@@ -3,7 +3,7 @@ package org.bidon.mobilefuse.impl
 import android.app.Activity
 import android.content.Context
 import com.mobilefuse.sdk.AdError
-import com.mobilefuse.sdk.MobileFuseInterstitialAd
+import com.mobilefuse.sdk.MobileFuseRewardedAd
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.mobilefuse.ext.GetMobileFuseTokenUseCase
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -16,7 +16,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
-import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -25,13 +24,13 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
-    AdSource.Interstitial<MobileFuseFullscreenAuctionParams>,
+class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
+    AdSource.Rewarded<MobileFuseFullscreenAuctionParams>,
     Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var interstitialAd: MobileFuseInterstitialAd? = null
+    private var rewardedAd: MobileFuseRewardedAd? = null
 
     /**
      * This flag is used to prevent [AdError]-callback from being exposed twice.
@@ -39,12 +38,12 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     private var isLoaded = AtomicBoolean(false)
 
     private val ad: Ad?
-        get() = interstitialAd?.let {
+        get() = rewardedAd?.let {
             Ad(
                 demandAd = demandAd,
                 auctionId = auctionId,
                 roundId = roundId,
-                currencyCode = it.winningBidInfo?.currency ?: USD,
+                currencyCode = it.winningBidInfo?.currency ?: AdValue.USD,
                 demandAdObject = this,
                 dsp = null,
                 adUnitId = null,
@@ -54,7 +53,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
         }
 
     override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
-    override val isAdReadyToShow: Boolean get() = interstitialAd?.isLoaded == true
+    override val isAdReadyToShow: Boolean get() = rewardedAd?.isLoaded == true
 
     override suspend fun getToken(context: Context): String? {
         return GetMobileFuseTokenUseCase(context, isTestMode)
@@ -75,10 +74,10 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, "").also {
-            interstitialAd = it
+        val rewardedAd = MobileFuseRewardedAd(adParams.activity, "").also {
+            rewardedAd = it
         }
-        interstitialAd.setListener(object : MobileFuseInterstitialAd.Listener {
+        rewardedAd.setListener(object : MobileFuseRewardedAd.Listener {
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
                     logInfo(Tag, "onAdLoaded")
@@ -99,10 +98,10 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                     adEvent.tryEmit(
                         AdEvent.PaidRevenue(
                             ad = it,
-                            adValue = interstitialAd.winningBidInfo.let { bidInfo ->
+                            adValue = rewardedAd.winningBidInfo.let { bidInfo ->
                                 AdValue(
                                     adRevenue = bidInfo?.cpmPrice?.toDouble() ?: 0.0,
-                                    currency = bidInfo?.currency ?: USD,
+                                    currency = bidInfo?.currency ?: AdValue.USD,
                                     precision = Precision.Precise
                                 )
                             }
@@ -149,14 +148,21 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                 logInfo(Tag, "onAdClosed: $this")
                 ad?.let { adEvent.tryEmit(AdEvent.Closed(it)) }
             }
+
+            override fun onUserEarnedReward() {
+                logInfo(Tag, "onUserEarnedReward: $this")
+                ad?.let {
+                    adEvent.tryEmit(AdEvent.OnReward(ad = it, reward = null))
+                }
+            }
         })
-        interstitialAd.loadAdFromBiddingToken(adParams.signalData)
+        rewardedAd.loadAdFromBiddingToken(adParams.signalData)
     }
 
     override fun show(activity: Activity) {
         logInfo(Tag, "Starting show: $this")
-        if (interstitialAd?.isLoaded == true) {
-            interstitialAd?.showAd()
+        if (rewardedAd?.isLoaded == true) {
+            rewardedAd?.showAd()
         } else {
             adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
         }
@@ -164,8 +170,8 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
     override fun destroy() {
         logInfo(Tag, "destroy $this")
-        interstitialAd = null
+        rewardedAd = null
     }
 }
 
-private const val Tag = "MobileFuseInterstitialImpl"
+private const val Tag = "MobileFuseRewardedAdImpl"

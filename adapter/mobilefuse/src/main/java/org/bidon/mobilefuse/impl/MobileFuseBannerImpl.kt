@@ -1,22 +1,24 @@
 package org.bidon.mobilefuse.impl
 
-import android.app.Activity
 import android.content.Context
 import com.mobilefuse.sdk.AdError
-import com.mobilefuse.sdk.MobileFuseInterstitialAd
+import com.mobilefuse.sdk.MobileFuseBannerAd
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.mobilefuse.ext.GetMobileFuseTokenUseCase
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.getHeightDp
+import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
-import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -25,13 +27,14 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
-    AdSource.Interstitial<MobileFuseFullscreenAuctionParams>,
+class MobileFuseBannerImpl(private val isTestMode: Boolean) :
+    AdSource.Banner<MobileFuseBannerAuctionParams>,
     Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var interstitialAd: MobileFuseInterstitialAd? = null
+    private var fuseBannerAd: MobileFuseBannerAd? = null
+    private var bannerFormat: BannerFormat? = null
 
     /**
      * This flag is used to prevent [AdError]-callback from being exposed twice.
@@ -39,12 +42,12 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     private var isLoaded = AtomicBoolean(false)
 
     private val ad: Ad?
-        get() = interstitialAd?.let {
+        get() = fuseBannerAd?.let {
             Ad(
                 demandAd = demandAd,
                 auctionId = auctionId,
                 roundId = roundId,
-                currencyCode = it.winningBidInfo?.currency ?: USD,
+                currencyCode = it.winningBidInfo?.currency ?: AdValue.USD,
                 demandAdObject = this,
                 dsp = null,
                 adUnitId = null,
@@ -54,7 +57,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
         }
 
     override val adEvent = MutableSharedFlow<AdEvent>(extraBufferCapacity = Int.MAX_VALUE, replay = 1)
-    override val isAdReadyToShow: Boolean get() = interstitialAd?.isLoaded == true
+    override val isAdReadyToShow: Boolean get() = fuseBannerAd?.isLoaded == true
 
     override suspend fun getToken(context: Context): String? {
         return GetMobileFuseTokenUseCase(context, isTestMode)
@@ -62,23 +65,32 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            MobileFuseFullscreenAuctionParams(
+            MobileFuseBannerAuctionParams(
                 activity = activity,
                 signalData = requireNotNull(json?.getString("payload")?.let { JSONObject(it).getString("signaldata") }) {
                     "Payload is required for MobileFuse"
                 },
-                price = pricefloor
+                price = pricefloor,
+                bannerFormat = bannerFormat
             )
         }
     }
 
-    override fun load(adParams: MobileFuseFullscreenAuctionParams) {
+    override fun load(adParams: MobileFuseBannerAuctionParams) {
         logInfo(Tag, "Starting with $adParams: $this")
+        this.bannerFormat = adParams.bannerFormat
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, "").also {
-            interstitialAd = it
+        val adSize = when (adParams.bannerFormat) {
+            BannerFormat.Banner -> MobileFuseBannerAd.AdSize.BANNER_320x50
+            BannerFormat.LeaderBoard -> MobileFuseBannerAd.AdSize.BANNER_728x90
+            BannerFormat.MRec -> MobileFuseBannerAd.AdSize.BANNER_300x250
+            BannerFormat.Adaptive -> MobileFuseBannerAd.AdSize.BANNER_ADAPTIVE
         }
-        interstitialAd.setListener(object : MobileFuseInterstitialAd.Listener {
+        val bannerAd = MobileFuseBannerAd(adParams.activity, "", adSize).also {
+            fuseBannerAd = it
+        }
+        bannerAd.autorefreshEnabled = false
+        bannerAd.setListener(object : MobileFuseBannerAd.Listener {
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
                     logInfo(Tag, "onAdLoaded")
@@ -99,10 +111,10 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                     adEvent.tryEmit(
                         AdEvent.PaidRevenue(
                             ad = it,
-                            adValue = interstitialAd.winningBidInfo.let { bidInfo ->
+                            adValue = bannerAd.winningBidInfo.let { bidInfo ->
                                 AdValue(
                                     adRevenue = bidInfo?.cpmPrice?.toDouble() ?: 0.0,
-                                    currency = bidInfo?.currency ?: USD,
+                                    currency = bidInfo?.currency ?: AdValue.USD,
                                     precision = Precision.Precise
                                 )
                             }
@@ -145,27 +157,27 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                 }
             }
 
-            override fun onAdClosed() {
-                logInfo(Tag, "onAdClosed: $this")
-                ad?.let { adEvent.tryEmit(AdEvent.Closed(it)) }
-            }
+            override fun onAdExpanded() {}
+            override fun onAdCollapsed() {}
         })
-        interstitialAd.loadAdFromBiddingToken(adParams.signalData)
+        bannerAd.loadAdFromBiddingToken(adParams.signalData)
     }
 
-    override fun show(activity: Activity) {
-        logInfo(Tag, "Starting show: $this")
-        if (interstitialAd?.isLoaded == true) {
-            interstitialAd?.showAd()
-        } else {
-            adEvent.tryEmit(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+    override fun getAdView(): AdViewHolder? {
+        logInfo(Tag, "getAdView: $this")
+        return fuseBannerAd?.let {
+            AdViewHolder(
+                networkAdview = it,
+                widthDp = bannerFormat.getWidthDp(),
+                heightDp = bannerFormat.getHeightDp(),
+            )
         }
     }
 
     override fun destroy() {
         logInfo(Tag, "destroy $this")
-        interstitialAd = null
+        fuseBannerAd = null
     }
 }
 
-private const val Tag = "MobileFuseInterstitialImpl"
+private const val Tag = "MobileFuseBannerImpl"

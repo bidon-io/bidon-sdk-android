@@ -8,7 +8,11 @@ import com.mobilefuse.sdk.privacy.MobileFusePrivacyPreferences
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.mobilefuse.ext.adapterVersion
 import org.bidon.mobilefuse.ext.sdkVersion
+import org.bidon.mobilefuse.impl.MobileFuseBannerAuctionParams
+import org.bidon.mobilefuse.impl.MobileFuseBannerImpl
+import org.bidon.mobilefuse.impl.MobileFuseFullscreenAuctionParams
 import org.bidon.mobilefuse.impl.MobileFuseInterstitialImpl
+import org.bidon.mobilefuse.impl.MobileFuseRewardedAdImpl
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -20,7 +24,6 @@ import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.regulation.Regulation
-import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -37,7 +40,9 @@ class MobileFuseAdapter :
     Initializable<MobileFuseParams>,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
-    AdProvider.Interstitial<MobileFuseAuctionParams> {
+    AdProvider.Banner<MobileFuseBannerAuctionParams>,
+    AdProvider.Interstitial<MobileFuseFullscreenAuctionParams>,
+    AdProvider.Rewarded<MobileFuseFullscreenAuctionParams> {
     override val demandId: DemandId = MobileFuseDemandId
     override val adapterInfo: AdapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -46,40 +51,45 @@ class MobileFuseAdapter :
 
     override suspend fun init(context: Context, configParams: MobileFuseParams) = suspendCancellableCoroutine { continuation ->
         MobileFuseSettings.setTestMode(isTestMode)
-        MobileFuse.initSdkServices(context)
+//        MobileFuse.initSdkServices(context)
         MobileFuse.init(
-            context, configParams.publisherId, configParams.appId,
             object : SdkInitListener {
                 override fun onInitSuccess() {
                     return continuation.resume(Unit)
                 }
 
                 override fun onInitError() {
-                    return continuation.resumeWithException(BidonError.Unspecified(demandId, Throwable("Error while initialization")))
+                    return continuation.resumeWithException(
+                        BidonError.Unspecified(
+                            demandId,
+                            Throwable("Error while initialization")
+                        )
+                    )
                 }
             }
         )
     }
 
-    override fun parseConfigParam(json: String): MobileFuseParams {
-        val jsonObject = JSONObject(json)
-        return MobileFuseParams(
-            publisherId = jsonObject.getInt("publisher_id"),
-            appId = jsonObject.getInt("app_id")
-        )
-    }
+    override fun parseConfigParam(json: String): MobileFuseParams = MobileFuseParams
 
     override fun updateRegulation(regulation: Regulation) {
         val prefs = MobileFusePrivacyPreferences.Builder()
             .setSubjectToCoppa(regulation.coppaApplies)
-            .setSubjectToGdpr(regulation.gdprConsent)
             .setGppConsentString(regulation.gdprConsentString)
             .setUsPrivacyConsentString(regulation.usPrivacyString)
             .build()
         MobileFuse.setPrivacyPreferences(prefs)
     }
 
-    override fun interstitial(): AdSource.Interstitial<MobileFuseAuctionParams> {
+    override fun banner(): AdSource.Banner<MobileFuseBannerAuctionParams> {
+        return MobileFuseBannerImpl(isTestMode)
+    }
+
+    override fun interstitial(): AdSource.Interstitial<MobileFuseFullscreenAuctionParams> {
         return MobileFuseInterstitialImpl(isTestMode)
+    }
+
+    override fun rewarded(): AdSource.Rewarded<MobileFuseFullscreenAuctionParams> {
+        return MobileFuseRewardedAdImpl(isTestMode)
     }
 }
