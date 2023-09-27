@@ -54,6 +54,7 @@ internal class BigoAdsBannerImpl :
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BigoBannerAuctionParams(
+                activity = activity,
                 bannerFormat = bannerFormat,
                 payload = requireNotNull(json?.optString("payload")) {
                     "Payload is required for BigoAds banner ad"
@@ -104,7 +105,7 @@ internal class BigoAdsBannerImpl :
                 this@BigoAdsBannerImpl.bannerAd = bannerAd
                 val ad = getAd(this)
                 if (ad == null) {
-                    emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
+                    emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
                 } else {
                     bannerAd.setAdInteractionListener(object : AdInteractionListener {
                         override fun onAdError(error: AdError) {
@@ -120,7 +121,7 @@ internal class BigoAdsBannerImpl :
                                 AdEvent.PaidRevenue(
                                     ad = ad,
                                     adValue = AdValue(
-                                        adRevenue = adParam?.bidPrice ?: 0.0,
+                                        adRevenue = adParams.bidPrice / 1000.0,
                                         precision = Precision.Precise,
                                         currency = USD,
                                     )
@@ -140,8 +141,10 @@ internal class BigoAdsBannerImpl :
                 }
             }
         })
-        loader.build()
-            .loadAd(builder.build())
+        adParams.activity.runOnUiThread {
+            loader.build()
+                .loadAd(builder.build())
+        }
     }
 }
 

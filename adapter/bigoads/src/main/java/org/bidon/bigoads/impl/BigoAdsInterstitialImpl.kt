@@ -65,7 +65,7 @@ internal class BigoAdsInterstitialImpl :
     override fun show(activity: Activity) {
         val interstitialAd = interstitialAd
         if (interstitialAd == null) {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         } else {
             interstitialAd.show()
         }
@@ -100,7 +100,7 @@ internal class BigoAdsInterstitialImpl :
     ) {
         val ad = getAd(this)
         if (ad == null) {
-            emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         } else {
             interstitialAd.setAdInteractionListener(object : AdInteractionListener {
                 override fun onAdError(error: AdError) {
@@ -115,7 +115,7 @@ internal class BigoAdsInterstitialImpl :
                         AdEvent.PaidRevenue(
                             ad = ad,
                             adValue = AdValue(
-                                adRevenue = adParams.bidPrice,
+                                adRevenue = adParams.bidPrice / 1000.0,
                                 precision = Precision.Precise,
                                 currency = AdValue.USD,
                             )

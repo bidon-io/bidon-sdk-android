@@ -120,7 +120,7 @@ internal class ApplovinInterstitialImpl(
             }
             adDialog.showAndRender(applovinAd)
         } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
     }
 
@@ -134,7 +134,8 @@ internal class ApplovinInterstitialImpl(
             roundId = roundId,
             currencyCode = AdValue.USD,
             auctionId = auctionId,
-            adUnitId = lineItem?.adUnitId
+            adUnitId = lineItem?.adUnitId,
+            bidType = bidType,
         )
     }
 }

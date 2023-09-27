@@ -80,7 +80,7 @@ internal class ApplovinBannerImpl(
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             ApplovinBannerAuctionParams(
-                context = activity.applicationContext,
+                activity = activity,
                 lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
                 bannerFormat = bannerFormat
             )
@@ -96,12 +96,6 @@ internal class ApplovinBannerImpl(
                 adParams.bannerFormat
             )
         )
-        val bannerView =
-            AppLovinAdView(applovinSdk, adSize, adParams.lineItem.adUnitId, adParams.context).also {
-                it.setAdClickListener(listener)
-                it.setAdDisplayListener(listener)
-                adView = it
-            }
         val requestListener = object : AppLovinAdLoadListener {
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(TAG, "adReceived: $this")
@@ -114,12 +108,20 @@ internal class ApplovinBannerImpl(
                 emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
         }
-        bannerView.setAdLoadListener(requestListener)
-        bannerView.loadNextAd()
+        adParams.activity.runOnUiThread {
+            val bannerView =
+                AppLovinAdView(applovinSdk, adSize, adParams.lineItem.adUnitId, adParams.activity.applicationContext).also {
+                    it.setAdClickListener(listener)
+                    it.setAdDisplayListener(listener)
+                    adView = it
+                }
+            bannerView.setAdLoadListener(requestListener)
+            bannerView.loadNextAd()
+        }
     }
 
-    override fun getAdView(): AdViewHolder {
-        val adView = requireNotNull(adView)
+    override fun getAdView(): AdViewHolder? {
+        val adView = adView ?: return null
         return AdViewHolder(
             networkAdview = adView,
             widthDp = adView.size.width.takeIf { it > 0 } ?: when (param?.bannerFormat) {
@@ -143,7 +145,8 @@ internal class ApplovinBannerImpl(
             roundId = roundId,
             currencyCode = AdValue.USD,
             auctionId = auctionId,
-            adUnitId = param?.lineItem?.adUnitId
+            adUnitId = param?.lineItem?.adUnitId,
+            bidType = bidType,
         )
     }
 

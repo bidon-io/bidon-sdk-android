@@ -124,7 +124,7 @@ internal class DTExchangeInterstitial :
         if (inneractiveAdSpot?.isReady == true && controller != null) {
             controller.show(activity)
         } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
     }
 
@@ -142,7 +142,8 @@ internal class DTExchangeInterstitial :
         demandAd = demandAd,
         dsp = demandSource ?: this.mediationNameString,
         roundId = roundId,
-        demandAdObject = this
+        demandAdObject = this,
+        bidType = bidType,
     )
 }
 
