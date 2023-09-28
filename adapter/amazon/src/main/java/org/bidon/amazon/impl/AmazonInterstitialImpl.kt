@@ -54,81 +54,81 @@ internal class AmazonInterstitialImpl : AdSource.Interstitial<FullscreenAuctionP
     }
 
     override fun load(adParams: FullscreenAuctionParams) {
-        val interstitial = PublisherInterstitialAd()
-        val loader = DTBAdRequest()
-        loader.setSizes(DTBAdSize.DTBInterstitialAdSize(adParams.slotUuid))
-        loader.loadAd(object : DTBAdCallback {
-            override fun onFailure(adError: AdError) {
-                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoFill(demandId))
-                /**Please implement the logic to send ad request without our parameters if you want to
-                 * show ads from other ad networks when Amazon ad request fails */
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
-            }
-
-            override fun onSuccess(dtbAdResponse: DTBAdResponse) {
-                val custParams = dtbAdResponse.defaultDisplayAdsRequestCustomParams
-                logInfo(TAG, "Ad loaded with custParams: $custParams")
-                //Loop through custParams and forward the targeting to your ad server
-
-                //Build the ad request to your ad server
-                val interstitialAd = DTBAdInterstitial(adParams.activity, object : DTBAdInterstitialListener{
-                    override fun onAdLoaded(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onAdFailed(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onAdClicked(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onAdLeftApplication(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onAdOpen(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onAdClosed(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onImpressionFired(p0: View?) {
-                        TODO("Not yet implemented")
-                    }
-
-                })
-                interstitialAd.fetchAd(----)
-                val adRequest:  PublisherAdRequest = DTBAdUtil.INSTANCE.createPublisherAdRequestBuilder(dtbAdResponse)).build();
-                interstitialAd.loadAd(adRequest);
-            }
-        })
-
-        val adView = DTBAdView(adParams.activity.applicationContext, object : DTBAdBannerListener {
-            override fun onAdLoaded(view: View?) {
-            }
-
-            override fun onAdFailed(view: View?) {
-            }
-
-            override fun onAdClicked(view: View?) {
-            }
-
-            override fun onAdLeftApplication(view: View?) {
-            }
-
-            override fun onAdOpen(view: View?) {
-            }
-
-            override fun onAdClosed(view: View?) {
-            }
-
-            override fun onImpressionFired(view: View?) {
-            }
-        })
+//        val interstitial = PublisherInterstitialAd()
+//        val loader = DTBAdRequest()
+//        loader.setSizes(DTBAdSize.DTBInterstitialAdSize(adParams.slotUuid))
+//        loader.loadAd(object : DTBAdCallback {
+//            override fun onFailure(adError: AdError) {
+//                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoFill(demandId))
+//                /**Please implement the logic to send ad request without our parameters if you want to
+//                 * show ads from other ad networks when Amazon ad request fails */
+//                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+//            }
+//
+//            override fun onSuccess(dtbAdResponse: DTBAdResponse) {
+//                val custParams = dtbAdResponse.defaultDisplayAdsRequestCustomParams
+//                logInfo(TAG, "Ad loaded with custParams: $custParams")
+//                //Loop through custParams and forward the targeting to your ad server
+//
+//                //Build the ad request to your ad server
+//                val interstitialAd = DTBAdInterstitial(adParams.activity, object : DTBAdInterstitialListener{
+//                    override fun onAdLoaded(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onAdFailed(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onAdClicked(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onAdLeftApplication(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onAdOpen(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onAdClosed(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                    override fun onImpressionFired(p0: View?) {
+//                        TODO("Not yet implemented")
+//                    }
+//
+//                })
+//                interstitialAd.fetchAd(----)
+//                val adRequest:  PublisherAdRequest = DTBAdUtil.INSTANCE.createPublisherAdRequestBuilder(dtbAdResponse)).build();
+//                interstitialAd.loadAd(adRequest);
+//            }
+//        })
+//
+//        val adView = DTBAdView(adParams.activity.applicationContext, object : DTBAdBannerListener {
+//            override fun onAdLoaded(view: View?) {
+//            }
+//
+//            override fun onAdFailed(view: View?) {
+//            }
+//
+//            override fun onAdClicked(view: View?) {
+//            }
+//
+//            override fun onAdLeftApplication(view: View?) {
+//            }
+//
+//            override fun onAdOpen(view: View?) {
+//            }
+//
+//            override fun onAdClosed(view: View?) {
+//            }
+//
+//            override fun onImpressionFired(view: View?) {
+//            }
+//        })
         // TODO adView.fetchAd()
     }
 

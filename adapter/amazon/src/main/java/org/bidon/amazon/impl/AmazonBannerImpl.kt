@@ -2,39 +2,35 @@ package org.bidon.amazon.impl
 
 import android.content.Context
 import android.view.View
-import com.amazon.device.ads.AdError
 import com.amazon.device.ads.DTBAdBannerListener
-import com.amazon.device.ads.DTBAdCallback
-import com.amazon.device.ads.DTBAdRequest
-import com.amazon.device.ads.DTBAdResponse
-import com.amazon.device.ads.DTBAdSize
 import com.amazon.device.ads.DTBAdView
+import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
-import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
-import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
-internal class AmazonBannerImpl : AdSource.Banner<BannerAuctionParams>,
+internal class AmazonBannerImpl(
+    private val slots: Map<SlotType, List<String>>
+) : AdSource.Banner<BannerAuctionParams>,
     Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
+    private var adView: DTBAdView? = null
+    private val obtainToken: ObtainTokenUseCase get() = ObtainTokenUseCase()
+
     override val isAdReadyToShow: Boolean
-        get() = TODO("Not yet implemented")
+        get() = adView?.isAdViewVisible == true
 
     override suspend fun getToken(context: Context): String? {
-        TODO("Not yet implemented")
+        return obtainToken(slots, BannerFormat.Banner)
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
@@ -51,29 +47,6 @@ internal class AmazonBannerImpl : AdSource.Banner<BannerAuctionParams>,
     }
 
     override fun load(adParams: BannerAuctionParams) {
-        val loader = DTBAdRequest()
-        loader.setSizes(
-            DTBAdSize(
-                adParams.bannerFormat.getWidthDp(),
-                adParams.bannerFormat.getHeightDp(),
-                adParams.slotUuid
-            )
-        )
-        loader.loadAd(object : DTBAdCallback {
-            override fun onFailure(adError: AdError) {
-                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoFill(demandId))
-                /**Please implement the logic to send ad request without our parameters if you want to
-                 * show ads from other ad networks when Amazon ad request fails */
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
-            }
-
-            override fun onSuccess(dtbAdResponse: DTBAdResponse) {
-                val custParams = dtbAdResponse.defaultDisplayAdsRequestCustomParams
-                logInfo(TAG, "Ad loaded with custParams: $custParams")
-                dtbAdResponse
-                //Loop through custParams and forward the targeting to your ad server
-            }
-        })
 
         val adView = DTBAdView(adParams.activity.applicationContext, object : DTBAdBannerListener {
             override fun onAdLoaded(view: View?) {

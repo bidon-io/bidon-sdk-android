@@ -38,8 +38,8 @@ internal class ParseSlotsUseCaseTest {
 }
         """.trimIndent()
         val result = testee(JSONObject(json))
-        assertThat(result[SlotType.Banner]).isEqualTo(listOf("slot_uuid_3"))
-        assertThat(result[SlotType.Interstitial]).isEqualTo(listOf("slot_uuid_1", "slot_uuid_2"))
-        assertThat(result[SlotType.Mrec]).isEqualTo(listOf("slot_uuid_10"))
+        assertThat(result[SlotType.BANNER]).isEqualTo(listOf("slot_uuid_3"))
+        assertThat(result[SlotType.INTERSTITIAL]).isEqualTo(listOf("slot_uuid_1", "slot_uuid_2"))
+        assertThat(result[SlotType.MREC]).isEqualTo(listOf("slot_uuid_10"))
     }
 }

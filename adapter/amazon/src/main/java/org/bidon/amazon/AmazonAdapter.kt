@@ -33,6 +33,8 @@ class AmazonAdapter : Adapter,
     Initializable<AmazonParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<BannerAuctionParams> {
+    private var slots: Map<SlotType, List<String>> = emptyMap()
+
     override val demandId: DemandId = AmazonDemandId
 
     override val adapterInfo = AdapterInfo(
@@ -57,12 +59,13 @@ class AmazonAdapter : Adapter,
         AdRegistration.enableLogging(BidonSdk.loggerLevel in arrayOf(Logger.Level.Verbose, Logger.Level.Error))
 
         AdRegistration.getInstance(configParams.appKey, context)
+        slots = configParams.slots
         AdRegistration.setMRAIDSupportedVersions(arrayOf("1.0", "2.0", "3.0"))
         AdRegistration.setMRAIDPolicy(MRAIDPolicy.CUSTOM)
         continuation.resume(Unit)
     }
 
     override fun banner(): AdSource.Banner<BannerAuctionParams> {
-        return AmazonBannerImpl()
+        return AmazonBannerImpl(slots)
     }
 }
