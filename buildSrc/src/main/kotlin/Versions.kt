@@ -18,6 +18,7 @@ object Versions {
         val Meta = "$mainVersion.0" + semanticVersion
         val Inmobi = "$mainVersion.0" + semanticVersion
         val Amazon = "$mainVersion.0" + semanticVersion
+        val MobileFuse = "$mainVersion.0" + semanticVersion
 
         val IronSource = "$mainVersion.0"
         val Appsflyer = "$mainVersion.0"
