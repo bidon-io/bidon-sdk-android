@@ -8,6 +8,7 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
@@ -20,6 +21,7 @@ import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.utils.json.jsonObject
 
 @Suppress("UNCHECKED_CAST")
 internal class ConductBiddingRoundUseCaseImpl(
@@ -52,7 +54,7 @@ internal class ConductBiddingRoundUseCaseImpl(
                 /**
                  * Load bids
                  */
-                val tokens = participants.getTokens(context)
+                val tokens = participants.getTokens(context, adTypeParam)
                 logInfo(TAG, "${tokens.size} token(s):")
                 tokens.forEachIndexed { index, (demandId, token) ->
                     logInfo(TAG, "#$index ${demandId.demandId} {$token}")
@@ -70,9 +72,22 @@ internal class ConductBiddingRoundUseCaseImpl(
                 ).onFailure {
                     logError(TAG, "Error while server bidding", it)
                 }.getOrNull()
-                val bids = bidResponse?.bids?.takeIf {
-                    it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success
-                }
+//                val bids = bidResponse?.bids?.takeIf {
+//                    it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success
+//                }
+                val bids = listOf(
+                    BidResponse(
+                        id = "123",
+                        price = 0.23,
+                        demands = listOf(
+                            "amazon" to jsonObject {
+                                "slot_uuid" hasValue  "d9cad3e2-5cb8-4bb2-81a3-11140ea6dfd8"
+                                "price_point" hasValue  "02bz0000_spp"
+                            }
+                        ),
+                        impressionId = "impressionId"
+                    )
+                )
                 resultsCollector.serverBiddingFinished(bids)
 
                 /**
@@ -200,9 +215,10 @@ internal class ConductBiddingRoundUseCaseImpl(
     }
 
     private suspend fun List<Mode.Bidding>.getTokens(
-        context: Context
-    ) = this.mapNotNull { adSource ->
-        adSource.getToken(context)?.let { token ->
+        context: Context,
+        adTypeParam: AdTypeParam
+    ): List<Pair<DemandId, String>> = this.mapNotNull { adSource ->
+        adSource.getToken(context, adTypeParam)?.let { token ->
             (adSource as AdSource<*>).demandId to token
         }
     }

@@ -63,29 +63,25 @@ internal class GetConfigRequestUseCaseImpl(
                 val a = requireNotNull(JsonParsers.parseOrNull<ConfigResponse>(config))
                 a.copy(
                     adapters = a.adapters + ("amazon" to jsonObject {
-                        "app_key" hasValue "a9_onboarding_app_id"
+                        "app_key" hasValue "3ccfbae1-8911-4c7d-8ad5-d8bdc4025ee8"
                         "slots" hasValue jsonArray {
                             putValues(listOf(
                                 jsonObject {
-                                    "slot_uuid" hasValue "5ab6a4ae-4aa5-43f4-9da4-e30755f2b295"
+                                    "slot_uuid" hasValue "0e421d37-a482-42d9-bbff-0234150ba92e"
                                     "format" hasValue "BANNER"
                                 },
                                 jsonObject {
-                                    "slot_uuid" hasValue "54fb2d08-c222-40b1-8bbe-4879322dc04b"
-                                    "format" hasValue "MREC" // mrec
+                                    "slot_uuid" hasValue "070d5ec1-61a6-4268-83da-9dd123738d97"
+                                    "format" hasValue "MREC"
                                 },
                                 jsonObject {
-                                    "slot_uuid" hasValue "bed17ec3-b185-453e-b2a8-4a3c6bb9234d"
-                                    "format" hasValue "LEADER_BOARD" // leaderboard
-                                },
-                                jsonObject {
-                                    "slot_uuid" hasValue "4e918ac0-5c68-4fe1-8d26-4e76e8f74831"
+                                    "slot_uuid" hasValue "d9cad3e2-5cb8-4bb2-81a3-11140ea6dfd8"
                                     "format" hasValue "INTERSTITIAL"
                                 },
-                                jsonObject {
-                                    "slot_uuid" hasValue "4acc26e6-3ada-4ee8-bae0-753c1e0ad278"
-                                    "format" hasValue "INTERSTITIAL"
-                                },
+//                                jsonObject {
+//                                    "slot_uuid" hasValue "2c3bf7ca-aefe-477c-8cec-32b59a4449d7"
+//                                    "format" hasValue "VIDEO"
+//                                },
                             ))
                         }
                     })
