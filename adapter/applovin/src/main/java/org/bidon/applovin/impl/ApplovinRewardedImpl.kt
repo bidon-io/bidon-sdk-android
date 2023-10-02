@@ -138,7 +138,7 @@ internal class ApplovinRewardedImpl(
         logInfo(TAG, "Starting show: $this")
         val appLovinAd = applovinAd
         if (rewardedAd?.isAdReadyToDisplay == true && appLovinAd != null) {
-            rewardedAd?.show(appLovinAd, activity, listener, listener, listener, listener)
+            rewardedAd?.show(appLovinAd, activity.applicationContext, listener, listener, listener, listener)
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }

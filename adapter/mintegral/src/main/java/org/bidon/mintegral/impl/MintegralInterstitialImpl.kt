@@ -35,7 +35,6 @@ internal class MintegralInterstitialImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MintegralAuctionParam? = null
     private var interstitialAd: MBBidNewInterstitialHandler? = null
     private var mBridgeIds: MBridgeIds? = null
 
@@ -60,9 +59,8 @@ internal class MintegralInterstitialImpl :
 
     override fun load(adParams: MintegralAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
-        this.adParams = adParams
         val handler = MBBidNewInterstitialHandler(
-            adParams.activity,
+            adParams.activity.applicationContext,
             adParams.placementId,
             adParams.unitId
         ).also {

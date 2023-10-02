@@ -35,7 +35,6 @@ internal class MintegralRewardedImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MintegralAuctionParam? = null
     private var rewardedAd: MBBidRewardVideoHandler? = null
     private var mBridgeIds: MBridgeIds? = null
 
@@ -60,9 +59,8 @@ internal class MintegralRewardedImpl :
 
     override fun load(adParams: MintegralAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
-        this.adParams = adParams
         val handler = MBBidRewardVideoHandler(
-            adParams.activity,
+            adParams.activity.applicationContext,
             adParams.placementId,
             adParams.unitId
         ).also {

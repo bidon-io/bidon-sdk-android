@@ -35,7 +35,6 @@ internal class MintegralBannerImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MintegralBannerAuctionParam? = null
     private var bannerView: MBBannerView? = null
     private var bannerSize: BannerSize? = null
     private var mBridgeIds: MBridgeIds? = null
@@ -63,7 +62,6 @@ internal class MintegralBannerImpl :
     override fun load(adParams: MintegralBannerAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.activity.runOnUiThread {
-            this.adParams = adParams
             val mbBannerView = MBBannerView(adParams.activity.applicationContext).also {
                 bannerView = it
             }
