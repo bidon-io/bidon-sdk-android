@@ -72,27 +72,10 @@ internal class ConductBiddingRoundUseCaseImpl(
                 ).onFailure {
                     logError(TAG, "Error while server bidding", it)
                 }.getOrNull()
-//                val bids = bidResponse?.bids?.takeIf {
-//                    it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success
-//                }
-                val bids = listOf(
-                    BidResponse(
-                        id = "123",
-                        price = 0.23,
-                        demands = listOf(
-                            "amazon" to jsonObject {
-                                "slot_uuid" hasValue  "d9cad3e2-5cb8-4bb2-81a3-11140ea6dfd8"
-                                "price_point" hasValue  "02bz0000_spp"
-                            }
-                        ),
-                        impressionId = "impressionId"
-                    )
-                )
+                val bids = bidResponse?.bids?.takeIf {
+                    it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success
+                }
                 resultsCollector.serverBiddingFinished(bids)
-
-                /**
-                 * Finish bidding
-                 */
 
                 /**
                  * Finish bidding

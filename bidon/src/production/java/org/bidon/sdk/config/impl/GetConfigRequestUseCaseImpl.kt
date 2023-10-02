@@ -60,32 +60,7 @@ internal class GetConfigRequestUseCaseImpl(
                 val jsonResponse = JSONObject(jsonString)
                 segmentSynchronizer.parseSegmentId(jsonString)
                 val config = jsonResponse.getString("init")
-                val a = requireNotNull(JsonParsers.parseOrNull<ConfigResponse>(config))
-                a.copy(
-                    adapters = a.adapters + ("amazon" to jsonObject {
-                        "app_key" hasValue "3ccfbae1-8911-4c7d-8ad5-d8bdc4025ee8"
-                        "slots" hasValue jsonArray {
-                            putValues(listOf(
-                                jsonObject {
-                                    "slot_uuid" hasValue "0e421d37-a482-42d9-bbff-0234150ba92e"
-                                    "format" hasValue "BANNER"
-                                },
-                                jsonObject {
-                                    "slot_uuid" hasValue "070d5ec1-61a6-4268-83da-9dd123738d97"
-                                    "format" hasValue "MREC"
-                                },
-                                jsonObject {
-                                    "slot_uuid" hasValue "d9cad3e2-5cb8-4bb2-81a3-11140ea6dfd8"
-                                    "format" hasValue "INTERSTITIAL"
-                                },
-//                                jsonObject {
-//                                    "slot_uuid" hasValue "2c3bf7ca-aefe-477c-8cec-32b59a4449d7"
-//                                    "format" hasValue "VIDEO"
-//                                },
-                            ))
-                        }
-                    })
-                )
+                requireNotNull(JsonParsers.parseOrNull<ConfigResponse>(config))
             }
         }
     }
