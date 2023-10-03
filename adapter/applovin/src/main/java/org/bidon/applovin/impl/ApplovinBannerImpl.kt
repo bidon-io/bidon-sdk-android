@@ -40,7 +40,6 @@ internal class ApplovinBannerImpl(
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adView: AppLovinAdView? = null
-    private var applovinAd: AppLovinAd? = null
     private var lineItem: LineItem? = null
     private var bannerFormat: BannerFormat? = null
 
@@ -69,14 +68,12 @@ internal class ApplovinBannerImpl(
         }
     }
 
-    override val isAdReadyToShow: Boolean
-        get() = applovinAd != null
+    override var isAdReadyToShow: Boolean = false
 
     override fun destroy() {
         logInfo(TAG, "destroy $this")
         adView?.setAdLoadListener(null)
         adView = null
-        applovinAd = null
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
@@ -102,7 +99,7 @@ internal class ApplovinBannerImpl(
         val requestListener = object : AppLovinAdLoadListener {
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(TAG, "adReceived: $this")
-                applovinAd = ad
+                isAdReadyToShow = true
                 emitEvent(AdEvent.Fill(ad.asAd()))
             }
 

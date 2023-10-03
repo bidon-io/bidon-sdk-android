@@ -119,6 +119,7 @@ internal class ApplovinInterstitialImpl(
                 setAdClickListener(listener)
             }
             adDialog.showAndRender(applovinAd)
+            this.applovinAd = null
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
