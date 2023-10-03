@@ -122,9 +122,7 @@ internal class RewardedImpl(
             return
         }
         scope.launch(Dispatchers.Main.immediate) {
-            adCache.clear {
-                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-            }
+            adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
         }
