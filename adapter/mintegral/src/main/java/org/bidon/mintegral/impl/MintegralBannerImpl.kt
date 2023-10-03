@@ -37,10 +37,8 @@ internal class MintegralBannerImpl :
 
     private var bannerView: MBBannerView? = null
     private var bannerSize: BannerSize? = null
-    private var mBridgeIds: MBridgeIds? = null
 
-    override val isAdReadyToShow: Boolean
-        get() = mBridgeIds != null && bannerView != null
+    override var isAdReadyToShow: Boolean = false
 
     override suspend fun getToken(context: Context): String? = BidManager.getBuyerUid(context)
 
@@ -77,13 +75,12 @@ internal class MintegralBannerImpl :
             mbBannerView.setBannerAdListener(object : BannerAdListener {
                 override fun onLoadFailed(mBridgeIds: MBridgeIds?, message: String?) {
                     logError(TAG, "onLoadFailed $mBridgeIds", Throwable(message))
-                    this@MintegralBannerImpl.mBridgeIds = mBridgeIds
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 
                 override fun onLoadSuccessed(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onLoadSuccessed $mBridgeIds")
-                    this@MintegralBannerImpl.mBridgeIds = mBridgeIds
+                    isAdReadyToShow = true
                     val ad = getAd(this)
                     if (mBridgeIds != null && ad != null) {
                         emitEvent(AdEvent.Fill(ad))
@@ -94,7 +91,6 @@ internal class MintegralBannerImpl :
 
                 override fun onLogImpression(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onLogImpression $mBridgeIds")
-                    this@MintegralBannerImpl.mBridgeIds = mBridgeIds
                     val ad = getAd(this@MintegralBannerImpl) ?: return
                     emitEvent(
                         AdEvent.PaidRevenue(
@@ -110,7 +106,6 @@ internal class MintegralBannerImpl :
 
                 override fun onClick(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onAdClicked $mBridgeIds")
-                    this@MintegralBannerImpl.mBridgeIds = mBridgeIds
                     val ad = getAd(this@MintegralBannerImpl) ?: return
                     emitEvent(AdEvent.Clicked(ad))
                 }
@@ -143,7 +138,6 @@ internal class MintegralBannerImpl :
     override fun destroy() {
         logInfo(TAG, "destroy $this")
         bannerView = null
-        mBridgeIds = null
         bannerSize = null
     }
 }
