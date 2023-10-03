@@ -38,14 +38,13 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
      */
     private var isLoaded = AtomicBoolean(false)
 
-    private val ad: Ad?
+    private val bidonAd: Ad?
         get() = interstitialAd?.let {
             Ad(
                 demandAd = demandAd,
                 auctionId = auctionId,
                 roundId = roundId,
                 currencyCode = it.winningBidInfo?.currency ?: USD,
-                demandAdObject = this,
                 dsp = null,
                 adUnitId = null,
                 ecpm = it.winningBidInfo?.cpmPrice?.toDouble() ?: 0.0,
@@ -75,7 +74,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
                     logInfo(Tag, "onAdLoaded")
-                    ad?.let { adEvent.tryEmit(AdEvent.Fill(it)) }
+                    bidonAd?.let { adEvent.tryEmit(AdEvent.Fill(it)) }
                 }
             }
 
@@ -87,7 +86,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
             override fun onAdRendered() {
                 logInfo(Tag, "onAdRendered")
-                ad?.let {
+                bidonAd?.let {
                     adEvent.tryEmit(AdEvent.Shown(it))
                     adEvent.tryEmit(
                         AdEvent.PaidRevenue(
@@ -106,7 +105,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
             override fun onAdClicked() {
                 logInfo(Tag, "onAdClicked")
-                ad?.let { adEvent.tryEmit(AdEvent.Clicked(it)) }
+                bidonAd?.let { adEvent.tryEmit(AdEvent.Clicked(it)) }
             }
 
             override fun onAdExpired() {
@@ -128,7 +127,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
                     AdError.AD_LOAD_ERROR -> {
                         if (!isLoaded.getAndSet(true)) {
-                            ad?.let { adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId))) }
+                            bidonAd?.let { adEvent.tryEmit(AdEvent.LoadFailed(BidonError.NoFill(demandId))) }
                         }
                     }
 
@@ -140,7 +139,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
             override fun onAdClosed() {
                 logInfo(Tag, "onAdClosed: $this")
-                ad?.let { adEvent.tryEmit(AdEvent.Closed(it)) }
+                bidonAd?.let { adEvent.tryEmit(AdEvent.Closed(it)) }
             }
         })
         interstitialAd.loadAdFromBiddingToken(adParams.signalData)

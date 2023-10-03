@@ -83,13 +83,13 @@ internal class MintegralRewardedImpl :
 
             override fun onVideoAdClicked(mBridgeIds: MBridgeIds?) {
                 logInfo(TAG, "onVideoAdClicked $mBridgeIds")
-                val ad = getAd(this@MintegralRewardedImpl) ?: return
+                val ad = getAd() ?: return
                 emitEvent(AdEvent.Clicked(ad))
             }
 
             override fun onAdShow(mBridgeIds: MBridgeIds?) {
                 logInfo(TAG, "onAdShow $mBridgeIds")
-                val ad = getAd(this@MintegralRewardedImpl) ?: return
+                val ad = getAd() ?: return
                 emitEvent(AdEvent.Shown(ad))
                 emitEvent(
                     AdEvent.PaidRevenue(
@@ -105,7 +105,7 @@ internal class MintegralRewardedImpl :
 
             override fun onAdClose(mBridgeIds: MBridgeIds?, rewardInfo: RewardInfo?) {
                 logInfo(TAG, "onAdClose $mBridgeIds, $rewardInfo")
-                val ad = getAd(this@MintegralRewardedImpl) ?: return
+                val ad = getAd() ?: return
                 emitEvent(AdEvent.Closed(ad))
                 emitEvent(
                     AdEvent.OnReward(
@@ -149,7 +149,7 @@ internal class MintegralRewardedImpl :
 
     private fun fillAd() {
         logInfo(TAG, "Starting fill: $this")
-        val ad = getAd(this)
+        val ad = getAd()
         if (rewardedAd != null && ad != null) {
             emitEvent(AdEvent.Fill(ad))
         } else {

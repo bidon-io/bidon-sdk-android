@@ -188,7 +188,6 @@ internal class BMInterstitialAdImpl :
         return Ad(
             demandAd = demandAd,
             ecpm = this.auctionResult?.price ?: 0.0,
-            demandAdObject = this,
             currencyCode = "USD",
             roundId = roundId,
             dsp = this.auctionResult?.demandSource,

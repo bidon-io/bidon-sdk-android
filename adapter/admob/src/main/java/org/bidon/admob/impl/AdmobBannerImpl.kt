@@ -134,7 +134,6 @@ internal class AdmobBannerImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = price ?: 0.0,
-            demandAdObject = this,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,

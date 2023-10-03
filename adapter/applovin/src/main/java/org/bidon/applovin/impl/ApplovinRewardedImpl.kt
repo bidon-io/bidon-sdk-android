@@ -149,7 +149,6 @@ internal class ApplovinRewardedImpl(
         return Ad(
             demandAd = demandAd,
             ecpm = lineItem?.pricefloor ?: 0.0,
-            demandAdObject = this ?: demandAd,
             networkName = demandId.demandId,
             dsp = null,
             roundId = roundId,

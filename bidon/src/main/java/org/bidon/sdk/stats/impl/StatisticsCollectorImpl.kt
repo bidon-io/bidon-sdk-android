@@ -83,7 +83,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override val bidType: BidType
         get() = requireNotNull(stat.bidType) { "BidType is not set" }
 
-    override fun getAd(demandAdObject: Any): Ad? {
+    override fun getAd(): Ad? {
         val demandId = stat.demandId
         val roundId = stat.roundId ?: return null
         val auctionId = stat.auctionId ?: return null
@@ -97,7 +97,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             roundId = roundId,
             auctionId = auctionId,
             dsp = null,
-            demandAdObject = demandAdObject,
             bidType = bidType,
         )
     }

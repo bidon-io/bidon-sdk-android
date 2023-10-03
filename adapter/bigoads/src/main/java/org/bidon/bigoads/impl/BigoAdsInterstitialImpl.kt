@@ -96,7 +96,7 @@ internal class BigoAdsInterstitialImpl :
         interstitialAd: InterstitialAd,
         adParams: BigoFullscreenAuctionParams
     ) {
-        val ad = getAd(this)
+        val ad = getAd()
         if (ad == null) {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         } else {

@@ -20,7 +20,7 @@ interface StatisticsCollector {
     val auctionId: String
     val roundId: String
     val roundIndex: Int
-    fun getAd(demandAdObject: Any): Ad?
+    fun getAd(): Ad?
 
     fun sendShowImpression()
     fun sendClickImpression()

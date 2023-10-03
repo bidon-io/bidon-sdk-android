@@ -143,7 +143,6 @@ internal class DTExchangeInterstitial :
         demandAd = demandAd,
         dsp = demandSource ?: this.mediationNameString,
         roundId = roundId,
-        demandAdObject = this,
         bidType = bidType,
     )
 }

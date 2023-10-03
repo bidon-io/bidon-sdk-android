@@ -166,7 +166,6 @@ internal class DTExchangeBanner :
         demandAd = demandAd,
         dsp = this.mediationNameString,
         roundId = roundId,
-        demandAdObject = this,
         bidType = bidType,
     )
 }

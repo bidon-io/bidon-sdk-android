@@ -99,7 +99,7 @@ internal class BigoAdsBannerImpl :
             override fun onAdLoaded(bannerAd: BannerAd) {
                 logInfo(TAG, "onAdLoaded: $bannerAd, $this")
                 this@BigoAdsBannerImpl.bannerAd = bannerAd
-                val ad = getAd(this)
+                val ad = getAd()
                 if (ad == null) {
                     emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
                 } else {

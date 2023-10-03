@@ -81,7 +81,7 @@ internal class MintegralBannerImpl :
                 override fun onLoadSuccessed(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onLoadSuccessed $mBridgeIds")
                     isAdReadyToShow = true
-                    val ad = getAd(this)
+                    val ad = getAd()
                     if (mBridgeIds != null && ad != null) {
                         emitEvent(AdEvent.Fill(ad))
                     } else {
@@ -91,7 +91,7 @@ internal class MintegralBannerImpl :
 
                 override fun onLogImpression(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onLogImpression $mBridgeIds")
-                    val ad = getAd(this@MintegralBannerImpl) ?: return
+                    val ad = getAd() ?: return
                     emitEvent(
                         AdEvent.PaidRevenue(
                             ad = ad,
@@ -106,7 +106,7 @@ internal class MintegralBannerImpl :
 
                 override fun onClick(mBridgeIds: MBridgeIds?) {
                     logInfo(TAG, "onAdClicked $mBridgeIds")
-                    val ad = getAd(this@MintegralBannerImpl) ?: return
+                    val ad = getAd() ?: return
                     emitEvent(AdEvent.Clicked(ad))
                 }
 
