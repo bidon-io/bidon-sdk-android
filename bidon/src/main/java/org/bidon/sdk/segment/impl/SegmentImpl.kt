@@ -2,6 +2,9 @@ package org.bidon.sdk.segment.impl
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
@@ -15,7 +18,14 @@ import org.json.JSONObject
  * Created by Aleksei Cherniaev on 15/06/2023.
  */
 internal class SegmentImpl : Segment, SegmentSynchronizer {
-    private val keyValueStorage: KeyValueStorage get() = get()
+    private val keyValueStorage: KeyValueStorage?
+        get() {
+            if (!BidonSdk.isInitialized()) {
+                logError(TAG, "BidonSdk is not initialized", BidonError.SdkNotInitialized)
+                return null
+            }
+            return get()
+        }
 
     private var attributesFlow = MutableStateFlow(SegmentAttributes.Empty)
 
@@ -104,13 +114,13 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
                 .optJSONObject("segment")
                 ?.optString("id", "")
                 ?.takeIf { it.isNotEmpty() }
-            keyValueStorage.segmentId = newSegmentId
+            keyValueStorage?.segmentId = newSegmentId
             setSegmentId(newSegmentId)
             val newSegmentUid = JSONObject(rootJsonResponse)
                 .optJSONObject("segment")
                 ?.optString("uid", "")
                 ?.takeIf { it.isNotEmpty() }
-            keyValueStorage.segmentUid = newSegmentUid
+            keyValueStorage?.segmentUid = newSegmentUid
             setSegmentUid(newSegmentUid)
         }
     }

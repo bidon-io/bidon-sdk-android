@@ -157,11 +157,11 @@ internal object DI {
              * [SegmentSynchronizer] depends on it
              */
             singleton<Segment> { SegmentImpl() }
+            factory { get<Segment>() as SegmentSynchronizer }
 
             /**
              * Factories
              */
-            factory { get<Segment>() as SegmentSynchronizer }
             factory<InitAndRegisterAdaptersUseCase> {
                 InitAndRegisterAdaptersUseCaseImpl(
                     adaptersSource = get()
