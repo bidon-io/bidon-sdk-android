@@ -19,6 +19,6 @@ class Ad(
     val currencyCode: String?,
 ) {
     override fun toString(): String {
-        return "Ad(${demandAd.adType}, $networkName, $bidType, $ecpm $currencyCode, auctionId=$auctionId, roundId=$roundId, dsp=$dsp, adUnitId=$adUnitId, extras=${demandAd.getExtras()})"
+        return "Ad(${demandAd.adType} $networkName/$bidType $ecpm $currencyCode, auctionId=$auctionId, roundId=$roundId, dsp=$dsp, adUnitId=$adUnitId, extras=${demandAd.getExtras()})"
     }
 }
