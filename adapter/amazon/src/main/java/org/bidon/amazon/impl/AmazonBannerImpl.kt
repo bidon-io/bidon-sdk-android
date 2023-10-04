@@ -86,44 +86,47 @@ internal class AmazonBannerImpl(
             emitEvent(AdEvent.LoadFailed(BidonError.NoBid(demandId)))
             return
         }
-        val adView = DTBAdView(adParams.activity.applicationContext, object : DTBAdBannerListener {
-            override fun onAdLoaded(view: View?) {
-                logInfo(TAG, "onAdLoaded")
-                emitEvent(AdEvent.Fill(getAd(this@AmazonBannerImpl) ?: return))
-            }
+        val adView = DTBAdView(
+            adParams.activity.applicationContext,
+            object : DTBAdBannerListener {
+                override fun onAdLoaded(view: View?) {
+                    logInfo(TAG, "onAdLoaded")
+                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                }
 
-            override fun onAdFailed(view: View?) {
-                logError(TAG, "onAdFailed", BidonError.NoFill(demandId))
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
-            }
+                override fun onAdFailed(view: View?) {
+                    logError(TAG, "onAdFailed", BidonError.NoFill(demandId))
+                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                }
 
-            override fun onAdClicked(view: View?) {
-                logInfo(TAG, "onAdClicked")
-                emitEvent(AdEvent.Clicked(getAd(this@AmazonBannerImpl) ?: return))
-            }
+                override fun onAdClicked(view: View?) {
+                    logInfo(TAG, "onAdClicked")
+                    emitEvent(AdEvent.Clicked(getAd() ?: return))
+                }
 
-            override fun onAdLeftApplication(view: View?) {}
-            override fun onAdOpen(view: View?) {}
+                override fun onAdLeftApplication(view: View?) {}
+                override fun onAdOpen(view: View?) {}
 
-            override fun onAdClosed(view: View?) {
-                logInfo(TAG, "onAdClosed")
-                emitEvent(AdEvent.Closed(getAd(this@AmazonBannerImpl) ?: return))
-            }
+                override fun onAdClosed(view: View?) {
+                    logInfo(TAG, "onAdClosed")
+                    emitEvent(AdEvent.Closed(getAd() ?: return))
+                }
 
-            override fun onImpressionFired(view: View?) {
-                logInfo(TAG, "onImpressionFired")
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = getAd(this@AmazonBannerImpl) ?: return,
-                        adValue = AdValue(
-                            adRevenue = adParams.price,
-                            currency = USD,
-                            Precision.Precise
+                override fun onImpressionFired(view: View?) {
+                    logInfo(TAG, "onImpressionFired")
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = getAd() ?: return,
+                            adValue = AdValue(
+                                adRevenue = adParams.price,
+                                currency = USD,
+                                Precision.Precise
+                            )
                         )
                     )
-                )
+                }
             }
-        }).also {
+        ).also {
             this.adView = it
         }
         adView.fetchAd(dtbAdResponse.defaultDisplayAdsRequestCustomParams)

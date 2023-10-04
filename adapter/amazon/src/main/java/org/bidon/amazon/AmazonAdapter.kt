@@ -25,13 +25,13 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.json.JSONObject
 import kotlin.coroutines.resume
 
-
 /**
  * Created by Aleksei Cherniaev on 27/09/2023.
  */
 internal val AmazonDemandId = DemandId("amazon")
 
-class AmazonAdapter : Adapter,
+class AmazonAdapter :
+    Adapter,
     Initializable<AmazonParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<BannerAuctionParams>,

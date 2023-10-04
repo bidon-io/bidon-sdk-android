@@ -82,50 +82,53 @@ internal class AmazonInterstitialImpl(
             emitEvent(AdEvent.LoadFailed(BidonError.NoBid(demandId)))
             return
         }
-        val interstitialAd = DTBAdInterstitial(adParams.activity, object : DTBAdInterstitialListener {
-            override fun onAdLoaded(p0: View?) {
-                logInfo(TAG, "onAdLoaded")
-                emitEvent(AdEvent.Fill(getAd(this@AmazonInterstitialImpl) ?: return))
-            }
+        val interstitialAd = DTBAdInterstitial(
+            adParams.activity,
+            object : DTBAdInterstitialListener {
+                override fun onAdLoaded(p0: View?) {
+                    logInfo(TAG, "onAdLoaded")
+                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                }
 
-            override fun onAdFailed(view: View?) {
-                logError(TAG, "onAdFailed", BidonError.NoFill(demandId))
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
-            }
+                override fun onAdFailed(view: View?) {
+                    logError(TAG, "onAdFailed", BidonError.NoFill(demandId))
+                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                }
 
-            override fun onAdClicked(view: View?) {
-                logInfo(TAG, "onAdClicked")
-                emitEvent(AdEvent.Clicked(getAd(this@AmazonInterstitialImpl) ?: return))
-            }
+                override fun onAdClicked(view: View?) {
+                    logInfo(TAG, "onAdClicked")
+                    emitEvent(AdEvent.Clicked(getAd() ?: return))
+                }
 
-            override fun onAdLeftApplication(view: View?) {}
-            override fun onAdOpen(view: View?) {}
+                override fun onAdLeftApplication(view: View?) {}
+                override fun onAdOpen(view: View?) {}
 
-            override fun onAdClosed(view: View?) {
-                logInfo(TAG, "onAdClosed")
-                emitEvent(AdEvent.Closed(getAd(this@AmazonInterstitialImpl) ?: return))
-            }
+                override fun onAdClosed(view: View?) {
+                    logInfo(TAG, "onAdClosed")
+                    emitEvent(AdEvent.Closed(getAd() ?: return))
+                }
 
-            override fun onImpressionFired(view: View?) {
-                logInfo(TAG, "onImpressionFired")
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = getAd(this@AmazonInterstitialImpl) ?: return,
-                        adValue = AdValue(
-                            adRevenue = adParams.price,
-                            currency = AdValue.USD,
-                            Precision.Precise
+                override fun onImpressionFired(view: View?) {
+                    logInfo(TAG, "onImpressionFired")
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = getAd() ?: return,
+                            adValue = AdValue(
+                                adRevenue = adParams.price,
+                                currency = AdValue.USD,
+                                Precision.Precise
+                            )
                         )
                     )
-                )
-            }
+                }
 
-            override fun onVideoCompleted(view: View?) {
-                super.onVideoCompleted(view)
-                logInfo(TAG, "onVideoCompleted")
-                emitEvent(AdEvent.Closed(getAd(this@AmazonInterstitialImpl) ?: return))
+                override fun onVideoCompleted(view: View?) {
+                    super.onVideoCompleted(view)
+                    logInfo(TAG, "onVideoCompleted")
+                    emitEvent(AdEvent.Closed(getAd() ?: return))
+                }
             }
-        }).also {
+        ).also {
             interstitial = it
         }
         interstitialAd.fetchAd(

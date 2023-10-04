@@ -101,11 +101,9 @@ internal class ObtainTokenUseCase {
                         DTBAdSize.DTBInterstitialAdSize(uuid)
                     }
                 }
-
             }
         }.toTypedArray()
     }
-
 }
 
 private const val TAG = "ObtainTokenUseCase"

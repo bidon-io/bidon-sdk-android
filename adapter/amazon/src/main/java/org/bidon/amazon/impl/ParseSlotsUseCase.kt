@@ -1,7 +1,6 @@
 package org.bidon.amazon.impl
 
 import org.bidon.amazon.SlotType
-import org.bidon.sdk.ads.AdType
 import org.json.JSONObject
 
 /**

@@ -21,7 +21,6 @@ import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.utils.json.jsonObject
 
 @Suppress("UNCHECKED_CAST")
 internal class ConductBiddingRoundUseCaseImpl(

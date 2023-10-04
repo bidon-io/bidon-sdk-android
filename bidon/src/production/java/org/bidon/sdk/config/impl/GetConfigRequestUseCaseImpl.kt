@@ -10,7 +10,6 @@ import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.json.JsonParsers
-import org.bidon.sdk.utils.json.jsonArray
 import org.bidon.sdk.utils.json.jsonObject
 import org.bidon.sdk.utils.networking.JsonHttpRequest
 import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCase
