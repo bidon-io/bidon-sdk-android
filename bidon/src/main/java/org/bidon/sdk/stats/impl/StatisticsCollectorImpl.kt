@@ -69,6 +69,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
         roundStatus = null,
         ecpm = 0.0,
         bidType = null,
+        dspSource = null
     )
 
     override val demandAd: DemandAd
@@ -101,7 +102,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
             currencyCode = AdValue.USD,
             roundId = roundId,
             auctionId = auctionId,
-            dsp = null,
+            dsp = stat.dspSource,
             bidType = bidType,
         )
     }
@@ -236,6 +237,18 @@ class StatisticsCollectorImpl : StatisticsCollector {
             fillFinishTs = SystemTimeNow,
             roundStatus = roundStatus,
             ecpm = ecpm ?: 0.0
+        )
+    }
+
+    override fun setPrice(price: Double) {
+        stat = stat.copy(
+            ecpm = price
+        )
+    }
+
+    override fun setDsp(dspSource: String?) {
+        stat = stat.copy(
+            dspSource = dspSource
         )
     }
 
