@@ -4,6 +4,7 @@ import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.AdListener
+import com.facebook.ads.AdSize
 import com.facebook.ads.AdView
 import com.facebook.ads.BidderTokenProvider
 import org.bidon.meta.ext.asBidonError
@@ -33,8 +34,8 @@ class MetaBannerImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MetaBannerAuctionParams? = null
     private var bannerView: AdView? = null
+    private var bannerSize: AdSize? = null
 
     override val isAdReadyToShow: Boolean
         get() = bannerView != null
@@ -62,8 +63,9 @@ class MetaBannerImpl :
     }
 
     override fun load(adParams: MetaBannerAuctionParams) {
+        logInfo(TAG, "load: $adParams")
+        bannerSize = adParams.bannerSize
         adParams.activity.runOnUiThread {
-            this.adParams = adParams
             val banner = AdView(adParams.activity.applicationContext, adParams.placementId, adParams.bannerSize).also {
                 bannerView = it
             }
@@ -78,7 +80,7 @@ class MetaBannerImpl :
 
                         override fun onAdLoaded(ad: Ad?) {
                             logInfo(TAG, "onAdLoaded $ad: $bannerView, $this")
-                            val bidonAd = getAd(this)
+                            val bidonAd = getAd()
                             if (bannerView != null && bidonAd != null) {
                                 emitEvent(AdEvent.Fill(bidonAd))
                             } else {
@@ -88,13 +90,13 @@ class MetaBannerImpl :
 
                         override fun onAdClicked(ad: Ad?) {
                             logInfo(TAG, "onAdClicked: $this")
-                            val bidonAd = getAd(this@MetaBannerImpl) ?: return
+                            val bidonAd = getAd() ?: return
                             emitEvent(AdEvent.Clicked(bidonAd))
                         }
 
                         override fun onLoggingImpression(ad: Ad?) {
                             logInfo(TAG, "onLoggingImpression: $ad, $this")
-                            val bidonAd = getAd(this@MetaBannerImpl) ?: return
+                            val bidonAd = getAd() ?: return
                             emitEvent(
                                 AdEvent.PaidRevenue(
                                     ad = bidonAd,
@@ -116,16 +118,15 @@ class MetaBannerImpl :
     override fun destroy() {
         bannerView?.destroy()
         bannerView = null
-        adParams = null
     }
 
     override fun getAdView(): AdViewHolder? {
-        val adParams = adParams ?: return null
+        val bannerSize = bannerSize ?: return null
         return bannerView?.let { adView ->
             AdViewHolder(
                 networkAdview = adView,
-                widthDp = adParams.bannerSize.width,
-                heightDp = adParams.bannerSize.height
+                widthDp = bannerSize.width,
+                heightDp = bannerSize.height
             )
         }
     }

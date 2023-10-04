@@ -19,9 +19,8 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -35,8 +34,9 @@ internal class DTExchangeInterstitial :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var auctionParams: DTExchangeAdAuctionParams? = null
+    private var lineItem: LineItem? = null
     private var inneractiveAdSpot: InneractiveAdSpot? = null
+    private var demandSource: String? = null
 
     override val isAdReadyToShow: Boolean
         get() = inneractiveAdSpot?.isReady == true
@@ -50,7 +50,7 @@ internal class DTExchangeInterstitial :
 
     override fun load(adParams: DTExchangeAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        auctionParams = adParams
+        lineItem = adParams.lineItem
         val spot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveFullscreenUnitController()
         val videoController = InneractiveFullscreenVideoContentController()
@@ -62,7 +62,9 @@ internal class DTExchangeInterstitial :
             ) {
                 logInfo(TAG, "onAdImpression: $adSpot")
                 val adValue = impressionData?.asAdValue() ?: return
-                val ad = adSpot?.asAd(impressionData.demandSource) ?: return
+                demandSource = impressionData.demandSource
+                setDsp(demandSource)
+                val ad = getAd() ?: return
                 emitEvent(AdEvent.PaidRevenue(ad, adValue))
                 emitEvent(AdEvent.Shown(ad))
             }
@@ -71,7 +73,7 @@ internal class DTExchangeInterstitial :
 
             override fun onAdClicked(adSpot: InneractiveAdSpot?) {
                 logInfo(TAG, "onAdClicked: $adSpot")
-                adSpot?.asAd()?.let {
+                getAd()?.let {
                     emitEvent(AdEvent.Clicked(ad = it))
                 }
             }
@@ -89,7 +91,7 @@ internal class DTExchangeInterstitial :
 
             override fun onAdDismissed(adSpot: InneractiveAdSpot?) {
                 logInfo(TAG, "onAdDismissed: $adSpot")
-                adSpot?.asAd()?.let {
+                getAd()?.let {
                     emitEvent(AdEvent.Closed(ad = it))
                 }
             }
@@ -101,8 +103,9 @@ internal class DTExchangeInterstitial :
                 override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
                     logInfo(TAG, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                     this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
-                    inneractiveAdSpot?.let {
-                        emitEvent(AdEvent.Fill(it.asAd()))
+                    setDsp(demandSource ?: inneractiveAdSpot?.mediationNameString)
+                    getAd()?.let {
+                        emitEvent(AdEvent.Fill(it))
                     }
                 }
 
@@ -132,19 +135,6 @@ internal class DTExchangeInterstitial :
         inneractiveAdSpot?.destroy()
         inneractiveAdSpot = null
     }
-
-    private fun InneractiveAdSpot.asAd(demandSource: String? = null) = Ad(
-        ecpm = auctionParams?.lineItem?.pricefloor ?: 0.0,
-        auctionId = auctionId,
-        adUnitId = auctionParams?.lineItem?.adUnitId,
-        networkName = demandId.demandId,
-        currencyCode = AdValue.USD,
-        demandAd = demandAd,
-        dsp = demandSource ?: this.mediationNameString,
-        roundId = roundId,
-        demandAdObject = this,
-        bidType = bidType,
-    )
 }
 
 private const val TAG = "DTExchangeInterstitial"

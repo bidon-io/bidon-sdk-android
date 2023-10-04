@@ -1,6 +1,7 @@
 package org.bidon.vungle.impl
 
 import android.content.Context
+import com.vungle.warren.AdConfig
 import com.vungle.warren.Banners
 import com.vungle.warren.LoadAdCallback
 import com.vungle.warren.PlayAdCallback
@@ -35,19 +36,24 @@ internal class VungleBannerImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: VungleBannerAuctionParams? = null
     private var banner: VungleBanner? = null
+    private var bannerSize: AdConfig.AdSize? = null
+    private var payload: String? = null
+    private var bannerId: String? = null
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? = Vungle.getAvailableBidTokens(context)
 
     override val isAdReadyToShow: Boolean
-        get() = adParams?.let {
-            Banners.canPlayAd(
-                it.bannerId,
-                it.payload,
-                it.bannerSize
+        get() {
+            val bannerId = bannerId ?: return false
+            val payload = payload ?: return false
+            val bannerSize = bannerSize ?: return false
+            return Banners.canPlayAd(
+                bannerId,
+                payload,
+                bannerSize
             )
-        } ?: false
+        }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -66,7 +72,9 @@ internal class VungleBannerImpl :
     }
 
     override fun load(adParams: VungleBannerAuctionParams) {
-        this.adParams = adParams
+        this.bannerSize = adParams.bannerSize
+        this.payload = adParams.payload
+        this.bannerId = adParams.bannerId
         adParams.activity.runOnUiThread {
             Banners.loadBanner(
                 adParams.bannerId, adParams.payload, adParams.config,
@@ -88,7 +96,7 @@ internal class VungleBannerImpl :
     }
 
     private fun fillAd(adParam: VungleBannerAuctionParams) {
-        val bidonAd = getAd(this)
+        val bidonAd = getAd()
         if (bidonAd != null) {
             this.banner = Banners.getBanner(
                 /* placementId = */ adParam.bannerId,
@@ -107,13 +115,13 @@ internal class VungleBannerImpl :
 
                     override fun onAdEnd(placementId: String?) {
                         logInfo(TAG, "onAdEnd: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
+                        val ad = getAd() ?: return
                         emitEvent(AdEvent.Closed(ad))
                     }
 
                     override fun onAdClick(placementId: String?) {
                         logInfo(TAG, "onAdClick: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
+                        val ad = getAd() ?: return
                         emitEvent(AdEvent.Clicked(ad))
                     }
 
@@ -124,7 +132,7 @@ internal class VungleBannerImpl :
 
                     override fun onAdViewed(placementId: String?) {
                         logInfo(TAG, "onAdViewed: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
+                        val ad = getAd() ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = ad,
@@ -147,7 +155,7 @@ internal class VungleBannerImpl :
     }
 
     override fun getAdView(): AdViewHolder? {
-        val adParam = adParams ?: run {
+        val bannerSize = bannerSize ?: run {
             AdEvent.ShowFailed(BidonError.AdNotReady)
             return null
         }
@@ -161,8 +169,8 @@ internal class VungleBannerImpl :
                 it.renderAd()
                 it.setAdVisibility(true)
             },
-            widthDp = adParam.bannerSize.width,
-            heightDp = adParam.bannerSize.height
+            widthDp = bannerSize.width,
+            heightDp = bannerSize.height
         )
     }
 
@@ -170,7 +178,6 @@ internal class VungleBannerImpl :
         banner?.destroyAd()
         banner?.setAdVisibility(false)
         banner = null
-        adParams = null
     }
 }
 

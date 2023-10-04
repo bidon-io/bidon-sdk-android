@@ -17,10 +17,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -38,14 +35,14 @@ internal class AdmobInterstitialImpl(
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var param: AdmobFullscreenAdAuctionParams? = null
     private var interstitialAd: InterstitialAd? = null
     private var isBiddingMode: Boolean = false
+    private var price: Double? = null
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
+    override suspend fun getToken(context: Context): String? {
         isBiddingMode = true
         logInfo(TAG, "getToken: $demandAd")
         return obtainToken(context, demandAd.adType)
@@ -58,7 +55,7 @@ internal class AdmobInterstitialImpl(
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
         val adRequest = getAdRequest(adParams)
-        param = adParams
+        price = adParams.price
         val requestListener = object : InterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 logError(TAG, "onAdFailedToLoad: $loadAdError. $this", loadAdError.asBidonError())
@@ -70,20 +67,17 @@ internal class AdmobInterstitialImpl(
                 this@AdmobInterstitialImpl.interstitialAd = interstitialAd
                 adParams.activity.runOnUiThread {
                     interstitialAd.onPaidEventListener = OnPaidEventListener { adValue ->
-                        emitEvent(
-                            AdEvent.PaidRevenue(
-                                ad = interstitialAd.asAd(),
-                                adValue = adValue.asBidonAdValue()
-                            )
-                        )
+                        getAd()?.let {
+                            emitEvent(AdEvent.PaidRevenue(it, adValue.asBidonAdValue()))
+                        }
                     }
                     interstitialAd.fullScreenContentCallback = getFullScreenContentCallback.createCallback(
                         adEventFlow = this@AdmobInterstitialImpl,
                         getAd = {
-                            interstitialAd.asAd()
+                            getAd()
                         },
                     )
-                    emitEvent(AdEvent.Fill(requireNotNull(interstitialAd.asAd())))
+                    getAd()?.let { emitEvent(AdEvent.Fill(it)) }
                 }
             }
         }
@@ -108,22 +102,6 @@ internal class AdmobInterstitialImpl(
         interstitialAd?.onPaidEventListener = null
         interstitialAd?.fullScreenContentCallback = null
         interstitialAd = null
-        param = null
-    }
-
-    private fun InterstitialAd.asAd(): Ad {
-        return Ad(
-            demandAd = demandAd,
-            ecpm = param?.price ?: 0.0,
-            demandAdObject = this,
-            networkName = demandId.demandId,
-            dsp = null,
-            roundId = roundId,
-            currencyCode = AdValue.USD,
-            auctionId = auctionId,
-            adUnitId = adUnitId,
-            bidType = bidType
-        )
     }
 }
 

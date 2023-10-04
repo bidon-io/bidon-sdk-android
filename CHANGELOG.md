@@ -1,3 +1,7 @@
+## Bugfixes:
+[BDN-443](https://appodeal.atlassian.net/browse/BDN-434) Improving Ad process
+[BDN-433](https://appodeal.atlassian.net/browse/BDN-433) Memory Leak
+
 # Release 0.4.8 (2023.09.21)
 ## New Features:
 [BDN-380](https://appodeal.atlassian.net/browse/BDN-380) Add Round Number To Bidon Analytics

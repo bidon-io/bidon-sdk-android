@@ -17,11 +17,9 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.rewarded.Reward
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -39,9 +37,9 @@ internal class AdmobRewardedImpl(
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var param: AdmobFullscreenAdAuctionParams? = null
     private var rewardedAd: RewardedAd? = null
     private var isBiddingMode: Boolean = false
+    private var price: Double? = null
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
@@ -58,7 +56,7 @@ internal class AdmobRewardedImpl(
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
         val adRequest = getAdRequest(adParams)
-        param = adParams
+        price = adParams.price
         val requestListener = object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 logError(TAG, "onAdFailedToLoad: $loadAdError. $this", loadAdError.asBidonError())
@@ -70,20 +68,22 @@ internal class AdmobRewardedImpl(
                 this@AdmobRewardedImpl.rewardedAd = rewardedAd
                 adParams.activity.runOnUiThread {
                     rewardedAd.onPaidEventListener = OnPaidEventListener { adValue ->
-                        emitEvent(
-                            AdEvent.PaidRevenue(
-                                ad = rewardedAd.asAd(),
-                                adValue = adValue.asBidonAdValue()
+                        getAd()?.let {
+                            emitEvent(
+                                AdEvent.PaidRevenue(
+                                    ad = it,
+                                    adValue = adValue.asBidonAdValue()
+                                )
                             )
-                        )
+                        }
                     }
                     rewardedAd.fullScreenContentCallback = getFullScreenContentCallback.createCallback(
                         adEventFlow = this@AdmobRewardedImpl,
                         getAd = {
-                            rewardedAd.asAd()
+                            getAd()
                         },
                     )
-                    emitEvent(AdEvent.Fill(rewardedAd.asAd()))
+                    getAd()?.let { emitEvent(AdEvent.Fill(it)) }
                 }
             }
         }
@@ -102,12 +102,9 @@ internal class AdmobRewardedImpl(
         } else {
             rewardedAd.show(activity) { rewardItem ->
                 logInfo(TAG, "onUserEarnedReward $rewardItem: $this")
-                emitEvent(
-                    AdEvent.OnReward(
-                        ad = rewardedAd.asAd(),
-                        reward = Reward(rewardItem.type, rewardItem.amount)
-                    )
-                )
+                getAd()?.let {
+                    emitEvent(AdEvent.OnReward(it, Reward(rewardItem.type, rewardItem.amount)))
+                }
             }
         }
     }
@@ -117,22 +114,6 @@ internal class AdmobRewardedImpl(
         rewardedAd?.onPaidEventListener = null
         rewardedAd?.fullScreenContentCallback = null
         rewardedAd = null
-        param = null
-    }
-
-    private fun RewardedAd.asAd(): Ad {
-        return Ad(
-            demandAd = demandAd,
-            ecpm = param?.price ?: 0.0,
-            demandAdObject = this,
-            networkName = demandId.demandId,
-            dsp = null,
-            roundId = roundId,
-            currencyCode = AdValue.USD,
-            auctionId = auctionId,
-            adUnitId = this.adUnitId,
-            bidType = bidType
-        )
     }
 }
 

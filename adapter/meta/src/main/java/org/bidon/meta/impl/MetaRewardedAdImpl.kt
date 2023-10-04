@@ -33,7 +33,6 @@ class MetaRewardedAdImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MetaFullscreenAuctionParams? = null
     private var rewardedVideoAd: RewardedVideoAd? = null
 
     override val isAdReadyToShow: Boolean
@@ -61,7 +60,6 @@ class MetaRewardedAdImpl :
     }
 
     override fun load(adParams: MetaFullscreenAuctionParams) {
-        this.adParams = adParams
         val rewardedAd = RewardedVideoAd(adParams.context, adParams.placementId).also {
             rewardedVideoAd = it
         }
@@ -76,7 +74,7 @@ class MetaRewardedAdImpl :
 
                     override fun onAdLoaded(ad: Ad?) {
                         logInfo(TAG, "onAdLoaded $ad: $rewardedVideoAd, $this")
-                        val bidonAd = getAd(this@MetaRewardedAdImpl)
+                        val bidonAd = getAd()
                         if (rewardedVideoAd != null && bidonAd != null) {
                             emitEvent(AdEvent.Fill(bidonAd))
                         } else {
@@ -86,13 +84,13 @@ class MetaRewardedAdImpl :
 
                     override fun onAdClicked(ad: Ad?) {
                         logInfo(TAG, "onAdClicked: $this")
-                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Clicked(bidonAd))
                     }
 
                     override fun onLoggingImpression(ad: Ad?) {
                         logInfo(TAG, "onAdImpression: $this")
-                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = bidonAd,
@@ -107,14 +105,14 @@ class MetaRewardedAdImpl :
 
                     override fun onRewardedVideoCompleted() {
                         logInfo(TAG, "onRewardedVideoCompleted")
-                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Shown(bidonAd))
                         emitEvent(AdEvent.OnReward(bidonAd, null))
                     }
 
                     override fun onRewardedVideoClosed() {
                         logInfo(TAG, "onRewardedVideoClosed")
-                        val bidonAd = getAd(this@MetaRewardedAdImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Closed(bidonAd))
                     }
                 })
@@ -126,7 +124,6 @@ class MetaRewardedAdImpl :
     override fun destroy() {
         rewardedVideoAd?.destroy()
         rewardedVideoAd = null
-        adParams = null
     }
 
     override fun show(activity: Activity) {

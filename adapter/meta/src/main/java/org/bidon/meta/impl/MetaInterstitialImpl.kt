@@ -33,7 +33,6 @@ class MetaInterstitialImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: MetaFullscreenAuctionParams? = null
     private var interstitialAd: InterstitialAd? = null
 
     override val isAdReadyToShow: Boolean
@@ -61,7 +60,6 @@ class MetaInterstitialImpl :
     }
 
     override fun load(adParams: MetaFullscreenAuctionParams) {
-        this.adParams = adParams
         val interstitial = InterstitialAd(adParams.context, adParams.placementId).also {
             interstitialAd = it
         }
@@ -76,7 +74,7 @@ class MetaInterstitialImpl :
 
                     override fun onAdLoaded(ad: Ad?) {
                         logInfo(TAG, "onAdLoaded $ad: $interstitialAd, $this")
-                        val bidonAd = getAd(this)
+                        val bidonAd = getAd()
                         if (interstitialAd != null && bidonAd != null) {
                             emitEvent(AdEvent.Fill(bidonAd))
                         } else {
@@ -86,13 +84,13 @@ class MetaInterstitialImpl :
 
                     override fun onAdClicked(ad: Ad?) {
                         logInfo(TAG, "onAdClicked: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Clicked(bidonAd))
                     }
 
                     override fun onLoggingImpression(ad: Ad?) {
                         logInfo(TAG, "onAdImpression: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(
                             AdEvent.PaidRevenue(
                                 ad = bidonAd,
@@ -107,13 +105,13 @@ class MetaInterstitialImpl :
 
                     override fun onInterstitialDisplayed(ad: Ad?) {
                         logInfo(TAG, "onInterstitialDisplayed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Shown(bidonAd))
                     }
 
                     override fun onInterstitialDismissed(ad: Ad?) {
                         logInfo(TAG, "onInterstitialDismissed $ad: $this")
-                        val bidonAd = getAd(this@MetaInterstitialImpl) ?: return
+                        val bidonAd = getAd() ?: return
                         emitEvent(AdEvent.Closed(bidonAd))
                     }
                 })
@@ -125,7 +123,6 @@ class MetaInterstitialImpl :
     override fun destroy() {
         interstitialAd?.destroy()
         interstitialAd = null
-        adParams = null
     }
 
     override fun show(activity: Activity) {
