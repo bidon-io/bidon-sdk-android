@@ -11,6 +11,7 @@ import org.bidon.sdk.auction.models.InterstitialRequest
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.RewardedRequest
 import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidStat
@@ -85,9 +86,13 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun getAd(): Ad? {
         val demandId = stat.demandId
-        val roundId = stat.roundId ?: return null
-        val auctionId = stat.auctionId ?: return null
-        val bidType = stat.bidType ?: return null
+        val roundId = stat.roundId
+        val auctionId = stat.auctionId
+        val bidType = stat.bidType
+        if (roundId == null || auctionId == null || bidType == null) {
+            logError(TAG, "Ad is null", NullPointerException())
+            return null
+        }
         return Ad(
             demandAd = demandAd,
             ecpm = stat.ecpm,
