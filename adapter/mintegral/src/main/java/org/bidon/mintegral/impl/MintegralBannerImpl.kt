@@ -122,17 +122,18 @@ internal class MintegralBannerImpl :
     override fun getAdView(): AdViewHolder? {
         logInfo(TAG, "Starting show: $this")
         val size = bannerSize ?: return null
-        if (isAdReadyToShow) {
+        return if (isAdReadyToShow) {
             bannerView?.let {
-                return AdViewHolder(
+                AdViewHolder(
                     networkAdview = it,
                     widthDp = size.width,
                     heightDp = size.height
                 )
             }
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+            null
         }
-        emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
-        return null
     }
 
     override fun destroy() {

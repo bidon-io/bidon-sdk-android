@@ -23,6 +23,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by Aleksei Cherniaev on 20/06/2023.
@@ -36,6 +37,7 @@ internal class MintegralRewardedImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var rewardedAd: MBBidRewardVideoHandler? = null
+    private val fillStarted = AtomicBoolean(false)
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.isBidReady == true
@@ -66,14 +68,18 @@ internal class MintegralRewardedImpl :
             rewardedAd = it
         }
         handler.setRewardVideoListener(object : RewardVideoListener {
-            override fun onVideoLoadSuccess(mBridgeIds: MBridgeIds?) {
-                logInfo(TAG, "onVideoLoadSuccess $mBridgeIds")
-                fillAd()
-            }
-
             override fun onLoadSuccess(mBridgeIds: MBridgeIds?) {
                 logInfo(TAG, "onLoadSuccess $mBridgeIds")
-                fillAd()
+                if (!fillStarted.getAndSet(true)) {
+                    fillAd()
+                }
+            }
+
+            override fun onVideoLoadSuccess(mBridgeIds: MBridgeIds?) {
+                logInfo(TAG, "onVideoLoadSuccess $mBridgeIds")
+                if (!fillStarted.getAndSet(true)) {
+                    fillAd()
+                }
             }
 
             override fun onVideoLoadFail(mBridgeIds: MBridgeIds?, message: String?) {
