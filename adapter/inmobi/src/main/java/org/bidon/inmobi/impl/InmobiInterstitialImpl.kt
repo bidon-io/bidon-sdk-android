@@ -52,6 +52,7 @@ internal class InmobiInterstitialImpl :
             object : InterstitialAdEventListener() {
                 override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdLoadSucceeded: $this")
+                    setPrice(adMetaInfo.bid)
                     emitEvent(AdEvent.Fill(getAd() ?: return))
                 }
 
@@ -71,13 +72,12 @@ internal class InmobiInterstitialImpl :
 
                 override fun onAdDisplayed(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdImpression: $this")
-                    val bidPrice = adMetaInfo.bid
                     val ad = getAd() ?: return
                     emitEvent(
                         AdEvent.PaidRevenue(
                             ad = ad,
                             adValue = AdValue(
-                                adRevenue = bidPrice,
+                                adRevenue = adMetaInfo.bid / 1000.0,
                                 precision = Precision.Precise,
                                 currency = AdValue.USD,
                             )
