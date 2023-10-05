@@ -138,8 +138,8 @@ internal class AmazonBannerImpl(
         val adView = adView
         val adParams = adParams
         return if (adView == null || adParams == null) {
-            logError(TAG, "AdView is null", BidonError.NoBid(demandId))
-            emitEvent(AdEvent.LoadFailed(BidonError.NoBid(demandId)))
+            logError(TAG, "AdView is null", BidonError.AdNotReady)
+            emitEvent(AdEvent.LoadFailed(BidonError.AdNotReady))
             null
         } else {
             AdViewHolder(adView, adParams.bannerFormat.getWidthDp(), adParams.bannerFormat.getHeightDp())
