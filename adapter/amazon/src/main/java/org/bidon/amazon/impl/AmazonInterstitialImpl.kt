@@ -46,7 +46,7 @@ internal class AmazonInterstitialImpl(
         } ?: return null
         return JSONArray().apply {
             amazonInfo.map {
-                (it.adSizes.slotUUID to it.dtbAdResponse.defaultPricePoints)
+                it.adSizes.slotUUID to SDKUtilities.getPricePoint(it.dtbAdResponse)
             }.forEach { (slotUuid, pricePoint) ->
                 this.put(
                     JSONObject().apply {

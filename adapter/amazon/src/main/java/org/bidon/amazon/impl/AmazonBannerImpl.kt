@@ -49,7 +49,7 @@ internal class AmazonBannerImpl(
         } ?: return null
         return JSONArray().apply {
             amazonInfo.map {
-                it.adSizes.slotUUID to it.dtbAdResponse.getPricePoints(it.adSizes)
+                it.adSizes.slotUUID to SDKUtilities.getPricePoint(it.dtbAdResponse)
             }.forEach { (slotUuid, pricePoint) ->
                 this.put(
                     JSONObject().apply {
