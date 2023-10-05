@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.View
 import com.amazon.device.ads.DTBAdBannerListener
 import com.amazon.device.ads.DTBAdView
+import com.amazon.device.ads.SDKUtilities
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -76,8 +77,8 @@ internal class AmazonBannerImpl(
     override fun load(adParams: BannerAuctionParams) {
         this.adParams = adParams
         if (amazonInfos.isEmpty()) {
-            logError(TAG, "AmazonInfo is null", BidonError.NoBid(demandId))
-            emitEvent(AdEvent.LoadFailed(BidonError.NoBid(demandId)))
+            logError(TAG, "No Amazon slot found", BidonError.NoAppropriateAdUnitId)
+            emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
             return
         }
         val dtbAdResponse = amazonInfos.firstOrNull { adParams.slotUuid == it.adSizes.slotUUID }?.dtbAdResponse
@@ -129,7 +130,8 @@ internal class AmazonBannerImpl(
         ).also {
             this.adView = it
         }
-        adView.fetchAd(dtbAdResponse.defaultDisplayAdsRequestCustomParams)
+        val bidInfo = SDKUtilities.getBidInfo(dtbAdResponse)
+        adView.fetchAd(bidInfo)
     }
 
     override fun getAdView(): AdViewHolder? {

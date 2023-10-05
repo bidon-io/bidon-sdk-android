@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.View
 import com.amazon.device.ads.DTBAdInterstitial
 import com.amazon.device.ads.DTBAdInterstitialListener
+import com.amazon.device.ads.SDKUtilities
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -45,7 +46,7 @@ internal class AmazonInterstitialImpl(
         } ?: return null
         return JSONArray().apply {
             amazonInfo.map {
-                it.adSizes.slotUUID to it.dtbAdResponse.getPricePoints(it.adSizes)
+                (it.adSizes.slotUUID to it.dtbAdResponse.defaultPricePoints)
             }.forEach { (slotUuid, pricePoint) ->
                 this.put(
                     JSONObject().apply {
@@ -72,8 +73,8 @@ internal class AmazonInterstitialImpl(
     override fun load(adParams: FullscreenAuctionParams) {
         this.adParams = adParams
         if (amazonInfos.isEmpty()) {
-            logError(TAG, "AmazonInfo is null", BidonError.NoBid(demandId))
-            emitEvent(AdEvent.LoadFailed(BidonError.NoBid(demandId)))
+            logError(TAG, "No Amazon slot found", BidonError.NoAppropriateAdUnitId)
+            emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
             return
         }
         val dtbAdResponse = amazonInfos.firstOrNull { adParams.slotUuid == it.adSizes.slotUUID }?.dtbAdResponse
@@ -131,11 +132,8 @@ internal class AmazonInterstitialImpl(
         ).also {
             interstitial = it
         }
-        interstitialAd.fetchAd(
-            dtbAdResponse.defaultVideoAdsRequestCustomParams.map { (key, value) ->
-                key to value
-            }.toMap()
-        )
+        val bidInfo = SDKUtilities.getBidInfo(dtbAdResponse)
+        interstitialAd.fetchAd(bidInfo)
     }
 
     override fun show(activity: Activity) {

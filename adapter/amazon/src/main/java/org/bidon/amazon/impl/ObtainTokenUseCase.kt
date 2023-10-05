@@ -11,11 +11,13 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.amazon.AmazonDemandId
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceType
 import org.bidon.sdk.ads.banner.helper.getHeightDp
 import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.logs.logging.impl.logInfo
 import kotlin.coroutines.resume
 
 internal class AmazonInfo(
@@ -25,37 +27,23 @@ internal class AmazonInfo(
 
 internal class ObtainTokenUseCase {
     suspend operator fun invoke(slots: Map<SlotType, List<String>>, adTypeParam: AdTypeParam): List<AmazonInfo> {
-        val filteredSlots = slots.filter { (type, slots) ->
-            when (adTypeParam) {
-                is AdTypeParam.Banner -> {
-                    when (adTypeParam.bannerFormat) {
-                        BannerFormat.Banner -> type == SlotType.BANNER
-                        BannerFormat.LeaderBoard -> type == SlotType.LEADER_BOARD
-                        BannerFormat.MRec -> type == SlotType.MREC
-                        BannerFormat.Adaptive -> type == SlotType.BANNER
-                    }
-                }
-
-                is AdTypeParam.Interstitial -> type == SlotType.INTERSTITIAL
-                is AdTypeParam.Rewarded -> error("Not supported")
-            }
-        }
-        val adSizes = getAmazonSizes(filteredSlots)
+        val adSizes = getAmazonSizes(slots, adTypeParam)
         return obtainInfo(adSizes)
     }
 
-    private suspend fun obtainInfo(adSizes: Array<DTBAdSize>): List<AmazonInfo> = coroutineScope {
+    private suspend fun obtainInfo(adSizes: List<Pair<SlotType, DTBAdSize>>): List<AmazonInfo> = coroutineScope {
+        val results = mutableListOf<AmazonInfo>()
         adSizes
-            .map { dtbAdSize ->
+            .map { (_, dtbAdSize) ->
                 dtbAdSize to async { getDTBAdResponse(dtbAdSize) }
-            }.mapNotNull { (dtbAdSize, deferred) ->
+            }.forEach { (dtbAdSize, deferred) ->
                 val dtbAdResponse = deferred.await()
                 if (dtbAdResponse != null) {
-                    AmazonInfo(dtbAdResponse, dtbAdSize)
-                } else {
-                    null
+                    results.add(AmazonInfo(dtbAdResponse, dtbAdSize))
+                    logInfo(TAG, "AmazonInfo added-> ${dtbAdSize.slotUUID}: ${dtbAdResponse.getPricePoints(dtbAdSize)}")
                 }
             }
+        results
     }
 
     private suspend fun getDTBAdResponse(adSize: DTBAdSize): DTBAdResponse? = suspendCancellableCoroutine { continuation ->
@@ -75,34 +63,69 @@ internal class ObtainTokenUseCase {
         })
     }
 
-    private fun getAmazonSizes(slots: Map<SlotType, List<String>>): Array<DTBAdSize> {
-        return slots.flatMap { (type, slotUuids) ->
-            slotUuids.map { uuid ->
-                when (type) {
-                    SlotType.BANNER -> {
-                        DTBAdSize(
-                            BannerFormat.Banner.getWidthDp(), BannerFormat.Banner.getHeightDp(), uuid
-                        )
-                    }
+    private fun getAmazonSizes(slots: Map<SlotType, List<String>>, adTypeParam: AdTypeParam): List<Pair<SlotType, DTBAdSize>> {
+        return slots.mapNotNull { (type, slotUuids) ->
+            when (adTypeParam) {
+                is AdTypeParam.Banner -> {
+                    when (adTypeParam.bannerFormat) {
+                        BannerFormat.Banner,
+                        BannerFormat.LeaderBoard,
+                        BannerFormat.MRec -> {
+                            slotUuids.map { uuid ->
+                                type to DTBAdSize(
+                                    /* width = */ adTypeParam.bannerFormat.getWidthDp(),
+                                    /* height = */ adTypeParam.bannerFormat.getHeightDp(),
+                                    /* slotUUID = */ uuid
+                                )
+                            }
+                        }
 
-                    SlotType.LEADER_BOARD -> {
-                        DTBAdSize(
-                            BannerFormat.LeaderBoard.getWidthDp(), BannerFormat.LeaderBoard.getHeightDp(), uuid
-                        )
-                    }
-
-                    SlotType.MREC -> {
-                        DTBAdSize(
-                            BannerFormat.MRec.getWidthDp(), BannerFormat.MRec.getHeightDp(), uuid
-                        )
-                    }
-
-                    SlotType.INTERSTITIAL -> {
-                        DTBAdSize.DTBInterstitialAdSize(uuid)
+                        BannerFormat.Adaptive -> {
+                            if (DeviceType.isTablet) {
+                                slotUuids.map { uuid ->
+                                    type to DTBAdSize(
+                                        /* width = */ BannerFormat.Banner.getWidthDp(),
+                                        /* height = */ BannerFormat.Banner.getHeightDp(),
+                                        /* slotUUID = */ uuid
+                                    )
+                                }
+                            } else {
+                                slotUuids.map { uuid ->
+                                    type to DTBAdSize(
+                                        /* width = */ BannerFormat.LeaderBoard.getWidthDp(),
+                                        /* height = */ BannerFormat.LeaderBoard.getHeightDp(),
+                                        /* slotUUID = */ uuid
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
+
+                is AdTypeParam.Interstitial -> {
+                    when (type) {
+                        SlotType.VIDEO -> {
+                            slotUuids.map { uuid ->
+                                type to DTBAdSize.DTBVideo(320, 480, uuid)
+                            }
+                        }
+                        SlotType.INTERSTITIAL -> {
+                            slotUuids.map { uuid ->
+                                type to DTBAdSize.DTBInterstitialAdSize(uuid)
+                            }
+                        }
+                        else -> {
+                            null
+                        }
+                    }
+                }
+
+                is AdTypeParam.Rewarded -> {
+                    logError(TAG, "Amazon Rewarded not supported", BidonError.Unspecified(AmazonDemandId))
+                    null
+                }
             }
-        }.toTypedArray()
+        }.flatten()
     }
 }
 
