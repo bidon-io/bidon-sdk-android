@@ -109,7 +109,7 @@ internal class ObtainTokenUseCase {
                             slotUuids.map { uuid ->
                                 val playerWidth = DeviceInfo.screenWidthDp.takeIf { it > 0 } ?: 320
                                 val playerHeight = DeviceInfo.screenHeightDp.takeIf { it > 0 } ?: 480
-                                logInfo(TAG, "Amazon video player size: $playerWidth x $playerHeight")
+                                logInfo(TAG, "Amazon video player size dp: $playerWidth x $playerHeight")
                                 type to DTBAdSize.DTBVideo(playerWidth, playerHeight, uuid)
                             }
                         }
