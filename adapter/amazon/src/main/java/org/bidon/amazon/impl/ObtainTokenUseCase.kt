@@ -51,7 +51,7 @@ internal class ObtainTokenUseCase {
         loader.setSizes(adSize)
         loader.loadAd(object : DTBAdCallback {
             override fun onFailure(adError: AdError) {
-                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoBid(AmazonDemandId))
+                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoBid)
                 /**Please implement the logic to send ad request without our parameters if you want to
                  * show ads from other ad networks when Amazon ad request fails */
                 continuation.resume(null)
