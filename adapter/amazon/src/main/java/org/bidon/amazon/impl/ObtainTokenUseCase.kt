@@ -105,6 +105,7 @@ internal class ObtainTokenUseCase {
 
                 is AdTypeParam.Interstitial -> {
                     when (type) {
+                        SlotType.REWARDED_AD,
                         SlotType.VIDEO -> {
                             slotUuids.map { uuid ->
                                 val playerWidth = DeviceInfo.screenWidthDp.takeIf { it > 0 } ?: 320
@@ -120,7 +121,8 @@ internal class ObtainTokenUseCase {
                             }
                         }
 
-                        else -> {
+                        SlotType.BANNER,
+                        SlotType.MREC -> {
                             null
                         }
                     }
