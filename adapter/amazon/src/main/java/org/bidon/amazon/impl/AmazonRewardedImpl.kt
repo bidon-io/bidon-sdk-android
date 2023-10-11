@@ -34,7 +34,6 @@ internal class AmazonRewardedImpl(
 
     private val obtainToken: ObtainTokenUseCase get() = ObtainTokenUseCase()
     private var amazonInfos = mutableListOf<AmazonInfo>()
-    private var adParams: FullscreenAuctionParams? = null
     private var interstitial: DTBAdInterstitial? = null
 
     override val isAdReadyToShow: Boolean
@@ -71,7 +70,6 @@ internal class AmazonRewardedImpl(
     }
 
     override fun load(adParams: FullscreenAuctionParams) {
-        this.adParams = adParams
         if (amazonInfos.isEmpty()) {
             logError(TAG, "No Amazon slot found", BidonError.NoAppropriateAdUnitId)
             emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
@@ -110,6 +108,7 @@ internal class AmazonRewardedImpl(
                         emitEvent(AdEvent.OnReward(it, null))
                         emitEvent(AdEvent.Closed(it))
                     }
+                    interstitial = null
                 }
 
                 override fun onImpressionFired(view: View?) {
@@ -153,7 +152,6 @@ internal class AmazonRewardedImpl(
 
     override fun destroy() {
         interstitial = null
-        adParams = null
         amazonInfos.clear()
     }
 }

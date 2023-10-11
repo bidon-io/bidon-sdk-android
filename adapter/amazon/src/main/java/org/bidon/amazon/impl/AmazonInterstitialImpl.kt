@@ -34,7 +34,6 @@ internal class AmazonInterstitialImpl(
 
     private val obtainToken: ObtainTokenUseCase get() = ObtainTokenUseCase()
     private var amazonInfos = mutableListOf<AmazonInfo>()
-    private var adParams: FullscreenAuctionParams? = null
     private var interstitial: DTBAdInterstitial? = null
 
     override val isAdReadyToShow: Boolean
@@ -71,7 +70,6 @@ internal class AmazonInterstitialImpl(
     }
 
     override fun load(adParams: FullscreenAuctionParams) {
-        this.adParams = adParams
         if (amazonInfos.isEmpty()) {
             logError(TAG, "No Amazon slot found", BidonError.NoAppropriateAdUnitId)
             emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
@@ -107,6 +105,7 @@ internal class AmazonInterstitialImpl(
                 override fun onAdClosed(view: View?) {
                     logInfo(TAG, "onAdClosed")
                     emitEvent(AdEvent.Closed(getAd() ?: return))
+                    interstitial = null
                 }
 
                 override fun onImpressionFired(view: View?) {
@@ -150,7 +149,6 @@ internal class AmazonInterstitialImpl(
 
     override fun destroy() {
         interstitial = null
-        adParams = null
         amazonInfos.clear()
     }
 }
