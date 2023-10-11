@@ -8,7 +8,6 @@ import com.amazon.device.ads.DTBAdSize
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bidon.amazon.AmazonDemandId
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
@@ -133,7 +132,6 @@ internal class ObtainTokenUseCase {
                         SlotType.BANNER,
                         SlotType.MREC,
                         SlotType.INTERSTITIAL -> null
-
                     }
                 }
             }
