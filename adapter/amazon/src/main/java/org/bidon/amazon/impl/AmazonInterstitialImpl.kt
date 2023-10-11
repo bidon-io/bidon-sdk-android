@@ -129,7 +129,6 @@ internal class AmazonInterstitialImpl(
                 override fun onVideoCompleted(view: View?) {
                     super.onVideoCompleted(view)
                     logInfo(TAG, "onVideoCompleted")
-                    emitEvent(AdEvent.Closed(getAd() ?: return))
                 }
             }
         ).also {

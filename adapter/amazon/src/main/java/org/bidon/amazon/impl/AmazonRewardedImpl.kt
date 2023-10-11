@@ -106,7 +106,10 @@ internal class AmazonRewardedImpl(
 
                 override fun onAdClosed(view: View?) {
                     logInfo(TAG, "onAdClosed")
-                    emitEvent(AdEvent.Closed(getAd() ?: return))
+                    getAd()?.let {
+                        emitEvent(AdEvent.OnReward(it, null))
+                        emitEvent(AdEvent.Closed(it))
+                    }
                 }
 
                 override fun onImpressionFired(view: View?) {
@@ -129,7 +132,6 @@ internal class AmazonRewardedImpl(
                 override fun onVideoCompleted(view: View?) {
                     super.onVideoCompleted(view)
                     logInfo(TAG, "onVideoCompleted")
-                    emitEvent(AdEvent.Closed(getAd() ?: return))
                 }
             }
         ).also {
