@@ -70,11 +70,16 @@ class MobileFuseAdapter :
 
     override fun updateRegulation(regulation: Regulation) {
         val prefs = MobileFusePrivacyPreferences.Builder()
-            .setSubjectToCoppa(regulation.coppaApplies)
-            .setGppConsentString(regulation.gdprConsentString)
-            .setUsPrivacyConsentString(regulation.usPrivacyString)
-            .build()
-        MobileFuse.setPrivacyPreferences(prefs)
+        if (regulation.coppaApplies) {
+            prefs.setSubjectToCoppa(true)
+        }
+        if (regulation.gdprApplies) {
+            prefs.setGppConsentString(regulation.gdprConsentString)
+        }
+        if (!regulation.usPrivacyString.isNullOrBlank()) {
+            prefs.setUsPrivacyConsentString(regulation.usPrivacyString)
+        }
+        MobileFuse.setPrivacyPreferences(prefs.build())
     }
 
     override fun banner(): AdSource.Banner<MobileFuseBannerAuctionParams> {
