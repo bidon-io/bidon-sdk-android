@@ -73,15 +73,22 @@ class VungleAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        Vungle.updateConsentStatus(
-            when (regulation.gdpr) {
-                Gdpr.Unknown -> Vungle.Consent.OPTED_OUT
-                Gdpr.DoesNotApply -> Vungle.Consent.OPTED_OUT
-                Gdpr.Applies -> Vungle.Consent.OPTED_IN
-            },
-            regulation.gdprConsentString
-        )
-        Vungle.updateUserCoppaStatus(regulation.coppaApplies)
+        if (!regulation.usPrivacyString.isNullOrBlank()) {
+            Vungle.updateCCPAStatus(Vungle.Consent.OPTED_IN)
+        }
+        if (regulation.gdprApplies) {
+            Vungle.updateConsentStatus(
+                when (regulation.gdpr) {
+                    Gdpr.Unknown -> Vungle.Consent.OPTED_OUT
+                    Gdpr.DoesNotApply -> Vungle.Consent.OPTED_OUT
+                    Gdpr.Applies -> Vungle.Consent.OPTED_IN
+                },
+                null
+            )
+        }
+        if (regulation.coppaApplies) {
+            Vungle.updateUserCoppaStatus(regulation.coppaApplies)
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<VungleFullscreenAuctionParams> {

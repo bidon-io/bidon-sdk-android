@@ -81,7 +81,6 @@ class MintegralAdapter :
         )
     }
 
-
     override fun banner(): AdSource.Banner<MintegralBannerAuctionParam> {
         return MintegralBannerImpl()
     }

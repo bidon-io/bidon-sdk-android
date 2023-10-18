@@ -89,9 +89,8 @@ class UnityAdsAdapter :
                 // data.set("privacy.consent", [what])
             }
             if (regulation.coppaApplies) {
-                data.set("privacy.useroveragelimit", true);
+                data.set("privacy.useroveragelimit", true)
             }
-
         }.commit()
     }
 
