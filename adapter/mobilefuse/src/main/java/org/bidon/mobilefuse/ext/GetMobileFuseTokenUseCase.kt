@@ -19,7 +19,7 @@ internal object GetMobileFuseTokenUseCase {
         val tokenRequest = MobileFuseBiddingTokenRequest(
             privacyPreferences = MobileFusePrivacyPreferences.Builder()
                 .setSubjectToCoppa(regulation.coppaApplies)
-                .setSubjectToGdpr(regulation.gdprConsent)
+                .setSubjectToGdpr(regulation.gdprApplies)
                 .setGppConsentString(regulation.gdprConsentString)
                 .setUsPrivacyConsentString(regulation.usPrivacyString)
                 .build(),

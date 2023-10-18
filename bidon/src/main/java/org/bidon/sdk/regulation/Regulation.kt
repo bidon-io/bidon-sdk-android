@@ -9,6 +9,6 @@ interface Regulation {
     var gdprConsentString: String?
     var usPrivacyString: String?
 
-    val gdprConsent: Boolean get() = gdpr == Gdpr.Given
+    val gdprApplies: Boolean get() = gdpr == Gdpr.Applies
     val coppaApplies: Boolean get() = coppa == Coppa.Yes
 }

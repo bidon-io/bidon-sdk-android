@@ -63,9 +63,9 @@ class InmobiAdapter :
             }
             regulation?.let { reg ->
                 // Provide correct consent value to sdk which is obtained by User
-                consentObject.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, reg.gdprConsent)
+                consentObject.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, reg.gdprApplies)
                 // Provide 0 if GDPR is not applicable and 1 if applicable
-                consentObject.put("gdpr", "1".takeIf { reg.gdprConsent } ?: "0")
+                consentObject.put("gdpr", "1".takeIf { reg.gdprApplies } ?: "0")
                 // Provide user consent in IAB format
                 consentObject.put(InMobiSdk.IM_GDPR_CONSENT_IAB, reg.gdprConsentString)
             }
@@ -92,8 +92,8 @@ class InmobiAdapter :
     override fun updateRegulation(regulation: Regulation) {
         this.regulation = regulation
         val consentObject = JSONObject().apply {
-            put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, regulation.gdprConsent)
-            put("gdpr", "1".takeIf { regulation.gdprConsent } ?: "0")
+            put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, regulation.gdprApplies)
+            put("gdpr", "1".takeIf { regulation.gdprApplies } ?: "0")
             put(InMobiSdk.IM_GDPR_CONSENT_IAB, regulation.gdprConsentString)
         }
         InMobiSdk.setIsAgeRestricted(regulation.coppaApplies)

@@ -81,7 +81,7 @@ class UnityAdsAdapter :
 
     override fun updateRegulation(regulation: Regulation) {
         MetaData(context).also { data ->
-            data.set("gdpr.consent", regulation.gdprConsent)
+            data.set("gdpr.consent", regulation.gdprApplies)
             data.set("user.nonbehavioral", regulation.coppaApplies)
         }.commit()
     }

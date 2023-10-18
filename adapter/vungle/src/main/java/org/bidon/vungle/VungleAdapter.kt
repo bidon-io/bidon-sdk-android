@@ -76,8 +76,8 @@ class VungleAdapter :
         Vungle.updateConsentStatus(
             when (regulation.gdpr) {
                 Gdpr.Unknown -> Vungle.Consent.OPTED_OUT
-                Gdpr.Denied -> Vungle.Consent.OPTED_OUT
-                Gdpr.Given -> Vungle.Consent.OPTED_IN
+                Gdpr.DoesNotApply -> Vungle.Consent.OPTED_OUT
+                Gdpr.Applies -> Vungle.Consent.OPTED_IN
             },
             regulation.gdprConsentString
         )

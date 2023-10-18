@@ -68,7 +68,7 @@ class BidMachineAdapter :
     override fun updateRegulation(regulation: Regulation) {
         BidMachine.setUSPrivacyString(regulation.usPrivacyString)
         BidMachine.setCoppa(regulation.coppaApplies)
-        BidMachine.setSubjectToGDPR(regulation.gdprConsent)
+        BidMachine.setSubjectToGDPR(regulation.gdprApplies)
         BidMachine.setConsentConfig(
             /* hasConsent = */ !regulation.gdprConsentString.isNullOrBlank(),
             /* consentString = */ regulation.gdprConsentString

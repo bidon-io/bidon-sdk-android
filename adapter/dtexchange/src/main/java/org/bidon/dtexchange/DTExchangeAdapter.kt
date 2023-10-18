@@ -87,7 +87,7 @@ class DTExchangeAdapter :
 
     override fun updateRegulation(regulation: Regulation) {
         InneractiveAdManager.setUSPrivacyString(regulation.usPrivacyString)
-        InneractiveAdManager.setGdprConsent(regulation.gdprConsent)
+        InneractiveAdManager.setGdprConsent(regulation.gdprApplies)
         InneractiveAdManager.setGdprConsentString(regulation.gdprConsentString)
         if (regulation.coppaApplies) {
             InneractiveAdManager.currentAudienceAppliesToCoppa()

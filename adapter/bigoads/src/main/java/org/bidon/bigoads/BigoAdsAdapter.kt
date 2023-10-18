@@ -82,8 +82,8 @@ class BigoAdsAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        val (consentOptions, given) = if (regulation.gdpr in arrayOf(Gdpr.Given, Gdpr.Denied)) {
-            ConsentOptions.GDPR to regulation.gdprConsent
+        val (consentOptions, given) = if (regulation.gdpr in arrayOf(Gdpr.Applies, Gdpr.DoesNotApply)) {
+            ConsentOptions.GDPR to regulation.gdprApplies
         } else {
             return
         }

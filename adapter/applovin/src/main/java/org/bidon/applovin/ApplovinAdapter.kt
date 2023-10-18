@@ -63,9 +63,11 @@ class ApplovinAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        context?.let { context ->
-            AppLovinPrivacySettings.setHasUserConsent(regulation.gdprConsent, context)
-            AppLovinPrivacySettings.setIsAgeRestrictedUser(regulation.coppaApplies, context)
+        if (BidonSdk.regulation.gdprApplies) {
+            AppLovinPrivacySettings.setHasUserConsent(true, context)
+        }
+        if (BidonSdk.regulation.coppaApplies) {
+            AppLovinPrivacySettings.setIsAgeRestrictedUser(true, context)
         }
     }
 
