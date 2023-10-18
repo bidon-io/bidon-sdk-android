@@ -86,9 +86,15 @@ class DTExchangeAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        InneractiveAdManager.setUSPrivacyString(regulation.usPrivacyString)
-        InneractiveAdManager.setGdprConsent(regulation.gdprApplies)
-        InneractiveAdManager.setGdprConsentString(regulation.gdprConsentString)
+        if (!regulation.usPrivacyString.isNullOrBlank()) {
+            InneractiveAdManager.setUSPrivacyString(regulation.usPrivacyString)
+        }
+        if (regulation.gdprApplies) {
+            InneractiveAdManager.setGdprConsent(true)
+            if (!regulation.gdprConsentString.isNullOrBlank()) {
+                InneractiveAdManager.setGdprConsentString(regulation.gdprConsentString)
+            }
+        }
         if (regulation.coppaApplies) {
             InneractiveAdManager.currentAudienceAppliesToCoppa()
         }
