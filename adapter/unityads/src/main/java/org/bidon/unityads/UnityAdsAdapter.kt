@@ -81,8 +81,17 @@ class UnityAdsAdapter :
 
     override fun updateRegulation(regulation: Regulation) {
         MetaData(context).also { data ->
-            data.set("gdpr.consent", regulation.gdprApplies)
-            data.set("user.nonbehavioral", regulation.coppaApplies)
+            if (regulation.gdprApplies) {
+                // seems not to be true. gdprConsentString may not be null, but consent is not given
+                data.set("gdpr.consent", !regulation.gdprConsentString.isNullOrBlank())
+            }
+            if (!regulation.usPrivacyString.isNullOrBlank()) {
+                // data.set("privacy.consent", [what])
+            }
+            if (regulation.coppaApplies) {
+                data.set("privacy.useroveragelimit", true);
+            }
+
         }.commit()
     }
 
