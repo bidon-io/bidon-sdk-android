@@ -109,7 +109,7 @@ class InmobiAdapter :
                 this.put("gdpr", regulation.gdpr.code)
             }
             if (regulation.gdprApplies) {
-                this.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, !regulation.gdprConsentString.isNullOrBlank())
+                this.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, regulation.hasGdprConsent)
             }
             regulation.iab.tcfV2?.let {
                 this.put(InMobiSdk.IM_GDPR_CONSENT_IAB, it)

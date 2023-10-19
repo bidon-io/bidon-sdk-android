@@ -97,20 +97,19 @@ class MintegralAdapter :
         context?.let { context ->
             val sdk = MBridgeSDKFactory.getMBridgeSDK()
             if (regulation.gdprApplies) {
-                val consent = if (regulation.gdprConsentString.isNullOrBlank()) {
-                    MBridgeConstans.IS_SWITCH_OFF
-                } else {
+                val consent = if (regulation.hasGdprConsent) {
                     MBridgeConstans.IS_SWITCH_ON
+                } else {
+                    MBridgeConstans.IS_SWITCH_OFF
                 }
                 sdk.setUserPrivateInfoType(context, MBridgeConstans.AUTHORITY_ALL_INFO, consent)
             }
-            if (!regulation.usPrivacyString.isNullOrBlank()) {
-                // TODO sdk.setDoNotTrackStatus(context, [what?])
+            if (regulation.ccpaApplies) {
+                sdk.setDoNotTrackStatus(context, regulation.hasCcpaConsent.not())
             }
             if (regulation.coppaApplies) {
                 sdk.setCoppaStatus(context, true)
             }
-            sdk.setConsentStatus(context, MBridgeConstans.IS_SWITCH_ON)
         }
     }
 }

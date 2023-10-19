@@ -78,7 +78,7 @@ class BidMachineAdapter :
                 ?.takeIf { it.isNotBlank() }
                 ?.let {
                     BidMachine.setConsentConfig(
-                        /* hasConsent = */ true,
+                        /* hasConsent = */ regulation.hasGdprConsent,
                         /* consentString = */ it
                     )
                 }

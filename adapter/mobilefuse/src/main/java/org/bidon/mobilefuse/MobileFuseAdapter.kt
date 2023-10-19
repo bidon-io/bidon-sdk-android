@@ -76,7 +76,7 @@ class MobileFuseAdapter :
         if (regulation.gdprApplies) {
             prefs.setGppConsentString(regulation.gdprConsentString)
         }
-        if (!regulation.usPrivacyString.isNullOrBlank()) {
+        if (regulation.ccpaApplies) {
             prefs.setUsPrivacyConsentString(regulation.usPrivacyString)
         }
         MobileFuse.setPrivacyPreferences(prefs.build())

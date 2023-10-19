@@ -76,7 +76,9 @@ class MetaAudienceAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        AdSettings.setMixedAudience(regulation.coppaApplies)
+        if (regulation.coppaApplies) {
+            AdSettings.setMixedAudience(true)
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<MetaFullscreenAuctionParams> {

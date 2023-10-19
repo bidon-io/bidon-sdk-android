@@ -63,10 +63,13 @@ class ApplovinAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        if (BidonSdk.regulation.gdprApplies) {
-            AppLovinPrivacySettings.setHasUserConsent(true, context)
+        if (regulation.gdprApplies) {
+            AppLovinPrivacySettings.setHasUserConsent(regulation.hasGdprConsent, context)
         }
-        if (BidonSdk.regulation.coppaApplies) {
+        if (regulation.ccpaApplies) {
+            AppLovinPrivacySettings.setDoNotSell(regulation.hasCcpaConsent, context)
+        }
+        if (regulation.coppaApplies) {
             AppLovinPrivacySettings.setIsAgeRestrictedUser(true, context)
         }
     }

@@ -83,10 +83,10 @@ class BigoAdsAdapter :
     override fun updateRegulation(regulation: Regulation) {
         context?.let { context ->
             if (regulation.gdprApplies) {
-                BigoAdSdk.setUserConsent(context, ConsentOptions.GDPR, !regulation.gdprConsentString.isNullOrBlank())
+                BigoAdSdk.setUserConsent(context, ConsentOptions.GDPR, regulation.hasGdprConsent)
             }
             if (!regulation.usPrivacyString.isNullOrBlank()) {
-                BigoAdSdk.setUserConsent(context, ConsentOptions.CCPA, true)
+                BigoAdSdk.setUserConsent(context, ConsentOptions.CCPA, regulation.hasCcpaConsent)
             }
         }
     }
