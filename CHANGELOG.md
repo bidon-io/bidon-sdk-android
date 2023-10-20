@@ -1,3 +1,4 @@
+# Release 0.4.21 (2023.10.20)
 ## Features:
 [BDN-446](https://appodeal.atlassian.net/browse/BDN-446) Implement Amazon Rewarded
 [BDN-417](https://appodeal.atlassian.net/browse/BDN-417) Implement Amazon Adapters: Interstitial+Banner
