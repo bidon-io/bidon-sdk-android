@@ -110,6 +110,7 @@ class InmobiAdapter :
             }
             if (regulation.gdprApplies) {
                 this.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, regulation.hasGdprConsent)
+                this.put(InMobiSdk.IM_GDPR_CONSENT_IAB, regulation.gdprConsentString)
             }
         }
     }
