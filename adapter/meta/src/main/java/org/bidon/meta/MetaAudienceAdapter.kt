@@ -81,7 +81,7 @@ class MetaAudienceAdapter :
         }
         if (regulation.ccpaApplies) {
             if (regulation.hasCcpaConsent) {
-                AdSettings.setDataProcessingOptions(arrayOf("LDU"))
+                AdSettings.setDataProcessingOptions(arrayOf(""))
             } else {
                 AdSettings.setDataProcessingOptions(arrayOf("LDU"), 0, 0)
             }
