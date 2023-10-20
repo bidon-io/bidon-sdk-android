@@ -80,9 +80,11 @@ class MetaAudienceAdapter :
             AdSettings.setMixedAudience(true)
         }
         if (regulation.ccpaApplies) {
-            AdSettings.setDataProcessingOptions(arrayOf("LDU"))
-        } else {
-            AdSettings.setDataProcessingOptions(arrayOf("LDU"), 0, 0)
+            if (regulation.hasCcpaConsent) {
+                AdSettings.setDataProcessingOptions(arrayOf("LDU"))
+            } else {
+                AdSettings.setDataProcessingOptions(arrayOf("LDU"), 0, 0)
+            }
         }
     }
 
