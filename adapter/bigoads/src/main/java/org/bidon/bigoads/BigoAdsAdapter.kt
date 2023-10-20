@@ -85,7 +85,7 @@ class BigoAdsAdapter :
             if (regulation.gdprApplies) {
                 BigoAdSdk.setUserConsent(context, ConsentOptions.GDPR, regulation.hasGdprConsent)
             }
-            if (!regulation.usPrivacyString.isNullOrBlank()) {
+            if (regulation.ccpaApplies) {
                 BigoAdSdk.setUserConsent(context, ConsentOptions.CCPA, regulation.hasCcpaConsent)
             }
         }

@@ -4,10 +4,10 @@ import android.content.Context
 import com.mobilefuse.sdk.MobileFuse
 import com.mobilefuse.sdk.MobileFuseSettings
 import com.mobilefuse.sdk.SdkInitListener
-import com.mobilefuse.sdk.privacy.MobileFusePrivacyPreferences
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.mobilefuse.ext.adapterVersion
 import org.bidon.mobilefuse.ext.sdkVersion
+import org.bidon.mobilefuse.ext.toMobileFusePrivacyPreferences
 import org.bidon.mobilefuse.impl.MobileFuseBannerAuctionParams
 import org.bidon.mobilefuse.impl.MobileFuseBannerImpl
 import org.bidon.mobilefuse.impl.MobileFuseFullscreenAuctionParams
@@ -69,17 +69,7 @@ class MobileFuseAdapter :
     override fun parseConfigParam(json: String): MobileFuseParams = MobileFuseParams
 
     override fun updateRegulation(regulation: Regulation) {
-        val prefs = MobileFusePrivacyPreferences.Builder()
-        if (regulation.coppaApplies) {
-            prefs.setSubjectToCoppa(true)
-        }
-        if (regulation.gdprApplies) {
-            prefs.setGppConsentString(regulation.gdprConsentString)
-        }
-        if (regulation.ccpaApplies) {
-            prefs.setUsPrivacyConsentString(regulation.usPrivacyString)
-        }
-        MobileFuse.setPrivacyPreferences(prefs.build())
+        MobileFuse.setPrivacyPreferences(regulation.toMobileFusePrivacyPreferences())
     }
 
     override fun banner(): AdSource.Banner<MobileFuseBannerAuctionParams> {

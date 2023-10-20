@@ -2,7 +2,6 @@ package org.bidon.inmobi
 
 import android.content.Context
 import com.inmobi.sdk.InMobiSdk
-import com.inmobi.sdk.SdkInitializationListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -63,19 +62,14 @@ class InmobiAdapter :
             if (BidonSdk.regulation.coppaApplies) {
                 InMobiSdk.setIsAgeRestricted(true)
             }
-            InMobiSdk.init(
-                context, configParams.accountId, consentObject,
-                object : SdkInitializationListener {
-                    override fun onInitializationComplete(error: Error?) {
-                        if (null != error) {
-                            logError(TAG, "InMobi Init Failed", error)
-                            it.resumeWithException(BidonError.SdkNotInitialized)
-                        } else {
-                            it.resume(Unit)
-                        }
-                    }
+            InMobiSdk.init(context, configParams.accountId, consentObject) { error ->
+                if (null != error) {
+                    logError(TAG, "InMobi Init Failed", error)
+                    it.resumeWithException(BidonError.SdkNotInitialized)
+                } else {
+                    it.resume(Unit)
                 }
-            )
+            }
         }
     }
 
@@ -110,9 +104,6 @@ class InmobiAdapter :
             }
             if (regulation.gdprApplies) {
                 this.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, regulation.hasGdprConsent)
-            }
-            regulation.iab.tcfV2?.let {
-                this.put(InMobiSdk.IM_GDPR_CONSENT_IAB, it)
             }
         }
     }

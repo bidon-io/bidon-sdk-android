@@ -79,6 +79,11 @@ class MetaAudienceAdapter :
         if (regulation.coppaApplies) {
             AdSettings.setMixedAudience(true)
         }
+        if (regulation.ccpaApplies) {
+            AdSettings.setDataProcessingOptions(arrayOf("LDU"))
+        } else {
+            AdSettings.setDataProcessingOptions(arrayOf("LDU"), 0, 0)
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<MetaFullscreenAuctionParams> {

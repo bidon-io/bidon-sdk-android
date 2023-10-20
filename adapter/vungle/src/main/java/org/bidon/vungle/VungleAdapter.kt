@@ -89,7 +89,7 @@ class VungleAdapter :
             Vungle.updateConsentStatus(status, null)
         }
         if (regulation.coppaApplies) {
-            Vungle.updateUserCoppaStatus(regulation.coppaApplies)
+            Vungle.updateUserCoppaStatus(true)
         }
     }
 

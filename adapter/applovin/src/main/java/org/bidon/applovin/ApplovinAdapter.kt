@@ -67,7 +67,7 @@ class ApplovinAdapter :
             AppLovinPrivacySettings.setHasUserConsent(regulation.hasGdprConsent, context)
         }
         if (regulation.ccpaApplies) {
-            AppLovinPrivacySettings.setDoNotSell(regulation.hasCcpaConsent, context)
+            AppLovinPrivacySettings.setDoNotSell(!regulation.hasCcpaConsent, context)
         }
         if (regulation.coppaApplies) {
             AppLovinPrivacySettings.setIsAgeRestrictedUser(true, context)
