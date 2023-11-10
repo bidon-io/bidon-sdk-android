@@ -16,8 +16,9 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ext.height
+import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -122,24 +123,12 @@ class MetaBannerImpl :
     }
 
     override fun getAdView(): AdViewHolder? {
-        val bannerSize = bannerSize ?: return null
+        val bannerFormat = bannerFormat ?: return null
         return bannerView?.let { adView ->
             AdViewHolder(
                 networkAdview = adView,
-                widthDp = when (bannerFormat) {
-                    BannerFormat.Banner -> 320
-                    BannerFormat.LeaderBoard -> 728
-                    BannerFormat.MRec -> 300
-                    BannerFormat.Adaptive,
-                    null -> if (isTablet) 728 else 320
-                },
-                heightDp = when (bannerFormat) {
-                    BannerFormat.Banner -> 50
-                    BannerFormat.LeaderBoard -> 90
-                    BannerFormat.MRec -> 250
-                    BannerFormat.Adaptive,
-                    null -> if (isTablet) 90 else 50
-                }
+                widthDp = bannerFormat.width,
+                heightDp = bannerFormat.height
             )
         }
     }

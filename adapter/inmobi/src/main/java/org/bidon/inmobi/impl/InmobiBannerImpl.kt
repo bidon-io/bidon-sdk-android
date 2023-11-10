@@ -13,7 +13,8 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
+import org.bidon.sdk.auction.ext.height
+import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -57,20 +58,7 @@ internal class InmobiBannerImpl :
         val bannerView = InMobiBanner(adParams.activity.applicationContext, adParams.placementId).also {
             this.bannerView = it
         }
-        bannerView.setBannerSize(
-            when (adParams.bannerFormat) {
-                BannerFormat.Banner -> 320
-                BannerFormat.LeaderBoard -> 728
-                BannerFormat.MRec -> 300
-                BannerFormat.Adaptive -> if (isTablet) 728 else 320
-            },
-            when (adParams.bannerFormat) {
-                BannerFormat.Banner -> 50
-                BannerFormat.LeaderBoard -> 90
-                BannerFormat.MRec -> 250
-                BannerFormat.Adaptive -> if (isTablet) 90 else 50
-            }
-        )
+        bannerView.setBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
         bannerView.setEnableAutoRefresh(false)
         bannerView.setAnimationType(InMobiBanner.AnimationType.ANIMATION_OFF)
         bannerView.setListener(object : BannerAdEventListener() {
@@ -117,19 +105,7 @@ internal class InmobiBannerImpl :
     override fun getAdView(): AdViewHolder? {
         val bannerFormat = bannerFormat ?: return null
         val bannerAd = bannerView ?: return null
-        val width = when (bannerFormat) {
-            BannerFormat.Banner -> 320
-            BannerFormat.LeaderBoard -> 728
-            BannerFormat.MRec -> 300
-            BannerFormat.Adaptive -> if (isTablet) 728 else 320
-        }
-        val height = when (bannerFormat) {
-            BannerFormat.Banner -> 50
-            BannerFormat.LeaderBoard -> 90
-            BannerFormat.MRec -> 250
-            BannerFormat.Adaptive -> if (isTablet) 90 else 50
-        }
-        return AdViewHolder(bannerAd, width, height)
+        return AdViewHolder(bannerAd, bannerFormat.width, bannerFormat.height)
     }
 
     override fun destroy() {
