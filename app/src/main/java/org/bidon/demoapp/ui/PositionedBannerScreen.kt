@@ -89,10 +89,10 @@ fun PositionedBannerScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val bannerFormat = remember {
-        mutableStateOf(BannerFormat.Banner)
+        mutableStateOf(BannerFormat.Adaptive)
     }
     val bannerPosition = remember {
-        mutableStateOf<BannerPosition?>(BannerPosition.HorizontalBottom)
+        mutableStateOf<BannerPosition?>(BannerPosition.HorizontalTop)
     }
 
     logInfo("PositionedBannerScreen", "banner: $banner")

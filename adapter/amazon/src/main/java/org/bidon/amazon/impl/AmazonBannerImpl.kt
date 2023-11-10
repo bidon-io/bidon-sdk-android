@@ -152,7 +152,7 @@ internal class AmazonBannerImpl(
                 BannerFormat.MRec -> 250
                 BannerFormat.Adaptive -> if (isTablet) 90 else 50
             }
-            AdViewHolder(adView, DTBAdUtil.sizeToDevicePixels(width), DTBAdUtil.sizeToDevicePixels(height))
+            AdViewHolder(adView, width, height)
         }
     }
 
