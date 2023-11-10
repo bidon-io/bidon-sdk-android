@@ -10,8 +10,7 @@ import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
+import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -111,10 +110,21 @@ internal class AdmobBannerImpl(
     }
 
     override fun getAdView(): AdViewHolder? = adView?.let {
+        val format = bannerFormat ?: return null
         AdViewHolder(
             networkAdview = it,
-            widthDp = adSize?.width ?: bannerFormat.getWidthDp(),
-            heightDp = adSize?.height ?: bannerFormat.getHeightDp()
+            widthDp = adSize?.width ?: when (format) {
+                BannerFormat.Banner -> 320
+                BannerFormat.LeaderBoard -> 728
+                BannerFormat.MRec -> 300
+                BannerFormat.Adaptive -> if (isTablet) 728 else 320
+            },
+            heightDp = adSize?.height ?: when (format) {
+                BannerFormat.Banner -> 50
+                BannerFormat.LeaderBoard -> 90
+                BannerFormat.MRec -> 250
+                BannerFormat.Adaptive -> if (isTablet) 90 else 50
+            }
         )
     }
 

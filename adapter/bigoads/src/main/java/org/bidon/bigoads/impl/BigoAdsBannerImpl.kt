@@ -11,8 +11,7 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
+import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -69,8 +68,17 @@ internal class BigoAdsBannerImpl :
 
     override fun getAdView(): AdViewHolder? {
         val bannerAd = bannerAd ?: return null
-        val width = bannerFormat?.getWidthDp() ?: return null
-        val height = bannerFormat?.getHeightDp() ?: return null
+        val bannerFormat = bannerFormat ?: return null
+        val (width, height) = when (bannerFormat) {
+            BannerFormat.MRec -> 300 to 250
+            BannerFormat.Banner -> 320 to 50
+            BannerFormat.LeaderBoard -> return null
+            BannerFormat.Adaptive -> if (isTablet) {
+                return null
+            } else {
+                320 to 50
+            }
+        }
         return AdViewHolder(bannerAd.adView(), width, height)
     }
 
@@ -78,6 +86,9 @@ internal class BigoAdsBannerImpl :
 
     override fun load(adParams: BigoBannerAuctionParams) {
         val builder = BannerAdRequest.Builder()
+        if (adParams.bannerFormat == BannerFormat.Adaptive && isTablet || adParams.bannerFormat == BannerFormat.LeaderBoard) {
+            return
+        }
         this.bannerFormat = adParams.bannerFormat
         builder
             .withBid(adParams.payload)

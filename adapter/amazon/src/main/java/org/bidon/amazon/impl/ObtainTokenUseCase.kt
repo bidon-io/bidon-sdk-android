@@ -12,8 +12,6 @@ import org.bidon.amazon.SlotType
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -80,38 +78,24 @@ internal class ObtainTokenUseCase {
         return slots.mapNotNull { (type, slotUuids) ->
             when (adTypeParam) {
                 is AdTypeParam.Banner -> {
-                    when (adTypeParam.bannerFormat) {
-                        BannerFormat.Banner,
-                        BannerFormat.LeaderBoard,
-                        BannerFormat.MRec -> {
-                            slotUuids.map { uuid ->
-                                type to DTBAdSize(
-                                    /* width = */ adTypeParam.bannerFormat.getWidthDp(),
-                                    /* height = */ adTypeParam.bannerFormat.getHeightDp(),
-                                    /* slotUUID = */ uuid
-                                )
-                            }
-                        }
-
+                    val (width, height) = when (adTypeParam.bannerFormat) {
+                        BannerFormat.MRec -> 300 to 250
+                        BannerFormat.Banner -> 320 to 50
+                        BannerFormat.LeaderBoard -> 728 to 90
                         BannerFormat.Adaptive -> {
                             if (DeviceInfo.isTablet) {
-                                slotUuids.map { uuid ->
-                                    type to DTBAdSize(
-                                        /* width = */ 728,
-                                        /* height = */ 90,
-                                        /* slotUUID = */ uuid
-                                    )
-                                }
+                                728 to 90
                             } else {
-                                slotUuids.map { uuid ->
-                                    type to DTBAdSize(
-                                        /* width = */ 320,
-                                        /* height = */ 50,
-                                        /* slotUUID = */ uuid
-                                    )
-                                }
+                                320 to 50
                             }
                         }
+                    }
+                    slotUuids.map { uuid ->
+                        type to DTBAdSize(
+                            /* width = */ width,
+                            /* height = */ height,
+                            /* slotUUID = */ uuid
+                        )
                     }
                 }
 

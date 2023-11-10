@@ -16,6 +16,7 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -130,14 +131,14 @@ class MetaBannerImpl :
                     BannerFormat.LeaderBoard -> 728
                     BannerFormat.MRec -> 300
                     BannerFormat.Adaptive,
-                    null -> bannerSize.width
+                    null -> if (isTablet) 728 else 320
                 },
                 heightDp = when (bannerFormat) {
                     BannerFormat.Banner -> 50
                     BannerFormat.LeaderBoard -> 90
                     BannerFormat.MRec -> 250
                     BannerFormat.Adaptive,
-                    null -> bannerSize.height
+                    null -> if (isTablet) 90 else 50
                 }
             )
         }

@@ -51,7 +51,11 @@ fun PositionedBannerScreen(
         mutableStateOf(listOf<String>())
     }
     val configuration = LocalConfiguration.current
+    val bannerFormat = remember {
+        mutableStateOf(BannerFormat.Adaptive)
+    }
     val banner = viewModel.bannerManager.apply {
+        setBannerFormat(bannerFormat.value)
         setBannerListener(
             object : BannerListener {
                 override fun onAdLoaded(ad: Ad) {
@@ -88,9 +92,6 @@ fun PositionedBannerScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val bannerFormat = remember {
-        mutableStateOf(BannerFormat.Adaptive)
-    }
     val bannerPosition = remember {
         mutableStateOf<BannerPosition?>(BannerPosition.HorizontalTop)
     }
@@ -170,6 +171,7 @@ fun PositionedBannerScreen(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Show",
                     ) {
+                        banner.setBannerFormat(bannerFormat.value)
                         banner.setPosition(bannerPosition.value ?: return@AppButton)
                         banner.showAd(activity)
                     }

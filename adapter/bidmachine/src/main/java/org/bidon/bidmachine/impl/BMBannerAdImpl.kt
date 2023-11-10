@@ -26,8 +26,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -116,10 +114,11 @@ internal class BMBannerAdImpl :
 
     override fun getAdView(): AdViewHolder? {
         val adView = bannerView ?: return null
+        val bannerFormat = bannerFormat ?: return null
         return AdViewHolder(
             networkAdview = adView,
-            widthDp = bannerFormat?.asBidMachineBannerSize()?.width ?: bannerFormat.getWidthDp(),
-            heightDp = bannerFormat?.asBidMachineBannerSize()?.height ?: bannerFormat.getHeightDp()
+            widthDp = bannerFormat.asBidMachineBannerSize().width,
+            heightDp = bannerFormat.asBidMachineBannerSize().height
         )
     }
 
