@@ -14,9 +14,9 @@ import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ext.height
+import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -139,19 +139,7 @@ internal class AmazonBannerImpl(
             emitEvent(AdEvent.LoadFailed(BidonError.AdNotReady))
             null
         } else {
-            val width = when (adParams.bannerFormat) {
-                BannerFormat.Banner -> 320
-                BannerFormat.LeaderBoard -> 728
-                BannerFormat.MRec -> 300
-                BannerFormat.Adaptive -> if (isTablet) 728 else 320
-            }
-            val height = when (adParams.bannerFormat) {
-                BannerFormat.Banner -> 50
-                BannerFormat.LeaderBoard -> 90
-                BannerFormat.MRec -> 250
-                BannerFormat.Adaptive -> if (isTablet) 90 else 50
-            }
-            AdViewHolder(adView, width, height)
+            AdViewHolder(adView, adParams.bannerFormat.width, adParams.bannerFormat.height)
         }
     }
 

@@ -10,9 +10,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.BidonSdk
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ext.height
+import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -78,22 +79,10 @@ internal class ObtainTokenUseCase {
         return slots.mapNotNull { (type, slotUuids) ->
             when (adTypeParam) {
                 is AdTypeParam.Banner -> {
-                    val (width, height) = when (adTypeParam.bannerFormat) {
-                        BannerFormat.MRec -> 300 to 250
-                        BannerFormat.Banner -> 320 to 50
-                        BannerFormat.LeaderBoard -> 728 to 90
-                        BannerFormat.Adaptive -> {
-                            if (DeviceInfo.isTablet) {
-                                728 to 90
-                            } else {
-                                320 to 50
-                            }
-                        }
-                    }
                     slotUuids.map { uuid ->
                         type to DTBAdSize(
-                            /* width = */ width,
-                            /* height = */ height,
+                            /* width = */ adTypeParam.bannerFormat.width,
+                            /* height = */ adTypeParam.bannerFormat.height,
                             /* slotUUID = */ uuid
                         )
                     }
