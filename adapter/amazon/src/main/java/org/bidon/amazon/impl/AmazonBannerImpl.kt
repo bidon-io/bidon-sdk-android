@@ -3,7 +3,6 @@ package org.bidon.amazon.impl
 import android.content.Context
 import android.view.View
 import com.amazon.device.ads.DTBAdBannerListener
-import com.amazon.device.ads.DTBAdUtil
 import com.amazon.device.ads.DTBAdView
 import com.amazon.device.ads.SDKUtilities
 import org.bidon.amazon.SlotType
