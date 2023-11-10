@@ -11,8 +11,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ext.height
-import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -111,11 +109,11 @@ internal class AdmobBannerImpl(
     }
 
     override fun getAdView(): AdViewHolder? = adView?.let {
-        val format = bannerFormat ?: return null
+        val adSize = adSize ?: return null
         AdViewHolder(
             networkAdview = it,
-            widthDp = adSize?.width ?: format.width,
-            heightDp = adSize?.height ?: format.height
+            widthDp = adSize.width,
+            heightDp = adSize.height
         )
     }
 

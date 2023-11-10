@@ -4,7 +4,6 @@ import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.AdListener
-import com.facebook.ads.AdSize
 import com.facebook.ads.AdView
 import com.facebook.ads.BidderTokenProvider
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -36,7 +35,6 @@ class MetaBannerImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerView: AdView? = null
-    private var bannerSize: AdSize? = null
     private var bannerFormat: BannerFormat? = null
 
     override val isAdReadyToShow: Boolean
@@ -66,7 +64,6 @@ class MetaBannerImpl :
 
     override fun load(adParams: MetaBannerAuctionParams) {
         logInfo(TAG, "load: $adParams")
-        bannerSize = adParams.bannerSize
         bannerFormat = adParams.bannerFormat
         adParams.activity.runOnUiThread {
             val banner = AdView(adParams.activity.applicationContext, adParams.placementId, adParams.bannerSize).also {
