@@ -19,7 +19,6 @@ import org.bidon.sdk.ads.banner.helper.getWidthDp
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -85,11 +84,7 @@ internal class InmobiBannerImpl :
             }
 
             override fun onAdLoadFailed(inMobiBanner: InMobiBanner, status: InMobiAdRequestStatus) {
-                logError(
-                    tag = TAG,
-                    message = "Error while loading ad: ${status.statusCode} ${status.message}. $this",
-                    error = BidonError.Unspecified(demandId)
-                )
+                logInfo(TAG, "Error while loading ad: ${status.statusCode} ${status.message}. $this")
                 emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 this@InmobiBannerImpl.bannerView = null
             }

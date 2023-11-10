@@ -7,7 +7,6 @@ import com.facebook.ads.AdListener
 import com.facebook.ads.AdSize
 import com.facebook.ads.AdView
 import com.facebook.ads.BidderTokenProvider
-import org.bidon.meta.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -20,7 +19,6 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -73,8 +71,7 @@ class MetaBannerImpl :
                 banner.buildLoadAdConfig()
                     .withAdListener(object : AdListener {
                         override fun onError(ad: Ad?, adError: AdError?) {
-                            val error = adError.asBidonError()
-                            logError(TAG, "Error while loading ad(${adError?.errorCode}: ${adError?.errorMessage}). $this", error)
+                            logInfo(TAG, "Error while loading ad(${adError?.errorCode}: ${adError?.errorMessage}). $this")
                             emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                         }
 

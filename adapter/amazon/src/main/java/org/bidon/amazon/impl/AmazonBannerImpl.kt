@@ -3,6 +3,7 @@ package org.bidon.amazon.impl
 import android.content.Context
 import android.view.View
 import com.amazon.device.ads.DTBAdBannerListener
+import com.amazon.device.ads.DTBAdUtil
 import com.amazon.device.ads.DTBAdView
 import com.amazon.device.ads.SDKUtilities
 import org.bidon.amazon.SlotType
@@ -14,8 +15,8 @@ import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.helper.getHeightDp
-import org.bidon.sdk.ads.banner.helper.getWidthDp
+import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -96,7 +97,7 @@ internal class AmazonBannerImpl(
                 }
 
                 override fun onAdFailed(view: View?) {
-                    logError(TAG, "onAdFailed", BidonError.NoFill(demandId))
+                    logInfo(TAG, "onAdFailed")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 
@@ -139,7 +140,19 @@ internal class AmazonBannerImpl(
             emitEvent(AdEvent.LoadFailed(BidonError.AdNotReady))
             null
         } else {
-            AdViewHolder(adView, adParams.bannerFormat.getWidthDp(), adParams.bannerFormat.getHeightDp())
+            val width = when (adParams.bannerFormat) {
+                BannerFormat.Banner -> 320
+                BannerFormat.LeaderBoard -> 728
+                BannerFormat.MRec -> 300
+                BannerFormat.Adaptive -> if (isTablet) 728 else 320
+            }
+            val height = when (adParams.bannerFormat) {
+                BannerFormat.Banner -> 50
+                BannerFormat.LeaderBoard -> 90
+                BannerFormat.MRec -> 250
+                BannerFormat.Adaptive -> if (isTablet) 90 else 50
+            }
+            AdViewHolder(adView, DTBAdUtil.sizeToDevicePixels(width), DTBAdUtil.sizeToDevicePixels(height))
         }
     }
 

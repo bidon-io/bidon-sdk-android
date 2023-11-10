@@ -97,16 +97,16 @@ internal class ObtainTokenUseCase {
                             if (DeviceInfo.isTablet) {
                                 slotUuids.map { uuid ->
                                     type to DTBAdSize(
-                                        /* width = */ BannerFormat.Banner.getWidthDp(),
-                                        /* height = */ BannerFormat.Banner.getHeightDp(),
+                                        /* width = */ 728,
+                                        /* height = */ 90,
                                         /* slotUUID = */ uuid
                                     )
                                 }
                             } else {
                                 slotUuids.map { uuid ->
                                     type to DTBAdSize(
-                                        /* width = */ BannerFormat.LeaderBoard.getWidthDp(),
-                                        /* height = */ BannerFormat.LeaderBoard.getHeightDp(),
+                                        /* width = */ 320,
+                                        /* height = */ 50,
                                         /* slotUUID = */ uuid
                                     )
                                 }

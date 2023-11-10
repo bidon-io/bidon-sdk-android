@@ -158,8 +158,7 @@ internal class BMBannerAdImpl :
                     }
 
                     override fun onAdLoadFailed(bannerView: BannerView, bmError: BMError) {
-                        val error = bmError.asBidonErrorOnFill(demandId)
-                        logError(TAG, "onAdLoadFailed: $this", error)
+                        logInfo(TAG, "onRequestFailed $bmError. $this")
                         emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                     }
 

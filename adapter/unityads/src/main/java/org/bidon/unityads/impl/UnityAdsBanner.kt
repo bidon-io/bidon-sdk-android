@@ -17,11 +17,9 @@ import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.unityads.ext.asBidonError
 
 /**
  * Created by Aleksei Cherniaev on 12/04/2023.
@@ -96,8 +94,7 @@ internal class UnityAdsBanner :
                     bannerAdView: BannerView?,
                     errorInfo: BannerErrorInfo?
                 ) {
-                    val cause = errorInfo.asBidonError()
-                    logError(TAG, "Error while loading ad: $errorInfo. $this", cause)
+                    logInfo(TAG, "Error while loading ad: $errorInfo. $this")
                     isAdReadyToShow = false
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }

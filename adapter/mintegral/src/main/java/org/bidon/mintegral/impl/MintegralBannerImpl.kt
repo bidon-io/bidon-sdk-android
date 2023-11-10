@@ -20,7 +20,6 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -75,7 +74,7 @@ internal class MintegralBannerImpl :
             mbBannerView.init(size, adParams.placementId, adParams.unitId)
             mbBannerView.setBannerAdListener(object : BannerAdListener {
                 override fun onLoadFailed(mBridgeIds: MBridgeIds?, message: String?) {
-                    logError(TAG, "onLoadFailed $mBridgeIds", Throwable(message))
+                    logInfo(TAG, "onLoadFailed $mBridgeIds")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 
