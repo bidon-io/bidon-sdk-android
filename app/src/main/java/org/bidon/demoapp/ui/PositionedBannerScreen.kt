@@ -170,6 +170,7 @@ fun PositionedBannerScreen(
                         modifier = Modifier.padding(end = 12.dp),
                         text = "Show",
                     ) {
+                        banner.setPosition(bannerPosition.value ?: return@AppButton)
                         banner.showAd(activity)
                     }
                     AppButton(

@@ -15,6 +15,7 @@ import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -34,6 +35,7 @@ class MetaBannerImpl :
 
     private var bannerView: AdView? = null
     private var bannerSize: AdSize? = null
+    private var bannerFormat: BannerFormat? = null
 
     override val isAdReadyToShow: Boolean
         get() = bannerView != null
@@ -63,6 +65,7 @@ class MetaBannerImpl :
     override fun load(adParams: MetaBannerAuctionParams) {
         logInfo(TAG, "load: $adParams")
         bannerSize = adParams.bannerSize
+        bannerFormat = adParams.bannerFormat
         adParams.activity.runOnUiThread {
             val banner = AdView(adParams.activity.applicationContext, adParams.placementId, adParams.bannerSize).also {
                 bannerView = it
@@ -122,8 +125,20 @@ class MetaBannerImpl :
         return bannerView?.let { adView ->
             AdViewHolder(
                 networkAdview = adView,
-                widthDp = bannerSize.width,
-                heightDp = bannerSize.height
+                widthDp = when (bannerFormat) {
+                    BannerFormat.Banner -> 320
+                    BannerFormat.LeaderBoard -> 728
+                    BannerFormat.MRec -> 300
+                    BannerFormat.Adaptive,
+                    null -> bannerSize.width
+                },
+                heightDp = when (bannerFormat) {
+                    BannerFormat.Banner -> 50
+                    BannerFormat.LeaderBoard -> 90
+                    BannerFormat.MRec -> 250
+                    BannerFormat.Adaptive,
+                    null -> bannerSize.height
+                }
             )
         }
     }
