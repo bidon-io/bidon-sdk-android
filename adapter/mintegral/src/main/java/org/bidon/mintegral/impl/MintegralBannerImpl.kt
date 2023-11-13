@@ -64,9 +64,9 @@ internal class MintegralBannerImpl :
                 bannerView = it
             }
             val size = when (adParams.bannerFormat) {
-                BannerFormat.Banner -> BannerSize(BannerSize.STANDARD_TYPE, 0, 0)
-                BannerFormat.LeaderBoard -> BannerSize(BannerSize.LARGE_TYPE, 0, 0)
-                BannerFormat.MRec -> BannerSize(BannerSize.MEDIUM_TYPE, 0, 0)
+                BannerFormat.Banner -> BannerSize(BannerSize.STANDARD_TYPE, 320, 50)
+                BannerFormat.LeaderBoard -> BannerSize(BannerSize.DEV_SET_TYPE, 728, 90)
+                BannerFormat.MRec -> BannerSize(BannerSize.MEDIUM_TYPE, 300, 250)
                 BannerFormat.Adaptive -> BannerSize(BannerSize.SMART_TYPE, 0, 0)
             }.also {
                 bannerSize = it
