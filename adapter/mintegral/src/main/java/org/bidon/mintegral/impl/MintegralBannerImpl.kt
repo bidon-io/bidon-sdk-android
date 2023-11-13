@@ -16,6 +16,7 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -67,7 +68,11 @@ internal class MintegralBannerImpl :
                 BannerFormat.Banner -> BannerSize(BannerSize.STANDARD_TYPE, 320, 50)
                 BannerFormat.LeaderBoard -> BannerSize(BannerSize.DEV_SET_TYPE, 728, 90)
                 BannerFormat.MRec -> BannerSize(BannerSize.MEDIUM_TYPE, 300, 250)
-                BannerFormat.Adaptive -> BannerSize(BannerSize.SMART_TYPE, 0, 0)
+                BannerFormat.Adaptive -> if (isTablet) {
+                    BannerSize(BannerSize.DEV_SET_TYPE, 728, 90)
+                } else {
+                    BannerSize(BannerSize.STANDARD_TYPE, 320, 50)
+                }
             }.also {
                 bannerSize = it
             }
