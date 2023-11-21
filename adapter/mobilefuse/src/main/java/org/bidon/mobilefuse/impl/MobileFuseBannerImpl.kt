@@ -139,7 +139,7 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
             override fun onAdExpanded() {}
             override fun onAdCollapsed() {}
         })
-        bannerAd.loadAdFromBiddingToken(adParams.signalData)
+        bannerAd.loadAdFromBiddingToken(adParams.payload)
     }
 
     override fun getAdView(): AdViewHolder? {
