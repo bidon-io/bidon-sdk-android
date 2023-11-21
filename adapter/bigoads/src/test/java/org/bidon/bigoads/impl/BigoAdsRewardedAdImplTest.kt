@@ -1,10 +1,9 @@
-package org.bidon.applovin.impl
+package org.bidon.bigoads.impl
 
 import android.app.Activity
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
-import org.bidon.applovin.ApplovinBannerAuctionParams
-import org.bidon.applovin.ApplovinDemandId
+import org.bidon.bigoads.BigoAdsDemandId
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
@@ -16,16 +15,16 @@ import org.junit.Test
 /**
  * Created by Aleksei Cherniaev on 21/11/2023.
  */
-class ApplovinBannerImplTest {
+class BigoAdsRewardedAdImplTest {
     private val activity = mockk<Activity>()
     private val testee by lazy {
-        ApplovinBannerImpl(mockk()).apply {
-            addDemandId(ApplovinDemandId)
+        BigoAdsRewardedAdImpl().apply {
+            addDemandId(BigoAdsDemandId)
         }
     }
 
     @Test
-    fun `parse banner AdUnit CPM`() {
+    fun `parse banner AdUnit RTB`() {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
@@ -58,18 +57,17 @@ class ApplovinBannerImplTest {
                 optContainerWidth = 140f,
                 bidResponse = BidResponse(
                     id = "id",
-                    price = 2.7,
+                    price = 2.75,
                     ext = jsonObject {
                         "payload" hasValue "payload123"
                     }.toString(),
                     adUnit = AdUnit(
-                        demandId = "amazon",
+                        demandId = "bigoads",
                         pricefloor = 2.7,
                         label = "label123",
                         bidType = BidType.RTB,
                         ext = jsonObject {
-                            "slot_uuid" hasValue "slot_uuid4"
-                            "format" hasValue "BANNER"
+                            "slot_id" hasValue "slot_id4"
                         }.toString(),
                         uid = "uid123"
                     ),
@@ -79,20 +77,21 @@ class ApplovinBannerImplTest {
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
 
-        require(actual is ApplovinBannerAuctionParams)
+        require(actual is BigoFullscreenAuctionParams)
         assertThat(actual.adUnit).isEqualTo(
             AdUnit(
-                demandId = "applovin",
-                pricefloor = 4.0,
-                label = "label111",
-                bidType = BidType.CPM,
+                demandId = "bigoads",
+                pricefloor = 2.7,
+                label = "label123",
+                bidType = BidType.RTB,
                 ext = jsonObject {
-                    "zone_id" hasValue "zone_id111"
+                    "slot_id" hasValue "slot_id4"
                 }.toString(),
-                uid = "uid111"
+                uid = "uid123"
             )
         )
-        assertThat(actual.zoneId).isEqualTo("zone_id111")
-        assertThat(actual.price).isEqualTo(4.0)
+        assertThat(actual.slotId).isEqualTo("slot_id4")
+        assertThat(actual.payload).isEqualTo("payload123")
+        assertThat(actual.price).isEqualTo(2.75)
     }
 }

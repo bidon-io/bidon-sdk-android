@@ -4,23 +4,24 @@ import android.app.Activity
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.BidResponse
 
 data class BigoBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    val bidPrice: Double,
-    override val adUnit: AdUnit
+    private val bidResponse: BidResponse,
 ) : AdAuctionParams {
-    override val price: Double get() = bidPrice
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+    override val adUnit: AdUnit = bidResponse.adUnit
+    override val price: Double = bidResponse.price
+    val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
     val slotId: String = requireNotNull(adUnit.extra?.getString("slot_id"))
 }
 
 data class BigoFullscreenAuctionParams(
-    val bidPrice: Double,
-    override val adUnit: AdUnit
+    private val bidResponse: BidResponse,
 ) : AdAuctionParams {
-    override val price: Double get() = bidPrice
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+    override val adUnit: AdUnit = bidResponse.adUnit
+    override val price: Double = bidResponse.price
+    val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
     val slotId: String = requireNotNull(adUnit.extra?.getString("slot_id"))
 }
