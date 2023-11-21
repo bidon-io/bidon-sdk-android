@@ -24,7 +24,7 @@ class UnityAdsRewardedTest {
     }
 
     @Test
-    fun `parse banner AdUnit CPM`() {
+    fun `parse rewarded AdUnit CPM`() {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
