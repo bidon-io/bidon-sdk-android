@@ -1,10 +1,10 @@
-package org.bidon.amazon.impl
+package org.bidon.applovin.impl
 
 import android.app.Activity
-import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth
 import io.mockk.mockk
-import org.bidon.amazon.AmazonDemandId
-import org.bidon.amazon.SlotType
+import org.bidon.applovin.ApplovinDemandId
+import org.bidon.applovin.ApplovinFullscreenAdAuctionParams
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
@@ -16,11 +16,11 @@ import org.junit.Test
 /**
  * Created by Aleksei Cherniaev on 21/11/2023.
  */
-class AmazonBannerImplTest {
+class ApplovinRewardedImplTest {
     private val activity = mockk<Activity>()
     private val testee by lazy {
-        AmazonBannerImpl().apply {
-            addDemandId(AmazonDemandId)
+        ApplovinRewardedImpl(mockk()).apply {
+            addDemandId(ApplovinDemandId)
         }
     }
 
@@ -43,12 +43,12 @@ class AmazonBannerImplTest {
                         uid = "uid123"
                     ),
                     AdUnit(
-                        demandId = "demand888",
+                        demandId = "applovin",
                         pricefloor = 4.0,
                         label = "label111",
                         bidType = BidType.CPM,
                         ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id111"
+                            "zone_id" hasValue "zone_id111"
                         }.toString(),
                         uid = "uid111"
                     ),
@@ -79,22 +79,20 @@ class AmazonBannerImplTest {
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
 
-        require(actual is BannerAuctionParams)
-        assertThat(actual.adUnit).isEqualTo(
+        require(actual is ApplovinFullscreenAdAuctionParams)
+        Truth.assertThat(actual.adUnit).isEqualTo(
             AdUnit(
-                demandId = "amazon",
-                pricefloor = 2.7,
-                label = "label123",
-                bidType = BidType.RTB,
+                demandId = "applovin",
+                pricefloor = 4.0,
+                label = "label111",
+                bidType = BidType.CPM,
                 ext = jsonObject {
-                    "slot_uuid" hasValue "slot_uuid4"
-                    "format" hasValue "BANNER"
+                    "zone_id" hasValue "zone_id111"
                 }.toString(),
-                uid = "uid123"
+                uid = "uid111"
             )
         )
-        assertThat(actual.slotUuid).isEqualTo("slot_uuid4")
-        assertThat(actual.price).isEqualTo(2.7)
-        assertThat(actual.format).isEqualTo(SlotType.BANNER)
+        Truth.assertThat(actual.zoneId).isEqualTo("zone_id111")
+        Truth.assertThat(actual.price).isEqualTo(4.0)
     }
 }
