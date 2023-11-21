@@ -88,7 +88,7 @@ class AmazonRewardedImplTest {
             )
         )
         Truth.assertThat(actual.slotUuid).isEqualTo("slot_uuid4")
-        Truth.assertThat(actual.price).isEqualTo(2.5)
+        Truth.assertThat(actual.price).isEqualTo(2.7)
         Truth.assertThat(actual.format).isEqualTo(SlotType.REWARDED_AD)
     }
 }

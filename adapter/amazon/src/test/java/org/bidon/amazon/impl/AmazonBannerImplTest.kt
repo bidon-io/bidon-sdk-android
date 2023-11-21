@@ -89,7 +89,7 @@ class AmazonBannerImplTest {
             )
         )
         assertThat(actual.slotUuid).isEqualTo("slot_uuid4")
-        assertThat(actual.price).isEqualTo(2.5)
+        assertThat(actual.price).isEqualTo(2.7)
         assertThat(actual.format).isEqualTo(SlotType.BANNER)
     }
 }
