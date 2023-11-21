@@ -19,7 +19,7 @@ class VungleBannerAuctionParams(
         "Payload is required"
     }
     val placementId: String = requireNotNull(bidResponse.adUnit.extra?.getString("placement_id")) {
-        "Banner id is required"
+        "placement_id is required"
     }
     override val adUnit: AdUnit = bidResponse.adUnit
 
@@ -45,7 +45,7 @@ data class VungleFullscreenAuctionParams(
         "Payload is required"
     }
     val placementId: String = requireNotNull(bidResponse.adUnit.extra?.getString("placement_id")) {
-        "Banner id is required"
+        "placement_id is required"
     }
     override val adUnit: AdUnit = bidResponse.adUnit
 }
