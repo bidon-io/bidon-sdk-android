@@ -95,15 +95,7 @@ internal class BMBannerAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            BMBannerAuctionParams(
-                price = pricefloor,
-                timeout = timeout,
-                activity = activity,
-                bannerFormat = bannerFormat,
-                adUnit = popAdUnit(demandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
-            )
-        }
+        return GetAdAuctionParamUseCase().getBMBannerAuctionParams(auctionParamsScope, bidType)
     }
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {

@@ -18,9 +18,9 @@ class BMBannerAuctionParams(
     val bannerFormat: BannerFormat,
     override val price: Double,
     val timeout: Long,
-    override val adUnit: AdUnit
+    override val adUnit: AdUnit,
+    val payload: String?
 ) : AdAuctionParams {
-    val payload: String? = adUnit.extra?.getString("payload")
 
     override fun toString(): String {
         return "BMBannerAuctionParams(bannerFormat=$bannerFormat, pricefloor=$price, timeout=$timeout)"
@@ -31,9 +31,9 @@ class BMFullscreenAuctionParams(
     val context: Context,
     override val price: Double,
     val timeout: Long,
-    override val adUnit: AdUnit
+    override val adUnit: AdUnit,
+    val payload: String?
 ) : AdAuctionParams {
-    val payload: String? = adUnit.extra?.getString("payload")
 
     override fun toString(): String {
         return "BMFullscreenAuctionParams(pricefloor=$price, timeout=$timeout)"

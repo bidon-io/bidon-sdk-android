@@ -53,14 +53,7 @@ internal class BMRewardedAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            BMFullscreenAuctionParams(
-                price = pricefloor,
-                timeout = timeout,
-                context = activity.applicationContext,
-                adUnit = popAdUnit(demandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
-            )
-        }
+        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope, bidType)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {
