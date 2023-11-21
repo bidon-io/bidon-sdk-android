@@ -3,6 +3,7 @@ package org.bidon.amazon.impl
 import android.app.Activity
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
+import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
@@ -63,6 +64,7 @@ class AmazonBannerImplTest {
                         bidType = BidType.RTB,
                         ext = jsonObject {
                             "slot_uuid" hasValue "slot_uuid4"
+                            "format" hasValue "BANNER"
                         }.toString(),
                         uid = "uid123"
                     ),
@@ -81,11 +83,13 @@ class AmazonBannerImplTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "slot_uuid" hasValue "slot_uuid4"
+                    "format" hasValue "BANNER"
                 }.toString(),
                 uid = "uid123"
             )
         )
         assertThat(actual.slotUuid).isEqualTo("slot_uuid4")
         assertThat(actual.price).isEqualTo(2.5)
+        assertThat(actual.format).isEqualTo(SlotType.BANNER)
     }
 }

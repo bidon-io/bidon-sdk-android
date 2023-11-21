@@ -3,6 +3,7 @@ package org.bidon.amazon.impl
 import android.app.Activity
 import com.google.common.truth.Truth
 import io.mockk.mockk
+import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BidResponse
@@ -62,6 +63,7 @@ class AmazonRewardedImplTest {
                         bidType = BidType.RTB,
                         ext = jsonObject {
                             "slot_uuid" hasValue "slot_uuid4"
+                            "format" hasValue "REWARDED"
                         }.toString(),
                         uid = "uid123"
                     ),
@@ -80,11 +82,13 @@ class AmazonRewardedImplTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "slot_uuid" hasValue "slot_uuid4"
+                    "format" hasValue "REWARDED"
                 }.toString(),
                 uid = "uid123"
             )
         )
         Truth.assertThat(actual.slotUuid).isEqualTo("slot_uuid4")
         Truth.assertThat(actual.price).isEqualTo(2.5)
+        Truth.assertThat(actual.format).isEqualTo(SlotType.REWARDED_AD)
     }
 }

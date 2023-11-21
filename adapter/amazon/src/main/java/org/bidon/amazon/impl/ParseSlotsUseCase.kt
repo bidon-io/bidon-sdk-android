@@ -13,7 +13,7 @@ internal class ParseSlotsUseCase {
         }.map { slot ->
             runCatching {
                 val format = slot.getString("format")
-                val adType = SlotType.get(format) ?: error("Unknown slot type $format")
+                val adType = SlotType.getOrNull(format) ?: error("Unknown slot type $format")
                 val slotUuid = slot.getString("slot_uuid")
                 put(adType, (get(adType) ?: emptyList()) + slotUuid)
             }
