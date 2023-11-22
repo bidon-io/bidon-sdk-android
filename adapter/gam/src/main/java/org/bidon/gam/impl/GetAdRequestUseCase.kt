@@ -2,10 +2,10 @@ package org.bidon.gam.impl
 
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
-import org.bidon.gam.ext.asBundle
-import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.gam.GamBannerAuctionParams
+import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.gam.GamInitParameters
+import org.bidon.gam.ext.asBundle
 import org.bidon.sdk.BidonSdk
 
 internal class GetAdRequestUseCase(private val configParams: GamInitParameters?) {
