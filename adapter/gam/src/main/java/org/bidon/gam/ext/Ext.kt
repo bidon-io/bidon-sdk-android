@@ -27,8 +27,9 @@ internal fun BannerFormat.toGamAdSize(
             if (isTablet) {
                 AdSize.LEADERBOARD
             } else {
-                val adWidth = getScreenWidth(context)
-                AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidth)
+//                val adWidth = getScreenWidth(context)
+//                AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidth)
+                AdSize.BANNER
             }
         }
     }
