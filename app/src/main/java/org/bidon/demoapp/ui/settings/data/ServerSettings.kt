@@ -7,6 +7,7 @@ internal data class ServerSettings(
 
 internal enum class Host {
     Production,
+    Staging,
     MockServer
 }
 

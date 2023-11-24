@@ -83,6 +83,7 @@ internal fun ServerSettingsScreen(
                 val hostValue = when (host.value) {
                     Host.Production -> AppBaqendBaseUrl
                     Host.MockServer -> MockUrl
+                    Host.Staging -> TODO()
                 }
                 sharedPreferences.edit().putString("host", hostValue).apply()
                 navController.popBackStack()
@@ -130,6 +131,7 @@ private fun RenderHosts(hosts: List<Host>, selectedHost: Host, onClick: (Host) -
                         text = when (host) {
                             Host.Production -> AppBaqendBaseUrl
                             Host.MockServer -> MockUrl
+                            Host.Staging -> TODO()
                         },
                         maxLines = 1
                     )
