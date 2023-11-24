@@ -29,14 +29,18 @@ internal class RootAdContainer(context: Context) : FrameLayout(context) {
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         if (isPlugin()) {
-            (this.parent as? ViewGroup)?.addOnLayoutChangeListener(layoutChangeListener)
+            runCatching {
+                (this.parent as? ViewGroup)?.addOnLayoutChangeListener(layoutChangeListener)
+            }
         }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         if (isPlugin()) {
-            (this.parent as? ViewGroup)?.removeOnLayoutChangeListener(layoutChangeListener)
+            runCatching {
+                (this.parent as? ViewGroup)?.removeOnLayoutChangeListener(layoutChangeListener)
+            }
         }
     }
 
@@ -63,15 +67,17 @@ internal class RootAdContainer(context: Context) : FrameLayout(context) {
 
     private fun bringToFrontIfNeed() {
         if (isPlugin()) {
-            (parent as? ViewGroup)?.let { root ->
-                val rootAdContainerIndex = root.indexOfChild(this)
-                if (rootAdContainerIndex != -1) {
-                    for (index in rootAdContainerIndex + 1..root.childCount) {
-                        val child = root.getChildAt(index) ?: continue
-                        if (child.javaClass.simpleName == "UnityPlayer") {
-                            logInfo(this@RootAdContainer.TAG, "Bring to front")
-                            this@RootAdContainer.bringToFront()
-                            break
+            runCatching {
+                (parent as? ViewGroup)?.let { root ->
+                    val rootAdContainerIndex = root.indexOfChild(this)
+                    if (rootAdContainerIndex != -1) {
+                        for (index in rootAdContainerIndex + 1..root.childCount) {
+                            val child = root.getChildAt(index) ?: continue
+                            if (child.javaClass.simpleName == "UnityPlayer") {
+                                logInfo(this@RootAdContainer.TAG, "Bring to front")
+                                this@RootAdContainer.bringToFront()
+                                break
+                            }
                         }
                     }
                 }
