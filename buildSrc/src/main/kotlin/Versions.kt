@@ -8,17 +8,18 @@ object Versions {
 
     object Adapters {
         val Admob = "$mainVersion.0" + semanticVersion
+        val Amazon = "$mainVersion.0" + semanticVersion
         val Applovin = "$mainVersion.0" + semanticVersion
         val BidMachine = "$mainVersion.0" + semanticVersion
-        val DTExchange = "$mainVersion.0" + semanticVersion
-        val UnityAds = "$mainVersion.0" + semanticVersion
         val BigoAds = "$mainVersion.0" + semanticVersion
-        val Mintegral = "$mainVersion.0" + semanticVersion
-        val Vungle = "$mainVersion.0" + semanticVersion
-        val Meta = "$mainVersion.0" + semanticVersion
+        val DTExchange = "$mainVersion.0" + semanticVersion
         val Inmobi = "$mainVersion.0" + semanticVersion
-        val Amazon = "$mainVersion.0" + semanticVersion
+        val Gam = "$mainVersion.0" + semanticVersion
+        val Meta = "$mainVersion.0" + semanticVersion
+        val Mintegral = "$mainVersion.0" + semanticVersion
         val MobileFuse = "$mainVersion.0" + semanticVersion
+        val Vungle = "$mainVersion.0" + semanticVersion
+        val UnityAds = "$mainVersion.0" + semanticVersion
 
         val IronSource = "$mainVersion.0"
         val Appsflyer = "$mainVersion.0"
