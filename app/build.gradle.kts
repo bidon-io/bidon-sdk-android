@@ -33,8 +33,8 @@ android {
 
         manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as? String ?: ""
         BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as? String ?: ""
-        STAGING_BASIC_AUTH_USERNAME = keystoreProperties["STAGING_BASIC_AUTH_USERNAME"] as? String
-        STAGING_BASIC_AUTH_PASSWORD = keystoreProperties["STAGING_BASIC_AUTH_PASSWORD"] as? String
+        STAGING_BASIC_AUTH_USERNAME = keystoreProperties["STAGING_BASIC_AUTH_USERNAME"] as? String ?: "username"
+        STAGING_BASIC_AUTH_PASSWORD = keystoreProperties["STAGING_BASIC_AUTH_PASSWORD"] as? String ?: "password"
     }
     signingConfigs {
         create("myConfig") {
