@@ -59,7 +59,7 @@ class MobileFuseInterstitialImplTest {
                     id = "id",
                     price = 2.75,
                     ext = jsonObject {
-                        "payload" hasValue "payload123"
+                        "signaldata" hasValue "signaldata_payload123"
                     }.toString(),
                     adUnit = AdUnit(
                         demandId = "mobilefuse",
@@ -91,7 +91,7 @@ class MobileFuseInterstitialImplTest {
             )
         )
         Truth.assertThat(actual.placementId).isEqualTo("placement_id4")
-        Truth.assertThat(actual.signalData).isEqualTo("payload123")
+        Truth.assertThat(actual.signalData).isEqualTo("signaldata_payload123")
         Truth.assertThat(actual.price).isEqualTo(2.75)
     }
 }
