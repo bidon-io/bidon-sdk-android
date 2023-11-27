@@ -76,7 +76,9 @@ class VungleAdapter :
         if (regulation.gdprApplies) {
             VunglePrivacySettings.setGDPRStatus(regulation.hasGdprConsent, null)
         }
-        VunglePrivacySettings.setCOPPAStatus(regulation.coppaApplies)
+        if (regulation.coppaApplies) {
+            VunglePrivacySettings.setCOPPAStatus(regulation.coppaApplies)
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<VungleFullscreenAuctionParams> {

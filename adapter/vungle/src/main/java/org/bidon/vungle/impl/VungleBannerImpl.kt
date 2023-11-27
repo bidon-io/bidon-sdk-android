@@ -74,7 +74,13 @@ internal class VungleBannerImpl :
 
         val adListener = object : BaseAdListener {
             override fun onAdLoaded(baseAd: BaseAd) {
-                logInfo(TAG, "onAdLoad =${baseAd.placementId}. $this")
+                val ad = getAd()
+                if (ad != null) {
+                    emitEvent(AdEvent.Fill(ad))
+                    logInfo(TAG, "onAdLoad =${baseAd.placementId}. $this")
+                } else {
+                    emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+                }
             }
 
             override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
@@ -130,7 +136,6 @@ internal class VungleBannerImpl :
                     this.adListener = adListener
                     load()
                 }
-                emitEvent(AdEvent.Fill(bidonAd))
             } else {
                 emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
             }

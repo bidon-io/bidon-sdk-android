@@ -24,7 +24,7 @@ class VungleBannerAuctionParams(
         }
 }
 
-data class VungleFullscreenAuctionParams(
+class VungleFullscreenAuctionParams(
     val activity: Activity,
     override val price: Double,
     val placementId: String,
