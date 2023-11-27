@@ -132,7 +132,7 @@ class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
                 }
             }
         })
-        rewardedAd.loadAdFromBiddingToken(adParams.payload)
+        rewardedAd.loadAdFromBiddingToken(adParams.signalData)
     }
 
     override fun show(activity: Activity) {

@@ -91,7 +91,7 @@ class MobileFuseInterstitialImplTest {
             )
         )
         Truth.assertThat(actual.placementId).isEqualTo("placement_id4")
-        Truth.assertThat(actual.payload).isEqualTo("payload123")
+        Truth.assertThat(actual.signalData).isEqualTo("payload123")
         Truth.assertThat(actual.price).isEqualTo(2.75)
     }
 }

@@ -126,7 +126,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
                 this@MobileFuseInterstitialImpl.interstitialAd = null
             }
         })
-        interstitialAd.loadAdFromBiddingToken(adParams.payload)
+        interstitialAd.loadAdFromBiddingToken(adParams.signalData)
     }
 
     override fun show(activity: Activity) {

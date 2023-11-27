@@ -91,7 +91,7 @@ class MobileFuseBannerImplTest {
             )
         )
         assertThat(actual.placementId).isEqualTo("placement_id4")
-        assertThat(actual.payload).isEqualTo("payload123")
+        assertThat(actual.signalData).isEqualTo("payload123")
         assertThat(actual.price).isEqualTo(2.75)
     }
 }
