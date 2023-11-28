@@ -27,6 +27,20 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
         configResponse: ConfigResponse,
         isTestMode: Boolean
     ) = coroutineScope {
+        runCatching {
+            withTimeout(configResponse.initializationTimeout) {
+                val groupedAdapters = configResponse.adapters.toList().groupBy { (adapterName, initJson) ->
+                    initJson.optInt("order", 0)
+                }.map { (order, adapters) ->
+                    logInfo(TAG, "Order: $order, Adapters: ${adapters.map { it.first }}")
+
+                }
+
+
+
+            }
+        }
+
         val deferredList = adapters.associate { adapter ->
             val demandId = adapter.demandId
             demandId to async {

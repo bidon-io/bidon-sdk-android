@@ -1,3 +1,5 @@
+[BDN-555](https://appodeal.atlassian.net/browse/BDN-555) Concurrent ad network initalization optimisation Android
+
 # Release 0.4.24 (2023.11.23)
 ## Features:
 [BDN-550](https://appodeal.atlassian.net/browse/BDN-550) Skip some checks from VisibilityTracker
