@@ -36,7 +36,6 @@ internal class TestInitAdapter(
         }
     }
 
-
     override fun parseConfigParam(json: String): TestInitAdapterParameters {
         return TestInitAdapterParameters(
             initializationTime = initializationTime,

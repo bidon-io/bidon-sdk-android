@@ -2,6 +2,10 @@ package org.bidon.sdk.config.impl
 
 import android.content.Context
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.adapter.AdaptersSource
@@ -12,6 +16,7 @@ import org.bidon.sdk.config.usecases.InitAndRegisterAdaptersUseCase
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import org.json.JSONObject
 import kotlin.system.measureTimeMillis
 
 /**
@@ -23,17 +28,59 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
 ) : InitAndRegisterAdaptersUseCase {
 
     private val scope get() = CoroutineScope(SdkDispatchers.Single)
+    private val canContinueFlow = MutableStateFlow(false)
 
     override suspend operator fun invoke(
         context: Context,
         adapters: List<Adapter>,
         configResponse: ConfigResponse,
         isTestMode: Boolean
-    ) = coroutineScope {
+    ) {
+        // set test mode param
+        adapters.forEach {
+            (it as? SupportsTestMode)?.isTestMode = isTestMode
+        }
+
+        // start initialization
+        canContinueFlow
+            .onSubscription {
+                scope.launch {
+                    delay(configResponse.initializationTimeout)
+                    /**
+                     * Continue initialization flow after timeout.
+                     * Not initialized adapters will be added to [AdaptersSource] after timeout.
+                     */
+                    canContinueFlow.update { isInitializedOnTime ->
+                        if (!isInitializedOnTime) {
+                            val initializedAdapters = adaptersSource.adapters.joinToString { it.demandId.demandId }
+                            logError(TAG, "Timeout. Available adapters: $initializedAdapters", null)
+                        }
+                        true
+                    }
+                }
+                scope.launch {
+                    /**
+                     * Initialize adapters
+                     */
+                    initializeAdapters(adapters, configResponse, context)
+                }
+            }.first { canContinue ->
+                /**
+                 * Wait for ability to continue initialization flow.
+                 */
+                canContinue
+            }
+        logInfo(TAG, "Registered adapters: ${adaptersSource.adapters.joinToString { it::class.java.simpleName }}")
+    }
+
+    private suspend fun initializeAdapters(
+        adapters: List<Adapter>,
+        configResponse: ConfigResponse,
+        context: Context
+    ) {
         runCatching {
             val adapterList = adapters.toMutableSet()
             logInfo(TAG, "Adapters: ${adapterList.joinToString { it.demandId.demandId }}")
-//            withTimeoutOrNull(configResponse.initializationTimeout) {
             val groupedAdapters = configResponse.adapters.toList()
                 .groupBy { (_, initJson) -> initJson.optInt("order", 0) }
                 .toList()
@@ -43,51 +90,67 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                 }
             groupedAdapters.forEach { (order, adaptersInfo) ->
                 logInfo(TAG, "Start initialization #$order: ${adaptersInfo.joinToString { it.first }}")
-                val nextAdaptersGroup = adaptersInfo
-                    .mapNotNull { (demandId, _) ->
-                        adapterList.find { it.demandId.demandId == demandId }
-                    }.also {
-                        adapterList.removeAll(it.toSet())
+                initializeAdapterGroup(
+                    context = context,
+                    adaptersInfo = adaptersInfo,
+                    adapters = adapterList,
+                    configResponse = configResponse,
+                    onAdapterInitializationStarted = {
+                        adapterList.removeAll(it)
                     }
-                val deferredList = nextAdaptersGroup.map { adapter ->
-                    val demandId = adapter.demandId
-                    scope.async {
-                        runCatching {
-                            // set test mode param
-                            (adapter as? SupportsTestMode)?.isTestMode = isTestMode
-
-                            // initialize if needed
-                            val initializable = adapter as? Initializable<AdapterParameters>
-                            if (initializable == null) {
-                                adapter
-                            } else {
-                                val timeStart = measureTimeMillis {
-                                    val adapterParameters =
-                                        parseAdapterParameters(configResponse, adapter).getOrThrow()
-                                    adapter.init(context, adapterParameters)
-                                }
-                                logInfo(TAG, "Adapter ${demandId.demandId} initialized in $timeStart ms.")
-                            }
-                        }.onSuccess {
-                            /**
-                             * Add adapter to [AdaptersSource] only if it was initialized successfully.
-                             */
-                            /**
-                             * Add adapter to [AdaptersSource] only if it was initialized successfully.
-                             */
-                            adaptersSource.add(adapter)
-                        }.onFailure { cause ->
-                            logError(TAG, "Adapter not initialized: ${demandId.demandId}: ${cause.message}", cause)
-                        }.getOrNull()
-                    }
+                )
+            }
+            canContinueFlow.update { isTimedOut ->
+                if (isTimedOut) {
+                    logError(TAG, "Timeout ${configResponse.initializationTimeout} ms reached", null)
                 }
-                withTimeoutOrNull(configResponse.initializationTimeout) {
-                    deferredList.forEach { it.await() }
-                }
-//                }
+                true
             }
         }
-        logInfo(TAG, "Registered adapters: ${adaptersSource.adapters.joinToString { it::class.java.simpleName }}")
+    }
+
+    private suspend fun initializeAdapterGroup(
+        context: Context,
+        adaptersInfo: List<Pair<String, JSONObject>>,
+        adapters: Set<Adapter>,
+        configResponse: ConfigResponse,
+        onAdapterInitializationStarted: (adapters: Set<Adapter>) -> Unit
+    ) {
+        val nextAdaptersGroup = adaptersInfo
+            .mapNotNull { (demandId, _) ->
+                adapters.find { it.demandId.demandId == demandId }
+            }.also {
+                onAdapterInitializationStarted(it.toSet())
+            }
+        val deferredList = nextAdaptersGroup.map { adapter ->
+            val demandId = adapter.demandId
+            scope.async {
+                runCatching {
+                    // initialize if needed
+                    val initializable = adapter as? Initializable<AdapterParameters>
+                    if (initializable == null) {
+                        adapter
+                    } else {
+                        val measuredTime = measureTimeMillis {
+                            val adapterParameters =
+                                parseAdapterParameters(configResponse, adapter).getOrThrow()
+                            adapter.init(context, adapterParameters)
+                        }
+                        logInfo(TAG, "Adapter ${demandId.demandId} initialized in $measuredTime ms.")
+                    }
+                }.onSuccess {
+                    /**
+                     * Add adapter to [AdaptersSource] only if it was initialized successfully.
+                     */
+                    adaptersSource.add(adapter)
+                }.onFailure { cause ->
+                    logError(TAG, "Adapter not initialized: ${demandId.demandId}: ${cause.message}", cause)
+                }.getOrNull()
+            }
+        }
+        withTimeoutOrNull(configResponse.initializationTimeout) {
+            deferredList.forEach { it.await() }
+        }
     }
 
     private fun parseAdapterParameters(
