@@ -53,7 +53,7 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                     canContinueFlow.update { isInitializedOnTime ->
                         if (!isInitializedOnTime) {
                             val initializedAdapters = adaptersSource.adapters.joinToString { it.demandId.demandId }
-                            logError(TAG, "Timeout. Available adapters: $initializedAdapters", null)
+                            logError(TAG, "Timeout reached. Available adapters: $initializedAdapters", null)
                         }
                         true
                     }
@@ -102,7 +102,7 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
             }
             canContinueFlow.update { isTimedOut ->
                 if (isTimedOut) {
-                    logError(TAG, "Timeout ${configResponse.initializationTimeout} ms reached", null)
+                    logError(TAG, "Initialization finished after timeout ${configResponse.initializationTimeout} ms reached", null)
                 }
                 true
             }
