@@ -4,7 +4,6 @@ import android.content.Context
 import com.vungle.warren.InitCallback
 import com.vungle.warren.Vungle
 import com.vungle.warren.error.VungleException
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -25,6 +24,7 @@ import org.bidon.vungle.impl.VungleRewardedImpl
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Created by Aleksei Cherniaev on 14/07/2023.
@@ -45,7 +45,7 @@ class VungleAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun init(context: Context, configParams: VungleParameters) = suspendCancellableCoroutine { continuation ->
+    override suspend fun init(context: Context, configParams: VungleParameters) = suspendCoroutine { continuation ->
         Vungle.init(
             configParams.appId,
             context,

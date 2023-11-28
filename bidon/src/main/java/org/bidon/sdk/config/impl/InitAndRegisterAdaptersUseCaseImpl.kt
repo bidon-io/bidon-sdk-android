@@ -29,14 +29,13 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
     ) = coroutineScope {
         runCatching {
             withTimeout(configResponse.initializationTimeout) {
-                val groupedAdapters = configResponse.adapters.toList().groupBy { (adapterName, initJson) ->
-                    initJson.optInt("order", 0)
-                }.map { (order, adapters) ->
-                    logInfo(TAG, "Order: $order, Adapters: ${adapters.map { it.first }}")
-
-                }
-
-
+                val groupedAdapters = configResponse.adapters.toList()
+                    .groupBy { (_, initJson) ->
+                        initJson.optInt("order", 0)
+                    }.onEach { (order, adapters) ->
+                        logInfo(TAG, "Order: $order, Adapters: ${adapters.map { it.first }}")
+                    }
+                groupedAdapters
 
             }
         }
