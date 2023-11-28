@@ -43,7 +43,6 @@ internal class VungleInterstitialImpl :
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canPlayAd() == true
 
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             VungleFullscreenAuctionParams(
@@ -117,12 +116,12 @@ internal class VungleInterstitialImpl :
         }
         interstitialAd = InterstitialAd(adParams.activity, adParams.placementId, AdConfig()).apply {
             adListener = interstitialListener
-            load()
+            load(adParams.payload)
         }
     }
 
     override fun show(activity: Activity) {
-        if (interstitialAd?.canPlayAd() == true) {
+        if (isAdReadyToShow) {
             interstitialAd?.play()
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))

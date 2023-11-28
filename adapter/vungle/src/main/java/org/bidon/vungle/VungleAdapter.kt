@@ -58,7 +58,6 @@ class VungleAdapter :
                     logError(TAG, "Error while initialization", vungleError)
                     continuation.resumeWithException(vungleError)
                 }
-
             }
         )
     }

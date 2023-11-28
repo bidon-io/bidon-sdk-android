@@ -37,17 +37,12 @@ internal class VungleBannerImpl :
 
     private var banner: BannerAd? = null
     private var bannerSize: BannerAdSize? = null
-    private var payload: String? = null
-    private var bannerId: String? = null
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
         VungleAds.getBiddingToken(context)
 
     override val isAdReadyToShow: Boolean
         get() {
-            bannerId ?: return false
-            payload ?: return false
-            bannerSize ?: return false
             return banner?.canPlayAd() == true
         }
 
@@ -69,8 +64,6 @@ internal class VungleBannerImpl :
 
     override fun load(adParams: VungleBannerAuctionParams) {
         this.bannerSize = adParams.bannerSize
-        this.payload = adParams.payload
-        this.bannerId = adParams.bannerId
 
         val adListener = object : BaseAdListener {
             override fun onAdLoaded(baseAd: BaseAd) {
@@ -134,7 +127,7 @@ internal class VungleBannerImpl :
                     adSize = BannerAdSize.BANNER
                 ).apply {
                     this.adListener = adListener
-                    load()
+                    load(adParams.payload)
                 }
             } else {
                 emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -160,6 +153,7 @@ internal class VungleBannerImpl :
     }
 
     override fun destroy() {
+        bannerSize = null
         banner?.finishAd()
         banner?.adListener = null
         banner = null

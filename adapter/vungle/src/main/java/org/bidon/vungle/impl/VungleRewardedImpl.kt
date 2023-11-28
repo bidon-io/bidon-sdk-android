@@ -122,12 +122,12 @@ internal class VungleRewardedImpl :
         }
         rewardedAd = RewardedAd(adParams.activity, adParams.placementId, AdConfig()).apply {
             adListener = rewardedListener
-            load()
+            load(adParams.payload)
         }
     }
 
     override fun show(activity: Activity) {
-        if (rewardedAd?.canPlayAd() == true) {
+        if (isAdReadyToShow) {
             rewardedAd?.play()
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
