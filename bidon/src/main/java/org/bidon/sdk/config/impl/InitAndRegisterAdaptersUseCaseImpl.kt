@@ -11,6 +11,7 @@ import org.bidon.sdk.config.models.ConfigResponse
 import org.bidon.sdk.config.usecases.InitAndRegisterAdaptersUseCase
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.SdkDispatchers
 import kotlin.system.measureTimeMillis
 
 /**
@@ -21,6 +22,8 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
     private val adaptersSource: AdaptersSource
 ) : InitAndRegisterAdaptersUseCase {
 
+    private val scope get() = CoroutineScope(SdkDispatchers.Single)
+
     override suspend operator fun invoke(
         context: Context,
         adapters: List<Adapter>,
@@ -28,58 +31,63 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
         isTestMode: Boolean
     ) = coroutineScope {
         runCatching {
-            withTimeout(configResponse.initializationTimeout) {
-                val groupedAdapters = configResponse.adapters.toList()
-                    .groupBy { (_, initJson) ->
-                        initJson.optInt("order", 0)
-                    }.onEach { (order, adapters) ->
-                        logInfo(TAG, "Order: $order, Adapters: ${adapters.map { it.first }}")
+            val adapterList = adapters.toMutableSet()
+            logInfo(TAG, "Adapters: ${adapterList.joinToString { it.demandId.demandId }}")
+//            withTimeoutOrNull(configResponse.initializationTimeout) {
+            val groupedAdapters = configResponse.adapters.toList()
+                .groupBy { (_, initJson) -> initJson.optInt("order", 0) }
+                .toList()
+                .sortedBy { (order, _) -> order }
+                .onEach { (order, adaptersInfo) ->
+                    logInfo(TAG, "Initialization order #$order: ${adaptersInfo.joinToString { it.first }}")
+                }
+            groupedAdapters.forEach { (order, adaptersInfo) ->
+                logInfo(TAG, "Start initialization #$order: ${adaptersInfo.joinToString { it.first }}")
+                val nextAdaptersGroup = adaptersInfo
+                    .mapNotNull { (demandId, _) ->
+                        adapterList.find { it.demandId.demandId == demandId }
+                    }.also {
+                        adapterList.removeAll(it.toSet())
                     }
-                groupedAdapters
+                val deferredList = nextAdaptersGroup.map { adapter ->
+                    val demandId = adapter.demandId
+                    scope.async {
+                        runCatching {
+                            // set test mode param
+                            (adapter as? SupportsTestMode)?.isTestMode = isTestMode
 
-            }
-        }
-
-        val deferredList = adapters.associate { adapter ->
-            val demandId = adapter.demandId
-            demandId to async {
-                runCatching {
-                    withTimeout(configResponse.initializationTimeout) {
-                        // set test mode param
-                        (adapter as? SupportsTestMode)?.isTestMode = isTestMode
-
-                        // initialize if needed
-                        val initializable = adapter as? Initializable<AdapterParameters>
-                        if (initializable == null) {
-                            adapter
-                        } else {
-                            val timeStart = measureTimeMillis {
-                                val adapterParameters =
-                                    parseAdapterParameters(configResponse, adapter).getOrThrow()
-                                adapter.init(context, adapterParameters)
+                            // initialize if needed
+                            val initializable = adapter as? Initializable<AdapterParameters>
+                            if (initializable == null) {
+                                adapter
+                            } else {
+                                val timeStart = measureTimeMillis {
+                                    val adapterParameters =
+                                        parseAdapterParameters(configResponse, adapter).getOrThrow()
+                                    adapter.init(context, adapterParameters)
+                                }
+                                logInfo(TAG, "Adapter ${demandId.demandId} initialized in $timeStart ms.")
                             }
-                            logInfo(
-                                TAG,
-                                "Adapter ${demandId.demandId} initialized in $timeStart ms."
-                            )
-
-                            // adapter is ready
-                            adapter
-                        }
+                        }.onSuccess {
+                            /**
+                             * Add adapter to [AdaptersSource] only if it was initialized successfully.
+                             */
+                            /**
+                             * Add adapter to [AdaptersSource] only if it was initialized successfully.
+                             */
+                            adaptersSource.add(adapter)
+                        }.onFailure { cause ->
+                            logError(TAG, "Adapter not initialized: ${demandId.demandId}: ${cause.message}", cause)
+                        }.getOrNull()
                     }
                 }
+                withTimeoutOrNull(configResponse.initializationTimeout) {
+                    deferredList.forEach { it.await() }
+                }
+//                }
             }
         }
-        val readyAdapters = deferredList.mapNotNull { (demandId, deferred) ->
-            deferred.await().onFailure { cause ->
-                logError(TAG, "Adapter not initialized: ${demandId.demandId}", cause)
-            }.getOrNull()
-        }
-        logInfo(
-            TAG,
-            "Registered adapters: ${readyAdapters.joinToString { it::class.java.simpleName }}"
-        )
-        adaptersSource.add(readyAdapters)
+        logInfo(TAG, "Registered adapters: ${adaptersSource.adapters.joinToString { it::class.java.simpleName }}")
     }
 
     private fun parseAdapterParameters(
