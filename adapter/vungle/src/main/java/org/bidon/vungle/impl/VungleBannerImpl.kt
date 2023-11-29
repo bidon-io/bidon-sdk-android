@@ -42,9 +42,7 @@ internal class VungleBannerImpl :
         VungleAds.getBiddingToken(context)
 
     override val isAdReadyToShow: Boolean
-        get() {
-            return banner?.canPlayAd() == true
-        }
+        get() = banner?.getBannerView() != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -119,19 +117,15 @@ internal class VungleBannerImpl :
         }
 
         adParams.activity.runOnUiThread {
-            val bidonAd = getAd()
-            if (bidonAd != null) {
-                this.banner = BannerAd(
-                    context = adParams.activity,
-                    placementId = adParams.bannerId,
-                    adSize = BannerAdSize.BANNER
-                ).apply {
-                    this.adListener = adListener
-                    load(adParams.payload)
-                }
-            } else {
-                emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+            val banner = BannerAd(
+                context = adParams.activity,
+                placementId = adParams.bannerId,
+                adSize = adParams.bannerSize
+            ).also {
+                this.banner = it
             }
+            banner.adListener = adListener
+            banner.load(adParams.payload)
         }
     }
 
