@@ -79,7 +79,7 @@ class VungleAdapter :
             VunglePrivacySettings.setGDPRStatus(regulation.hasGdprConsent, null)
         }
         if (regulation.coppaApplies) {
-            VunglePrivacySettings.setCOPPAStatus(regulation.coppaApplies)
+            VunglePrivacySettings.setCOPPAStatus(true)
         }
     }
 

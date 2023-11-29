@@ -59,7 +59,10 @@ internal class VungleInterstitialImpl :
     }
 
     override fun load(adParams: VungleFullscreenAuctionParams) {
-        val interstitialListener = object : BaseAdListener {
+        val interstitialAd = InterstitialAd(adParams.activity, adParams.placementId, AdConfig()).also {
+            this.interstitialAd = it
+        }
+        interstitialAd.adListener = object : BaseAdListener {
             override fun onAdLoaded(baseAd: BaseAd) {
                 val ad = getAd()
                 if (ad != null) {
@@ -70,7 +73,7 @@ internal class VungleInterstitialImpl :
             }
 
             override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
-                logInfo(TAG, "onError placementId=${baseAd.placementId}. $this")
+                logError(TAG, "onError placementId=${baseAd.placementId}. $this", null)
                 emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
 
@@ -114,10 +117,7 @@ internal class VungleInterstitialImpl :
 
             override fun onAdLeftApplication(baseAd: BaseAd) {}
         }
-        interstitialAd = InterstitialAd(adParams.activity, adParams.placementId, AdConfig()).apply {
-            adListener = interstitialListener
-            load(adParams.payload)
-        }
+        interstitialAd.load(adParams.payload)
     }
 
     override fun show(activity: Activity) {

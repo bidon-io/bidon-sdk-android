@@ -59,7 +59,10 @@ internal class VungleRewardedImpl :
     }
 
     override fun load(adParams: VungleFullscreenAuctionParams) {
-        val rewardedListener = object : RewardedAdListener {
+        val rewardedAd = RewardedAd(adParams.activity, adParams.placementId, AdConfig()).also {
+            this.rewardedAd = it
+        }
+        rewardedAd.adListener = object : RewardedAdListener {
             override fun onAdLoaded(baseAd: BaseAd) {
                 val ad = getAd()
                 if (ad != null) {
@@ -70,7 +73,7 @@ internal class VungleRewardedImpl :
             }
 
             override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
-                logInfo(TAG, "onError placementId=${baseAd.placementId}. $this")
+                logError(TAG, "onError placementId=${baseAd.placementId}. $this", null)
                 emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
 
@@ -120,10 +123,7 @@ internal class VungleRewardedImpl :
 
             override fun onAdImpression(baseAd: BaseAd) {}
         }
-        rewardedAd = RewardedAd(adParams.activity, adParams.placementId, AdConfig()).apply {
-            adListener = rewardedListener
-            load(adParams.payload)
-        }
+        rewardedAd.load(adParams.payload)
     }
 
     override fun show(activity: Activity) {
