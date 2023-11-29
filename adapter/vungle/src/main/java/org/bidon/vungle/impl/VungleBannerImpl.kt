@@ -38,11 +38,11 @@ internal class VungleBannerImpl :
     private var banner: BannerAd? = null
     private var bannerSize: BannerAdSize? = null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
-        VungleAds.getBiddingToken(context)
-
     override val isAdReadyToShow: Boolean
         get() = banner?.getBannerView() != null
+
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
+        VungleAds.getBiddingToken(context)
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {

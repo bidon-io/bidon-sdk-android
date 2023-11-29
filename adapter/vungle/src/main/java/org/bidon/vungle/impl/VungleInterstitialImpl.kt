@@ -37,11 +37,11 @@ internal class VungleInterstitialImpl :
 
     private var interstitialAd: InterstitialAd? = null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
-        VungleAds.getBiddingToken(context)
-
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canPlayAd() == true
+
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
+        VungleAds.getBiddingToken(context)
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {

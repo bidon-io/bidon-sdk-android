@@ -37,11 +37,11 @@ internal class VungleRewardedImpl :
 
     private var rewardedAd: RewardedAd? = null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
-        VungleAds.getBiddingToken(context)
-
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canPlayAd() == true
+
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
+        VungleAds.getBiddingToken(context)
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
