@@ -31,6 +31,9 @@ import kotlin.coroutines.resumeWithException
  */
 internal val VungleDemandId = DemandId("vungle")
 
+/**
+ * [Vungle Documentation](https://support.vungle.com/hc/en-us/articles/360002922871-Integrate-Vungle-SDK-for-Android-or-Amazon)
+ */
 class VungleAdapter :
     Adapter,
     Initializable<VungleParameters>,
