@@ -17,6 +17,7 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BidResponse
+import org.bidon.sdk.auction.models.InterstitialRequest
 import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
@@ -26,6 +27,7 @@ import org.bidon.sdk.mockkLog
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.DemandStat
+import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.StatsRequestBody
@@ -733,6 +735,9 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                     winnerAdUnitUid = "1234",
                     winnerAdUnitLabel = "bidmachine_label",
                     winnerDemandId = "bidmachine",
+                    interstitial = InterstitialRequest,
+                    rewarded = null,
+                    banner = null
                 ),
                 auctionConfigurationUid = "10",
             )
