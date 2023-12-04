@@ -112,6 +112,7 @@ afterEvaluate {
             }
         }
         signing {
+            // TODO Need to finish CI-implementation through [maven.yml]
             isRequired = gradle.taskGraph.hasTask("publishGprPublicationToMavenCentralRepository")
             val keyId: String? by project
             val key: String? by project
