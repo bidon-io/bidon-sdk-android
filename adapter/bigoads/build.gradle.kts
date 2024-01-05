@@ -22,6 +22,4 @@ dependencies {
     testImplementation(project(":bidon"))
 
     implementation("com.bigossp:bigo-ads:4.3.2")
-
-    implementation(Dependencies.Google.PlayServicesAds)
 }

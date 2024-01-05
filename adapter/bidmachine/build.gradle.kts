@@ -22,5 +22,4 @@ dependencies {
     testImplementation(project(":bidon"))
 
     implementation("io.bidmachine:ads:2.4.0")
-    implementation(Dependencies.Google.PlayServicesAds)
 }
