@@ -1,6 +1,9 @@
+# Release 0.4.27 (2024.01.05)
+## Features:
+- [BDN-609](https://appodeal.atlassian.net/browse/BDN-609) Remove Admob dependency
+
 # Release 0.4.26 (2023.12.04)
 ## Features:
-
 - [BDN-555](https://appodeal.atlassian.net/browse/BDN-555) Concurrent ad network initalization optimisation Android
 - [BDN-511](https://appodeal.atlassian.net/browse/BDN-511) Upgrade Vungle adapter
 - [BDN-481](https://appodeal.atlassian.net/browse/BDN-481) Integrate Google Ad Manager
