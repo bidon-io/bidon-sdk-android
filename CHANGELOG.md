@@ -1,3 +1,10 @@
+# Release 0.4.28 (2024.01.15)
+## Features:
+- [BDN-612](https://appodeal.atlassian.net/browse/BDN-612) Move impression tracking to onAdClosed for UnityAds Interstitial
+
+## Bugfixes:
+- [BDN-598](https://appodeal.atlassian.net/browse/BDN-598) Lost request to BM with notification of winnings
+
 # Release 0.4.27 (2024.01.05)
 ## Features:
 - [BDN-609](https://appodeal.atlassian.net/browse/BDN-609) Remove Admob dependency
