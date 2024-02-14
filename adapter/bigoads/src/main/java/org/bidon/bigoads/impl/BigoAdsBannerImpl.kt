@@ -24,7 +24,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 import sg.bigo.ads.BigoAdSdk
 import sg.bigo.ads.api.AdError
 import sg.bigo.ads.api.AdInteractionListener
@@ -62,8 +61,7 @@ internal class BigoAdsBannerImpl :
             BigoBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidPrice = pricefloor,
-                adUnit = popAdUnit(demandId, BidType.RTB) ?: error(BidonError.NoAppropriateAdUnitId),
+                bidResponse = requiredBidResponse
             )
         }
     }
@@ -109,7 +107,7 @@ internal class BigoAdsBannerImpl :
                                 AdEvent.PaidRevenue(
                                     ad = ad,
                                     adValue = AdValue(
-                                        adRevenue = adParams.bidPrice / 1000.0,
+                                        adRevenue = adParams.price / 1000.0,
                                         precision = Precision.Precise,
                                         currency = USD,
                                     )

@@ -7,6 +7,7 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.BidResponse
 
 data class AdmobInitParameters(
     val requestAgent: String?,
@@ -38,10 +39,11 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
         override val price: Double,
-        override val adUnit: AdUnit
+        bidResponse: BidResponse
     ) : AdmobBannerAuctionParams {
+        override val adUnit: AdUnit = bidResponse.adUnit
         val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+        val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
 
         override fun toString(): String {
             return "AdmobBannerAuctionParams($adUnit, bidPrice=$price, payload=${payload.take(20)})"
@@ -67,10 +69,11 @@ sealed interface AdmobFullscreenAdAuctionParams : AdAuctionParams {
     class Bidding(
         override val activity: Activity,
         override val price: Double,
-        override val adUnit: AdUnit,
+        bidResponse: BidResponse
     ) : AdmobFullscreenAdAuctionParams {
+        override val adUnit: AdUnit = bidResponse.adUnit
         val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+        val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
 
         override fun toString(): String {
             return "AdmobFullscreenAdAuctionParams($adUnit, bidPrice=$price, payload=${payload.take(20)})"

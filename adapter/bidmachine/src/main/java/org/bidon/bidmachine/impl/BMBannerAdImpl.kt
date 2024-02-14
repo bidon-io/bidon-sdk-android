@@ -62,6 +62,11 @@ internal class BMBannerAdImpl :
             bannerView = BannerView(adParams.activity.applicationContext)
             bannerFormat = adParams.bannerFormat
             val requestBuilder = BannerRequest.Builder()
+                .apply {
+                    if (bidType == BidType.CPM) {
+                        this.setNetworks("")
+                    }
+                }
                 .setSize(adParams.bannerFormat.asBidMachineBannerSize())
                 .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
                 .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
@@ -95,22 +100,16 @@ internal class BMBannerAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            BMBannerAuctionParams(
-                price = pricefloor,
-                timeout = timeout,
-                activity = activity,
-                bannerFormat = bannerFormat,
-                adUnit = popAdUnit(demandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
-            )
-        }
+        return GetAdAuctionParamUseCase().getBMBannerAuctionParams(auctionParamsScope, bidType)
     }
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
+        logInfo(TAG, "notifyLoss: $this")
         adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
     }
 
     override fun notifyWin() {
+        logInfo(TAG, "notifyWin: $this")
         adRequest?.notifyMediationWin()
     }
 

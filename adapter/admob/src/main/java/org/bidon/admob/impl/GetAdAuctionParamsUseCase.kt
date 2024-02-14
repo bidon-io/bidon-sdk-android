@@ -21,18 +21,17 @@ internal class GetAdAuctionParamsUseCase {
         return auctionParamsScope {
             when (adType) {
                 AdType.Banner -> {
-                    val adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
                     if (bidType == BidType.RTB) {
                         AdmobBannerAuctionParams.Bidding(
                             activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = pricefloor,
-                            adUnit = adUnit,
+                            price = requiredBidResponse.price,
+                            bidResponse = requiredBidResponse,
                         )
                     } else {
                         AdmobBannerAuctionParams.Network(
-                            adUnit = adUnit,
+                            adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
                             bannerFormat = bannerFormat,
                             activity = activity,
                             containerWidth = containerWidth,
@@ -42,16 +41,15 @@ internal class GetAdAuctionParamsUseCase {
 
                 AdType.Interstitial,
                 AdType.Rewarded -> {
-                    val adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
                     if (bidType == BidType.RTB) {
                         AdmobFullscreenAdAuctionParams.Bidding(
                             activity = activity,
-                            price = pricefloor,
-                            adUnit = adUnit,
+                            price = requiredBidResponse.price,
+                            bidResponse = requiredBidResponse,
                         )
                     } else {
                         AdmobFullscreenAdAuctionParams.Network(
-                            adUnit = adUnit,
+                            adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
                             activity = activity,
                         )
                     }

@@ -53,20 +53,18 @@ internal class BMRewardedAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return auctionParamsScope {
-            BMFullscreenAuctionParams(
-                price = pricefloor,
-                timeout = timeout,
-                context = activity.applicationContext,
-                adUnit = popAdUnit(demandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
-            )
-        }
+        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope, bidType)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val requestBuilder = RewardedRequest.Builder()
+            .apply {
+                if (bidType == BidType.CPM) {
+                    this.setNetworks("")
+                }
+            }
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
             .setCustomParams(CustomParams().addParam("mediation_mode", "bidon"))
             .setLoadingTimeOut(adParams.timeout.toInt())
@@ -111,10 +109,12 @@ internal class BMRewardedAdImpl :
     }
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
+        logInfo(TAG, "notifyLoss: $this")
         adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
     }
 
     override fun notifyWin() {
+        logInfo(TAG, "notifyWin: $this")
         adRequest?.notifyMediationWin()
     }
 
