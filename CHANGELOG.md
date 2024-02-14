@@ -1,3 +1,7 @@
+# Release 0.4.29 (2024.02.14)
+## Features:
+- [BDN-615](https://appodeal.atlassian.net/browse/BDN-615) Update BigoAds to 4.5.1
+
 # Release 0.4.28 (2024.01.15)
 ## Features:
 - [BDN-612](https://appodeal.atlassian.net/browse/BDN-612) Move impression tracking to onAdClosed for UnityAds Interstitial
