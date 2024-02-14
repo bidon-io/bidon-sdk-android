@@ -82,6 +82,9 @@ class StatsRequestBodySerializerTest {
                 winnerAdUnitLabel = "label123",
                 winnerAdUnitUid = "123",
                 winnerDemandId = "admob",
+                rewarded = null,
+                interstitial = null,
+                banner = null
             ),
         ).serialize()
         println(json)

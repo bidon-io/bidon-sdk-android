@@ -817,11 +817,9 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                     winnerAdUnitUid = "1234",
                     winnerAdUnitLabel = "bidmachine_label",
                     winnerDemandId = "bidmachine",
-                    banner = BannerRequest(
-                        formatCode = "BANNER",
-                    ),
+                    banner = null,
                     interstitial = InterstitialRequest,
-                    rewarded = RewardedRequest,
+                    rewarded = null,
                 ),
                 auctionConfigurationUid = "10",
             )
