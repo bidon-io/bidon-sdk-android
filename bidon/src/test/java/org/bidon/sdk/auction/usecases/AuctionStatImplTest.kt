@@ -16,10 +16,8 @@ import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.auction.models.InterstitialRequest
-import org.bidon.sdk.auction.models.RewardedRequest
 import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
