@@ -1,3 +1,7 @@
+# Release 0.4.29.1 (****.**.**)
+## Features:
+- [BDN-618](https://appodeal.atlassian.net/browse/BDN-618) Update Bidmachine to 2.5.2
+
 # Release 0.4.29 (2024.02.14)
 ## Features:
 - [BDN-615](https://appodeal.atlassian.net/browse/BDN-615) Update BigoAds to 4.5.1
