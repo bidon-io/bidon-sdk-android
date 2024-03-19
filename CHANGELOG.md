@@ -1,3 +1,7 @@
+# Release 0.4.29.1 (****.**.**)
+## Features:
+- [BDN-616](https://appodeal.atlassian.net/browse/BDN-616) Update Applovin to 12.3.1
+
 # Release 0.4.29 (2024.02.14)
 ## Features:
 - [BDN-615](https://appodeal.atlassian.net/browse/BDN-615) Update BigoAds to 4.5.1

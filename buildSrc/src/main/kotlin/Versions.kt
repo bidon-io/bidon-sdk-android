@@ -2,13 +2,13 @@ object Versions {
     private val major = 0
     private val minor = 4
     private val patch = 29
-    private val semantic: String = ""//""-alpha.2"
+    private val semantic: String = "1"//""-alpha.2"
 
     val BidonVersionName = mainVersion + semanticVersion
 
     object Adapters {
         val Admob = "$mainVersion.0" + semanticVersion
-        val Applovin = "$mainVersion.0" + semanticVersion
+        val Applovin = "$mainVersion.1" + semanticVersion
         val BidMachine = "$mainVersion.0" + semanticVersion
         val DTExchange = "$mainVersion.0" + semanticVersion
         val UnityAds = "$mainVersion.0" + semanticVersion
