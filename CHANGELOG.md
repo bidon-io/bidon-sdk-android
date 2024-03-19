@@ -1,3 +1,7 @@
+# Release 0.4.29.1 (****.**.**)
+## Features:
+- [BDN-617](https://appodeal.atlassian.net/browse/BDN-617) Update Admob to 23.0.0
+
 # Release 0.4.29 (2024.02.14)
 ## Features:
 - [BDN-615](https://appodeal.atlassian.net/browse/BDN-615) Update BigoAds to 4.5.1
