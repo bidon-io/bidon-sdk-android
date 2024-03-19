@@ -1,3 +1,7 @@
+# Release 0.4.29.1 (****.**.**)
+## Features:
+- [BDN-619](https://appodeal.atlassian.net/browse/BDN-619) Update DTExchange to 8.2.6
+
 # Release 0.4.29 (2024.02.14)
 ## Features:
 - [BDN-615](https://appodeal.atlassian.net/browse/BDN-615) Update BigoAds to 4.5.1
