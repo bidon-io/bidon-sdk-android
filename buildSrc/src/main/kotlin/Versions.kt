@@ -15,7 +15,7 @@ object Versions {
         val BigoAds = "$mainVersion.1" + semanticVersion
         val Mintegral = "$mainVersion.1" + semanticVersion
         val Vungle = "$mainVersion.1" + semanticVersion
-        val Meta = "$mainVersion.0" + semanticVersion
+        val Meta = "$mainVersion.1" + semanticVersion
         val Inmobi = "$mainVersion.1" + semanticVersion
         val Amazon = "$mainVersion.1" + semanticVersion
         val MobileFuse = "$mainVersion.0" + semanticVersion

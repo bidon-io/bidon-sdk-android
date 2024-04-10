@@ -1,9 +1,10 @@
 # Release 0.4.29.2 (****.**.**)
 ## Features:
-- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Amazon SDK to 9.9.3
-- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Applovin SDK to 12.4.2
+- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Amazon to 9.9.3
+- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Applovin to 12.4.2
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Bidmachine to 2.6.0
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update BigoAds to 4.6.1
+- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Meta to 6.17.0
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Mintegral to 16.6.71
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Inmobi to 7.3.1
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update UnityAds to 4.10.0
