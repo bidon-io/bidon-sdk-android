@@ -1,4 +1,4 @@
-# Release 0.4.29.2 (****.**.**)
+# Release 0.4.29.2 (2024.04.10)
 ## Features:
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Amazon to 9.9.3
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Applovin to 12.4.2
@@ -8,7 +8,7 @@
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Mintegral to 16.6.71
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update Inmobi to 7.3.1
 - [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update UnityAds to 4.10.0
-- 
+- [APDM-195](https://appodeal.atlassian.net/browse/APDM-195) Update DTExchange to 8.2.7
 # Release 0.4.29.1 (2024.03.27)
 ## Features:
 - [BDN-616](https://appodeal.atlassian.net/browse/BDN-616) Update Applovin to 12.3.1
