@@ -8,7 +8,7 @@ object Versions {
 
     object Adapters {
         val Admob = "$mainVersion.1" + semanticVersion
-        val Applovin = "$mainVersion.2" + semanticVersion
+        val Applovin = "$mainVersion.3" + semanticVersion
         val BidMachine = "$mainVersion.2" + semanticVersion
         val DTExchange = "$mainVersion.2" + semanticVersion
         val UnityAds = "$mainVersion.2" + semanticVersion
