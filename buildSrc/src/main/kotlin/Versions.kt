@@ -7,7 +7,7 @@ object Versions {
     val BidonVersionName = mainVersion + semanticVersion
 
     object Adapters {
-        val Admob = "$mainVersion.2" + semanticVersion
+        val Admob = "$mainVersion.1" + semanticVersion
         val Applovin = "$mainVersion.3" + semanticVersion
         val BidMachine = "$mainVersion.3" + semanticVersion
         val DTExchange = "$mainVersion.2" + semanticVersion
@@ -19,7 +19,7 @@ object Versions {
         val Inmobi = "$mainVersion.1" + semanticVersion
         val Amazon = "$mainVersion.1" + semanticVersion
         val MobileFuse = "$mainVersion.0" + semanticVersion
-        val Gam = "$mainVersion.2" + semanticVersion
+        val Gam = "$mainVersion.1" + semanticVersion
 
         val IronSource = "$mainVersion.0"
         val Appsflyer = "$mainVersion.0"
