@@ -15,10 +15,10 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -26,6 +26,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
+import org.bidon.sdk.utils.ext.TAG
 import java.util.UUID
 
 /**
@@ -65,8 +66,16 @@ internal class AuctionImpl(
             }
             this.adTypeParam = adTypeParam
             job = scope.launch {
+
+                val auctionId = UUID.randomUUID().toString()
+
+                val tokens = get<GetTokensUseCase>().invoke(
+                    adType = demandAd.adType,
+                    adTypeParam = adTypeParam,
+                    adaptersSource = adaptersSource
+                )
+
                 runCatching {
-                    val auctionId = UUID.randomUUID().toString()
                     logInfo(TAG, "Action started $this")
                     // Request for Auction-data at /auction
                     auctionStat.markAuctionStarted(auctionId, adTypeParam)
@@ -76,11 +85,13 @@ internal class AuctionImpl(
                         demandAd = demandAd,
                         adapters = adaptersSource.adapters.associate {
                             it.demandId.demandId to it.adapterInfo
-                        }
+                        },
+                        tokens = tokens,
                     ).mapCatching { auctionData ->
-                        if (auctionId != auctionData.auctionId) {
-                            logError(TAG, "Auction ID has been changed", IllegalStateException())
-                        }
+                        //TODO uncomment after mock tests
+//                      if (auctionId != auctionData.auctionId) {
+//                          logError(TAG, "Auction ID has been changed", IllegalStateException())
+//                      }
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -141,12 +152,10 @@ internal class AuctionImpl(
 
         // Start auction
         conductRounds(
-            rounds = auctionData.rounds ?: listOf(),
             sourcePriceFloor = auctionData.pricefloor ?: 0.0,
             pricefloor = auctionData.pricefloor ?: 0.0,
             demandAd = demandAd,
             adTypeParamData = adTypeParamData,
-            roundIndex = 0,
         )
         logInfo(TAG, "Rounds completed")
 
@@ -211,7 +220,10 @@ internal class AuctionImpl(
                  */
                 if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                    adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
+                    adSource.notifyLoss(
+                        winner.adSource.demandId.demandId,
+                        winner.adSource.getStats().ecpm
+                    )
                 }
                 if (auctionResult.roundStatus == RoundStatus.Successful) {
                     adSource.markLoss()
@@ -222,19 +234,14 @@ internal class AuctionImpl(
     }
 
     private suspend fun conductRounds(
-        rounds: List<RoundRequest>,
-        roundIndex: Int,
         sourcePriceFloor: Double,
         pricefloor: Double,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
     ) {
-        val round = rounds.firstOrNull() ?: return
-        resultsCollector.startRound(round, pricefloor)
+        resultsCollector.startRound(pricefloor)
         // Execute round
         executeRound(
-            round = round,
-            roundIndex = roundIndex,
             pricefloor = pricefloor,
             demandAd = demandAd,
             adTypeParam = adTypeParamData,
@@ -250,17 +257,6 @@ internal class AuctionImpl(
         // Save round results
         resultsCollector.saveWinners(sourcePriceFloor)
         proceedRoundResults()
-
-        // Start next round
-        val nextPriceFloor = resultsCollector.getAll().firstOrNull()?.adSource?.getStats()?.ecpm ?: pricefloor
-        conductRounds(
-            rounds = rounds.drop(1),
-            sourcePriceFloor = sourcePriceFloor,
-            pricefloor = nextPriceFloor,
-            demandAd = demandAd,
-            adTypeParamData = adTypeParamData,
-            roundIndex = roundIndex + 1,
-        )
     }
 }
 

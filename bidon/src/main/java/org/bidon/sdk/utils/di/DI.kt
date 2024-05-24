@@ -30,11 +30,13 @@ import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.impl.BidRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ConductBiddingRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ConductNetworkRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -161,6 +163,11 @@ internal object DI {
              * [SegmentSynchronizer] depends on it
              */
             singleton<Segment> { SegmentImpl() }
+
+            singleton<GetTokensUseCase> {
+                GetTokensUseCaseImpl()
+            }
+
             factory { get<Segment>() as SegmentSynchronizer }
 
             /**
@@ -211,7 +218,6 @@ internal object DI {
             factory<ExecuteRoundUseCase> {
                 ExecuteRoundUseCaseImpl(
                     conductNetworkAuction = get(),
-                    conductBiddingAuction = get(),
                     adaptersSource = get(),
                     regulation = get()
                 )

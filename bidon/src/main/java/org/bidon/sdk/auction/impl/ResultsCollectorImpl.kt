@@ -33,7 +33,6 @@ internal class ResultsCollectorImpl(
                 biddingResult = BiddingResult.ServerBiddingStarted(serverBiddingStartTs = SystemTimeNow),
                 networkResults = it.networkResults,
                 pricefloor = it.pricefloor,
-                round = it.round
             )
         }
     }
@@ -66,19 +65,17 @@ internal class ResultsCollectorImpl(
                         },
                         networkResults = curRoundResult.networkResults,
                         pricefloor = curRoundResult.pricefloor,
-                        round = curRoundResult.round
                     )
                 }
             }
         }
     }
 
-    override fun startRound(round: RoundRequest, pricefloor: Double) {
+    override fun startRound(pricefloor: Double) {
         roundResult.value = RoundResult.Results(
             biddingResult = BiddingResult.Idle,
             networkResults = emptyList(),
             pricefloor = pricefloor,
-            round = round
         )
     }
 
@@ -109,7 +106,6 @@ internal class ResultsCollectorImpl(
                         },
                         networkResults = current.networkResults,
                         pricefloor = current.pricefloor,
-                        round = current.round
                     )
                 }
 
@@ -118,7 +114,6 @@ internal class ResultsCollectorImpl(
                         biddingResult = current.biddingResult,
                         networkResults = current.networkResults + result,
                         pricefloor = current.pricefloor,
-                        round = current.round
                     )
                 }
 
@@ -196,7 +191,6 @@ internal class ResultsCollectorImpl(
                 ),
                 networkResults = it.networkResults,
                 pricefloor = it.pricefloor,
-                round = it.round
             )
         }
     }

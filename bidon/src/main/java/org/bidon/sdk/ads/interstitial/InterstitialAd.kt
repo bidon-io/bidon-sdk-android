@@ -8,7 +8,7 @@ import org.bidon.sdk.stats.WinLossNotifier
 /**
  * Created by Bidon Team on 06/02/2023.
  */
-class InterstitialAd : Interstitial by InterstitialImpl()
+class InterstitialAd(auctionKey: String? = null) : Interstitial by InterstitialImpl(auctionKey = auctionKey)
 
 interface Interstitial : Extras, WinLossNotifier {
     fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)

@@ -7,6 +7,7 @@ import org.json.JSONObject
 internal class AdUnitParser : JsonParser<AdUnit> {
     override fun parseOrNull(jsonString: String): AdUnit? = runCatching {
         val json = JSONObject(jsonString)
+        val extJson = json.optJSONObject("ext")
         AdUnit(
             uid = json.optString("uid", ""),
             demandId = json.optString("demand_id"),
@@ -15,7 +16,8 @@ internal class AdUnitParser : JsonParser<AdUnit> {
             }.getOrNull(),
             label = json.optString("label"),
             bidType = BidType.valueOf(json.optString("bid_type")),
-            ext = json.optJSONObject("ext")?.toString()
+            ext = extJson?.toString(),
+            payload = extJson?.optString("payload")
         )
     }.getOrNull()
 }

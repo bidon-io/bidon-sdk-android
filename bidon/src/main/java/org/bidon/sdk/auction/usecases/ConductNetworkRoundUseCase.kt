@@ -19,14 +19,13 @@ internal interface ConductNetworkRoundUseCase {
      */
     fun invoke(
         context: Context,
-        networkSources: List<Mode.Network>,
-        participantIds: List<String>,
+        networkSources: List<Mode>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         adUnits: List<AdUnit>,
-        round: RoundRequest,
         pricefloor: Double,
         scope: CoroutineScope,
+        timeoutMs: Long,
         resultsCollector: ResultsCollector,
     ): NetworksResult
 }

@@ -9,7 +9,7 @@ import org.bidon.sdk.auction.usecases.models.RoundResult
  * Created by Aleksei Cherniaev on 05/07/2023.
  */
 internal interface ResultsCollector {
-    fun startRound(round: RoundRequest, pricefloor: Double)
+    fun startRound(pricefloor: Double)
     fun serverBiddingStarted()
     fun serverBiddingFinished(bids: List<BidResponse>?)
     fun biddingTimeoutReached()

@@ -18,15 +18,14 @@ internal interface ConductBiddingRoundUseCase {
     suspend fun invoke(
         context: Context,
         biddingSources: List<Mode.Bidding>,
-        participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
         auctionId: String,
-        round: RoundRequest,
         auctionConfigurationId: Long?,
         auctionConfigurationUid: String?,
         adUnits: List<AdUnit>,
+        timeoutMs: Long,
         resultsCollector: ResultsCollector,
     )
 }

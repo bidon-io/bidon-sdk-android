@@ -8,7 +8,7 @@ import org.bidon.sdk.stats.WinLossNotifier
 /**
  * Created by Bidon Team on 06/02/2023.
  */
-class RewardedAd : Rewarded by RewardedImpl()
+class RewardedAd(auctionKey: String? = null) : Rewarded by RewardedImpl(auctionKey = auctionKey)
 
 interface Rewarded : Extras, WinLossNotifier {
     fun isReady(): Boolean // for show

@@ -54,10 +54,9 @@ class StatisticsCollectorImpl : StatisticsCollector {
     }
 
     private var _demandAd: DemandAd? = null
+    //TODO when we receive this object
     private var stat: BidStat = BidStat(
         auctionId = null,
-        roundId = null,
-        roundIndex = null,
         demandId = DemandId(""),
         adUnit = null,
         fillStartTs = null,
@@ -76,17 +75,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
         get() = requireNotNull(stat.demandId) { "DemandId is not set" }
     override val auctionId: String
         get() = requireNotNull(stat.auctionId) { "AuctionId is not set" }
-    override val roundId: String
-        get() = requireNotNull(stat.roundId) { "RoundId is not set" }
-    override val roundIndex: Int
-        get() = requireNotNull(stat.roundIndex) { "RoundIndex is not set" }
 
     override fun getAd(): Ad? {
-        val roundId = stat.roundId
         val auctionId = stat.auctionId
         val bidType = stat.bidType
         val adUnit = stat.adUnit
-        if (adUnit == null || roundId == null || auctionId == null || bidType == null) {
+        if (adUnit == null || auctionId == null || bidType == null) {
             logError(TAG, "Ad is null", NullPointerException())
             return null
         }
@@ -94,7 +88,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             demandAd = demandAd,
             ecpm = stat.ecpm,
             currencyCode = AdValue.USD,
-            roundId = roundId,
             auctionId = auctionId,
             dsp = stat.dspSource,
             adUnit = adUnit
@@ -109,8 +102,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun addRoundInfo(
         auctionId: String,
-        roundId: String,
-        roundIndex: Int,
         demandAd: DemandAd,
         roundPricefloor: Double,
         auctionPricefloor: Double
@@ -118,8 +109,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         this._demandAd = demandAd
         stat = stat.copy(
             auctionId = auctionId,
-            roundId = roundId,
-            roundIndex = roundIndex,
             roundPricefloor = roundPricefloor,
             auctionPricefloor = auctionPricefloor
         )
@@ -306,7 +295,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         val (banner, interstitial, rewarded) = getData(adType)
         return ImpressionRequestBody(
             auctionId = auctionId,
-            roundId = roundId,
             auctionConfigurationId = auctionConfigurationId,
             auctionConfigurationUid = auctionConfigurationUid,
             impressionId = impressionId,
@@ -315,7 +303,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             banner = banner,
             interstitial = interstitial,
             rewarded = rewarded,
-            roundIndex = roundIndex,
             bidType = stat.bidType?.code,
             adUnitLabel = stat.adUnit?.label,
             adUnitUid = stat.adUnit?.uid,

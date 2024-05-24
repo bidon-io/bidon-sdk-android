@@ -11,7 +11,6 @@ import java.util.*
 class Ad(
     val demandAd: DemandAd,
     val ecpm: Double,
-    val roundId: String,
     val auctionId: String,
     val dsp: String?,
     val currencyCode: String?,
@@ -25,6 +24,6 @@ class Ad(
         get() = adUnit.bidType
 
     override fun toString(): String {
-        return "Ad(${demandAd.adType} $networkName/$bidType $ecpm $currencyCode, auctionId=$auctionId, roundId=$roundId, dsp=$dsp, extras=${demandAd.getExtras()}, $adUnit)"
+        return "Ad(${demandAd.adType} $networkName/$bidType $ecpm $currencyCode, auctionId=$auctionId, dsp=$dsp, extras=${demandAd.getExtras()}, $adUnit)"
     }
 }

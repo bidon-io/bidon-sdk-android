@@ -10,7 +10,6 @@ internal sealed interface RoundResult {
     object Idle : RoundResult
 
     class Results(
-        val round: RoundRequest,
         val pricefloor: Double,
         val biddingResult: BiddingResult,
         val networkResults: List<AuctionResult>,

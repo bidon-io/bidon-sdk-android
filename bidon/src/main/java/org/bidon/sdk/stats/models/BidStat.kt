@@ -10,8 +10,6 @@ import org.bidon.sdk.auction.models.TokenInfo
  */
 data class BidStat(
     val auctionId: String?,
-    val roundId: String?,
-    val roundIndex: Int?,
     val demandId: DemandId,
     val roundStatus: RoundStatus?,
     val ecpm: Double,

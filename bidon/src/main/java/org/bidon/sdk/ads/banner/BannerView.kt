@@ -44,6 +44,7 @@ class BannerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     @AttrRes defStyleAtt: Int = 0,
+    private val auctionKey : String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Banner),
 ) : FrameLayout(context, attrs, defStyleAtt),
     BannerAd,
@@ -272,6 +273,7 @@ class BannerView @JvmOverloads constructor(
             adTypeParam = AdTypeParam.Banner(
                 activity = activity,
                 pricefloor = pricefloor,
+                auctionKey = auctionKey,
                 bannerFormat = format,
                 containerWidth = width.toFloat()
             ),

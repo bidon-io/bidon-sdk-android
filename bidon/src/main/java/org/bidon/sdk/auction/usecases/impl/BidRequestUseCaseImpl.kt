@@ -41,7 +41,6 @@ internal class BidRequestUseCaseImpl(
         extras: Map<String, Any>,
         bidfloor: Double,
         auctionId: String,
-        roundId: String,
         auctionConfigurationId: Long?,
         auctionConfigurationUid: String?,
     ): Result<BiddingResponse> {
@@ -54,7 +53,6 @@ internal class BidRequestUseCaseImpl(
                 },
                 bidfloor = bidfloor,
                 orientationCode = getOrientation().code,
-                roundId = roundId,
                 auctionConfigurationId = auctionConfigurationId,
                 auctionConfigurationUid = auctionConfigurationUid,
                 banner = banner,

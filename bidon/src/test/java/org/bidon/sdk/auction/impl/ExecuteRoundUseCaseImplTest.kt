@@ -55,20 +55,6 @@ import org.junit.Test
 internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
 
     private val auctionConfig = AuctionResponse(
-        rounds = listOf(
-            RoundRequest(
-                id = "round_1",
-                timeoutMs = 15,
-                demandIds = listOf(Applovin, Admob),
-                biddingIds = listOf(),
-            ),
-            RoundRequest(
-                id = "ROUND_2",
-                timeoutMs = 25,
-                demandIds = listOf(Admob),
-                biddingIds = listOf(),
-            ),
-        ),
         adUnits = listOf(
             AdUnit(
                 demandId = "admob",
@@ -93,6 +79,7 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
         auctionConfigurationId = 10,
         auctionConfigurationUid = "10",
         externalWinNotificationsEnabled = true,
+        auctionTimeout = 10000L,
     )
 
     private val activity: Activity by lazy { mockk(relaxed = true) }
@@ -105,8 +92,7 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
         ExecuteRoundUseCaseImpl(
             adaptersSource = adaptersSource,
             regulation = regulation,
-            conductBiddingAuction = conductBiddingAuction,
-            conductNetworkAuction = conductNetworkAuction
+            conductNetworkAuction = conductNetworkAuction,
         )
     }
 
@@ -155,7 +141,6 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
                 any(),
                 any(),
                 any(),
-                any(),
                 any()
             )
         } returns NetworksResult(
@@ -191,12 +176,10 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
             conductBiddingAuction.invoke(
                 context = any(),
                 biddingSources = any(),
-                participantIds = any(),
                 adTypeParam = any(),
                 demandAd = any(),
                 bidfloor = any(),
                 auctionId = any(),
-                round = any(),
                 auctionConfigurationId = any(),
                 auctionConfigurationUid = any(),
                 adUnits = any(),
@@ -208,14 +191,7 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
         val results = testee.invoke(
             demandAd = DemandAd(AdType.Interstitial),
             auctionResponse = auctionConfig,
-            adTypeParam = AdTypeParam.Interstitial(activity, 1.0),
-            round = RoundRequest(
-                id = "round_1",
-                timeoutMs = 15000,
-                demandIds = listOf("Unknown_network1", Admob, "Unknown_network2"),
-                biddingIds = listOf(BidMachine),
-            ),
-            roundIndex = 1,
+            adTypeParam = AdTypeParam.Interstitial(activity, 1.0, "auctionKey"),
             pricefloor = 0.4,
             adUnits = emptyList(),
             resultsCollector = mockk(relaxed = true),

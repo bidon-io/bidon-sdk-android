@@ -91,7 +91,10 @@ internal class AdCacheImpl(
             auction?.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam.copy(
-                    pricefloor = maxOf(adTypeParam.pricefloor, results.value.firstOrNull()?.adSource?.getStats()?.ecpm ?: 0.0)
+                    pricefloor = maxOf(
+                        adTypeParam.pricefloor,
+                        results.value.firstOrNull()?.adSource?.getStats()?.ecpm ?: 0.0
+                    )
                 ),
                 onSuccess = { auctionResults ->
                     logInfo(tag, "Auction completed ${results.value.asString()}")
@@ -121,18 +124,21 @@ internal class AdCacheImpl(
             is AdTypeParam.Banner -> AdTypeParam.Banner(
                 activity = param.activity,
                 pricefloor = pricefloor,
+                auctionKey = param.auctionKey,
                 bannerFormat = param.bannerFormat,
-                containerWidth = param.containerWidth
+                containerWidth = param.containerWidth,
             )
 
             is AdTypeParam.Interstitial -> AdTypeParam.Interstitial(
                 activity = param.activity,
                 pricefloor = pricefloor,
+                auctionKey = param.auctionKey,
             )
 
             is AdTypeParam.Rewarded -> AdTypeParam.Rewarded(
                 activity = param.activity,
                 pricefloor = pricefloor,
+                auctionKey = param.auctionKey,
             )
         }
     }

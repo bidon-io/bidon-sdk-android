@@ -16,8 +16,6 @@ internal interface ExecuteRoundUseCase {
         demandAd: DemandAd,
         auctionResponse: AuctionResponse,
         adTypeParam: AdTypeParam,
-        round: RoundRequest,
-        roundIndex: Int,
         pricefloor: Double,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,

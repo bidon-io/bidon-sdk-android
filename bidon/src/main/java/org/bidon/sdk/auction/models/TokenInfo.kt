@@ -9,11 +9,8 @@ import org.bidon.sdk.utils.serializer.Serializable
 data class TokenInfo(
     @field:JsonName("token")
     val token: String?,
-    @field:JsonName("token_start_ts")
     val tokenStartTs: Long?,
-    @field:JsonName("token_finish_ts")
     val tokenFinishTs: Long?,
-    @field:JsonName("status")
     val status: String,
 ) : Serializable {
     enum class Status(val code: String) {

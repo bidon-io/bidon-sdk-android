@@ -24,41 +24,37 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
-
+//TODO need to request CPM and BID adUnits here
 @Suppress("UNCHECKED_CAST")
 internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
     override fun invoke(
         context: Context,
-        networkSources: List<Mode.Network>,
-        participantIds: List<String>,
+        networkSources: List<Mode>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         adUnits: List<AdUnit>,
-        round: RoundRequest,
         pricefloor: Double,
         scope: CoroutineScope,
+        timeoutMs: Long,
         resultsCollector: ResultsCollector,
     ): NetworksResult {
         val mutableLineItems = adUnits.toMutableList()
         runCatching {
-            val participants = networkSources.filter {
-                (it as AdSource<*>).demandId.demandId in participantIds
-            }
-            logInfo(TAG, "participants: $participants")
-            val deferredList = participants.map { adSource ->
+            logInfo(TAG, "participants: $networkSources")
+            val deferredList = networkSources.map { adSource ->
                 scope.async {
                     adSource as AdSource<AdAuctionParams>
                     val availableAdUnitsForDemand = mutableLineItems.filter { it.demandId == adSource.demandId.demandId }
                     logInfo(
                         tag = TAG,
-                        message = "Round '${round.id}'. Adapter ${adSource.demandId.demandId} starts fill. " +
+                        message = "Adapter ${adSource.demandId.demandId} starts fill. " +
                             "PriceFloor=$pricefloor. LineItems: $availableAdUnitsForDemand."
                     )
                     val adEvent = loadAd(
                         adSource = adSource,
                         adTypeParam = adTypeParam,
                         pricefloor = pricefloor,
-                        round = round,
+                        timeoutMs = timeoutMs,
                         availableAdUnitsForDemand = availableAdUnitsForDemand,
                         onAdUnitsConsumed = { lineItem ->
                             mutableLineItems.remove(lineItem)
@@ -90,19 +86,19 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
     }
 
     private suspend fun loadAd(
-        adSource: Mode.Network,
+        adSource: Mode,
         adTypeParam: AdTypeParam,
         pricefloor: Double,
-        round: RoundRequest,
+        timeoutMs: Long,
         availableAdUnitsForDemand: List<AdUnit>,
         onAdUnitsConsumed: (AdUnit) -> Unit
     ): AdEvent {
         adSource as AdSource<AdAuctionParams>
-        return withTimeoutOrNull(round.timeoutMs) {
+        return withTimeoutOrNull(timeoutMs) {
             val adParam = adSource.getAuctionParam(
                 AdAuctionParamSource(
                     activity = adTypeParam.activity,
-                    timeout = round.timeoutMs,
+                    timeout = timeoutMs,
                     optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
                     optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                     pricefloor = pricefloor,

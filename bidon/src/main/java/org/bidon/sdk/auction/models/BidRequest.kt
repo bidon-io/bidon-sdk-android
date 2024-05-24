@@ -15,8 +15,6 @@ internal data class BidRequest(
     val auctionConfigurationUid: String?,
     @field:JsonName("auction_id")
     val auctionId: String,
-    @field:JsonName("round_id")
-    val roundId: String,
     @field:JsonName("orientation")
     val orientationCode: String,
     @field:JsonName("bidfloor")

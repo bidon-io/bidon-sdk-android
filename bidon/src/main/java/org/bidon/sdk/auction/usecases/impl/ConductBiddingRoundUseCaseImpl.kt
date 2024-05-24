@@ -21,12 +21,14 @@ import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
 @Suppress("UNCHECKED_CAST")
@@ -37,33 +39,27 @@ internal class ConductBiddingRoundUseCaseImpl(
     override suspend fun invoke(
         context: Context,
         biddingSources: List<Mode.Bidding>,
-        participantIds: List<String>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
         auctionId: String,
-        round: RoundRequest,
         auctionConfigurationId: Long?,
         auctionConfigurationUid: String?,
         adUnits: List<AdUnit>,
-        resultsCollector: ResultsCollector,
+        timeoutMs: Long,
+        resultsCollector: ResultsCollector
     ) {
         runCatching {
-            withTimeoutOrNull(round.timeoutMs) {
-                val participants = biddingSources.filter {
-                    (it as AdSource<*>).demandId.demandId in participantIds
-                }
-                logInfo(TAG, "participants: $participants")
+            withTimeoutOrNull(timeoutMs) {
+                logInfo(TAG, "participants: $biddingSources")
 
                 /**
                  * Tokens Obtaining
                  */
-                val tokens = participants.getTokens(
-                    context = context,
+                val tokens = get<GetTokensUseCase>().invoke(
+                    adType = demandAd.adType,
                     adTypeParam = adTypeParam,
-                    adUnits = adUnits,
-                    timeoutMs = round.timeoutMs,
-                    participantIds = participantIds
+                    adaptersSource = get()
                 )
                 logInfo(TAG, "${tokens.size} token(s):")
                 tokens.forEachIndexed { index, (demandId, token) ->
@@ -84,7 +80,6 @@ internal class ConductBiddingRoundUseCaseImpl(
                     extras = demandAd.getExtras(),
                     bidfloor = bidfloor,
                     auctionId = auctionId,
-                    roundId = round.id,
                     auctionConfigurationId = auctionConfigurationId,
                     auctionConfigurationUid = auctionConfigurationUid
                 ).mapCatching { bidResponse ->
@@ -102,10 +97,10 @@ internal class ConductBiddingRoundUseCaseImpl(
                     fillBids(
                         resultsCollector = resultsCollector,
                         bids = bids,
-                        biddingSources = participants,
+                        biddingSources = biddingSources,
                         adTypeParam = adTypeParam,
-                        round = round,
-                        roundPricefloor = bidfloor
+                        roundPricefloor = bidfloor,
+                        timeoutMs = timeoutMs
                     )
                 }.onFailure {
                     resultsCollector.serverBiddingFinished(null)
@@ -122,11 +117,11 @@ internal class ConductBiddingRoundUseCaseImpl(
     private suspend fun fillBids(
         resultsCollector: ResultsCollector,
         bids: List<BidResponse>,
-        biddingSources: List<Mode.Bidding>,
+        biddingSources: List<Mode>,
         adTypeParam: AdTypeParam,
-        round: RoundRequest,
-        roundPricefloor: Double
-    ) {
+        roundPricefloor: Double,
+        timeoutMs: Long,
+        ) {
         var filled = false
         bids.forEach { bid ->
             val adSource = biddingSources.first {
@@ -141,8 +136,8 @@ internal class ConductBiddingRoundUseCaseImpl(
                     biddingSources = biddingSources,
                     bid = bid,
                     adTypeParam = adTypeParam,
-                    round = round,
-                    roundPricefloor = roundPricefloor
+                    roundPricefloor = roundPricefloor,
+                    timeoutMs = timeoutMs
                 ).also {
                     logInfo(TAG, "fillResult: ${it.roundStatus}, ${(it as? AuctionResult.Bidding)?.adSource}")
                     if (it.roundStatus == RoundStatus.Successful) {
@@ -167,11 +162,11 @@ internal class ConductBiddingRoundUseCaseImpl(
     }
 
     private suspend fun loadAd(
-        biddingSources: List<Mode.Bidding>,
+        biddingSources: List<Mode>,
         bid: BidResponse,
         adTypeParam: AdTypeParam,
-        round: RoundRequest,
-        roundPricefloor: Double
+        roundPricefloor: Double,
+        timeoutMs: Long
     ): AuctionResult.Bidding {
         val adSource = biddingSources.first {
             (it as AdSource<*>).demandId.demandId == bid.adUnit.demandId
@@ -180,7 +175,7 @@ internal class ConductBiddingRoundUseCaseImpl(
             AdAuctionParamSource(
                 activity = adTypeParam.activity,
                 pricefloor = roundPricefloor,
-                timeout = round.timeoutMs,
+                timeout = timeoutMs,
                 optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
                 optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                 bidResponse = bid
