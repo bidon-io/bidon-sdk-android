@@ -5,6 +5,7 @@ import com.amazon.device.ads.AdRegistration
 import com.amazon.device.ads.MRAIDPolicy
 import org.bidon.amazon.ext.adapterVersion
 import org.bidon.amazon.ext.sdkVersion
+import org.bidon.amazon.ext.toSlots
 import org.bidon.amazon.impl.AmazonBannerImpl
 import org.bidon.amazon.impl.AmazonInterstitialImpl
 import org.bidon.amazon.impl.AmazonRewardedImpl
@@ -49,7 +50,8 @@ class AmazonAdapter :
     override fun parseConfigParam(json: String): AmazonParameters {
         val jsonObject = JSONObject(json)
         return AmazonParameters(
-            appKey = jsonObject.getString("app_key")
+            appKey = jsonObject.getString("app_key"),
+            slots = jsonObject.optJSONArray("slots")?.toSlots() ?: mapOf()
         )
     }
 
@@ -60,6 +62,7 @@ class AmazonAdapter :
         AdRegistration.enableLogging(BidonSdk.loggerLevel in arrayOf(Logger.Level.Verbose, Logger.Level.Error))
 
         AdRegistration.getInstance(configParams.appKey, context)
+        slots = configParams.slots
         AdRegistration.setMRAIDSupportedVersions(arrayOf("1.0", "2.0", "3.0"))
         AdRegistration.setMRAIDPolicy(MRAIDPolicy.CUSTOM)
         continuation.resume(Unit)
@@ -75,5 +78,9 @@ class AmazonAdapter :
 
     override fun rewarded(): AdSource.Rewarded<FullscreenAuctionParams> {
         return AmazonRewardedImpl()
+    }
+
+    companion object {
+        var slots: Map<SlotType, List<String>> = mapOf()
     }
 }

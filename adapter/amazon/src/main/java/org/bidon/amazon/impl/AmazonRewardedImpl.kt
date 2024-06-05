@@ -6,6 +6,8 @@ import android.view.View
 import com.amazon.device.ads.DTBAdInterstitial
 import com.amazon.device.ads.DTBAdInterstitialListener
 import com.amazon.device.ads.SDKUtilities
+import org.bidon.amazon.AmazonAdapter
+import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -39,7 +41,9 @@ internal class AmazonRewardedImpl :
         get() = interstitial != null
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
-        val slots = ParseSlotsUseCase()(adUnits).also {
+        val slots = AmazonAdapter.slots.filter {
+            it.key == SlotType.REWARDED_AD
+        }.also {
             logInfo("AmazonAdapter", "Parsed slots: $it")
         }
         val amazonInfo = obtainToken(slots, adTypeParam).takeIf { it.isNotEmpty() }?.also {

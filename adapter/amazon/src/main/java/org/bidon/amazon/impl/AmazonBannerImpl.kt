@@ -5,6 +5,8 @@ import android.view.View
 import com.amazon.device.ads.DTBAdBannerListener
 import com.amazon.device.ads.DTBAdView
 import com.amazon.device.ads.SDKUtilities
+import org.bidon.amazon.AmazonAdapter
+import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -43,7 +45,9 @@ internal class AmazonBannerImpl :
         get() = adView != null
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
-        val slots = ParseSlotsUseCase()(adUnits).also {
+        val slots = AmazonAdapter.slots.filter {
+            it.key == SlotType.BANNER || it.key == SlotType.MREC
+        }.also {
             logInfo("AmazonAdapter", "Parsed slots: $it")
         }
         val amazonInfo = obtainToken(slots, adTypeParam).takeIf { it.isNotEmpty() }?.also {
