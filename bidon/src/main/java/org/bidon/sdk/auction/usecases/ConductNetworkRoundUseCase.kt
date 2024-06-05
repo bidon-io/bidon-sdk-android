@@ -19,7 +19,7 @@ internal interface ConductNetworkRoundUseCase {
      */
     fun invoke(
         context: Context,
-        networkSources: List<Mode>,
+        networkSources: List<Mode.Network>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         adUnits: List<AdUnit>,

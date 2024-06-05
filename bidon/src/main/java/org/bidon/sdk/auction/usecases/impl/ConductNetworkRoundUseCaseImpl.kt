@@ -2,9 +2,9 @@ package org.bidon.sdk.auction.usecases.impl
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -29,7 +29,7 @@ import org.bidon.sdk.stats.models.asRoundStatus
 internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
     override fun invoke(
         context: Context,
-        networkSources: List<Mode>,
+        networkSources: List<Mode.Network>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         adUnits: List<AdUnit>,
@@ -41,10 +41,12 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
         val mutableLineItems = adUnits.toMutableList()
         runCatching {
             logInfo(TAG, "participants: $networkSources")
-            val deferredList = networkSources.map { adSource ->
-                scope.async {
+            val results = mutableListOf<AuctionResult.Network>()
+            networkSources.onEach { adSource ->
+                scope.launch {
                     adSource as AdSource<AdAuctionParams>
                     val availableAdUnitsForDemand = mutableLineItems.filter { it.demandId == adSource.demandId.demandId }
+
                     logInfo(
                         tag = TAG,
                         message = "Adapter ${adSource.demandId.demandId} starts fill. " +
@@ -60,7 +62,7 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
                             mutableLineItems.remove(lineItem)
                         }
                     )
-                    AuctionResult.Network(
+                    results.add(AuctionResult.Network(
                         adSource = adSource,
                         roundStatus = when (adEvent) {
                             is AdEvent.Fill -> RoundStatus.Successful
@@ -70,11 +72,11 @@ internal class ConductNetworkRoundUseCaseImpl : ConductNetworkRoundUseCase {
                         }
                     ).also {
                         resultsCollector.add(it)
-                    }
+                    })
                 }
             }
             return NetworksResult(
-                results = deferredList,
+                results = results,
                 remainingAdUnits = mutableLineItems.toList()
             )
         }.getOrNull() ?: run {

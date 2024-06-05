@@ -16,29 +16,23 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BidResponse
-import org.bidon.sdk.auction.models.BiddingResponse
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.models.TokenInfo
-import org.bidon.sdk.auction.usecases.BidRequestUseCase
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
-import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
 @Suppress("UNCHECKED_CAST")
-internal class ConductBiddingRoundUseCaseImpl(
-    private val bidRequestUseCase: BidRequestUseCase
-) : ConductBiddingRoundUseCase {
+internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
 
     override suspend fun invoke(
         context: Context,
         biddingSources: List<Mode.Bidding>,
+        bids: List<BidResponse>?,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
@@ -52,48 +46,7 @@ internal class ConductBiddingRoundUseCaseImpl(
         runCatching {
             withTimeoutOrNull(timeoutMs) {
                 logInfo(TAG, "participants: $biddingSources")
-
-                /**
-                 * Tokens Obtaining
-                 */
-                val tokens = get<GetTokensUseCase>().invoke(
-                    adType = demandAd.adType,
-                    adTypeParam = adTypeParam,
-                    adaptersSource = get()
-                )
-                logInfo(TAG, "${tokens.size} token(s):")
-                tokens.forEachIndexed { index, (demandId, token) ->
-                    logInfo(TAG, "#$index $demandId {$token}")
-                }
-                /**
-                 * Bids Loading
-                 */
-                resultsCollector.serverBiddingStarted()
-                if (tokens.all { it.second.status != TokenInfo.Status.SUCCESS.code }) {
-                    logError(TAG, "No tokens found", BidonError.NoBid)
-                    resultsCollector.serverBiddingFinished(null)
-                    return@withTimeoutOrNull
-                }
-                bidRequestUseCase.invoke(
-                    adTypeParam = adTypeParam,
-                    tokens = tokens,
-                    extras = demandAd.getExtras(),
-                    bidfloor = bidfloor,
-                    auctionId = auctionId,
-                    auctionConfigurationId = auctionConfigurationId,
-                    auctionConfigurationUid = auctionConfigurationUid
-                ).mapCatching { bidResponse ->
-                    val bids = bidResponse.bids?.takeIf {
-                        it.isNotEmpty() && bidResponse.status == BiddingResponse.BidStatus.Success
-                    }
-                    requireNotNull(bids) {
-                        "No bids found: $bidResponse"
-                    }
-                }.onSuccess { bids ->
-                    /**
-                     * Finish bidding
-                     */
-                    resultsCollector.serverBiddingFinished(bids)
+                bids?.let { bids ->
                     fillBids(
                         resultsCollector = resultsCollector,
                         bids = bids,
@@ -102,15 +55,8 @@ internal class ConductBiddingRoundUseCaseImpl(
                         roundPricefloor = bidfloor,
                         timeoutMs = timeoutMs
                     )
-                }.onFailure {
-                    resultsCollector.serverBiddingFinished(null)
-                    logError(TAG, "Error while server bidding", it)
-                }
-            } ?: run {
-                resultsCollector.biddingTimeoutReached()
+                } ?: logInfo(TAG, "BidResponse is null. Result: NO BIDS")
             }
-        }.onFailure {
-            logError(TAG, "Error while server bidding", it)
         }
     }
 
@@ -121,7 +67,7 @@ internal class ConductBiddingRoundUseCaseImpl(
         adTypeParam: AdTypeParam,
         roundPricefloor: Double,
         timeoutMs: Long,
-        ) {
+    ) {
         var filled = false
         bids.forEach { bid ->
             val adSource = biddingSources.first {
@@ -139,7 +85,10 @@ internal class ConductBiddingRoundUseCaseImpl(
                     roundPricefloor = roundPricefloor,
                     timeoutMs = timeoutMs
                 ).also {
-                    logInfo(TAG, "fillResult: ${it.roundStatus}, ${(it as? AuctionResult.Bidding)?.adSource}")
+                    logInfo(
+                        TAG,
+                        "fillResult: ${it.roundStatus}, ${(it as? AuctionResult.Bidding)?.adSource}"
+                    )
                     if (it.roundStatus == RoundStatus.Successful) {
                         logInfo(TAG, "fillResult: ${it.roundStatus}")
                         filled = true
@@ -171,19 +120,28 @@ internal class ConductBiddingRoundUseCaseImpl(
         val adSource = biddingSources.first {
             (it as AdSource<*>).demandId.demandId == bid.adUnit.demandId
         }
-        val adParam = (adSource as AdSource<AdAuctionParams>).getAuctionParam(
-            AdAuctionParamSource(
-                activity = adTypeParam.activity,
-                pricefloor = roundPricefloor,
-                timeout = timeoutMs,
-                optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
-                optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
-                bidResponse = bid
-            )
-        ).getOrNull() ?: return AuctionResult.Bidding(
-            roundStatus = RoundStatus.NoAppropriateAdUnitId,
-            adSource = adSource,
+        val adParamsSource = AdAuctionParamSource(
+            activity = adTypeParam.activity,
+            pricefloor = roundPricefloor,
+            timeout = timeoutMs,
+            optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+            optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+            bidResponse = bid
         )
+        val adParamResult = (adSource as AdSource<AdAuctionParams>).getAuctionParam(adParamsSource)
+//        adParam ?: return AuctionResult.Bidding(
+//            roundStatus = RoundStatus.NoAppropriateAdUnitId,
+//            adSource = adSource,
+//        )
+        var adParam = adParamResult.getOrThrow()
+        adParam = adParamResult.getOrNull() ?: run {
+            logError(TAG, "No appropriate AdUnit found for ${adSource.demandId}", BidonError.NoAppropriateAdUnitId)
+            return AuctionResult.Bidding(
+                roundStatus = RoundStatus.NoAppropriateAdUnitId,
+                adSource = adSource,
+            )
+        }
+
         adSource.addImpressionId(bid.impressionId)
 
         /**
@@ -256,7 +214,11 @@ internal class ConductBiddingRoundUseCaseImpl(
                 .filter { it.bidType == BidType.RTB }
                 .filter { it.demandId == adSource.demandId.demandId }
             if (adapterAdUnits.isEmpty()) {
-                logError(TAG, "No bidding AdUnit found for ${adSource.demandId}", BidonError.NoAppropriateAdUnitId)
+                logError(
+                    TAG,
+                    "No bidding AdUnit found for ${adSource.demandId}",
+                    BidonError.NoAppropriateAdUnitId
+                )
                 results.add(
                     adSource.demandId.demandId to TokenInfo(
                         token = null,
@@ -277,7 +239,8 @@ internal class ConductBiddingRoundUseCaseImpl(
                                 adUnits = adapterAdUnits
                             )
                             adSource.markTokenFinished(
-                                status = TokenInfo.Status.SUCCESS.takeIf { token != null } ?: TokenInfo.Status.NO_TOKEN,
+                                status = TokenInfo.Status.SUCCESS.takeIf { token != null }
+                                    ?: TokenInfo.Status.NO_TOKEN,
                                 token = token
                             )
                         }

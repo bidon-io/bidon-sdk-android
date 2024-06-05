@@ -202,9 +202,7 @@ internal object DI {
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
             factory<ConductBiddingRoundUseCase> {
-                ConductBiddingRoundUseCaseImpl(
-                    bidRequestUseCase = get()
-                )
+                ConductBiddingRoundUseCaseImpl()
             }
             factory<ConductNetworkRoundUseCase> {
                 ConductNetworkRoundUseCaseImpl()
@@ -218,6 +216,7 @@ internal object DI {
             factory<ExecuteRoundUseCase> {
                 ExecuteRoundUseCaseImpl(
                     conductNetworkAuction = get(),
+                    conductBiddingAuction = get(),
                     adaptersSource = get(),
                     regulation = get()
                 )

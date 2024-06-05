@@ -15,6 +15,7 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -66,14 +67,19 @@ internal class AuctionImpl(
             }
             this.adTypeParam = adTypeParam
             job = scope.launch {
+                resultsCollector.startRound(adTypeParam.pricefloor)
 
                 val auctionId = UUID.randomUUID().toString()
+                resultsCollector.serverBiddingStarted()
 
                 val tokens = get<GetTokensUseCase>().invoke(
                     adType = demandAd.adType,
                     adTypeParam = adTypeParam,
                     adaptersSource = adaptersSource
                 )
+                tokens.forEachIndexed { index, (demandId, token) ->
+                    logInfo(TAG, "#$index $demandId {$token}")
+                }
 
                 runCatching {
                     logInfo(TAG, "Action started $this")
@@ -96,6 +102,7 @@ internal class AuctionImpl(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
+                            tokens = tokens,
                         ).ifEmpty {
                             throw BidonError.NoAuctionResults
                         }.also {
@@ -145,6 +152,7 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
+        tokens: List<Pair<String, TokenInfo>>
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
@@ -156,6 +164,7 @@ internal class AuctionImpl(
             pricefloor = auctionData.pricefloor ?: 0.0,
             demandAd = demandAd,
             adTypeParamData = adTypeParamData,
+            tokens = tokens,
         )
         logInfo(TAG, "Rounds completed")
 
@@ -238,8 +247,8 @@ internal class AuctionImpl(
         pricefloor: Double,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
+        tokens: List<Pair<String, TokenInfo>>,
     ) {
-        resultsCollector.startRound(pricefloor)
         // Execute round
         executeRound(
             pricefloor = pricefloor,
@@ -247,6 +256,7 @@ internal class AuctionImpl(
             adTypeParam = adTypeParamData,
             auctionResponse = auctionDataResponse,
             adUnits = mutableAdUnits,
+            tokens = tokens,
             resultsCollector = resultsCollector,
             onFinish = { remainingLineItems ->
                 mutableAdUnits.clear()

@@ -8,7 +8,7 @@ import org.bidon.sdk.auction.models.AuctionResult
  * Created by Aleksei Cherniaev on 01/06/2023.
  */
 internal class NetworksResult(
-    val results: List<Deferred<AuctionResult>>,
+    val results: List<AuctionResult>,
     /**
      * Remaining LineItems, excluded consumed ones
      */
