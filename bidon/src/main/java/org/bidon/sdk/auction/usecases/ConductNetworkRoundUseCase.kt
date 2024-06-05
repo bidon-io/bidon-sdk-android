@@ -7,7 +7,6 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.models.NetworksResult
 
 /**
