@@ -6,7 +6,7 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.RoundRequest
+import org.bidon.sdk.auction.models.BidResponse
 
 /**
  * Created by Aleksei Cherniaev on 31/05/2023.
@@ -18,6 +18,7 @@ internal interface ConductBiddingRoundUseCase {
     suspend fun invoke(
         context: Context,
         biddingSources: List<Mode.Bidding>,
+        bids: List<BidResponse>?,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,

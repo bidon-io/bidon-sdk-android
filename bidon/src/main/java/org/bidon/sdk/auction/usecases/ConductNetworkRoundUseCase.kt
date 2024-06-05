@@ -7,7 +7,6 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.models.NetworksResult
 
 /**
@@ -19,7 +18,7 @@ internal interface ConductNetworkRoundUseCase {
      */
     fun invoke(
         context: Context,
-        networkSources: List<Mode>,
+        networkSources: List<Mode.Network>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         adUnits: List<AdUnit>,
