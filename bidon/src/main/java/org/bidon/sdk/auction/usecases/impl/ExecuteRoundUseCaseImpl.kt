@@ -1,6 +1,6 @@
 package org.bidon.sdk.auction.usecases.impl
 
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.coroutineScope
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -18,7 +18,6 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
@@ -28,7 +27,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.StatisticsCollector
-import org.bidon.sdk.stats.models.BidType
 
 internal class ExecuteRoundUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -45,69 +43,62 @@ internal class ExecuteRoundUseCaseImpl(
         resultsCollector: ResultsCollector,
         onFinish: (remainingLineItems: List<AdUnit>) -> Unit,
     ): Result<List<AuctionResult>> = coroutineScope {
-
-        val bids = auctionResponse.toBidResponse()
-        resultsCollector.serverBiddingFinished(bids)
-
         val mutableAdUnits = adUnits.toMutableList()
         runCatching {
+            logInfo(TAG, "Round started with adUnits: $mutableAdUnits")
+            val roundDeferred = mutableListOf<Deferred<AuctionResult>>()
+
+//            /**
+//             * Bidding demands auction
+//             */
+//            val filteredBiddingAdapters = adaptersSource.adapters.filter {
+//                it.demandId.demandId in round.biddingIds
+//            }.onEach(::applyRegulation)
+//            logInfo(TAG, "$logText bidding adapters [${filteredBiddingAdapters.joinToString { it.demandId.demandId }}]")
+//            val biddingAdSources = filteredBiddingAdapters
+//                .getAdSources(demandAd.adType)
+//                .onEach {
+//                    applyParams(
+//                        adSource = it,
+//                        adTypeParam = adTypeParam,
+//                        auctionResponse = auctionResponse,
+//                        demandAd = demandAd,
+//                        roundPricefloor = pricefloor,
+//                        auctionPricefloor = auctionResponse.auctionPricefloor ?: 0.0,
+//                    )
+//                }
+//                .filterIsInstance<Mode.Bidding>()
+//            // Start Bidding demands auction
+//            val biddingDemands = biddingAdSources.map {
+//                (it as AdSource<*>).demandId.demandId
+//            }
+//            val biddingResultDeferred = if (biddingDemands.intersect(round.biddingIds.toSet()).isNotEmpty()) {
+//                async {
+//                    conductBiddingAuction.invoke(
+//                        context = adTypeParam.activity.applicationContext,
+//                        biddingSources = biddingAdSources,
+//                        adTypeParam = adTypeParam,
+//                        demandAd = demandAd,
+//                        bidfloor = pricefloor,
+//                        auctionId = auctionResponse.auctionId,
+//                        auctionConfigurationId = auctionResponse.auctionConfigurationId,
+//                        auctionConfigurationUid = auctionResponse.auctionConfigurationUid,
+//                        resultsCollector = resultsCollector,
+//                        adUnits = adUnits
+//                    )
+//                }
+//            } else {
+//                null
+//            }
+
             /**
              * Regular AdNetwork demands auction
              */
-            val adapters = adaptersSource.adapters.toList().onEach {
-                applyRegulation(it)
-            }
-
-            val filteredBiddingAdapters = adapters.filter {
-                it.demandId.demandId in adUnits
-                    .filter { it.extra?.optString("payload")?.isNotEmpty() == true && it.bidType == BidType.RTB }
-                    .map { it.demandId }
-            }.onEach(::applyRegulation)
-
-            logInfo(TAG, "Bidding adapters [${filteredBiddingAdapters.joinToString { it.demandId.demandId }}]")
-            val biddingAdSources = filteredBiddingAdapters
-                .getAdSources(demandAd.adType)
-                .onEach {
-                    applyParams(
-                        adSource = it,
-                        adTypeParam = adTypeParam,
-                        auctionResponse = auctionResponse,
-                        demandAd = demandAd,
-                        roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.auctionPricefloor ?: 0.0,
-                    )
-                }
-                .filterIsInstance<Mode.Bidding>()
-
-            val biddingResultDeferred =
-                async {
-                    conductBiddingAuction.invoke(
-                        context = adTypeParam.activity.applicationContext,
-                        biddingSources = biddingAdSources,
-                        bids = bids,
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        bidfloor = pricefloor,
-                        auctionId = auctionResponse.auctionId,
-                        auctionConfigurationId = auctionResponse.auctionConfigurationId,
-                        auctionConfigurationUid = auctionResponse.auctionConfigurationUid,
-                        resultsCollector = resultsCollector,
-                        adUnits = adUnits,
-                        timeoutMs = auctionResponse.auctionTimeout,
-                    )
-                }
-
-            // Start Regular AdNetwork demands auction
-            val filteredAdNetworkAdapters = adapters.filter {
-                it.demandId.demandId in adUnits
-                    .filter { it.bidType == BidType.CPM }
-                    .map { it.demandId }
-            }.onEach(::applyRegulation)
-            logInfo(
-                TAG,
-                "Network adapters [${filteredAdNetworkAdapters.joinToString { it.demandId.demandId }}]"
-            )
-            val networkAdSources = filteredAdNetworkAdapters.getAdSources(demandAd.adType)
+            val adapters = adaptersSource
+                .adapters
+                .onEach(::applyRegulation)
+            logInfo(TAG, "Network adapters [${adapters.joinToString { it.demandId.demandId }}]")
+            val networkAdSources = adapters.getAdSources(demandAd.adType)
                 .onEach {
                     applyParams(
                         adSource = it,
@@ -119,13 +110,6 @@ internal class ExecuteRoundUseCaseImpl(
                     )
                 }
                 .filterIsInstance<Mode.Network>()
-            biddingResultDeferred.await()
-
-            //TODO what this code does?
-            /**
-             * Find unknown adapters
-             */
-//           resultsCollector.findUnknownNetworkAdapters(networkAdSources)
 
             val networkResults = conductNetworkAuction.invoke(
                 context = adTypeParam.activity,
@@ -140,6 +124,13 @@ internal class ExecuteRoundUseCaseImpl(
             )
             mutableAdUnits.clear()
             mutableAdUnits.addAll(networkResults.remainingAdUnits)
+//            roundDeferred.addAll(networkResults.results) // TODO: 06/06/2024 [glavatskikh]
+
+            /**
+             * Wait for results
+             */
+//            biddingResultDeferred?.await()
+            roundDeferred.map { deferred -> deferred.await() }
 
             /**
              * Collecting results
@@ -184,19 +175,6 @@ internal class ExecuteRoundUseCaseImpl(
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
     }
 
-    private fun AuctionResponse.toBidResponse(): List<BidResponse>? {
-        return adUnits?.filter { it.bidType == BidType.RTB }?.map { adUnit ->
-            BidResponse(
-                id = adUnit.demandId,
-                price = adUnit.pricefloor ?: 0.0,
-                adUnit = adUnit,
-                impressionId = adUnit.uid,
-                ext = adUnit.ext
-            )
-        }
-    }
-
-    //TODO when we need to call it, before auction start?
     private fun applyRegulation(adapter: Adapter) {
         (adapter as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
@@ -211,24 +189,7 @@ internal class ExecuteRoundUseCaseImpl(
         }
     }
 
-    private fun ResultsCollector.findUnknownNetworkAdapters(
-        adSources: List<AdSource<AdAuctionParams>>
-    ) {
-        (adSources.map { (it as AdSource<*>).demandId.demandId }.toSet())
-            .takeIf { it.isNotEmpty() }
-            ?.let { unknownDemandIds ->
-                logError(
-                    tag = TAG,
-                    message = "DSP adapters not found: $unknownDemandIds",
-                    error = NoSuchElementException(unknownDemandIds.joinToString())
-                )
-                unknownDemandIds
-            }?.onEach { adapterName ->
-                this.add(AuctionResult.UnknownAdapter(adapterName, AuctionResult.UnknownAdapter.Type.Network))
-            }
-    }
-
-    private fun List<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> = when (adType) {
+    private fun Set<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> = when (adType) {
         AdType.Interstitial -> {
             this.filterIsInstance<AdProvider.Interstitial<AdAuctionParams>>().mapNotNull { adapter ->
                 runCatching {
