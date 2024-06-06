@@ -95,9 +95,9 @@ internal class AuctionImpl(
                         tokens = tokens,
                     ).mapCatching { auctionData ->
                         //TODO uncomment after mock tests
-//                      if (auctionId != auctionData.auctionId) {
-//                          logError(TAG, "Auction ID has been changed", IllegalStateException())
-//                      }
+                        if (auctionId != auctionData.auctionId) {
+                            logError(TAG, "Auction ID has been changed", IllegalStateException())
+                        }
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -158,14 +158,24 @@ internal class AuctionImpl(
         _demandAd = demandAd
         mutableAdUnits.addAll(auctionData.adUnits ?: emptyList())
 
+        val auctionPriceFloor = auctionData.pricefloor ?: 0.0
         // Start auction
-        conductRounds(
-            sourcePriceFloor = auctionData.pricefloor ?: 0.0,
-            pricefloor = auctionData.pricefloor ?: 0.0,
+        executeRound(
+            pricefloor = auctionPriceFloor,
             demandAd = demandAd,
-            adTypeParamData = adTypeParamData,
-            tokens = tokens,
+            adTypeParam = adTypeParamData,
+            auctionResponse = auctionDataResponse,
+            adUnits = mutableAdUnits,
+            resultsCollector = resultsCollector,
+            onFinish = { remainingLineItems ->
+                mutableAdUnits.clear()
+                mutableAdUnits.addAll(remainingLineItems)
+            }
         )
+
+        // Save round results
+        resultsCollector.saveWinners(auctionPriceFloor)
+        proceedRoundResults()
         logInfo(TAG, "Rounds completed")
 
         // Finding winner / notifying losers
@@ -240,33 +250,6 @@ internal class AuctionImpl(
                 logInfo(TAG, "Destroying loser: ${adSource.demandId}")
                 adSource.destroy()
             }
-    }
-
-    private suspend fun conductRounds(
-        sourcePriceFloor: Double,
-        pricefloor: Double,
-        demandAd: DemandAd,
-        adTypeParamData: AdTypeParam,
-        tokens: List<Pair<String, TokenInfo>>,
-    ) {
-        // Execute round
-        executeRound(
-            pricefloor = pricefloor,
-            demandAd = demandAd,
-            adTypeParam = adTypeParamData,
-            auctionResponse = auctionDataResponse,
-            adUnits = mutableAdUnits,
-            tokens = tokens,
-            resultsCollector = resultsCollector,
-            onFinish = { remainingLineItems ->
-                mutableAdUnits.clear()
-                mutableAdUnits.addAll(remainingLineItems)
-            }
-        )
-
-        // Save round results
-        resultsCollector.saveWinners(sourcePriceFloor)
-        proceedRoundResults()
     }
 }
 

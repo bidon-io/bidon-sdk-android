@@ -73,7 +73,7 @@ internal class AuctionStatImpl(
         val roundWinner = roundResults
             .firstOrNull { it.roundStatus == RoundStatus.Successful }
             .takeIf { !isAuctionCanceled }
-        val networks: List<StatsAdUnit?>  = result.asDemandStatNetworks().map { it.toAdUnitStat() }
+        val networks: List<StatsAdUnit?>  = networkResults.map { it.asDemandStatNetwork() }.map { it.toAdUnitStat() }
         val bidding: StatsAdUnit? = result.asDemandStatBidding()?.toAdUnitStat()
         val results: List<StatsAdUnit?> = networks + bidding
         val roundStat = RoundStat(
@@ -170,8 +170,7 @@ internal class AuctionStatImpl(
     }
 
     private fun RoundResult.Results.asDemandStatNetworks(): List<DemandStat.Network> {
-        val result: RoundResult.Results = this
-        return result.networkResults.map { it.asDemandStatNetwork() }
+        return networkResults.map { it.asDemandStatNetwork() }
     }
 
 

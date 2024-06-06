@@ -18,7 +18,6 @@ internal interface ExecuteRoundUseCase {
         adTypeParam: AdTypeParam,
         pricefloor: Double,
         adUnits: List<AdUnit>,
-        tokens: List<Pair<String, TokenInfo>>,
         resultsCollector: ResultsCollector,
         onFinish: (remainingLineItems: List<AdUnit>) -> Unit,
     ): Result<List<AuctionResult>>
