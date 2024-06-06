@@ -6,19 +6,18 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.BidResponse
 
 class VungleBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    bidResponse: BidResponse,
+    bidResponse: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse.adUnit
-    override val price: Double = bidResponse.price
+    override val adUnit: AdUnit = bidResponse
+    override val price: Double = bidResponse.pricefloor
     val payload: String = requireNotNull(bidResponse.extra?.getString("payload")) {
         "No payload found in bid response"
     }
-    val placementId: String = requireNotNull(bidResponse.adUnit.extra?.getString("placement_id")) {
+    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id")) {
         "placement_id is required"
     }
 
@@ -33,14 +32,14 @@ class VungleBannerAuctionParams(
 
 class VungleFullscreenAuctionParams(
     val activity: Activity,
-    bidResponse: BidResponse,
+    bidResponse: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse.adUnit
-    override val price: Double = bidResponse.price
+    override val adUnit: AdUnit = bidResponse
+    override val price: Double = bidResponse.pricefloor
     val payload: String = requireNotNull(bidResponse.extra?.getString("payload")) {
         "No payload found in bid response"
     }
-    val placementId: String = requireNotNull(bidResponse.adUnit.extra?.getString("placement_id")) {
+    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id")) {
         "placement_id is required"
     }
 }

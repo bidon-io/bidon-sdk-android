@@ -11,13 +11,10 @@ internal class AdUnitParser : JsonParser<AdUnit> {
         AdUnit(
             uid = json.optString("uid", ""),
             demandId = json.optString("demand_id"),
-            pricefloor = runCatching {
-                json.getDouble("pricefloor")
-            }.getOrNull(),
+            pricefloor = json.optDouble("pricefloor", 0.0),
             label = json.optString("label"),
             bidType = BidType.valueOf(json.optString("bid_type")),
             ext = extJson?.toString(),
-            payload = extJson?.optString("payload")
         )
     }.getOrNull()
 }

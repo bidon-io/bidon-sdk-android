@@ -26,7 +26,7 @@ internal class GetAdAuctionParamsUseCase {
                             activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = requiredBidResponse.price,
+                            price = requiredBidResponse.pricefloor,
                             bidResponse = requiredBidResponse,
                         )
                     } else {
@@ -44,7 +44,7 @@ internal class GetAdAuctionParamsUseCase {
                     if (bidType == BidType.RTB) {
                         AdmobFullscreenAdAuctionParams.Bidding(
                             activity = activity,
-                            price = requiredBidResponse.price,
+                            price = requiredBidResponse.pricefloor,
                             bidResponse = requiredBidResponse,
                         )
                     } else {

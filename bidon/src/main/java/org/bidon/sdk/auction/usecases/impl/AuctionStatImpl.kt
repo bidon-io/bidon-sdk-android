@@ -26,8 +26,6 @@ import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
-private typealias StatRound = org.bidon.sdk.stats.models.Round
-
 internal class AuctionStatImpl(
     private val statsRequest: StatsRequestUseCase,
     private val resolver: AuctionResolver
@@ -248,16 +246,16 @@ internal class AuctionStatImpl(
 
                         when (auctionResult) {
                             is AuctionResult.Bidding -> {
-                                val bid = br.bids.first { it.adUnit.demandId == auctionResult.adSource.demandId.demandId }
+                                val bid = br.bids.first { it.demandId == auctionResult.adSource.demandId.demandId }
                                 val stat = auctionResult.adSource.getStats()
                                 DemandStat.Bidding.Bid(
                                     roundStatusCode = auctionResult.roundStatus.code,
-                                    price = bid.price,
-                                    demandId = bid.adUnit.demandId ?: stat.demandId.demandId,
+                                    price = bid.pricefloor,
+                                    demandId = bid.demandId,
                                     fillStartTs = stat.fillStartTs,
                                     fillFinishTs = stat.fillFinishTs,
-                                    adUnitUid = bid.adUnit.uid,
-                                    adUnitLabel = bid.adUnit.label,
+                                    adUnitUid = bid.uid,
+                                    adUnitLabel = bid.label,
                                     tokenStartTs = br.serverBiddingStartTs,
                                     tokenFinishTs = br.serverBiddingFinishTs,
                                 )

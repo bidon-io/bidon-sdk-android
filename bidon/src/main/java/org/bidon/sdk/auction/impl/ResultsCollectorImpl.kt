@@ -5,10 +5,9 @@ import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.AuctionResult.UnknownAdapter.Type
-import org.bidon.sdk.auction.models.BidResponse
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
@@ -37,7 +36,7 @@ internal class ResultsCollectorImpl(
         }
     }
 
-    override fun serverBiddingFinished(bids: List<BidResponse>?) {
+    override fun serverBiddingFinished(bids: List<AdUnit>?) {
         roundResult.update { curRoundResult ->
             when (curRoundResult) {
                 RoundResult.Idle -> curRoundResult

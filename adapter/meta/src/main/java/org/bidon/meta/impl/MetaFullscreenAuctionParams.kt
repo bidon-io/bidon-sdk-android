@@ -7,15 +7,14 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.BidResponse
 
 class MetaFullscreenAuctionParams(
     val context: Context,
-    bidResponse: BidResponse,
+    bidResponse: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse.adUnit
-    override val price = bidResponse.price
-    val placementId = requireNotNull(bidResponse.adUnit.extra?.optString("placement_id")) {
+    override val adUnit: AdUnit = bidResponse
+    override val price = bidResponse.pricefloor
+    val placementId = requireNotNull(bidResponse.extra?.optString("placement_id")) {
         "Placement id is required for Meta"
     }
     val payload = requireNotNull(bidResponse.extra?.optString("payload")) {
@@ -26,11 +25,11 @@ class MetaFullscreenAuctionParams(
 class MetaBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    bidResponse: BidResponse,
+    bidResponse: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse.adUnit
-    override val price = bidResponse.price
-    val placementId = requireNotNull(bidResponse.adUnit.extra?.optString("placement_id")) {
+    override val adUnit: AdUnit = bidResponse
+    override val price = bidResponse.pricefloor
+    val placementId = requireNotNull(bidResponse.extra?.optString("placement_id")) {
         "Placement id is required for Meta"
     }
     val payload = requireNotNull(bidResponse.extra?.optString("payload")) {

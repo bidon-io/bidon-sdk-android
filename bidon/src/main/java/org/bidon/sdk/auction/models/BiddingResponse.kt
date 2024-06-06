@@ -10,7 +10,7 @@ import org.json.JSONObject
  */
 internal data class BiddingResponse(
     @field:JsonName("bids")
-    val bids: List<BidResponse>?,
+    val bids: List<AdUnit>?,
     @field:JsonName("status")
     val status: BidStatus,
 ) : Serializable {
@@ -35,16 +35,9 @@ internal class BidResponseParser : JsonParser<BiddingResponse> {
                             array.optJSONObject(index)
                                 ?.let { bidJson ->
                                     val adUnitJson = bidJson.getJSONObject("ad_unit").toString()
-                                    val adUnit = requireNotNull(AdUnitParser().parseOrNull(adUnitJson)) {
+                                    val bid = requireNotNull(AdUnitParser().parseOrNull(adUnitJson)) {
                                         "AdUnit is null for bid $bidJson"
                                     }
-                                    val bid = BidResponse(
-                                        id = bidJson.getString("id"),
-                                        impressionId = bidJson.optString("imp_id"),
-                                        price = bidJson.getDouble("price"),
-                                        adUnit = adUnit,
-                                        ext = bidJson.optJSONObject("ext")?.toString()
-                                    )
                                     add(bid)
                                 }
                         }.onFailure {

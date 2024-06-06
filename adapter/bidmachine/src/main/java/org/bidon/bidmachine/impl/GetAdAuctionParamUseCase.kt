@@ -15,13 +15,13 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMFullscreenAuctionParams(
                 price = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.price
+                    BidType.RTB -> requiredBidResponse.pricefloor
                     BidType.CPM -> pricefloor
                 },
                 timeout = timeout,
                 context = activity.applicationContext,
                 adUnit = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.adUnit
+                    BidType.RTB -> requiredBidResponse
                     BidType.CPM -> popAdUnit(BidMachineDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
                 },
                 payload = if (bidType == BidType.RTB) {
@@ -37,14 +37,14 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMBannerAuctionParams(
                 price = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.price
+                    BidType.RTB -> requiredBidResponse.pricefloor
                     BidType.CPM -> pricefloor
                 },
                 timeout = timeout,
                 activity = activity,
                 bannerFormat = bannerFormat,
                 adUnit = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.adUnit
+                    BidType.RTB -> requiredBidResponse
                     BidType.CPM -> popAdUnit(BidMachineDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
                 },
                 payload = if (bidType == BidType.RTB) {

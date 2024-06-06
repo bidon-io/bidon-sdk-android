@@ -1,7 +1,6 @@
 package org.bidon.sdk.auction.usecases.impl
 
 import android.content.Context
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.withTimeoutOrNull
@@ -15,16 +14,11 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BidResponse
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.utils.SdkDispatchers
-import org.bidon.sdk.utils.ext.SystemTimeNow
 
 @Suppress("UNCHECKED_CAST")
 internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
@@ -32,14 +26,13 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
     override suspend fun invoke(
         context: Context,
         biddingSources: List<Mode.Bidding>,
-        bids: List<BidResponse>?,
+        bids: List<AdUnit>?,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         bidfloor: Double,
         auctionId: String,
         auctionConfigurationId: Long?,
         auctionConfigurationUid: String?,
-        adUnits: List<AdUnit>,
         timeoutMs: Long,
         resultsCollector: ResultsCollector
     ) {
@@ -62,7 +55,7 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
 
     private suspend fun fillBids(
         resultsCollector: ResultsCollector,
-        bids: List<BidResponse>,
+        bids: List<AdUnit>,
         biddingSources: List<Mode>,
         adTypeParam: AdTypeParam,
         roundPricefloor: Double,
@@ -71,12 +64,12 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
         var filled = false
         bids.forEach { bid ->
             val adSource = biddingSources.first {
-                (it as AdSource<*>).demandId.demandId == bid.adUnit.demandId
+                (it as AdSource<*>).demandId.demandId == bid.demandId
             } as AdSource<*>
             if (!filled) {
                 adSource.markFillStarted(
-                    adUnit = bid.adUnit,
-                    pricefloor = bid.price
+                    adUnit = bid,
+                    pricefloor = bid.pricefloor
                 )
                 val fillResult = loadAd(
                     biddingSources = biddingSources,
@@ -96,13 +89,13 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
                 }
                 adSource.markFillFinished(
                     roundStatus = fillResult.roundStatus,
-                    ecpm = bid.price
+                    ecpm = bid.pricefloor
                 )
                 resultsCollector.add(fillResult)
             } else {
                 val lose = AuctionResult.BiddingLose(
                     adapterName = adSource.demandId.demandId,
-                    ecpm = bid.price
+                    ecpm = bid.pricefloor
                 )
                 logInfo(TAG, "$lose")
                 resultsCollector.add(lose)
@@ -112,13 +105,13 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
 
     private suspend fun loadAd(
         biddingSources: List<Mode>,
-        bid: BidResponse,
+        bid: AdUnit,
         adTypeParam: AdTypeParam,
         roundPricefloor: Double,
         timeoutMs: Long
     ): AuctionResult.Bidding {
         val adSource = biddingSources.first {
-            (it as AdSource<*>).demandId.demandId == bid.adUnit.demandId
+            (it as AdSource<*>).demandId.demandId == bid.demandId
         }
         val adParamsSource = AdAuctionParamSource(
             activity = adTypeParam.activity,
@@ -133,8 +126,7 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
 //            roundStatus = RoundStatus.NoAppropriateAdUnitId,
 //            adSource = adSource,
 //        )
-        var adParam = adParamResult.getOrThrow()
-        adParam = adParamResult.getOrNull() ?: run {
+        val adParam: AdAuctionParams = adParamResult.getOrNull() ?: run {
             logError(TAG, "No appropriate AdUnit found for ${adSource.demandId}", BidonError.NoAppropriateAdUnitId)
             return AuctionResult.Bidding(
                 roundStatus = RoundStatus.NoAppropriateAdUnitId,
@@ -142,7 +134,8 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
             )
         }
 
-        adSource.addImpressionId(bid.impressionId)
+        //TODO UID?
+        adSource.addImpressionId(bid.uid)
 
         /**
          * Start loading ad

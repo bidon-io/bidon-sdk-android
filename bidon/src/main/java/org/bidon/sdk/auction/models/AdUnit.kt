@@ -9,10 +9,9 @@ import org.json.JSONObject
 data class AdUnit(
     val demandId: String,
     val label: String,
-    val pricefloor: Double?,
+    val pricefloor: Double,
     val uid: String,
     val bidType: BidType,
-    val payload: String?,
     val ext: String?,
 ) {
     val extra: JSONObject? = ext?.let {

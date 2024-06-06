@@ -61,8 +61,8 @@ internal class AmazonRewardedImpl(
         return auctionParamsScope {
             FullscreenAuctionParams(
                 activity = activity,
-                price = requiredBidResponse.price,
-                adUnit = requiredBidResponse.adUnit
+                price = requiredBidResponse.pricefloor,
+                adUnit = requiredBidResponse
             )
         }
     }

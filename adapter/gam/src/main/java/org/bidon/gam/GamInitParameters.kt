@@ -7,7 +7,6 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.BidResponse
 
 data class GamInitParameters(
     val requestAgent: String?,
@@ -39,9 +38,9 @@ sealed interface GamBannerAuctionParams : AdAuctionParams {
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
         override val price: Double,
-        bidResponse: BidResponse,
+        bidResponse: AdUnit,
     ) : GamBannerAuctionParams {
-        override val adUnit: AdUnit = bidResponse.adUnit
+        override val adUnit: AdUnit = bidResponse
         val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
         val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
 
@@ -69,9 +68,9 @@ sealed interface GamFullscreenAdAuctionParams : AdAuctionParams {
     class Bidding(
         override val activity: Activity,
         override val price: Double,
-        bidResponse: BidResponse
+        bidResponse: AdUnit
     ) : GamFullscreenAdAuctionParams {
-        override val adUnit: AdUnit = bidResponse.adUnit
+        override val adUnit: AdUnit = bidResponse
         val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
         val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
 

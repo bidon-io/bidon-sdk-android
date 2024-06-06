@@ -18,8 +18,6 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.models.BidResponse
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
@@ -47,7 +45,7 @@ internal class ExecuteRoundUseCaseImpl(
         onFinish: (remainingLineItems: List<AdUnit>) -> Unit,
     ): Result<List<AuctionResult>> = coroutineScope {
 
-        val bids = auctionResponse.toBidResponse()
+        val bids = auctionResponse.adUnits?.filter { it.bidType == BidType.RTB }
         resultsCollector.serverBiddingFinished(bids)
 
         val mutableAdUnits = adUnits.toMutableList()
@@ -61,7 +59,7 @@ internal class ExecuteRoundUseCaseImpl(
 
             val filteredBiddingAdapters = adapters.filter {
                 it.demandId.demandId in adUnits
-                    .filter { it.payload?.isNotEmpty() == true && it.bidType == BidType.RTB }
+                    .filter { it.bidType == BidType.RTB }
                     .map { it.demandId }
             }.onEach(::applyRegulation)
             logInfo(
@@ -95,7 +93,6 @@ internal class ExecuteRoundUseCaseImpl(
                         auctionConfigurationId = auctionResponse.auctionConfigurationId,
                         auctionConfigurationUid = auctionResponse.auctionConfigurationUid,
                         resultsCollector = resultsCollector,
-                        adUnits = adUnits,
                         timeoutMs = auctionResponse.auctionTimeout,
                     )
                 }
@@ -186,18 +183,6 @@ internal class ExecuteRoundUseCaseImpl(
         adSource.addAuctionConfigurationId(auctionResponse.auctionConfigurationId ?: 0)
         adSource.addAuctionConfigurationUid(auctionResponse.auctionConfigurationUid ?: "")
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
-    }
-
-    private fun AuctionResponse.toBidResponse(): List<BidResponse>? {
-        return adUnits?.filter { it.bidType == BidType.RTB }?.map { adUnit ->
-            BidResponse(
-                id = adUnit.demandId,
-                price = adUnit.pricefloor ?: 0.0,
-                adUnit = adUnit,
-                impressionId = adUnit.uid,
-                ext = adUnit.ext
-            )
-        }
     }
 
     //TODO when we need to call it, before auction start?
