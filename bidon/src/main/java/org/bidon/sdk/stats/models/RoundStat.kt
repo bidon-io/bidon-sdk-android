@@ -7,7 +7,7 @@ import org.bidon.sdk.adapter.DemandId
 internal data class RoundStat(
     val auctionId: String,
     val pricefloor: Double?,
-    val demands: List<StatsAdUnit>,
+    val demands: List<StatsAdUnit?>,
     val winnerDemandId: DemandId?,
     val winnerEcpm: Double?,
 )
