@@ -16,7 +16,7 @@ internal data class StatsRequestBody(
     @field:JsonName("auction_pricefloor")
     val auctionPricefloor: Double?,
     @field:JsonName("ad_units")
-    val adUnits: List<StatsAdUnit>,
+    val adUnits: List<StatsAdUnit?>,
     @field:JsonName("result")
     val result: ResultBody,
 ) : Serializable
