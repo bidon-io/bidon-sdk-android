@@ -60,9 +60,10 @@ internal class ExecuteRoundUseCaseImpl(
 
             val filteredBiddingAdapters = adapters.filter {
                 it.demandId.demandId in adUnits
-                    .filter { it.payload?.isNotEmpty() == true && it.bidType == BidType.RTB }
+                    .filter { it.extra?.optString("payload")?.isNotEmpty() == true && it.bidType == BidType.RTB }
                     .map { it.demandId }
             }.onEach(::applyRegulation)
+
             logInfo(TAG, "Bidding adapters [${filteredBiddingAdapters.joinToString { it.demandId.demandId }}]")
             val biddingAdSources = filteredBiddingAdapters
                 .getAdSources(demandAd.adType)
@@ -150,8 +151,7 @@ internal class ExecuteRoundUseCaseImpl(
                     }.orEmpty()
                 }.mapIndexed { index, result ->
                     val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
-                    val details =
-                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
+                    val details = "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
                     logInfo(TAG, "Round result #$index. $details")
                     result
                 }.let {

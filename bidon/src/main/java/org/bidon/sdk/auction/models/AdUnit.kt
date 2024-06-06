@@ -13,18 +13,14 @@ data class AdUnit(
     val pricefloor: Double?,
     val uid: String,
     val bidType: BidType,
-    val payload: String?,
     val ext: String?,
 ) {
-    val extra: JSONObject? = ext?.let {
-        JSONObject(it)
-    }
+    val extra: JSONObject? = ext?.let { JSONObject(it) }
 }
 
 internal class AdUnitParser : JsonParser<AdUnit> {
     override fun parseOrNull(jsonString: String): AdUnit? = runCatching {
         val json = JSONObject(jsonString)
-        val extJson = json.optJSONObject("ext")
         AdUnit(
             uid = json.optString("uid", ""),
             demandId = json.optString("demand_id"),
@@ -33,8 +29,7 @@ internal class AdUnitParser : JsonParser<AdUnit> {
             }.getOrNull(),
             label = json.optString("label"),
             bidType = BidType.valueOf(json.optString("bid_type")),
-            ext = extJson?.toString(),
-            payload = extJson?.optString("payload")
+            ext = json.optJSONObject("ext")?.toString()
         )
     }.getOrNull()
 }
