@@ -5,12 +5,12 @@ import com.amazon.device.ads.AdRegistration
 import com.amazon.device.ads.MRAIDPolicy
 import org.bidon.amazon.ext.adapterVersion
 import org.bidon.amazon.ext.sdkVersion
-import org.bidon.amazon.ext.toSlots
 import org.bidon.amazon.impl.AmazonBannerImpl
 import org.bidon.amazon.impl.AmazonInterstitialImpl
 import org.bidon.amazon.impl.AmazonRewardedImpl
 import org.bidon.amazon.impl.BannerAuctionParams
 import org.bidon.amazon.impl.FullscreenAuctionParams
+import org.bidon.amazon.impl.ParseSlotsUseCase
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.logs.logging.Logger
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -39,6 +40,7 @@ class AmazonAdapter :
     AdProvider.Banner<BannerAuctionParams>,
     AdProvider.Interstitial<FullscreenAuctionParams>,
     AdProvider.Rewarded<FullscreenAuctionParams> {
+    private var slots: Map<SlotType, List<String>> = emptyMap()
 
     override val demandId: DemandId = AmazonDemandId
 
@@ -51,7 +53,9 @@ class AmazonAdapter :
         val jsonObject = JSONObject(json)
         return AmazonParameters(
             appKey = jsonObject.getString("app_key"),
-            slots = jsonObject.optJSONArray("slots")?.toSlots() ?: mapOf()
+            slots = ParseSlotsUseCase()(jsonObject).also {
+                logInfo("AmazonAdapter", "Parsed slots: $it")
+            }
         )
     }
 
@@ -69,18 +73,14 @@ class AmazonAdapter :
     }
 
     override fun banner(): AdSource.Banner<BannerAuctionParams> {
-        return AmazonBannerImpl()
+        return AmazonBannerImpl(slots)
     }
 
     override fun interstitial(): AdSource.Interstitial<FullscreenAuctionParams> {
-        return AmazonInterstitialImpl()
+        return AmazonInterstitialImpl(slots)
     }
 
     override fun rewarded(): AdSource.Rewarded<FullscreenAuctionParams> {
-        return AmazonRewardedImpl()
-    }
-
-    companion object {
-        var slots: Map<SlotType, List<String>> = mapOf()
+        return AmazonRewardedImpl(slots)
     }
 }

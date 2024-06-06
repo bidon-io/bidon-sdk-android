@@ -27,7 +27,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -51,7 +50,7 @@ internal class BMBannerAdImpl :
     override val isAdReadyToShow: Boolean
         get() = bannerView?.canShow() == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String {
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String {
         bidType = BidType.RTB
         return BidMachine.getBidToken(context)
     }

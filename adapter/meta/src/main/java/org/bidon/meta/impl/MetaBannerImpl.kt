@@ -18,7 +18,6 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -41,7 +40,7 @@ class MetaBannerImpl :
     override val isAdReadyToShow: Boolean
         get() = bannerView != null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
         return BidderTokenProvider.getBidderToken(context)
     }
 

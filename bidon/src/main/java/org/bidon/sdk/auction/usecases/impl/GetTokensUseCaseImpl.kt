@@ -153,8 +153,6 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
                         val token = adSource.getToken(
                             context = context,
                             adTypeParam = adTypeParam,
-                            //todo check
-                            adUnits = listOf(),
                         )
                         adSource.markTokenFinished(
                             status = TokenInfo.Status.SUCCESS.takeIf { token != null }

@@ -5,7 +5,6 @@ import android.view.View
 import com.amazon.device.ads.DTBAdBannerListener
 import com.amazon.device.ads.DTBAdView
 import com.amazon.device.ads.SDKUtilities
-import org.bidon.amazon.AmazonAdapter
 import org.bidon.amazon.SlotType
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -18,7 +17,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -30,8 +28,9 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal class AmazonBannerImpl :
-    AdSource.Banner<BannerAuctionParams>,
+internal class AmazonBannerImpl(
+    private val slots: Map<SlotType, List<String>>
+) : AdSource.Banner<BannerAuctionParams>,
     Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -44,12 +43,7 @@ internal class AmazonBannerImpl :
     override val isAdReadyToShow: Boolean
         get() = adView != null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
-        val slots = AmazonAdapter.slots.filter {
-            it.key == SlotType.BANNER || it.key == SlotType.MREC
-        }.also {
-            logInfo("AmazonAdapter", "Parsed slots: $it")
-        }
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
         val amazonInfo = obtainToken(slots, adTypeParam).takeIf { it.isNotEmpty() }?.also {
             this.amazonInfos.addAll(it)
         } ?: return null

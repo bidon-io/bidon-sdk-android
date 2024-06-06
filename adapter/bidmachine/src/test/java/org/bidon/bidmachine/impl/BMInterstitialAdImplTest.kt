@@ -88,7 +88,7 @@ class BMInterstitialAdImplTest {
             )
         }
 
-        testee.getToken(mockk(), mockk(), emptyList())
+        testee.getToken(mockk(), mockk())
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
 
         require(actual is BMFullscreenAuctionParams)

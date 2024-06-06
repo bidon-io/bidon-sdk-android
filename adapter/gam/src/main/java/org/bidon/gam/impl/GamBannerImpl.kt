@@ -12,7 +12,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -43,7 +42,7 @@ internal class GamBannerImpl(
     private var adSize: AdSize? = null
     private var bannerFormat: BannerFormat? = null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
         bidType = BidType.RTB
         return obtainToken(context, demandAd.adType)
     }

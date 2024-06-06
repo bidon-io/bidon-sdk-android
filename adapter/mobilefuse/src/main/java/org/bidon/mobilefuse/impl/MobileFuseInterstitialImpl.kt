@@ -13,7 +13,6 @@ import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -39,7 +38,7 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
 
     override val isAdReadyToShow: Boolean get() = interstitialAd?.isLoaded == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam, adUnits: List<AdUnit>): String? {
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
         return GetMobileFuseTokenUseCase(context, isTestMode)
     }
 

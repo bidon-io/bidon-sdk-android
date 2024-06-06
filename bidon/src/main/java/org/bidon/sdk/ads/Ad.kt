@@ -3,7 +3,6 @@ package org.bidon.sdk.ads
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
-import java.util.*
 
 /**
  * Created by Bidon Team on 06/02/2023.
