@@ -13,10 +13,10 @@ sealed interface AdTypeParam {
 
     class Banner(
         override val activity: Activity,
-        val bannerFormat: BannerFormat,
         override val pricefloor: Double,
-        val containerWidth: Float,
         override val auctionKey: String?,
+        val bannerFormat: BannerFormat,
+        val containerWidth: Float,
     ) : AdTypeParam
 
     class Interstitial(

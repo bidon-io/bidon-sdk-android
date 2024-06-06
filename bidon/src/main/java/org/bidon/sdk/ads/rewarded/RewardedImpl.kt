@@ -27,7 +27,7 @@ import org.bidon.sdk.utils.di.get
 
 internal class RewardedImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-    private val auctionKey: String?,
+    private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
 ) : Rewarded, Extras by demandAd {
 

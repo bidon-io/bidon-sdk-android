@@ -42,9 +42,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class BannerView @JvmOverloads constructor(
     context: Context,
+    val auctionKey: String? = null,
     attrs: AttributeSet? = null,
     @AttrRes defStyleAtt: Int = 0,
-    private val auctionKey : String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Banner),
 ) : FrameLayout(context, attrs, defStyleAtt),
     BannerAd,
