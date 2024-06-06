@@ -22,7 +22,6 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
@@ -33,7 +32,6 @@ import org.bidon.sdk.config.models.adapters.TestAdapter
 import org.bidon.sdk.config.models.adapters.TestAdapterParameters
 import org.bidon.sdk.config.models.adapters.TestBiddingAdapter
 import org.bidon.sdk.config.models.auctions.impl.Admob
-import org.bidon.sdk.config.models.auctions.impl.Applovin
 import org.bidon.sdk.config.models.auctions.impl.BidMachine
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -73,13 +71,13 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
                 ext = null,
             )
         ),
-        pricefloor = 0.01,
         token = null,
         auctionId = "auctionId_123",
+        auctionPricefloor = 0.01,
+        auctionTimeout = 10000L,
         auctionConfigurationId = 10,
         auctionConfigurationUid = "10",
         externalWinNotificationsEnabled = true,
-        auctionTimeout = 10000L,
     )
 
     private val activity: Activity by lazy { mockk(relaxed = true) }

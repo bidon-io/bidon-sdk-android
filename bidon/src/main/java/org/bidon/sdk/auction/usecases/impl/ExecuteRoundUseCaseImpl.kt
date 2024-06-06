@@ -74,7 +74,7 @@ internal class ExecuteRoundUseCaseImpl(
                         auctionResponse = auctionResponse,
                         demandAd = demandAd,
                         roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
+                        auctionPricefloor = auctionResponse.auctionPricefloor ?: 0.0,
                     )
                 }
                 .filterIsInstance<Mode.Bidding>()
@@ -115,7 +115,7 @@ internal class ExecuteRoundUseCaseImpl(
                         auctionResponse = auctionResponse,
                         demandAd = demandAd,
                         roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
+                        auctionPricefloor = auctionResponse.auctionPricefloor ?: 0.0,
                     )
                 }
                 .filterIsInstance<Mode.Network>()

@@ -58,7 +58,7 @@ internal class AuctionResponseParserTest {
                 ext = null,
             )
         ),
-        pricefloor = 0.01,
+        auctionPricefloor = 0.01,
         token = "asdsad",
         auctionId = "49975154-b82a-444b-a7f0-30bd749e7fce",
         auctionConfigurationId = 10,

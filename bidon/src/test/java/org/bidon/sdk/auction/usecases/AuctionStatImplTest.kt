@@ -564,7 +564,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 ),
             ),
             adUnits = null,
-            pricefloor = 0.01,
+            auctionPricefloor = 0.01,
             token = null,
             auctionId = "auction_id_123",
             auctionConfigurationId = 10,

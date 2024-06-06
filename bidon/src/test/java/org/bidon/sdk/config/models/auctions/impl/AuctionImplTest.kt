@@ -157,7 +157,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                     uid = "1",
                 ),
             ),
-            pricefloor = 0.01,
+            auctionPricefloor = 0.01,
             token = null,
             auctionId = "auctionId_123",
             auctionConfigurationId = 10,
@@ -404,7 +404,7 @@ internal class AuctionImplTest : ConcurrentTest() {
             ),
 
         ),
-        pricefloor = 0.01,
+        auctionPricefloor = 0.01,
         token = null,
         auctionId = "auctionId_123",
         auctionConfigurationId = 10,

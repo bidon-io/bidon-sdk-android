@@ -157,8 +157,8 @@ internal class AuctionImpl(
 
         // Start auction
         conductRounds(
-            sourcePriceFloor = auctionData.pricefloor ?: 0.0,
-            pricefloor = auctionData.pricefloor ?: 0.0,
+            sourcePriceFloor = auctionData.auctionPricefloor ?: 0.0,
+            pricefloor = auctionData.auctionPricefloor ?: 0.0,
             demandAd = demandAd,
             adTypeParamData = adTypeParamData,
         )
