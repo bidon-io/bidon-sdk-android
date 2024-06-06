@@ -15,7 +15,6 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -102,7 +101,6 @@ internal class AuctionImpl(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
-                            tokens = tokens,
                         ).ifEmpty {
                             throw BidonError.NoAuctionResults
                         }.also {
@@ -152,7 +150,6 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        tokens: List<Pair<String, TokenInfo>>
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
@@ -164,7 +161,6 @@ internal class AuctionImpl(
             pricefloor = auctionData.pricefloor ?: 0.0,
             demandAd = demandAd,
             adTypeParamData = adTypeParamData,
-            tokens = tokens,
         )
         logInfo(TAG, "Rounds completed")
 
@@ -229,10 +225,7 @@ internal class AuctionImpl(
                  */
                 if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                    adSource.notifyLoss(
-                        winner.adSource.demandId.demandId,
-                        winner.adSource.getStats().ecpm
-                    )
+                    adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
                 }
                 if (auctionResult.roundStatus == RoundStatus.Successful) {
                     adSource.markLoss()
@@ -247,7 +240,6 @@ internal class AuctionImpl(
         pricefloor: Double,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        tokens: List<Pair<String, TokenInfo>>,
     ) {
         // Execute round
         executeRound(
@@ -256,7 +248,6 @@ internal class AuctionImpl(
             adTypeParam = adTypeParamData,
             auctionResponse = auctionDataResponse,
             adUnits = mutableAdUnits,
-            tokens = tokens,
             resultsCollector = resultsCollector,
             onFinish = { remainingLineItems ->
                 mutableAdUnits.clear()
