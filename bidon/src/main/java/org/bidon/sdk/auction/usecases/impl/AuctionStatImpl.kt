@@ -73,9 +73,9 @@ internal class AuctionStatImpl(
         val roundWinner = roundResults
             .firstOrNull { it.roundStatus == RoundStatus.Successful }
             .takeIf { !isAuctionCanceled }
-        val networks = result.asDemandStatNetworks()
-        val bidding = result.asDemandStatBidding()?.toAdUnitStat()
-        val results = networks.map { it.toAdUnitStat() } + bidding
+        val networks: List<StatsAdUnit?>  = result.asDemandStatNetworks().map { it.toAdUnitStat() }
+        val bidding: StatsAdUnit? = result.asDemandStatBidding()?.toAdUnitStat()
+        val results: List<StatsAdUnit?> = networks + bidding
         val roundStat = RoundStat(
             auctionId = auctionId,
             pricefloor = result.pricefloor,
@@ -88,7 +88,7 @@ internal class AuctionStatImpl(
         return roundStat
     }
 
-    fun DemandStat.toAdUnitStat(): StatsAdUnit {
+    private fun DemandStat.toAdUnitStat(): StatsAdUnit? {
         return when (this) {
             is DemandStat.Network -> {
                 StatsAdUnit(
@@ -105,29 +105,25 @@ internal class AuctionStatImpl(
                 )
             }
             is DemandStat.Bidding -> {
-                val bid = bids.first()
-                StatsAdUnit(
-                    demandId = bid.demandId ?: "",
-                    status = bid.roundStatusCode,
-                    price = bid.price,
-                    tokenStartTs = bid.tokenStartTs,
-                    tokenFinishTs = bid.tokenFinishTs,
-                    bidType = BidType.RTB.code,
-                    fillStartTs = bid.fillStartTs,
-                    fillFinishTs = bid.fillFinishTs,
-                    adUnitUid = bid.adUnitUid,
-                    adUnitLabel = bid.adUnitLabel,
-                )
+                bids.firstOrNull()?.let { bid ->
+                    StatsAdUnit(
+                        demandId = bid.demandId ?: "",
+                        status = bid.roundStatusCode,
+                        price = bid.price,
+                        tokenStartTs = bid.tokenStartTs,
+                        tokenFinishTs = bid.tokenFinishTs,
+                        bidType = BidType.RTB.code,
+                        fillStartTs = bid.fillStartTs,
+                        fillFinishTs = bid.fillFinishTs,
+                        adUnitUid = bid.adUnitUid,
+                        adUnitLabel = bid.adUnitLabel,
+                    )
+                }
             }
         }
     }
 
     override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd): StatsRequestBody? {
-        // prepare data
-//        val canceledRounds = getNotConductedRoundStats(
-//            rounds = auctionData.rounds.orEmpty(),
-//            completedRoundIds = statsRounds.map { it.roundId },
-//        )
         val roundResults =
             roundStat?.copy(
                 auctionId = auctionId,
@@ -155,7 +151,6 @@ internal class AuctionStatImpl(
                     )
                 } ?: listOf(),
             )
-//        } + canceledRounds
 
         // send data
         val statsRequestBody = roundResults?.asStatsRequestBody(
