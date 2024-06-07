@@ -16,7 +16,6 @@ import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.DemandStat
 import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
@@ -71,9 +70,11 @@ internal class AuctionStatImpl(
         val roundWinner = roundResults
             .firstOrNull { it.roundStatus == RoundStatus.Successful }
             .takeIf { !isAuctionCanceled }
-        val networks: List<StatsAdUnit?>  = networkResults.map { it.asDemandStatNetwork() }.map { it.toAdUnitStat() }
-        val bidding: StatsAdUnit? = result.asDemandStatBidding()?.toAdUnitStat()
-        val results: List<StatsAdUnit?> = networks + bidding
+
+        val networks: List<StatsAdUnit> = networkResults.mapNotNull { it.asStatsAdUnit() }
+        val bidding: List<StatsAdUnit> = biddingResults.mapNotNull { it.asStatsAdUnit() }
+        val results: List<StatsAdUnit> = networks + bidding
+
         val roundStat = RoundStat(
             auctionId = auctionId,
             pricefloor = result.pricefloor,
@@ -86,37 +87,68 @@ internal class AuctionStatImpl(
         return roundStat
     }
 
-    private fun DemandStat.toAdUnitStat(): StatsAdUnit? {
+    private fun AuctionResult.asStatsAdUnit(): StatsAdUnit? {
         return when (this) {
-            is DemandStat.Network -> {
+            is AuctionResult.Network -> {
+                val stat = this.adSource.getStats()
                 StatsAdUnit(
-                    demandId = demandId,
-                    status = roundStatusCode,
-                    price = price,
+                    demandId = stat.demandId.demandId,
+                    status = this.roundStatus.code,
+                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
                     tokenStartTs = null,
                     tokenFinishTs = null,
                     bidType = BidType.CPM.code,
-                    fillStartTs = fillStartTs,
-                    fillFinishTs = fillFinishTs,
-                    adUnitUid = adUnitUid,
-                    adUnitLabel = adUnitLabel,
+                    fillStartTs = stat.fillStartTs,
+                    fillFinishTs = stat.fillFinishTs,
+                    adUnitUid = stat.adUnit?.uid,
+                    adUnitLabel = stat.adUnit?.label,
                 )
             }
-            is DemandStat.Bidding -> {
-                bids.firstOrNull()?.let { bid ->
-                    StatsAdUnit(
-                        demandId = bid.demandId ?: "",
-                        status = bid.roundStatusCode,
-                        price = bid.price,
-                        tokenStartTs = bid.tokenStartTs,
-                        tokenFinishTs = bid.tokenFinishTs,
-                        bidType = BidType.RTB.code,
-                        fillStartTs = bid.fillStartTs,
-                        fillFinishTs = bid.fillFinishTs,
-                        adUnitUid = bid.adUnitUid,
-                        adUnitLabel = bid.adUnitLabel,
-                    )
-                }
+
+            is AuctionResult.Bidding -> {
+                val stat = this.adSource.getStats()
+                StatsAdUnit(
+                    demandId = stat.demandId.demandId,
+                    status = this.roundStatus.code,
+                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
+                    tokenStartTs = null,
+                    tokenFinishTs = null,
+                    bidType = BidType.RTB.code,
+                    fillStartTs = stat.fillStartTs,
+                    fillFinishTs = stat.fillFinishTs,
+                    adUnitUid = stat.adUnit?.uid,
+                    adUnitLabel = stat.adUnit?.label,
+                )
+            }
+
+            is AuctionResult.BiddingLose -> {
+                StatsAdUnit(
+                    demandId = this.adapterName,
+                    status = this.roundStatus.code,
+                    price = this.ecpm,
+                    tokenStartTs = null,
+                    tokenFinishTs = null,
+                    bidType = BidType.RTB.code,
+                    fillStartTs = null,
+                    fillFinishTs = null,
+                    adUnitUid = null,
+                    adUnitLabel = null,
+                )
+            }
+
+            is AuctionResult.UnknownAdapter -> {
+                StatsAdUnit(
+                    demandId = this.adapterName,
+                    status = this.roundStatus.code,
+                    price = null,
+                    tokenStartTs = null,
+                    tokenFinishTs = null,
+                    bidType = null,
+                    fillStartTs = null,
+                    fillFinishTs = null,
+                    adUnitUid = null,
+                    adUnitLabel = null,
+                )
             }
         }
     }
@@ -130,21 +162,12 @@ internal class AuctionStatImpl(
                 winnerEcpm = winner?.adSource?.getStats()?.ecpm,
                 demands = roundStat?.demands?.map { demandStat ->
                     demandStat?.copy(
-                        demandId = demandStat.demandId,
-                        price = demandStat.price,
-                        fillStartTs = demandStat.fillStartTs,
-                        fillFinishTs = demandStat.fillFinishTs,
-                        adUnitUid = demandStat.adUnitUid,
-                        adUnitLabel = demandStat.adUnitLabel,
-                        bidType = demandStat.bidType,
-                        tokenStartTs = demandStat.tokenStartTs,
-                        tokenFinishTs = demandStat.tokenFinishTs,
                         status = RoundStatus.values().first {
                             it.code == demandStat.status
                         }.getFinalStatus(
                             isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
-                                demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
-                                demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
+                                    demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
+                                    demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
                         ).code
                     )
                 } ?: listOf(),
@@ -167,162 +190,19 @@ internal class AuctionStatImpl(
         return statsRequestBody
     }
 
-    private fun RoundResult.Results.asDemandStatNetworks(): List<DemandStat.Network> {
-        return networkResults.map { it.asDemandStatNetwork() }
+    private fun RoundStatus.getFinalStatus(isWinner: Boolean): RoundStatus {
+        return when {
+            isWinner -> RoundStatus.Win
+            this == RoundStatus.Successful -> RoundStatus.Lose
+            else -> this
+        }
     }
-
 
     private fun updateWinnerIfNeed(roundWinner: AuctionResult?) {
         if (roundWinner == null) return
         val currentEcpm = winner?.adSource?.getStats()?.ecpm ?: 0.0
         if (currentEcpm < roundWinner.adSource.getStats().ecpm) {
             this.winner = roundWinner
-        }
-    }
-
-    private fun AuctionResult.asDemandStatNetwork(): DemandStat.Network {
-        return when (this) {
-            is AuctionResult.Network -> {
-                val stat = this.adSource.getStats()
-                DemandStat.Network(
-                    roundStatusCode = this.roundStatus.code,
-                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
-                    demandId = stat.demandId.demandId,
-                    fillStartTs = stat.fillStartTs,
-                    fillFinishTs = stat.fillFinishTs,
-                    adUnitLabel = stat.adUnit?.label,
-                    adUnitUid = stat.adUnit?.uid,
-                )
-            }
-
-            is AuctionResult.UnknownAdapter -> {
-                DemandStat.Network(
-                    roundStatusCode = RoundStatus.UnknownAdapter.code,
-                    demandId = adapterName,
-                    fillStartTs = null,
-                    fillFinishTs = null,
-                    price = null,
-                    adUnitUid = null,
-                    adUnitLabel = null,
-                )
-            }
-
-            is AuctionResult.BiddingLose,
-            is AuctionResult.Bidding -> error("unexpected")
-        }
-    }
-
-    private fun RoundResult.Results.asDemandStatBidding(): DemandStat.Bidding? {
-        val demandError: (RoundStatus) -> DemandStat.Bidding.Bid = {
-            DemandStat.Bidding.Bid(
-                roundStatusCode = it.code,
-                demandId = null,
-                adUnitUid =  null,
-                adUnitLabel =  null,
-                price =  null,
-                tokenStartTs =  null,
-                tokenFinishTs =  null,
-                fillStartTs =  null,
-                fillFinishTs =  null,
-            )
-        }
-
-        return when (val br = this.biddingResult) {
-            BiddingResult.Idle -> null
-
-            is BiddingResult.NoBid -> {
-                DemandStat.Bidding(
-                    bidStartTs = br.serverBiddingStartTs,
-                    bidFinishTs = br.serverBiddingFinishTs,
-                    bids = listOf(demandError(RoundStatus.NoBid))
-                )
-            }
-
-            is BiddingResult.FilledAd -> {
-                DemandStat.Bidding(
-                    bidStartTs = br.serverBiddingStartTs,
-                    bidFinishTs = br.serverBiddingFinishTs,
-                    bids = br.results.map { auctionResult ->
-
-                        when (auctionResult) {
-                            is AuctionResult.Bidding -> {
-                                val bid = br.bids.first { it.demandId == auctionResult.adSource.demandId.demandId }
-                                val stat = auctionResult.adSource.getStats()
-                                DemandStat.Bidding.Bid(
-                                    roundStatusCode = auctionResult.roundStatus.code,
-                                    price = bid.pricefloor,
-                                    demandId = bid.demandId,
-                                    fillStartTs = stat.fillStartTs,
-                                    fillFinishTs = stat.fillFinishTs,
-                                    adUnitUid = bid.uid,
-                                    adUnitLabel = bid.label,
-                                    tokenStartTs = br.serverBiddingStartTs,
-                                    tokenFinishTs = br.serverBiddingFinishTs,
-                                )
-                            }
-
-                            is AuctionResult.UnknownAdapter -> {
-                                DemandStat.Bidding.Bid(
-                                    roundStatusCode = RoundStatus.UnknownAdapter.code,
-                                    demandId = auctionResult.adapterName,
-                                    adUnitUid = null,
-                                    adUnitLabel = null,
-                                    price = null,
-                                    tokenStartTs = null,
-                                    tokenFinishTs = null,
-                                    fillStartTs = null,
-                                    fillFinishTs = null,
-                                )
-                            }
-
-                            is AuctionResult.BiddingLose -> {
-                                DemandStat.Bidding.Bid(
-                                    roundStatusCode = RoundStatus.Lose.code,
-                                    demandId = auctionResult.adapterName,
-                                    price = auctionResult.ecpm,
-                                    adUnitUid = null,
-                                    adUnitLabel = null,
-                                    tokenStartTs = null,
-                                    tokenFinishTs = null,
-                                    fillStartTs = null,
-                                    fillFinishTs = null,
-                                )
-                            }
-
-                            is AuctionResult.Network -> error("unexpected")
-                        }
-                    }
-                )
-            }
-
-            is BiddingResult.ServerBiddingStarted -> {
-                DemandStat.Bidding(
-                    bidStartTs = br.serverBiddingStartTs,
-                    bidFinishTs = null,
-                    bids = listOf(demandError(RoundStatus.AuctionCancelled))
-                )
-            }
-
-            is BiddingResult.TimeoutReached -> {
-                DemandStat.Bidding(
-                    bidStartTs = br.serverBiddingStartTs,
-                    bidFinishTs = br.serverBiddingFinishTs,
-                    bids = listOf(
-                        demandError(
-                            RoundStatus.BidTimeoutReached.takeIf { br.serverBiddingFinishTs == null }
-                                ?: RoundStatus.FillTimeoutReached
-                        )
-                    )
-                )
-            }
-        }
-    }
-
-    private fun RoundStatus.getFinalStatus(isWinner: Boolean): RoundStatus {
-        return when {
-            isWinner -> RoundStatus.Win
-            this == RoundStatus.Successful -> RoundStatus.Lose
-            else -> this
         }
     }
 
@@ -342,7 +222,6 @@ internal class AuctionStatImpl(
         auctionStartTs: Long,
         auctionFinishTs: Long,
     ): StatsRequestBody {
-
         return StatsRequestBody(
             auctionId = auctionId,
             auctionConfigurationId = auctionConfigurationId,

@@ -122,10 +122,6 @@ internal class ConductBiddingRoundUseCaseImpl : ConductBiddingRoundUseCase {
             bidResponse = bid
         )
         val adParamResult = (adSource as AdSource<AdAuctionParams>).getAuctionParam(adParamsSource)
-//        adParam ?: return AuctionResult.Bidding(
-//            roundStatus = RoundStatus.NoAppropriateAdUnitId,
-//            adSource = adSource,
-//        )
         val adParam: AdAuctionParams = adParamResult.getOrNull() ?: run {
             logError(TAG, "No appropriate AdUnit found for ${adSource.demandId}", BidonError.NoAppropriateAdUnitId)
             return AuctionResult.Bidding(
