@@ -150,10 +150,11 @@ internal class ExecuteRoundUseCaseImpl(
                         it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
                     }.orEmpty()
                 }.mapIndexed { index, result ->
-                    val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
-                    val details =
-                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
-                    logInfo(TAG, "Round result #$index. $details")
+                    // TODO: take adSource.demandId from LOSE
+//                    val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
+//                    val details =
+//                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
+//                    logInfo(TAG, "Round result #$index. $details")
                     result
                 }.let {
                     onFinish.invoke(mutableAdUnits)
