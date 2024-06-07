@@ -12,8 +12,6 @@ import org.bidon.sdk.utils.serializer.Serializable
 internal data class ImpressionRequestBody(
     @field:JsonName("imp_id")
     val impressionId: String,
-    @field:JsonName("round_pricefloor")
-    val roundPricefloor: Double,
     @field:JsonName("auction_pricefloor")
     val auctionPricefloor: Double,
     @field:JsonName("auction_id")

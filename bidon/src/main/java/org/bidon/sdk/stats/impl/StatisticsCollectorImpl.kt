@@ -54,7 +54,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
     }
 
     private var _demandAd: DemandAd? = null
-    //TODO when we receive this object
     private var stat: BidStat = BidStat(
         auctionId = null,
         demandId = DemandId(""),
@@ -307,7 +306,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             adUnitLabel = stat.adUnit?.label,
             adUnitUid = stat.adUnit?.uid,
             auctionPricefloor = stat.auctionPricefloor,
-            roundPricefloor = stat.roundPricefloor
         )
     }
 
