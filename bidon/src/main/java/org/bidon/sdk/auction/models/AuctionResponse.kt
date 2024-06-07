@@ -23,9 +23,7 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
         val json = JSONObject(jsonString)
         AuctionResponse(
             adUnits = JsonParsers.parseList(json.optJSONArray("ad_units")),
-            pricefloor = json.optDouble("pricefloor"),
-            //TODO return after server fixes
-//          pricefloor = json.optDouble("auction_pricefloor"),
+          pricefloor = json.optDouble("auction_pricefloor"),
             token = json.optString("token"),
             auctionId = json.getString("auction_id"),
             auctionTimeout = json.optLong("auction_timeout", defaultTimeout),
