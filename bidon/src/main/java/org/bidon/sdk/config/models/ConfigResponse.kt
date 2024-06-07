@@ -8,19 +8,23 @@ import org.json.JSONObject
  */
 internal data class ConfigResponse(
     val initializationTimeout: Long,
-    val adapters: Map<String, JSONObject>
+    val adapters: Map<String, JSONObject>,
+    val bidding: BiddingConfig?,
 )
 
 internal class ConfigResponseParser : JsonParser<ConfigResponse> {
     override fun parseOrNull(jsonString: String): ConfigResponse? = runCatching {
         val json = JSONObject(jsonString)
+        val init = json.getJSONObject("init")
+        val bidding = json.getJSONObject("bidding")
         ConfigResponse(
-            initializationTimeout = json.getLong("tmax"),
-            adapters = json.getJSONObject("adapters").let { jsonAdapters ->
+            initializationTimeout = init.getLong("tmax"),
+            adapters = init.getJSONObject("adapters").let { jsonAdapters ->
                 jsonAdapters.keys().asSequence().associateWith { adapterName ->
                     jsonAdapters.getJSONObject(adapterName)
                 }
-            }
+            },
+            bidding = BiddingResponseParser().parseOrNull(bidding.toString())
         )
     }.getOrNull()
 }

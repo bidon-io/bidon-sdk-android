@@ -40,6 +40,8 @@ import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
+import org.bidon.sdk.config.models.BiddingConfig
+import org.bidon.sdk.config.models.BiddingConfigImpl
 import org.bidon.sdk.config.usecases.InitAndRegisterAdaptersUseCase
 import org.bidon.sdk.databinders.DataProvider
 import org.bidon.sdk.databinders.DataProviderImpl
@@ -167,6 +169,10 @@ internal object DI {
             singleton<GetTokensUseCase> {
                 GetTokensUseCaseImpl()
             }
+            singleton<BiddingConfig> {
+                BiddingConfigImpl()
+            }
+
 
             factory { get<Segment>() as SegmentSynchronizer }
 
@@ -186,6 +192,8 @@ internal object DI {
                     getAuctionRequest = get(),
                     executeRound = get(),
                     auctionStat = get(),
+                    tokenGetter = get(),
+                    biddingConfig = get()
                 )
             }
             factory<AuctionStat> {

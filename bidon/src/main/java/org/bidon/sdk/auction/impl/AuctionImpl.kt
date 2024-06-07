@@ -15,13 +15,13 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.config.models.BiddingConfig
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
@@ -38,6 +38,8 @@ internal class AuctionImpl(
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val executeRound: ExecuteRoundUseCase,
     private val auctionStat: AuctionStat,
+    private val tokenGetter: GetTokensUseCase,
+    private val biddingConfig: BiddingConfig,
 ) : Auction {
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val state = MutableStateFlow(AuctionState.Initialized)
@@ -72,14 +74,17 @@ internal class AuctionImpl(
                 val auctionId = UUID.randomUUID().toString()
                 resultsCollector.serverBiddingStarted()
 
-                val tokens = get<GetTokensUseCase>().invoke(
-                    adType = demandAd.adType,
-                    adTypeParam = adTypeParam,
-                    adaptersSource = adaptersSource
-                )
-                tokens.forEachIndexed { index, (demandId, token) ->
-                    logInfo(TAG, "#$index $demandId {$token}")
-                }
+                    val tokens = tokenGetter.invoke(
+                        adType = demandAd.adType,
+                        adTypeParam = adTypeParam,
+                        adaptersSource = adaptersSource,
+                        tokenTimeout = biddingConfig.tokenTimeout
+                    )
+
+                    if (tokens.isEmpty()) {
+                        logError(TAG, "No tokens found", BidonError.NoBid)
+                        resultsCollector.serverBiddingFinished(null)
+                    }
 
                 runCatching {
                     logInfo(TAG, "Action started $this")
@@ -94,7 +99,6 @@ internal class AuctionImpl(
                         },
                         tokens = tokens,
                     ).mapCatching { auctionData ->
-                        //TODO uncomment after mock tests
                         if (auctionId != auctionData.auctionId) {
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
@@ -102,7 +106,6 @@ internal class AuctionImpl(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
-                            tokens = tokens,
                         ).ifEmpty {
                             throw BidonError.NoAuctionResults
                         }.also {
@@ -152,7 +155,6 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        tokens: List<Pair<String, TokenInfo>>
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd

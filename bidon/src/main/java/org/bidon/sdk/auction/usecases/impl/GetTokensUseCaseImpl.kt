@@ -17,6 +17,7 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -29,20 +30,17 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
     override suspend fun invoke(
         adType: AdType,
         adTypeParam: AdTypeParam,
-        adaptersSource: AdaptersSource
+        adaptersSource: AdaptersSource,
+        tokenTimeout: Long,
     ): List<Pair<String, TokenInfo>> {
         /**
          * Bidding demands auction
          */
-        val filteredBiddingAdapters =
-            adaptersSource.adapters.onEach(::applyRegulation).toList()
+        val filteredBiddingAdapters = adaptersSource.adapters.onEach(::applyRegulation)
         val biddingAdSources = filteredBiddingAdapters
             .getAdSources(adType)
             .onEach {
-                applyParams(
-                    adSource = it,
-                    adTypeParam = adTypeParam,
-                )
+                it.setStatisticAdType(adTypeParam.asStatisticAdType())
             }
             .filterIsInstance<Mode.Bidding>()
 
@@ -50,16 +48,21 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
          * Tokens Obtaining
          */
         val tokens = biddingAdSources.getTokens(
-            context = get(),
+            context = adTypeParam.activity.applicationContext,
             adTypeParam = adTypeParam,
+            tokenTimeout = tokenTimeout
         )
-        logInfo(TAG, "${tokens.size} token(s):")
-        tokens.forEachIndexed { index, (demandId, token) ->
-            logInfo(TAG, "#$index $demandId {$token}")
+        return if (tokens.all { it.second.status != TokenInfo.Status.SUCCESS.code }) {
+            logError(TAG, "No tokens found", BidonError.NoBid)
+            emptyList()
+        } else {
+            logInfo(TAG, "${tokens.size} token(s):")
+            tokens.forEachIndexed { index, (demandId, token) ->
+                logInfo(TAG, "#$index $demandId {$token}")
+            }
+            tokens
         }
-        return tokens
     }
-
 
     private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
         return when (this) {
@@ -79,15 +82,6 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         }
     }
 
-    private fun applyParams(
-        adSource: AdSource<AdAuctionParams>,
-        adTypeParam: AdTypeParam,
-    ) {
-        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
-        adSource.addAuctionConfigurationId(0)
-        adSource.addAuctionConfigurationUid("")
-    }
-
     private fun applyRegulation(adapter: Adapter) {
         (adapter as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
@@ -102,7 +96,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         }
     }
 
-    private fun List<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> =
+    private fun Set<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> =
         when (adType) {
             AdType.Interstitial -> {
                 this.filterIsInstance<AdProvider.Interstitial<AdAuctionParams>>()
@@ -141,6 +135,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
     private suspend fun List<Mode.Bidding>.getTokens(
         context: Context,
         adTypeParam: AdTypeParam,
+        tokenTimeout: Long,
     ): List<Pair<String, TokenInfo>> {
         val adSources = this
         val results = mutableListOf<Pair<String, TokenInfo>>()
@@ -191,6 +186,3 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
     }
 
 }
-
-//TODO move out to token_timeout_ms in /config response
-private val tokenTimeout: Long = 10000L

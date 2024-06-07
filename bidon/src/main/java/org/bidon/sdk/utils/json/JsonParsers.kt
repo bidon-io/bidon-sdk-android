@@ -4,6 +4,7 @@ import org.bidon.sdk.auction.models.AdUnitParser
 import org.bidon.sdk.auction.models.AuctionResponseParser
 import org.bidon.sdk.auction.models.BidResponseParser
 import org.bidon.sdk.auction.models.RoundParser
+import org.bidon.sdk.config.models.BiddingResponseParser
 import org.bidon.sdk.config.models.ConfigResponseParser
 import org.bidon.sdk.utils.networking.BaseResponseErrorParser
 import org.bidon.sdk.utils.networking.BaseResponseParser
@@ -22,6 +23,7 @@ internal object JsonParsers {
         addParser { BaseResponseParser() }
         addParser { BaseResponseErrorParser() }
         addParser { ConfigResponseParser() }
+        addParser { BiddingResponseParser() }
         addParser { AuctionResponseParser() }
         addParser { RoundParser() }
         addParser { AdUnitParser() }

@@ -9,6 +9,7 @@ internal interface GetTokensUseCase {
     suspend operator fun invoke(
         adType: AdType,
         adTypeParam: AdTypeParam,
-        adaptersSource: AdaptersSource
-    ): List<Pair<String, TokenInfo>>
+        adaptersSource: AdaptersSource,
+        tokenTimeout: Long,
+        ): List<Pair<String, TokenInfo>>
 }
