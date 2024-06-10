@@ -19,6 +19,7 @@ internal interface ResultsCollector {
 
     fun getAll(): List<AuctionResult>
     fun clear()
+    @Deprecated("")
     suspend fun saveWinners(sourcePriceFloor: Double)
     fun clearRoundResults()
 
