@@ -1,11 +1,12 @@
 package org.bidon.sdk.auction.usecases
 
 import android.content.Context
+import org.bidon.sdk.adapter.AdAuctionParams
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.AuctionResult
 
 /**
  * Created by Aleksei Cherniaev on 31/05/2023.
@@ -16,15 +17,11 @@ internal interface ConductBiddingRoundUseCase {
      */
     suspend fun invoke(
         context: Context,
-        biddingSources: List<Mode.Bidding>,
-        bids: List<AdUnit>?,
+        adSource: AdSource<AdAuctionParams>,
+        adUnit: AdUnit,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
-        bidfloor: Double,
-        auctionId: String,
-        auctionConfigurationId: Long?,
-        auctionConfigurationUid: String?,
+        priceFloor: Double,
         timeoutMs: Long,
-        resultsCollector: ResultsCollector,
-    )
+    ): AuctionResult?
 }
