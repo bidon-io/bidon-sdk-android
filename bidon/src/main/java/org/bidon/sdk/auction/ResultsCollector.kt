@@ -9,7 +9,9 @@ import org.bidon.sdk.auction.usecases.models.RoundResult
  */
 internal interface ResultsCollector {
     fun startRound(pricefloor: Double)
+    @Deprecated("")
     fun serverBiddingStarted()
+    @Deprecated("")
     fun serverBiddingFinished(bids: List<AdUnit>?)
     fun biddingTimeoutReached()
     fun add(result: AuctionResult)
