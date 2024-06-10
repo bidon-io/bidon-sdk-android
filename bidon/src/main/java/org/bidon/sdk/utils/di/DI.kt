@@ -31,12 +31,16 @@ import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
 import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.RequestSingleCpm
+import org.bidon.sdk.auction.usecases.RequestSingleRtb
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.impl.BidRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ConductBiddingRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ConductNetworkRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.RequestSingleCpmUseCase
+import org.bidon.sdk.auction.usecases.impl.RequestSingleRtbUseCase
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -215,6 +219,12 @@ internal object DI {
             factory<ConductNetworkRoundUseCase> {
                 ConductNetworkRoundUseCaseImpl()
             }
+            factory<RequestSingleRtb> {
+                RequestSingleRtbUseCase()
+            }
+            factory<RequestSingleCpm> {
+                RequestSingleCpmUseCase()
+            }
             factory<BidRequestUseCase> {
                 BidRequestUseCaseImpl(
                     createRequestBody = get(),
@@ -226,7 +236,9 @@ internal object DI {
                     conductNetworkAuction = get(),
                     conductBiddingAuction = get(),
                     adaptersSource = get(),
-                    regulation = get()
+                    regulation = get(),
+                    conductSingleRtb = get(),
+                    conductSingleCpm = get(),
                 )
             }
 

@@ -33,6 +33,8 @@ internal class ExecuteRoundUseCaseImpl(
     private val adaptersSource: AdaptersSource,
     private val conductNetworkAuction: ConductNetworkRoundUseCase,
     private val conductBiddingAuction: ConductBiddingRoundUseCase,
+    private val conductSingleRtb: RequestSingleRtbUseCase,
+    private val conductSingleCpm: RequestSingleCpmUseCase,
     private val regulation: Regulation,
 ) : ExecuteRoundUseCase {
     override suspend fun invoke(
@@ -45,17 +47,24 @@ internal class ExecuteRoundUseCaseImpl(
         onFinish: (remainingLineItems: List<AdUnit>) -> Unit,
     ): Result<List<AuctionResult>> = coroutineScope {
 
+        singleRequest(
+            demandAd = demandAd,
+            auctionResponse = auctionResponse,
+            adTypeParam = adTypeParam,
+            pricefloor = pricefloor,
+            adUnits = adUnits,
+            resultsCollector = resultsCollector,
+        )
         val bids = auctionResponse.adUnits?.filter { it.bidType == BidType.RTB }
         resultsCollector.serverBiddingFinished(bids)
 
         val mutableAdUnits = adUnits.toMutableList()
         runCatching {
+
             /**
              * Regular AdNetwork demands auction
              */
-            val adapters = adaptersSource.adapters.toList().onEach {
-                applyRegulation(it)
-            }
+            val adapters = adaptersSource.adapters
 
             val filteredBiddingAdapters = adapters.filter {
                 it.demandId.demandId in adUnits
@@ -163,6 +172,64 @@ internal class ExecuteRoundUseCaseImpl(
                 }
         }.onFailure {
             logError(TAG, "Failed to execute round", it)
+        }
+    }
+
+    private suspend fun singleRequest(
+        demandAd: DemandAd,
+        auctionResponse: AuctionResponse,
+        adTypeParam: AdTypeParam,
+        pricefloor: Double,
+        adUnits: List<AdUnit>,
+        resultsCollector: ResultsCollector,
+    ) {
+
+        resultsCollector.serverBiddingFinished(adUnits)
+        adUnits.forEach { adUnit ->
+
+            val adSource = adaptersSource.adapters
+                .filter { it.demandId.demandId == adUnit.demandId }
+                .onEach(::applyRegulation)
+                .getAdSources(demandAd.adType)
+                .filterIsInstance(adUnit.bidType.toAdapterMode())
+                .firstOrNull()
+
+            adSource?.let { mode ->
+                when (adUnit.bidType) {
+                    BidType.RTB -> {
+                        conductSingleRtb.invoke(
+                            context = adTypeParam.activity.applicationContext,
+                            adSource = mode,
+                            adTypeParam = adTypeParam,
+                            adUnit = adUnit,
+                            demandAd = demandAd,
+                            priceFloor = pricefloor,
+                            timeoutMs = auctionResponse.auctionTimeout,
+                        )
+                    }
+
+                    BidType.CPM -> {
+                        conductSingleCpm.invoke(
+                            context = adTypeParam.activity.applicationContext,
+                            adSource = mode,
+                            adTypeParam = adTypeParam,
+                            adUnit = adUnit,
+                            demandAd = demandAd,
+                            priceFloor = pricefloor,
+                            timeoutMs = auctionResponse.auctionTimeout,
+                        )
+                    }
+                }
+            } ?: run {
+                logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
+            }
+        }
+    }
+
+    private fun BidType.toAdapterMode() : Class<out Mode> {
+        return when(this) {
+            BidType.RTB -> Mode.Bidding::class.java
+            BidType.CPM -> Mode.Network::class.java
         }
     }
 
