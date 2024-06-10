@@ -213,10 +213,7 @@ internal object DI {
                 ConductNetworkRoundUseCaseImpl()
             }
             factory<BidRequestUseCase> {
-                BidRequestUseCaseImpl(
-                    createRequestBody = get(),
-                    getOrientation = get(),
-                )
+                BidRequestUseCaseImpl()
             }
             factory<ExecuteRoundUseCase> {
                 ExecuteRoundUseCaseImpl(

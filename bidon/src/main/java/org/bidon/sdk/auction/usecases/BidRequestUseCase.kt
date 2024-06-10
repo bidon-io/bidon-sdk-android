@@ -7,6 +7,7 @@ import org.bidon.sdk.auction.models.TokenInfo
 /**
  * Created by Aleksei Cherniaev on 31/05/2023.
  */
+@Deprecated("")
 internal interface BidRequestUseCase {
     suspend fun invoke(
         adTypeParam: AdTypeParam,
