@@ -17,7 +17,9 @@ data class TokenInfo(
         SUCCESS("SUCCESS"),
         TIMEOUT_REACHED("TIMEOUT_REACHED"),
         NO_TOKEN("NO_TOKEN"),
+        @Deprecated("Because tokens collect without ad unit id")
         NO_APPROPRIATE_AD_UNIT_ID("NO_APPROPRIATE_AD_UNIT_ID"),
+        @Deprecated("Because tokens collect for available ad adapters")
         UNKNOWN_ADAPTER("UNKNOWN_ADAPTER");
     }
 }
