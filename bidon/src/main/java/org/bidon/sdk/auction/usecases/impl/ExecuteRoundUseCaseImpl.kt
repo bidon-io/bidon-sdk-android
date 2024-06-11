@@ -51,6 +51,16 @@ internal class ExecuteRoundUseCaseImpl(
 
             for (i in adUnits.indices) {
                 val adUnit = adUnits[i]
+
+                if (adUnit.pricefloor < pricefloor) {
+                    logInfo(
+                        TAG,
+                        "Auction stopped because the priceFloor: $pricefloor is less than " +
+                                "the next requested adUnit: ${adUnit.pricefloor}”)"
+                    )
+                    break
+                }
+
                 val adSource = adaptersForRequest
                     .filter { it.demandId.demandId == adUnit.demandId }
                     .getAdSources(demandAd.adType)
@@ -76,7 +86,16 @@ internal class ExecuteRoundUseCaseImpl(
                         resultsCollector.add(it)
                     }
                     if (auctionResult?.roundStatus == RoundStatus.Successful) {
-                        if (!shouldRequestNext(auctionResult = auctionResult, adUnits = adUnits, currentPosition = i)) {
+                        if (!shouldRequestNext(
+                                auctionResult = auctionResult,
+                                adUnits = adUnits,
+                                currentPosition = i
+                            )
+                        ) {
+                            logInfo(
+                                TAG,
+                                "Auction stopped since the filled eCPM larger than the next one"
+                            )
                             break
                         }
                     }
@@ -94,11 +113,11 @@ internal class ExecuteRoundUseCaseImpl(
                         it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
                     }.orEmpty()
                 }.mapIndexed { index, result ->
-                    // TODO: take adSource.demandId from LOSE
-//                    val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
-//                    val details =
-//                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
-//                    logInfo(TAG, "Round result #$index. $details")
+                    // TODO: check take adSource.demandId from LOSE
+                    val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
+                    val details =
+                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
+                    logInfo(TAG, "Round result #$index. $details")
                     result
                 }.let {
                     logInfo(TAG, "Round finished with ${it.size} results: $it")
@@ -114,9 +133,10 @@ internal class ExecuteRoundUseCaseImpl(
         currentPosition: Int,
         adUnits: List<AdUnit>
     ): Boolean {
-        //TODO doesn`t receive actual, cause stats did not updated
         val currentEcpm = auctionResult.adSource.getStats().ecpm
-        val nextEcpm = if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
+        val nextEcpm =
+            if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
+        logInfo(TAG, "Loaded eCPM: $currentEcpm, next requested eCPM: $nextEcpm")
         return currentEcpm < nextEcpm
     }
 

@@ -7,6 +7,7 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
+import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
@@ -80,7 +81,7 @@ class ConductAuctionUseCaseImpl : ConductAuctionUseCase {
 
         logInfo(TAG, "fillResult: ${auctionResult.roundStatus}, ${auctionResult.adSource}")
 
-        adSource.markFillFinished(roundStatus, adUnit.pricefloor)
+        adSource.markFillFinished(roundStatus, adSource.ad?.ecpm)
 
         auctionResult
     }
