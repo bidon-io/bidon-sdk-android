@@ -44,7 +44,7 @@ class MetaInterstitialImpl :
         return auctionParamsScope {
             MetaFullscreenAuctionParams(
                 context = activity.applicationContext,
-                bidResponse = requiredBidResponse,
+                adUnit = adUnit,
             )
         }
     }

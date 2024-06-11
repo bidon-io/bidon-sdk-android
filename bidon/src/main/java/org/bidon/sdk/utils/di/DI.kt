@@ -26,15 +26,11 @@ import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.BidRequestUseCase
-import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
+import org.bidon.sdk.auction.usecases.ConductAuctionUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
-import org.bidon.sdk.auction.usecases.impl.BidRequestUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductBiddingRoundUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductNetworkRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.ConductAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
@@ -209,22 +205,12 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
-            factory<ConductBiddingRoundUseCase> {
-                ConductBiddingRoundUseCaseImpl()
-            }
-            factory<ConductNetworkRoundUseCase> {
-                ConductNetworkRoundUseCaseImpl()
-            }
-            factory<BidRequestUseCase> {
-                BidRequestUseCaseImpl(
-                    createRequestBody = get(),
-                    getOrientation = get(),
-                )
+            factory<ConductAuctionUseCase> {
+                ConductAuctionUseCaseImpl()
             }
             factory<ExecuteRoundUseCase> {
                 ExecuteRoundUseCaseImpl(
-                    conductNetworkAuction = get(),
-                    conductBiddingAuction = get(),
+                    conductAuction = get(),
                     adaptersSource = get(),
                     regulation = get(),
                 )

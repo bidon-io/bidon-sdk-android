@@ -50,7 +50,7 @@ class AmazonRewardedImplTest {
                 onAdUnitsConsumed = {},
                 optBannerFormat = null,
                 optContainerWidth = null,
-                bidResponse = BidResponse(
+                adUnit = BidResponse(
                     id = "id",
                     price = 2.7,
                     ext = jsonObject {

@@ -48,7 +48,7 @@ internal class MintegralBannerImpl :
             MintegralBannerAuctionParam(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

@@ -1,12 +1,10 @@
 package org.bidon.admob.impl
 
 import org.bidon.admob.AdmobBannerAuctionParams
-import org.bidon.admob.AdmobDemandId
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.stats.models.BidType
 
 /**
@@ -26,12 +24,12 @@ internal class GetAdAuctionParamsUseCase {
                             activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = requiredBidResponse.pricefloor,
-                            bidResponse = requiredBidResponse,
+                            price = adUnit.pricefloor,
+                            adUnit = adUnit,
                         )
                     } else {
                         AdmobBannerAuctionParams.Network(
-                            adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
+                            adUnit = adUnit,
                             bannerFormat = bannerFormat,
                             activity = activity,
                             containerWidth = containerWidth,
@@ -44,12 +42,12 @@ internal class GetAdAuctionParamsUseCase {
                     if (bidType == BidType.RTB) {
                         AdmobFullscreenAdAuctionParams.Bidding(
                             activity = activity,
-                            price = requiredBidResponse.pricefloor,
-                            bidResponse = requiredBidResponse,
+                            price = adUnit.pricefloor,
+                            adUnit = adUnit,
                         )
                     } else {
                         AdmobFullscreenAdAuctionParams.Network(
-                            adUnit = popAdUnit(AdmobDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
+                            adUnit = adUnit,
                             activity = activity,
                         )
                     }

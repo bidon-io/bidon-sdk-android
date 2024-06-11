@@ -16,8 +16,7 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
+import org.bidon.sdk.auction.usecases.ConductAuctionUseCase
 import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
@@ -26,11 +25,11 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
+import org.bidon.sdk.stats.models.RoundStatus
 
 internal class ExecuteRoundUseCaseImpl(
     private val adaptersSource: AdaptersSource,
-    private val conductNetworkAuction: ConductNetworkRoundUseCase,
-    private val conductBiddingAuction: ConductBiddingRoundUseCase,
+    private val conductAuction: ConductAuctionUseCase,
     private val regulation: Regulation,
 ) : ExecuteRoundUseCase {
     override suspend fun invoke(
@@ -48,15 +47,16 @@ internal class ExecuteRoundUseCaseImpl(
                 .filter { it.demandId.demandId in adUnits.map { it.demandId } }
                 .onEach(::applyRegulation)
 
-            resultsCollector.serverBiddingFinished(adUnits)
-            val auctionResults = mutableListOf<AuctionResult>()
-            adUnits.forEach { adUnit ->
+            resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
+
+            for (i in adUnits.indices) {
+                val adUnit = adUnits[i]
                 val adSource = adaptersForRequest
                     .filter { it.demandId.demandId == adUnit.demandId }
                     .getAdSources(demandAd.adType)
                     .firstOrNull()
 
-                adSource?.let { mode ->
+                if (adSource != null) {
                     applyParams(
                         adSource = adSource,
                         adTypeParam = adTypeParam,
@@ -65,35 +65,22 @@ internal class ExecuteRoundUseCaseImpl(
                         roundPricefloor = pricefloor,
                         auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
                     )
-                    when (adUnit.bidType) {
-                        BidType.RTB -> {
-                            conductBiddingAuction.invoke(
-                                context = adTypeParam.activity.applicationContext,
-                                adSource = mode,
-                                adTypeParam = adTypeParam,
-                                adUnit = adUnit,
-                                demandAd = demandAd,
-                                priceFloor = pricefloor,
-                                timeoutMs = auctionResponse.auctionTimeout,
-                            )
-                        }
 
-                        BidType.CPM -> {
-                            conductNetworkAuction.invoke(
-                                context = adTypeParam.activity.applicationContext,
-                                adSource = mode,
-                                adTypeParam = adTypeParam,
-                                adUnit = adUnit,
-                                demandAd = demandAd,
-                                priceFloor = pricefloor,
-                                timeoutMs = auctionResponse.auctionTimeout,
-                            )
-                        }
-                    }?.also { auctionResult ->
-                        resultsCollector.add(auctionResult)
-                        auctionResults.add(auctionResult)
+                    val auctionResult = conductAuction.invoke(
+                        adSource = adSource,
+                        adTypeParam = adTypeParam,
+                        adUnit = adUnit,
+                        priceFloor = pricefloor,
+                        timeoutMs = auctionResponse.auctionTimeout
+                    )?.also {
+                        resultsCollector.add(it)
                     }
-                } ?: run {
+                    if (auctionResult?.roundStatus == RoundStatus.Successful) {
+                        if (!shouldRequestNext(auctionResult = auctionResult, adUnits = adUnits, currentPosition = i)) {
+                            break
+                        }
+                    }
+                } else {
                     logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
                 }
             }
@@ -114,12 +101,23 @@ internal class ExecuteRoundUseCaseImpl(
 //                    logInfo(TAG, "Round result #$index. $details")
                     result
                 }.let {
-                    logInfo(TAG, "Round finished with ${it.size} results: $auctionResults")
+                    logInfo(TAG, "Round finished with ${it.size} results: $it")
                     it
                 }
         }.onFailure {
             logError(TAG, "Failed to execute round", it)
         }
+    }
+
+    private fun shouldRequestNext(
+        auctionResult: AuctionResult,
+        currentPosition: Int,
+        adUnits: List<AdUnit>
+    ): Boolean {
+        //TODO doesn`t receive actual, cause stats did not updated
+        val currentEcpm = auctionResult.adSource.getStats().ecpm
+        val nextEcpm = if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
+        return currentEcpm < nextEcpm
     }
 
     private fun applyParams(
@@ -142,7 +140,6 @@ internal class ExecuteRoundUseCaseImpl(
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
     }
 
-    //TODO when we need to call it, before auction start?
     private fun applyRegulation(adapter: Adapter) {
         (adapter as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
@@ -155,28 +152,6 @@ internal class ExecuteRoundUseCaseImpl(
             )
             supportsRegulation.updateRegulation(regulation)
         }
-    }
-
-    private fun ResultsCollector.findUnknownNetworkAdapters(
-        adSources: List<AdSource<AdAuctionParams>>
-    ) {
-        (adSources.map { (it as AdSource<*>).demandId.demandId }.toSet())
-            .takeIf { it.isNotEmpty() }
-            ?.let { unknownDemandIds ->
-                logError(
-                    tag = TAG,
-                    message = "DSP adapters not found: $unknownDemandIds",
-                    error = NoSuchElementException(unknownDemandIds.joinToString())
-                )
-                unknownDemandIds
-            }?.onEach { adapterName ->
-                this.add(
-                    AuctionResult.UnknownAdapter(
-                        adapterName,
-                        AuctionResult.UnknownAdapter.Type.Network
-                    )
-                )
-            }
     }
 
     private fun List<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> =

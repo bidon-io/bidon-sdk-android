@@ -15,17 +15,14 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMFullscreenAuctionParams(
                 price = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.pricefloor
+                    BidType.RTB -> adUnit.pricefloor
                     BidType.CPM -> pricefloor
                 },
                 timeout = timeout,
                 context = activity.applicationContext,
-                adUnit = when (bidType) {
-                    BidType.RTB -> requiredBidResponse
-                    BidType.CPM -> popAdUnit(BidMachineDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
-                },
+                adUnit = adUnit,
                 payload = if (bidType == BidType.RTB) {
-                    requireNotNull(requiredBidResponse.extra?.getString("payload")) {
+                    requireNotNull(adUnit.extra?.getString("payload")) {
                         "No payload found in bid response"
                     }
                 } else null
@@ -37,18 +34,15 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMBannerAuctionParams(
                 price = when (bidType) {
-                    BidType.RTB -> requiredBidResponse.pricefloor
+                    BidType.RTB -> adUnit.pricefloor
                     BidType.CPM -> pricefloor
                 },
                 timeout = timeout,
                 activity = activity,
                 bannerFormat = bannerFormat,
-                adUnit = when (bidType) {
-                    BidType.RTB -> requiredBidResponse
-                    BidType.CPM -> popAdUnit(BidMachineDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId)
-                },
+                adUnit = adUnit,
                 payload = if (bidType == BidType.RTB) {
-                    requireNotNull(requiredBidResponse.extra?.getString("payload")) {
+                    requireNotNull(adUnit.extra?.getString("payload")) {
                         "No payload found in bid response"
                     }
                 } else null

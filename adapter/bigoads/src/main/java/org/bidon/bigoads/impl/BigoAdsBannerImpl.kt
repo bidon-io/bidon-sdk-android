@@ -60,7 +60,7 @@ internal class BigoAdsBannerImpl :
             BigoBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

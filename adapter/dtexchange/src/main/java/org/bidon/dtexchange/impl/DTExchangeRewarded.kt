@@ -46,7 +46,7 @@ internal class DTExchangeRewarded :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val adUnit = popAdUnit(demandId, BidType.CPM) ?: error(BidonError.NoAppropriateAdUnitId)
+            val adUnit = adUnit
             DTExchangeAdAuctionParams(adUnit)
         }
     }

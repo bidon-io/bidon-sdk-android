@@ -10,14 +10,13 @@ import org.bidon.sdk.auction.models.AdUnit
 
 class MetaFullscreenAuctionParams(
     val context: Context,
-    bidResponse: AdUnit,
+    override val adUnit: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse
-    override val price = bidResponse.pricefloor
-    val placementId = requireNotNull(bidResponse.extra?.optString("placement_id")) {
+    override val price = adUnit.pricefloor
+    val placementId = requireNotNull(adUnit.extra?.optString("placement_id")) {
         "Placement id is required for Meta"
     }
-    val payload = requireNotNull(bidResponse.extra?.optString("payload")) {
+    val payload = requireNotNull(adUnit.extra?.optString("payload")) {
         "Payload is required for Meta"
     }
 }
@@ -25,14 +24,13 @@ class MetaFullscreenAuctionParams(
 class MetaBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    bidResponse: AdUnit,
+    override val adUnit: AdUnit,
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse
-    override val price = bidResponse.pricefloor
-    val placementId = requireNotNull(bidResponse.extra?.optString("placement_id")) {
+    override val price = adUnit.pricefloor
+    val placementId = requireNotNull(adUnit.extra?.optString("placement_id")) {
         "Placement id is required for Meta"
     }
-    val payload = requireNotNull(bidResponse.extra?.optString("payload")) {
+    val payload = requireNotNull(adUnit.extra?.optString("payload")) {
         "Payload is required for Meta"
     }
 

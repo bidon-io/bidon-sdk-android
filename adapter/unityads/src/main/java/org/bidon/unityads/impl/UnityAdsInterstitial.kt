@@ -40,7 +40,7 @@ internal class UnityAdsInterstitial :
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             UnityAdsFullscreenAuctionParams(
-                adUnit = popAdUnit(demandId, BidType.CPM) ?: error(BidonError.NoAppropriateAdUnitId)
+                adUnit = adUnit
             )
         }
     }

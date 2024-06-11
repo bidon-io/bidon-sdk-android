@@ -47,7 +47,7 @@ internal class VungleInterstitialImpl :
         return auctionParamsScope {
             VungleFullscreenAuctionParams(
                 activity = auctionParamsScope.activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

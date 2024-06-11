@@ -10,13 +10,12 @@ import org.bidon.sdk.auction.models.AdUnit
  */
 class MintegralAuctionParam(
     val activity: Activity,
-    bidResponse: AdUnit,
+    override val adUnit: AdUnit
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse
-    override val price: Double = bidResponse.pricefloor
-    val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
-    val unitId: String = requireNotNull(bidResponse.extra?.getString("unit_id"))
-    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id"))
+    override val price: Double = adUnit.pricefloor
+    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+    val unitId: String = requireNotNull(adUnit.extra?.getString("unit_id"))
+    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
 
     override fun toString(): String {
         return "MintegralAuctionParam(price=$price, adUnitId=$adUnit, placementId=$placementId, payload='$payload')"
@@ -26,13 +25,12 @@ class MintegralAuctionParam(
 class MintegralBannerAuctionParam(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    bidResponse: AdUnit,
+    override val adUnit: AdUnit
 ) : AdAuctionParams {
-    override val adUnit: AdUnit = bidResponse
-    override val price: Double = bidResponse.pricefloor
-    val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
-    val unitId: String = requireNotNull(bidResponse.extra?.getString("unit_id"))
-    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id"))
+    override val price: Double = adUnit.pricefloor
+    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+    val unitId: String = requireNotNull(adUnit.extra?.getString("unit_id"))
+    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
     override fun toString(): String {
         return "MintegralBannerAuctionParam($bannerFormat, price=$price, adUnitId=$adUnit, placementId=$placementId, payload='$payload')"
     }

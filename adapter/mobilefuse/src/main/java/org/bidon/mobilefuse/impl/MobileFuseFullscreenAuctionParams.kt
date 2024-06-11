@@ -10,21 +10,19 @@ import org.bidon.sdk.auction.models.AdUnit
  */
 class MobileFuseFullscreenAuctionParams(
     val activity: Activity,
-    bidResponse: AdUnit
+    override val adUnit: AdUnit
 ) : AdAuctionParams {
-    val signalData: String = requireNotNull(bidResponse.extra?.getString("signaldata"))
-    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id"))
-    override val price: Double = bidResponse.pricefloor
-    override val adUnit: AdUnit = bidResponse
+    val signalData: String = requireNotNull(adUnit.extra?.getString("signaldata"))
+    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
+    override val price: Double = adUnit.pricefloor
 }
 
 class MobileFuseBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
-    bidResponse: AdUnit
+    override val adUnit: AdUnit
 ) : AdAuctionParams {
-    val signalData: String = requireNotNull(bidResponse.extra?.getString("signaldata"))
-    val placementId: String = requireNotNull(bidResponse.extra?.getString("placement_id"))
-    override val price: Double = bidResponse.pricefloor
-    override val adUnit: AdUnit = bidResponse
+    val signalData: String = requireNotNull(adUnit.extra?.getString("signaldata"))
+    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
+    override val price: Double = adUnit.pricefloor
 }

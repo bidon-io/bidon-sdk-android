@@ -1,12 +1,10 @@
 package org.bidon.gam.impl
 
 import org.bidon.gam.GamBannerAuctionParams
-import org.bidon.gam.GamDemandId
 import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.stats.models.BidType
 
 internal class GetAdAuctionParamsUseCase {
@@ -24,11 +22,11 @@ internal class GetAdAuctionParamsUseCase {
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
                             price = pricefloor,
-                            bidResponse = requiredBidResponse,
+                            adUnit = adUnit,
                         )
                     } else {
                         GamBannerAuctionParams.Network(
-                            adUnit = popAdUnit(GamDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
+                            adUnit = adUnit,
                             bannerFormat = bannerFormat,
                             activity = activity,
                             containerWidth = containerWidth,
@@ -42,11 +40,11 @@ internal class GetAdAuctionParamsUseCase {
                         GamFullscreenAdAuctionParams.Bidding(
                             activity = activity,
                             price = pricefloor,
-                            bidResponse = requiredBidResponse,
+                            adUnit = adUnit,
                         )
                     } else {
                         GamFullscreenAdAuctionParams.Network(
-                            adUnit = popAdUnit(GamDemandId, bidType) ?: error(BidonError.NoAppropriateAdUnitId),
+                            adUnit = adUnit,
                             activity = activity,
                         )
                     }

@@ -47,7 +47,7 @@ internal class MintegralInterstitialImpl :
         return auctionParamsScope {
             MintegralAuctionParam(
                 activity = activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }.onFailure {
             logError(TAG, "Failed to get auction param", it)

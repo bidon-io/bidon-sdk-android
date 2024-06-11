@@ -26,9 +26,7 @@ class AdAuctionParamSource(
      */
     val pricefloor: Double,
     val timeout: Long,
-    private val adUnits: List<AdUnit> = emptyList(),
-    private val onAdUnitsConsumed: (AdUnit) -> Unit = {},
-    val bidResponse: AdUnit? = null,
+    val adUnit: AdUnit,
 
     /**
      * Banner specific params
@@ -38,31 +36,10 @@ class AdAuctionParamSource(
 ) {
     val bannerFormat: BannerFormat get() = requireNotNull(optBannerFormat)
     val containerWidth: Float get() = requireNotNull(optContainerWidth)
-    val requiredBidResponse: AdUnit get() = requireNotNull(bidResponse)
 
     operator fun <T> invoke(data: AdAuctionParamSource.() -> T): Result<T> = runCatching {
         data.invoke(this)
     }.mapFailure {
         BidonError.NoAppropriateAdUnitId
-    }
-
-    /**
-     * Search for a [AdUnit] for the given demandId with the lowest pricefloor.
-     * If the pricefloor exists, it will be consumed.
-     */
-    fun popAdUnit(demandId: DemandId, bidType: BidType): AdUnit? = adUnits
-        .filter { it.bidType == bidType }
-        .minByPricefloorOrNull(demandId, pricefloor)
-        ?.also {
-            if (it.pricefloor != null) {
-                onAdUnitsConsumed(it)
-            }
-        }
-
-    private fun List<AdUnit>.minByPricefloorOrNull(demandId: DemandId, pricefloor: Double): AdUnit? {
-        return this
-            .filter { it.demandId == demandId.demandId }
-            .sortedBy { it.pricefloor }
-            .firstOrNull { it.pricefloor?.let { it > pricefloor } ?: true }
     }
 }

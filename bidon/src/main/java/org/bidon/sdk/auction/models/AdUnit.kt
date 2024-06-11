@@ -12,7 +12,7 @@ data class AdUnit(
     val pricefloor: Double,
     val uid: String,
     val bidType: BidType,
-    val ext: String?,
+    private val ext: String?,
 ) {
     val extra: JSONObject? = ext?.let {
         JSONObject(it)

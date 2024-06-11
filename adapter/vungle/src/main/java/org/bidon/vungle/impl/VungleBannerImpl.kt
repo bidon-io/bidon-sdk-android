@@ -52,7 +52,7 @@ internal class VungleBannerImpl :
             VungleBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidResponse = requiredBidResponse,
+                adUnit = adUnit,
             )
         }
     }

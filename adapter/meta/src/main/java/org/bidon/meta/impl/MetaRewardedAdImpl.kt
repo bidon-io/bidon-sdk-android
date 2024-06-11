@@ -44,7 +44,7 @@ class MetaRewardedAdImpl :
         return auctionParamsScope {
             MetaFullscreenAuctionParams(
                 context = activity.applicationContext,
-                bidResponse = requiredBidResponse,
+                adUnit = adUnit,
             )
         }
     }

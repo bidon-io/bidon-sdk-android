@@ -24,7 +24,6 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 
 internal class ApplovinInterstitialImpl(
     private val applovinSdk: AppLovinSdk,
@@ -80,7 +79,7 @@ internal class ApplovinInterstitialImpl(
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             ApplovinFullscreenAdAuctionParams(
-                adUnit = popAdUnit(demandId, BidType.CPM) ?: error(BidonError.NoAppropriateAdUnitId),
+                adUnit = adUnit,
                 timeoutMs = timeout,
             )
         }

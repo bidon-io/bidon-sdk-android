@@ -61,8 +61,8 @@ internal class AmazonInterstitialImpl(
         return auctionParamsScope {
             FullscreenAuctionParams(
                 activity = activity,
-                price = requiredBidResponse.pricefloor,
-                adUnit = requiredBidResponse
+                price = adUnit.pricefloor,
+                adUnit = adUnit
             )
         }
     }

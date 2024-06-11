@@ -49,7 +49,7 @@ internal class MintegralRewardedImpl :
         return auctionParamsScope {
             MintegralAuctionParam(
                 activity = activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

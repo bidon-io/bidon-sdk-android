@@ -38,11 +38,10 @@ sealed interface GamBannerAuctionParams : AdAuctionParams {
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
         override val price: Double,
-        bidResponse: AdUnit,
+        override val adUnit: AdUnit,
     ) : GamBannerAuctionParams {
-        override val adUnit: AdUnit = bidResponse
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
+        val adUnitId: String = requireNotNull(this.adUnit.extra?.getString("ad_unit_id"))
+        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
 
         override fun toString(): String {
             return "GamBannerAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
@@ -68,11 +67,10 @@ sealed interface GamFullscreenAdAuctionParams : AdAuctionParams {
     class Bidding(
         override val activity: Activity,
         override val price: Double,
-        bidResponse: AdUnit
+        override val adUnit: AdUnit
     ) : GamFullscreenAdAuctionParams {
-        override val adUnit: AdUnit = bidResponse
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(bidResponse.extra?.getString("payload"))
+        val adUnitId: String = requireNotNull(this.adUnit.extra?.getString("ad_unit_id"))
+        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
 
         override fun toString(): String {
             return "GamFullscreenAdAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"

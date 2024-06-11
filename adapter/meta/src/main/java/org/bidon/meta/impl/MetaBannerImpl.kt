@@ -49,7 +49,7 @@ class MetaBannerImpl :
             MetaBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

@@ -47,7 +47,7 @@ internal class VungleRewardedImpl :
         return auctionParamsScope {
             VungleFullscreenAuctionParams(
                 activity = activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }
