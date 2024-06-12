@@ -18,6 +18,5 @@ internal interface ExecuteAuctionUseCase {
         pricefloor: Double,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
-        onFinish: (remainingLineItems: List<AdUnit>) -> Unit,
     ): Result<List<AuctionResult>>
 }

@@ -74,12 +74,12 @@ internal class AuctionImpl(
                 val auctionId = UUID.randomUUID().toString()
                 resultsCollector.serverBiddingStarted()
 
-                    val tokens = tokenGetter.invoke(
-                        adType = demandAd.adType,
-                        adTypeParam = adTypeParam,
-                        adaptersSource = adaptersSource,
-                        tokenTimeout = biddingConfig.tokenTimeout
-                    )
+                val tokens = tokenGetter.invoke(
+                    adType = demandAd.adType,
+                    adTypeParam = adTypeParam,
+                    adaptersSource = adaptersSource,
+                    tokenTimeout = biddingConfig.tokenTimeout
+                )
 
                 runCatching {
                     logInfo(TAG, "Action started $this")
@@ -165,10 +165,6 @@ internal class AuctionImpl(
             auctionResponse = auctionDataResponse,
             adUnits = mutableAdUnits,
             resultsCollector = resultsCollector,
-            onFinish = { remainingLineItems ->
-                mutableAdUnits.clear()
-                mutableAdUnits.addAll(remainingLineItems)
-            }
         )
 
         // Save round results

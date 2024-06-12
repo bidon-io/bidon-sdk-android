@@ -28,7 +28,7 @@ internal fun AuctionResponse.printWaterfall() {
     adUnits?.joinToString(separator = "\n") { adUnit ->
         adUnit.getInfo()
     }?.let {
-        logInfo("Auction Waterfall", it)
+        logInfo("Auction Waterfall:\n", it)
     }
 }
 
