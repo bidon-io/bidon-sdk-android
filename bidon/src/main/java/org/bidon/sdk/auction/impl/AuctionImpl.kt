@@ -12,11 +12,12 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.Auction.AuctionState
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
@@ -27,7 +28,6 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
-import org.bidon.sdk.utils.ext.TAG
 import java.util.UUID
 
 /**
@@ -36,7 +36,7 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val executeRound: ExecuteRoundUseCase,
+    private val executeRound: ExecuteAuctionUseCase,
     private val auctionStat: AuctionStat,
     private val tokenGetter: GetTokensUseCase,
     private val biddingConfig: BiddingConfig,
@@ -102,6 +102,7 @@ internal class AuctionImpl(
                         if (auctionId != auctionData.auctionId) {
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
+                        auctionData.printWaterfall()
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -114,13 +115,13 @@ internal class AuctionImpl(
                             }
                         }
                     }.onFailure {
-                        logError(TAG, "Auction failed", it)
+                        logError(TAG, "Failed", it)
                         adTypeParam.activity.runOnUiThread {
                             onFailure(it)
                         }
                     }
                 }.onFailure {
-                    logError(TAG, "Auction failed", it)
+                    logError(TAG, "Failed", it)
                     adTypeParam.activity.runOnUiThread {
                         onFailure(it)
                     }
@@ -144,7 +145,7 @@ internal class AuctionImpl(
                         demandAd = requireNotNull(_demandAd),
                     )
                 }
-                logInfo(TAG, "Auction canceled")
+                logInfo(TAG, "Canceled")
                 clearData()
             }
         }
@@ -178,7 +179,7 @@ internal class AuctionImpl(
         // Save round results
         resultsCollector.saveWinners(auctionPriceFloor)
         proceedRoundResults()
-        logInfo(TAG, "Rounds completed")
+        logInfo(TAG, "Completed")
 
         // Finding winner / notifying losers
         val finalResults = resultsCollector.getAll()

@@ -6,12 +6,11 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.TokenInfo
 
 /**
  * Created by Aleksei Cherniaev on 02/06/2023.
  */
-internal interface ExecuteRoundUseCase {
+internal interface ExecuteAuctionUseCase {
     suspend operator fun invoke(
         demandAd: DemandAd,
         auctionResponse: AuctionResponse,

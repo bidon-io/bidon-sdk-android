@@ -26,12 +26,12 @@ import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.ConductAuctionUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
-import org.bidon.sdk.auction.usecases.impl.ConductAuctionUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
@@ -205,12 +205,12 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
-            factory<ConductAuctionUseCase> {
-                ConductAuctionUseCaseImpl()
+            factory<RequestAdUnitUseCase> {
+                RequestAdUnitUseCaseImpl()
             }
-            factory<ExecuteRoundUseCase> {
-                ExecuteRoundUseCaseImpl(
-                    conductAuction = get(),
+            factory<ExecuteAuctionUseCase> {
+                ExecuteAuctionUseCaseImpl(
+                    requestAdUnit = get(),
                     adaptersSource = get(),
                     regulation = get(),
                 )

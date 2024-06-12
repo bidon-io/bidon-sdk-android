@@ -9,9 +9,10 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ext.getInfo
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.usecases.ConductAuctionUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -19,7 +20,7 @@ import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 
-class ConductAuctionUseCaseImpl : ConductAuctionUseCase {
+class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
 
     override suspend fun invoke(
         adSource: AdSource<AdAuctionParams>,
@@ -28,14 +29,7 @@ class ConductAuctionUseCaseImpl : ConductAuctionUseCase {
         priceFloor: Double,
         timeoutMs: Long
     ) = withTimeoutOrNull(timeoutMs) {
-        logInfo(TAG, "participants: $adSource")
-        logInfo(
-            tag = TAG,
-            message = "Adapter ${adSource.demandId.demandId} starts fill. " +
-                    "PriceFloor=$priceFloor. " +
-                    "LineItems: $adUnit. " +
-                    "BidType: ${adUnit.bidType}"
-        )
+        logInfo(tag = TAG, message = "Request start: ${adUnit.getInfo()}")
 
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
 
@@ -79,7 +73,7 @@ class ConductAuctionUseCaseImpl : ConductAuctionUseCase {
             BidType.CPM -> AuctionResult.Network(adSource, roundStatus)
         }
 
-        logInfo(TAG, "fillResult: ${auctionResult.roundStatus}, ${auctionResult.adSource}")
+        logInfo(TAG, "${adUnit.demandId} fillResult: ${auctionResult.roundStatus}")
 
         adSource.markFillFinished(roundStatus, adSource.ad?.ecpm)
 
@@ -87,4 +81,4 @@ class ConductAuctionUseCaseImpl : ConductAuctionUseCase {
     }
 }
 
-private const val TAG = "ConductRoundUseCase"
+private const val TAG = "RequestAdUnitUseCase"

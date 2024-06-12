@@ -16,8 +16,8 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.usecases.ConductAuctionUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
@@ -27,11 +27,11 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 
-internal class ExecuteRoundUseCaseImpl(
+internal class ExecuteAuctionUseCaseImpl(
     private val adaptersSource: AdaptersSource,
-    private val conductAuction: ConductAuctionUseCase,
+    private val requestAdUnit: RequestAdUnitUseCase,
     private val regulation: Regulation,
-) : ExecuteRoundUseCase {
+) : ExecuteAuctionUseCase {
     override suspend fun invoke(
         demandAd: DemandAd,
         auctionResponse: AuctionResponse,
@@ -55,8 +55,8 @@ internal class ExecuteRoundUseCaseImpl(
                 if (adUnit.pricefloor < pricefloor) {
                     logInfo(
                         TAG,
-                        "Auction stopped because the priceFloor: $pricefloor is less than " +
-                                "the next requested adUnit: ${adUnit.pricefloor}”)"
+                        "Auction was stopped because the priceFloor: $pricefloor is less than " +
+                                "the next requested adUnit: ${adUnit.pricefloor}"
                     )
                     break
                 }
@@ -76,7 +76,7 @@ internal class ExecuteRoundUseCaseImpl(
                         auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
                     )
 
-                    val auctionResult = conductAuction.invoke(
+                    val auctionResult = requestAdUnit.invoke(
                         adSource = adSource,
                         adTypeParam = adTypeParam,
                         adUnit = adUnit,
@@ -86,43 +86,28 @@ internal class ExecuteRoundUseCaseImpl(
                         resultsCollector.add(it)
                     }
                     if (auctionResult?.roundStatus == RoundStatus.Successful) {
-                        if (!shouldRequestNext(
-                                auctionResult = auctionResult,
-                                adUnits = adUnits,
-                                currentPosition = i
-                            )
-                        ) {
+                        if (!shouldRequestNext(auctionResult = auctionResult, adUnits = adUnits, currentPosition = i)) {
                             logInfo(
                                 TAG,
-                                "Auction stopped since the filled eCPM larger than the next one"
-                            )
+                                "Auction was stopped since the filled eCPM larger than the next one")
                             break
                         }
+                        logInfo(TAG, "Perform load next")
                     }
                 } else {
                     logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
                 }
             }
 
+            logInfo(TAG, "Auction was finished")
             /**
              * Collecting results
              */
-            resultsCollector.getRoundResults()
-                .let { roundResult ->
-                    (roundResult as? RoundResult.Results)?.let {
-                        it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
-                    }.orEmpty()
-                }.mapIndexed { index, result ->
-                    // TODO: check take adSource.demandId from LOSE
-                    val type = "Bidding".takeIf { result is AuctionResult.Bidding } ?: "DSP"
-                    val details =
-                        "$type ${result.adSource.demandId.demandId}, ${result.adSource.getStats()}"
-                    logInfo(TAG, "Round result #$index. $details")
-                    result
-                }.let {
-                    logInfo(TAG, "Round finished with ${it.size} results: $it")
-                    it
-                }
+            resultsCollector.getRoundResults().let { roundResult ->
+                (roundResult as? RoundResult.Results)?.let {
+                    it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
+                }.orEmpty()
+            }
         }.onFailure {
             logError(TAG, "Failed to execute round", it)
         }
@@ -229,4 +214,4 @@ internal class ExecuteRoundUseCaseImpl(
     }
 }
 
-private const val TAG = "ExecuteRoundUseCase"
+private const val TAG = "ExecuteAuctionUseCase"
