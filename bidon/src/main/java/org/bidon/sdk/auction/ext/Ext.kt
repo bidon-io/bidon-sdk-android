@@ -34,3 +34,5 @@ internal fun AuctionResponse.printWaterfall() {
 
 internal fun AdUnit.getInfo() =
     "Demand: ${demandId}, Pricefloor: ${pricefloor}, UID: ${uid}, BidType: ${bidType}"
+
+internal fun List<Any?>.hasNext(position: Int) = position < size - 1

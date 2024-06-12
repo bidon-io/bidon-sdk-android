@@ -276,7 +276,7 @@ internal class AuctionStatImpl(
             auctionStartTs = auctionStartTs,
             auctionFinishTs = auctionFinishTs,
             bidType = stat?.bidType?.code,
-            winnerAdUnitUid = stat?.adUnit?.label,
+            winnerAdUnitUid = stat?.adUnit?.uid,
             winnerAdUnitLabel = stat?.adUnit?.label,
             banner = bannerRequestBody,
             interstitial = interstitialRequestBody,

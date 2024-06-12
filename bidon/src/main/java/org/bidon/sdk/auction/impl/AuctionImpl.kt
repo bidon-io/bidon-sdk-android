@@ -81,11 +81,6 @@ internal class AuctionImpl(
                         tokenTimeout = biddingConfig.tokenTimeout
                     )
 
-                    if (tokens.isEmpty()) {
-                        logError(TAG, "No tokens found", BidonError.NoBid)
-                        resultsCollector.serverBiddingFinished(null)
-                    }
-
                 runCatching {
                     logInfo(TAG, "Action started $this")
                     // Request for Auction-data at /auction

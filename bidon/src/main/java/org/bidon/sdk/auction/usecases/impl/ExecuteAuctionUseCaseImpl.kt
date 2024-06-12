@@ -12,6 +12,7 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.ext.hasNext
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
@@ -49,8 +50,8 @@ internal class ExecuteAuctionUseCaseImpl(
 
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
-            for (i in adUnits.indices) {
-                val adUnit = adUnits[i]
+            for (position in adUnits.indices) {
+                val adUnit = adUnits[position]
 
                 if (adUnit.pricefloor < pricefloor) {
                     logInfo(
@@ -85,15 +86,20 @@ internal class ExecuteAuctionUseCaseImpl(
                     )?.also {
                         resultsCollector.add(it)
                     }
-                    if (auctionResult?.roundStatus == RoundStatus.Successful) {
-                        if (!shouldRequestNext(auctionResult = auctionResult, adUnits = adUnits, currentPosition = i)) {
-                            logInfo(
-                                TAG,
-                                "Auction was stopped since the filled eCPM larger than the next one")
-                            break
-                        }
-                        logInfo(TAG, "Perform load next")
+                    if (auctionResult?.roundStatus == RoundStatus.Successful
+                        && !shouldRequestNext(
+                            auctionResult = auctionResult,
+                            adUnits = adUnits,
+                            currentPosition = position
+                        )
+                    ) {
+                        logInfo(
+                            TAG,
+                            "Auction was stopped since the filled eCPM larger than the next one"
+                        )
+                        break
                     }
+                    logInfo(TAG, "Perform load next")
                 } else {
                     logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
                 }
@@ -118,6 +124,9 @@ internal class ExecuteAuctionUseCaseImpl(
         currentPosition: Int,
         adUnits: List<AdUnit>
     ): Boolean {
+        if (!adUnits.hasNext(currentPosition)) {
+            return false
+        }
         val currentEcpm = auctionResult.adSource.getStats().ecpm
         val nextEcpm =
             if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
