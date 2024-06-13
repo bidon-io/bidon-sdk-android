@@ -296,7 +296,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             auctionId = auctionId,
             auctionConfigurationId = auctionConfigurationId,
             auctionConfigurationUid = auctionConfigurationUid,
-            impressionId = impressionId,
             demandId = demandId.demandId,
             price = stat.ecpm,
             banner = banner,
