@@ -12,9 +12,9 @@ class MobileFuseFullscreenAuctionParams(
     val activity: Activity,
     override val adUnit: AdUnit
 ) : AdAuctionParams {
+    override val price: Double = adUnit.pricefloor
     val signalData: String = requireNotNull(adUnit.extra?.getString("signaldata"))
     val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
-    override val price: Double = adUnit.pricefloor
 }
 
 class MobileFuseBannerAuctionParams(
@@ -22,7 +22,7 @@ class MobileFuseBannerAuctionParams(
     val bannerFormat: BannerFormat,
     override val adUnit: AdUnit
 ) : AdAuctionParams {
+    override val price: Double = adUnit.pricefloor
     val signalData: String = requireNotNull(adUnit.extra?.getString("signaldata"))
     val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
-    override val price: Double = adUnit.pricefloor
 }
