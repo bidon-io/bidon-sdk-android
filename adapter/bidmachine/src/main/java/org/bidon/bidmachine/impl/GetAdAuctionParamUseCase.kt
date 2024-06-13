@@ -2,9 +2,7 @@ package org.bidon.bidmachine.impl
 
 import org.bidon.bidmachine.BMBannerAuctionParams
 import org.bidon.bidmachine.BMFullscreenAuctionParams
-import org.bidon.bidmachine.BidMachineDemandId
 import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.stats.models.BidType
 
 /**

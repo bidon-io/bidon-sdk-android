@@ -24,15 +24,14 @@ internal class GetAdAuctionParamsUseCase {
                             activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = adUnit.pricefloor,
                             adUnit = adUnit,
                         )
                     } else {
                         AdmobBannerAuctionParams.Network(
-                            adUnit = adUnit,
-                            bannerFormat = bannerFormat,
                             activity = activity,
+                            bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
+                            adUnit = adUnit,
                         )
                     }
                 }
@@ -42,13 +41,12 @@ internal class GetAdAuctionParamsUseCase {
                     if (bidType == BidType.RTB) {
                         AdmobFullscreenAdAuctionParams.Bidding(
                             activity = activity,
-                            price = adUnit.pricefloor,
                             adUnit = adUnit,
                         )
                     } else {
                         AdmobFullscreenAdAuctionParams.Network(
-                            adUnit = adUnit,
                             activity = activity,
+                            adUnit = adUnit,
                         )
                     }
                 }

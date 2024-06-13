@@ -4,7 +4,6 @@ import android.app.Activity
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.ext.mapFailure
 
 /**
