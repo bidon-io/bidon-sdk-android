@@ -53,7 +53,7 @@ class MintegralAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        BidManager.getBuyerUid(context) ?: ""
+        BidManager.getBuyerUid(context)
 
     override suspend fun init(context: Context, configParams: MintegralInitParam) =
         withContext(SdkDispatchers.Main) {

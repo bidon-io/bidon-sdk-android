@@ -28,7 +28,9 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMInterstitialAdImpl :
+internal class BMInterstitialAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Interstitial<BMFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
@@ -38,11 +40,12 @@ internal class BMInterstitialAdImpl :
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
 
+
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope)
+        return obtainAdAuctionParams.getBMFullscreenAuctionParams(auctionParamsScope)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {

@@ -27,7 +27,9 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMRewardedAdImpl :
+internal class BMRewardedAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Rewarded<BMFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
@@ -42,7 +44,7 @@ internal class BMRewardedAdImpl :
         get() = rewardedAd?.canShow() == true
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope)
+        return obtainAdAuctionParams.getBMFullscreenAuctionParams(auctionParamsScope)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {

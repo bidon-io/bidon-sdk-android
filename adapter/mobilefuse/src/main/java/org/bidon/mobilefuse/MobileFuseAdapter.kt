@@ -52,7 +52,7 @@ class MobileFuseAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        GetMobileFuseTokenUseCase(context, isTestMode) ?: ""
+        GetMobileFuseTokenUseCase(context, isTestMode)
 
     override suspend fun init(context: Context, configParams: MobileFuseParams) = suspendCoroutine { continuation ->
         MobileFuseSettings.setTestMode(isTestMode)
@@ -78,14 +78,14 @@ class MobileFuseAdapter :
     }
 
     override fun banner(): AdSource.Banner<MobileFuseBannerAuctionParams> {
-        return MobileFuseBannerImpl(isTestMode)
+        return MobileFuseBannerImpl()
     }
 
     override fun interstitial(): AdSource.Interstitial<MobileFuseFullscreenAuctionParams> {
-        return MobileFuseInterstitialImpl(isTestMode)
+        return MobileFuseInterstitialImpl()
     }
 
     override fun rewarded(): AdSource.Rewarded<MobileFuseFullscreenAuctionParams> {
-        return MobileFuseRewardedAdImpl(isTestMode)
+        return MobileFuseRewardedAdImpl()
     }
 }

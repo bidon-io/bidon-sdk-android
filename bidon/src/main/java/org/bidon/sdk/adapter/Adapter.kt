@@ -11,8 +11,8 @@ sealed interface Adapter {
     val adapterInfo: AdapterInfo
 
     interface Bidding : Adapter {
-        suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String
+        suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String?
     }
 
-    interface Network: Adapter
+    interface Network : Adapter
 }

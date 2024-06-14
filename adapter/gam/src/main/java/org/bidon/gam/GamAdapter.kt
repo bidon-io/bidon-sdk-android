@@ -37,7 +37,7 @@ class GamAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        obtainToken(context, adTypeParam) ?: ""
+        obtainToken(context, adTypeParam)
 
     override suspend fun init(context: Context, configParams: GamInitParameters): Unit = suspendCoroutine { continuation ->
         // Since Bidon is the mediator, no need to initialize Google Bidding's partner SDKs.

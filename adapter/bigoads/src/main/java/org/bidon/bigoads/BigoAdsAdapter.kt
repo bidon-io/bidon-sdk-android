@@ -52,7 +52,7 @@ class BigoAdsAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        BigoAdSdk.getBidderToken() ?: ""
+        BigoAdSdk.getBidderToken()
 
     override suspend fun init(context: Context, configParams: BigoParameters) = suspendCoroutine { continuation ->
         this.context = context

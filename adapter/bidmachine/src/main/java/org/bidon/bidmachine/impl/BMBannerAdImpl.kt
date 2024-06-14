@@ -30,7 +30,9 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMBannerAdImpl :
+internal class BMBannerAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Banner<BMBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
@@ -88,7 +90,7 @@ internal class BMBannerAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMBannerAuctionParams(auctionParamsScope)
+        return obtainAdAuctionParams.getBMBannerAuctionParams(auctionParamsScope)
     }
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {

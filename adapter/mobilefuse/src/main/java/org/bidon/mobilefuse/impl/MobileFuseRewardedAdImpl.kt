@@ -18,7 +18,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MobileFuseRewardedAdImpl(private val isTestMode: Boolean) :
+class MobileFuseRewardedAdImpl :
     AdSource.Rewarded<MobileFuseFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

@@ -1,6 +1,10 @@
 package org.bidon.sdk.auction.usecases.impl
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.BidonSdk
@@ -10,6 +14,7 @@ import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.auction.models.TokenResult
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -18,6 +23,9 @@ import org.bidon.sdk.utils.ext.SystemTimeNow
 import org.bidon.sdk.utils.ext.TAG
 
 internal class GetTokensUseCaseImpl : GetTokensUseCase {
+
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
     override suspend fun invoke(
         adType: AdType,
         adTypeParam: AdTypeParam,
@@ -37,20 +45,16 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
             context = adTypeParam.activity.applicationContext,
             adTypeParam = adTypeParam,
             tokenTimeout = tokenTimeout
-        ).onEach { pair ->
-            logInfo(TAG, "#${pair.key} {${pair.value?.token}}")
-        }
-        val filtered = tokens.filterValues { it?.status == TokenInfo.Status.SUCCESS.code }
-            .mapNotNull { (key, value) -> value?.let { key to it } }
+        ).mapNotNull { (key, value) -> value?.let { key to it } }
             .toMap()
+            .onEach { pair ->
+                logInfo(
+                    TAG,
+                    "#${pair.key}: status: ${pair.value?.status} token:${pair.value?.token}"
+                )
+            }
 
-        return if (filtered.isEmpty()) {
-            logError(TAG, "No tokens found", BidonError.NoBid)
-            emptyMap()
-        } else {
-            logInfo(TAG, "${filtered.size} token(s):")
-            filtered
-        }
+        return tokens
     }
 
     private fun applyRegulation(adapter: Adapter) {
@@ -73,19 +77,25 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         tokenTimeout: Long,
     ): Map<String, TokenInfo?> =
         this.associate { adapter ->
-            adapter.demandId.demandId to runCatching {
+            adapter.demandId.demandId to scope.async {
                 val tokenStartTs = SystemTimeNow
-                val token = withTimeoutOrNull(tokenTimeout) {
-                    adapter.getToken(
+                val tokenResult = withTimeoutOrNull(tokenTimeout) {
+                    val token = adapter.getToken(
                         context = context,
                         adTypeParam = adTypeParam,
                     )
-                }
+                    if (token.isNullOrEmpty()) {
+                        TokenResult.NoToken
+                    } else {
+                        TokenResult.Success(token)
+                    }
+                } ?: TokenResult.TimeoutReached
+
                 val tokenFinishTs = SystemTimeNow
-                val status = when {
-                    token == null -> TokenInfo.Status.TIMEOUT_REACHED
-                    token.isEmpty() -> TokenInfo.Status.NO_TOKEN
-                    else -> TokenInfo.Status.SUCCESS
+                val (token, status) = when (tokenResult) {
+                    is TokenResult.Success -> tokenResult.token to TokenInfo.Status.SUCCESS
+                    TokenResult.NoToken -> null to TokenInfo.Status.NO_TOKEN
+                    TokenResult.TimeoutReached -> null to TokenInfo.Status.TIMEOUT_REACHED
                 }
                 TokenInfo(
                     token = token,
@@ -93,6 +103,8 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
                     tokenFinishTs = tokenFinishTs,
                     status = status.code
                 )
-            }.getOrNull()
+            }
+        }.mapValues {
+            it.value.await()
         }
 }

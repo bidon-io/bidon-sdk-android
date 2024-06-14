@@ -16,7 +16,7 @@ internal class GetAdAuctionParamsUseCase {
         adType: AdType
     ): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val bidType = auctionParamsScope.adUnit.bidType
+            val bidType = adUnit.bidType
             when (adType) {
                 AdType.Banner -> {
                     if (bidType == BidType.RTB) {

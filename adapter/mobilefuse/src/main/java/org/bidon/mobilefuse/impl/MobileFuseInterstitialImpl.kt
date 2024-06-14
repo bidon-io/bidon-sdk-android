@@ -19,7 +19,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
+class MobileFuseInterstitialImpl :
     AdSource.Interstitial<MobileFuseFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

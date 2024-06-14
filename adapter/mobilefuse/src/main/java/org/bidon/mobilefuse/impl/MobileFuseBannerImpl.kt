@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MobileFuseBannerImpl(private val isTestMode: Boolean) :
+class MobileFuseBannerImpl :
     AdSource.Banner<MobileFuseBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

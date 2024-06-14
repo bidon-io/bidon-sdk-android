@@ -50,7 +50,7 @@ class MetaAudienceAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        BidderTokenProvider.getBidderToken(context) ?: ""
+        BidderTokenProvider.getBidderToken(context)
 
     override suspend fun init(context: Context, configParams: MetaParams) = suspendCoroutine {
         if (isTestMode) {

@@ -34,7 +34,7 @@ class AdmobAdapter :
     )
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
-        obtainToken?.let { it(context, adTypeParam) } ?: ""
+        obtainToken?.let { it(context, adTypeParam) }
 
     override suspend fun init(context: Context, configParams: AdmobInitParameters): Unit = suspendCoroutine { continuation ->
         // Since Bidon is the mediator, no need to initialize Google Bidding's partner SDKs.
