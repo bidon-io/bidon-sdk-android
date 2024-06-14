@@ -31,8 +31,3 @@ internal fun AuctionResponse.printWaterfall() {
         logInfo("Auction Waterfall:\n", it)
     }
 }
-
-internal fun AdUnit.toString() =
-    "Demand: ${demandId}, Pricefloor: ${pricefloor}, UID: ${uid}, BidType: ${bidType}"
-
-internal fun List<Any?>.hasNext(position: Int) = position < size - 1

@@ -12,7 +12,6 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.ext.hasNext
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
@@ -27,6 +26,7 @@ import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
+import java.util.LinkedList
 
 internal class ExecuteAuctionUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -43,13 +43,18 @@ internal class ExecuteAuctionUseCaseImpl(
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
 
-            val adaptersForRequest = adaptersSource.adapters
-                .filter { it.demandId.demandId in adUnits.map { it.demandId } }
-
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
-            for (position in adUnits.indices) {
-                val adUnit = adUnits[position]
+            val adUnitQueue = LinkedList(adUnits)
+
+            while (adUnitQueue.isNotEmpty()) {
+
+                val adUnit = adUnitQueue.poll()
+
+                if (adUnit == null) {
+                    logInfo(TAG, "All adUnits were requested")
+                    break
+                }
 
                 if (adUnit.pricefloor < pricefloor) {
                     logInfo(
@@ -60,11 +65,13 @@ internal class ExecuteAuctionUseCaseImpl(
                     break
                 }
 
-                val adapter =
-                    adaptersForRequest.firstOrNull { it.demandId.demandId == adUnit.demandId }
-                applyRegulation(adapter)
+                logInfo(tag = TAG, message = "Request start: $adUnit")
 
-                val adSource = adapter?.getAdSources(demandAd.adType)
+                val adSource = adaptersSource.adapters
+                    .find { it.demandId.demandId == adUnit.demandId }
+                    .also {
+                        it?.applyRegulation()
+                    }?.getAdSources(demandAd.adType)
 
                 if (adSource != null) {
                     applyParams(
@@ -73,7 +80,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         auctionResponse = auctionResponse,
                         demandAd = demandAd,
                         roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
+                        auctionPricefloor = auctionResponse.pricefloor,
                     )
 
                     val auctionResult = requestAdUnit.invoke(
@@ -86,11 +93,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         resultsCollector.add(it)
                     }
                     if (auctionResult?.roundStatus == RoundStatus.Successful
-                        && !shouldRequestNext(
-                            auctionResult = auctionResult,
-                            adUnits = adUnits,
-                            currentPosition = position
-                        )
+                        && !shouldRequestNext(auctionResult = auctionResult, next = adUnitQueue.peek())
                     ) {
                         logInfo(
                             TAG,
@@ -120,15 +123,13 @@ internal class ExecuteAuctionUseCaseImpl(
 
     private fun shouldRequestNext(
         auctionResult: AuctionResult,
-        currentPosition: Int,
-        adUnits: List<AdUnit>
+        next: AdUnit?
     ): Boolean {
-        if (!adUnits.hasNext(currentPosition)) {
+        if (next == null) {
             return false
         }
         val currentEcpm = auctionResult.adSource.getStats().ecpm
-        val nextEcpm =
-            if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
+        val nextEcpm = next.pricefloor
         logInfo(TAG, "Loaded eCPM: $currentEcpm, next requested eCPM: $nextEcpm")
         return currentEcpm < nextEcpm
     }
@@ -153,11 +154,11 @@ internal class ExecuteAuctionUseCaseImpl(
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
     }
 
-    private fun applyRegulation(adapter: Adapter?) {
-        (adapter as? SupportsRegulation)?.let { supportsRegulation ->
+    private fun Adapter?.applyRegulation() {
+        (this as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
                 TAG,
-                "Applying regulation to ${adapter.demandId.demandId} <- " +
+                "Applying regulation to ${demandId.demandId} <- " +
                         "GDPR=${regulation.gdpr}, " +
                         "COPPA=${regulation.coppa}, " +
                         "usPrivacyString=${regulation.usPrivacyString}, " +

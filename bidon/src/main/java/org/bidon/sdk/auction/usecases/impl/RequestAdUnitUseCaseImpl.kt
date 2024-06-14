@@ -28,8 +28,6 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         priceFloor: Double,
         timeoutMs: Long
     ) = withTimeoutOrNull(timeoutMs) {
-        logInfo(tag = TAG, message = "Request start: $adUnit")
-
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
 
         val adParam = adSource.getAuctionParam(
