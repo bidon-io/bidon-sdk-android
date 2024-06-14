@@ -36,7 +36,7 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val executeRound: ExecuteAuctionUseCase,
+    private val executeAuction: ExecuteAuctionUseCase,
     private val auctionStat: AuctionStat,
     private val tokenGetter: GetTokensUseCase,
     private val biddingConfig: BiddingConfig,
@@ -110,13 +110,13 @@ internal class AuctionImpl(
                             }
                         }
                     }.onFailure {
-                        logError(TAG, "Failed", it)
+                        logError(TAG, "Auction failed", it)
                         adTypeParam.activity.runOnUiThread {
                             onFailure(it)
                         }
                     }
                 }.onFailure {
-                    logError(TAG, "Failed", it)
+                    logError(TAG, "Auction failed", it)
                     adTypeParam.activity.runOnUiThread {
                         onFailure(it)
                     }
@@ -140,7 +140,7 @@ internal class AuctionImpl(
                         demandAd = requireNotNull(_demandAd),
                     )
                 }
-                logInfo(TAG, "Canceled")
+                logInfo(TAG, "Auction canceled")
                 clearData()
             }
         }
@@ -158,7 +158,7 @@ internal class AuctionImpl(
 
         val auctionPriceFloor = auctionData.pricefloor ?: 0.0
         // Start auction
-        executeRound(
+        executeAuction(
             pricefloor = auctionPriceFloor,
             demandAd = demandAd,
             adTypeParam = adTypeParamData,
@@ -170,7 +170,7 @@ internal class AuctionImpl(
         // Save round results
         resultsCollector.saveWinners(auctionPriceFloor)
         proceedRoundResults()
-        logInfo(TAG, "Completed")
+        logInfo(TAG, "Rounds completed")
 
         // Finding winner / notifying losers
         val finalResults = resultsCollector.getAll()

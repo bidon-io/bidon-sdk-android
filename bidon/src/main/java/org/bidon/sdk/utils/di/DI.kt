@@ -186,7 +186,7 @@ internal object DI {
                 AuctionImpl(
                     adaptersSource = get(),
                     getAuctionRequest = get(),
-                    executeRound = get(),
+                    executeAuction = get(),
                     auctionStat = get(),
                     tokenGetter = get(),
                     biddingConfig = get()

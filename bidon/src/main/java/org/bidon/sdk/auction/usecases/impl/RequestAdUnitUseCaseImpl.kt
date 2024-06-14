@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ext.getInfo
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
@@ -29,7 +28,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         priceFloor: Double,
         timeoutMs: Long
     ) = withTimeoutOrNull(timeoutMs) {
-        logInfo(tag = TAG, message = "Request start: ${adUnit.getInfo()}")
+        logInfo(tag = TAG, message = "Request start: $adUnit")
 
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
 
@@ -45,7 +44,6 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         ).getOrNull()
 
         val adEvent = adParam?.let {
-            adSource.addImpressionId(adUnit.uid)
             adSource.adEvent
                 .onSubscription {
                     runCatching {

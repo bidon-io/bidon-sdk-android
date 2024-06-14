@@ -45,7 +45,6 @@ internal class ExecuteAuctionUseCaseImpl(
 
             val adaptersForRequest = adaptersSource.adapters
                 .filter { it.demandId.demandId in adUnits.map { it.demandId } }
-                .onEach(::applyRegulation)
 
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
@@ -61,10 +60,11 @@ internal class ExecuteAuctionUseCaseImpl(
                     break
                 }
 
-                val adSource = adaptersForRequest
-                    .filter { it.demandId.demandId == adUnit.demandId }
-                    .getAdSources(demandAd.adType)
-                    .firstOrNull()
+                val adapter =
+                    adaptersForRequest.firstOrNull { it.demandId.demandId == adUnit.demandId }
+                applyRegulation(adapter)
+
+                val adSource = adapter?.getAdSources(demandAd.adType)
 
                 if (adSource != null) {
                     applyParams(
@@ -153,7 +153,7 @@ internal class ExecuteAuctionUseCaseImpl(
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
     }
 
-    private fun applyRegulation(adapter: Adapter) {
+    private fun applyRegulation(adapter: Adapter?) {
         (adapter as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
                 TAG,
@@ -167,41 +167,39 @@ internal class ExecuteAuctionUseCaseImpl(
         }
     }
 
-    private fun List<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> =
-        when (adType) {
+    private fun Adapter.getAdSources(adType: AdType): AdSource<AdAuctionParams>? {
+        return when (adType) {
             AdType.Interstitial -> {
-                this.filterIsInstance<AdProvider.Interstitial<AdAuctionParams>>()
-                    .mapNotNull { adapter ->
-                        runCatching {
-                            adapter.interstitial()
-                                .apply { addDemandId((adapter as Adapter).demandId) }
-                        }.onFailure {
-                            logError(TAG, "Failed to create interstitial ad source", it)
-                        }.getOrNull()
-                    }
+                (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
+                    runCatching {
+                        adapter.interstitial().apply { addDemandId(demandId) }
+                    }.onFailure {
+                        logError(TAG, "Failed to create interstitial ad source", it)
+                    }.getOrNull()
+                }
             }
 
             AdType.Rewarded -> {
-                this.filterIsInstance<AdProvider.Rewarded<AdAuctionParams>>()
-                    .mapNotNull { adapter ->
-                        runCatching {
-                            adapter.rewarded().apply { addDemandId((adapter as Adapter).demandId) }
-                        }.onFailure {
-                            logError(TAG, "Failed to create rewarded ad source", it)
-                        }.getOrNull()
-                    }
+                (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
+                    runCatching {
+                        adapter.rewarded().apply { addDemandId(demandId) }
+                    }.onFailure {
+                        logError(TAG, "Failed to create rewarded ad source", it)
+                    }.getOrNull()
+                }
             }
 
             AdType.Banner -> {
-                this.filterIsInstance<AdProvider.Banner<AdAuctionParams>>().mapNotNull { adapter ->
+                (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
                     runCatching {
-                        adapter.banner().apply { addDemandId((adapter as Adapter).demandId) }
+                        adapter.banner().apply { addDemandId(demandId) }
                     }.onFailure {
                         logError(TAG, "Failed to create banner ad source", it)
                     }.getOrNull()
                 }
             }
         }
+    }
 
     private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
         return when (this) {
