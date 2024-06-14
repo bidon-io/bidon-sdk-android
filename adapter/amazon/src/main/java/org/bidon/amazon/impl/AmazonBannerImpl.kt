@@ -66,7 +66,6 @@ internal class AmazonBannerImpl(
             BannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                price = adUnit.pricefloor,
                 adUnit = adUnit,
             )
         }

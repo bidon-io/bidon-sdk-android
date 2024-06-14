@@ -61,7 +61,6 @@ internal class AmazonRewardedImpl(
         return auctionParamsScope {
             FullscreenAuctionParams(
                 activity = activity,
-                price = adUnit.pricefloor,
                 adUnit = adUnit
             )
         }
