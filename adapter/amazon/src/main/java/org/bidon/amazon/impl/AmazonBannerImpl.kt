@@ -37,7 +37,6 @@ internal class AmazonBannerImpl(private val amazonInfos: List<AmazonInfo>) : AdS
             BannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                price = adUnit.pricefloor,
                 adUnit = adUnit,
             )
         }

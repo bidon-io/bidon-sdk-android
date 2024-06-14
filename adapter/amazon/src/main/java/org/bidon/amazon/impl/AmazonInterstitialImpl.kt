@@ -32,7 +32,6 @@ internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>)
         return auctionParamsScope {
             FullscreenAuctionParams(
                 activity = activity,
-                price = adUnit.pricefloor,
                 adUnit = adUnit
             )
         }

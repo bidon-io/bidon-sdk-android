@@ -21,7 +21,6 @@ internal class GetAdAuctionParamsUseCase {
                             activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = pricefloor,
                             adUnit = adUnit,
                         )
                     } else {
@@ -39,7 +38,6 @@ internal class GetAdAuctionParamsUseCase {
                     if (bidType == BidType.RTB) {
                         GamFullscreenAdAuctionParams.Bidding(
                             activity = activity,
-                            price = pricefloor,
                             adUnit = adUnit,
                         )
                     } else {
