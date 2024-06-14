@@ -13,10 +13,10 @@ import org.bidon.sdk.stats.models.BidType
 internal class GetAdAuctionParamsUseCase {
     operator fun invoke(
         auctionParamsScope: AdAuctionParamSource,
-        adType: AdType,
-        bidType: BidType
+        adType: AdType
     ): Result<AdAuctionParams> {
         return auctionParamsScope {
+            val bidType = auctionParamsScope.adUnit.bidType
             when (adType) {
                 AdType.Banner -> {
                     if (bidType == BidType.RTB) {

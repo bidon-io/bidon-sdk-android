@@ -17,6 +17,7 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
@@ -40,6 +41,7 @@ internal class ExecuteAuctionUseCaseImpl(
         pricefloor: Double,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
+        tokens: Map<String, TokenInfo>
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
 
@@ -64,7 +66,16 @@ internal class ExecuteAuctionUseCaseImpl(
                 val adSource = adaptersForRequest
                     .filter { it.demandId.demandId == adUnit.demandId }
                     .getAdSources(demandAd.adType)
+                    .onEach {
+                        it.setStatisticAdType(adTypeParam.asStatisticAdType())
+                    }
                     .firstOrNull()
+
+                if (adUnit.bidType == BidType.RTB) {
+                    tokens[adSource?.demandId?.demandId]?.let {
+                        adSource?.setTokenInfo(it)
+                    }
+                }
 
                 if (adSource != null) {
                     applyParams(

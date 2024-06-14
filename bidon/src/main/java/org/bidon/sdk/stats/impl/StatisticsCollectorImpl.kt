@@ -230,34 +230,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         )
     }
 
-    override fun markTokenStarted(): Long {
-        val time = SystemTimeNow
-        stat = stat.copy(
-            tokenInfo = stat.tokenInfo?.copy(
-                tokenStartTs = time
-            ) ?: TokenInfo(
-                token = null,
-                tokenStartTs = time,
-                tokenFinishTs = null,
-                status = TokenInfo.Status.NO_TOKEN.code
-            )
-        )
-        return time
-    }
-
-    override fun markTokenFinished(status: TokenInfo.Status, token: String?) {
-        stat = stat.copy(
-            tokenInfo = stat.tokenInfo?.copy(
-                token = token,
-                tokenFinishTs = SystemTimeNow,
-                status = status.code
-            ) ?: run {
-                logError(TAG, "TokenInfo is null", NullPointerException())
-                return
-            }
-        )
-    }
-
     override fun setPrice(price: Double) {
         stat = stat.copy(
             ecpm = price
@@ -267,6 +239,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override fun setDsp(dspSource: String?) {
         stat = stat.copy(
             dspSource = dspSource
+        )
+    }
+
+    override fun setTokenInfo(tokenInfo: TokenInfo) {
+        stat = stat.copy(
+            tokenInfo = tokenInfo
         )
     }
 

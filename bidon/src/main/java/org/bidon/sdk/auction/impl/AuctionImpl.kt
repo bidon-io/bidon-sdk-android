@@ -16,6 +16,7 @@ import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -102,6 +103,7 @@ internal class AuctionImpl(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
+                            tokens = tokens,
                         ).ifEmpty {
                             throw BidonError.NoAuctionResults
                         }.also {
@@ -151,6 +153,7 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
+        tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
@@ -165,6 +168,7 @@ internal class AuctionImpl(
             auctionResponse = auctionDataResponse,
             adUnits = mutableAdUnits,
             resultsCollector = resultsCollector,
+            tokens = tokens,
         )
 
         // Save round results

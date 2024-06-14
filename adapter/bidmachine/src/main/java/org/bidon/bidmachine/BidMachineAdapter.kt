@@ -10,8 +10,10 @@ import org.bidon.bidmachine.impl.BMRewardedAdImpl
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
+import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.stats.models.BidType
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -23,7 +25,7 @@ internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 
 @Suppress("unused")
 class BidMachineAdapter :
-    Adapter,
+    Adapter.Bidding,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     Initializable<BidMachineParameters>,
@@ -38,6 +40,9 @@ class BidMachineAdapter :
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
     )
+
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+        BidMachine.getBidToken(context)
 
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
         suspendCoroutine { continuation ->

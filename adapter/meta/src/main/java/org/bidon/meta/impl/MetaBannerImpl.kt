@@ -1,21 +1,17 @@
 package org.bidon.meta.impl
 
-import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.AdListener
 import com.facebook.ads.AdView
-import com.facebook.ads.BidderTokenProvider
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
@@ -30,7 +26,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  */
 class MetaBannerImpl :
     AdSource.Banner<MetaBannerAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -39,10 +34,6 @@ class MetaBannerImpl :
 
     override val isAdReadyToShow: Boolean
         get() = bannerView != null
-
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        return BidderTokenProvider.getBidderToken(context)
-    }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {

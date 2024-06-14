@@ -1,20 +1,16 @@
 package org.bidon.mobilefuse.impl
 
-import android.content.Context
 import com.mobilefuse.sdk.AdError
 import com.mobilefuse.sdk.MobileFuseBannerAd
-import org.bidon.mobilefuse.ext.GetMobileFuseTokenUseCase
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
@@ -28,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseBannerImpl(private val isTestMode: Boolean) :
     AdSource.Banner<MobileFuseBannerAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -41,10 +36,6 @@ class MobileFuseBannerImpl(private val isTestMode: Boolean) :
     private var isLoaded = AtomicBoolean(false)
 
     override val isAdReadyToShow: Boolean get() = fuseBannerAd?.isLoaded == true
-
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        return GetMobileFuseTokenUseCase(context, isTestMode)
-    }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return ObtainAuctionParamUseCase().getBannerParam(auctionParamsScope)

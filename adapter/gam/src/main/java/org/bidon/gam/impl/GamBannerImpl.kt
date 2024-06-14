@@ -1,7 +1,6 @@
 package org.bidon.gam.impl
 
 import android.annotation.SuppressLint
-import android.content.Context
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.admanager.AdManagerAdView
 import org.bidon.gam.GamBannerAuctionParams
@@ -10,13 +9,12 @@ import org.bidon.gam.ext.asBidonAdValue
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 
 /**
  * [Test ad units](https://developers.google.com/admob/android/test-ads)
@@ -26,29 +24,20 @@ import org.bidon.sdk.stats.models.BidType
 internal class GamBannerImpl(
     configParams: GamInitParameters?,
     private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(configParams),
-    private val obtainToken: GetTokenUseCase = GetTokenUseCase(configParams),
     private val getAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
 ) : AdSource.Banner<GamBannerAuctionParams>,
-    Mode.Bidding,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
     override var isAdReadyToShow: Boolean = false
 
-    private var bidType: BidType = BidType.CPM
     private var adView: AdManagerAdView? = null
     private var price: Double? = null
     private var adSize: AdSize? = null
     private var bannerFormat: BannerFormat? = null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        bidType = BidType.RTB
-        return obtainToken(context, demandAd.adType)
-    }
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return getAdAuctionParams(auctionParamsScope, demandAd.adType, bidType)
+        return getAdAuctionParams(auctionParamsScope, AdType.Banner)
     }
 
     @SuppressLint("MissingPermission")

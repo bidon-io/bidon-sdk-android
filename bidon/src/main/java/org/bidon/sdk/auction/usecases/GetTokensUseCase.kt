@@ -11,5 +11,5 @@ internal interface GetTokensUseCase {
         adTypeParam: AdTypeParam,
         adaptersSource: AdaptersSource,
         tokenTimeout: Long,
-        ): List<Pair<String, TokenInfo>>
+        ): Map<String, TokenInfo>
 }

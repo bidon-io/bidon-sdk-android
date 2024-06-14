@@ -1,18 +1,14 @@
 package org.bidon.mobilefuse.impl
 
 import android.app.Activity
-import android.content.Context
 import com.mobilefuse.sdk.AdError
 import com.mobilefuse.sdk.MobileFuseInterstitialAd
-import org.bidon.mobilefuse.ext.GetMobileFuseTokenUseCase
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -25,7 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     AdSource.Interstitial<MobileFuseFullscreenAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -37,10 +32,6 @@ class MobileFuseInterstitialImpl(private val isTestMode: Boolean) :
     private var isLoaded = AtomicBoolean(false)
 
     override val isAdReadyToShow: Boolean get() = interstitialAd?.isLoaded == true
-
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        return GetMobileFuseTokenUseCase(context, isTestMode)
-    }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return ObtainAuctionParamUseCase().getFullscreenParam(auctionParamsScope)

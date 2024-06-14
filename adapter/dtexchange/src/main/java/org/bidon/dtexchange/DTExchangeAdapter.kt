@@ -36,7 +36,7 @@ val DTExchangeDemandId = DemandId("dtexchange")
  * [Documentation](https://developer.digitalturbine.com/hc/en-us/articles/360019744297-Android-Ad-Formats)
  */
 class DTExchangeAdapter :
-    Adapter,
+    Adapter.Network,
     SupportsRegulation,
     Initializable<DTExchangeParameters>,
     AdProvider.Rewarded<DTExchangeAdAuctionParams>,

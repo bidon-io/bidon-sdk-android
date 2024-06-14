@@ -1,20 +1,16 @@
 package org.bidon.meta.impl
 
 import android.app.Activity
-import android.content.Context
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
-import com.facebook.ads.BidderTokenProvider
 import com.facebook.ads.RewardedVideoAd
 import com.facebook.ads.RewardedVideoAdListener
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -27,7 +23,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  */
 class MetaRewardedAdImpl :
     AdSource.Rewarded<MetaFullscreenAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -35,10 +30,6 @@ class MetaRewardedAdImpl :
 
     override val isAdReadyToShow: Boolean
         get() = rewardedVideoAd?.isAdLoaded ?: false
-
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        return BidderTokenProvider.getBidderToken(context)
-    }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
