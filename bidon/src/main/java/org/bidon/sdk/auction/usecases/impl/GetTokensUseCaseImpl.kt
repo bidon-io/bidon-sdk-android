@@ -35,12 +35,9 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         /**
          * Bidding demands auction
          */
-        val filteredBiddingAdapters = adaptersSource.adapters.onEach(::applyRegulation)
-        val biddingAdSources = filteredBiddingAdapters
+        val biddingAdSources = adaptersSource.adapters
+            .onEach(::applyRegulation)
             .getAdSources(adType)
-            .onEach {
-                it.setStatisticAdType(adTypeParam.asStatisticAdType())
-            }
             .filterIsInstance<Mode.Bidding>()
 
         /**
@@ -149,8 +146,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
                             adTypeParam = adTypeParam,
                         )
                         adSource.markTokenFinished(
-                            status = TokenInfo.Status.SUCCESS.takeIf { token != null }
-                                ?: TokenInfo.Status.NO_TOKEN,
+                            status = TokenInfo.Status.SUCCESS.takeIf { token != null } ?: TokenInfo.Status.NO_TOKEN,
                             token = token
                         )
                     }
@@ -173,11 +169,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
                     results.add(adSource.demandId.demandId to it)
                 }
                 if (tokenInfo == null) {
-                    logError(
-                        TAG,
-                        "Unexpected result ${adSource.demandId}",
-                        Throwable()
-                    )
+                    logError(TAG, "Unexpected result ${adSource.demandId}", Throwable())
                 }
             }
         }

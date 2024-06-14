@@ -33,11 +33,12 @@ import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
+import org.bidon.sdk.bidding.BiddingConfig
+import org.bidon.sdk.bidding.BiddingConfigImpl
+import org.bidon.sdk.bidding.BiddingConfigSynchronizer
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
-import org.bidon.sdk.config.models.BiddingConfig
-import org.bidon.sdk.config.models.BiddingConfigImpl
 import org.bidon.sdk.config.usecases.InitAndRegisterAdaptersUseCase
 import org.bidon.sdk.databinders.DataProvider
 import org.bidon.sdk.databinders.DataProviderImpl
@@ -162,19 +163,11 @@ internal object DI {
              */
             singleton<Segment> { SegmentImpl() }
 
-            singleton<GetTokensUseCase> {
-                GetTokensUseCaseImpl()
-            }
-            singleton<BiddingConfig> {
-                BiddingConfigImpl()
-            }
-
-
+            singleton<BiddingConfig> { BiddingConfigImpl() }
+            singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
             factory { get<Segment>() as SegmentSynchronizer }
+            factory { get<BiddingConfig>() as BiddingConfigSynchronizer }
 
-            /**
-             * Factories
-             */
             factory<InitAndRegisterAdaptersUseCase> {
                 InitAndRegisterAdaptersUseCaseImpl(
                     adaptersSource = get()
