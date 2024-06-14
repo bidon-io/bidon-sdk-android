@@ -165,6 +165,10 @@ internal object DI {
 
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
+
+            /**
+             * Factories
+             */
             factory { get<Segment>() as SegmentSynchronizer }
             factory { get<BiddingConfig>() as BiddingConfigSynchronizer }
 

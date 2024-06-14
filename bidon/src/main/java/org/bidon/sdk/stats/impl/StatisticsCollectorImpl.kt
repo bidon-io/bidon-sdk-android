@@ -198,10 +198,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         this.adType = adType
     }
 
-    override fun addImpressionId(impId: String) {
-        impressionId = impId
-    }
-
     override fun addAuctionConfigurationId(auctionConfigurationId: Long) {
         this.auctionConfigurationId = auctionConfigurationId
     }
