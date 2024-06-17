@@ -47,7 +47,7 @@ internal class GetAuctionRequestUseCaseImpl(
         auctionId: String,
         demandAd: DemandAd,
         adapters: Map<String, AdapterInfo>,
-        tokens: List<Pair<String, TokenInfo>>,
+        tokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse> {
         return withContext(SdkDispatchers.IO) {
             val (banner, interstitial, rewarded) = adTypeParam.asAdRequestBody()
@@ -59,9 +59,7 @@ internal class GetAuctionRequestUseCaseImpl(
                 rewarded = rewarded,
                 orientationCode = getOrientation().code,
                 pricefloor = adTypeParam.pricefloor,
-                demands = tokens.associate { (demandId, token) ->
-                    demandId to token
-                },
+                demands = tokens
             )
             val requestBody = createRequestBody(
                 binders = binders,

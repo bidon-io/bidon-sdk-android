@@ -12,7 +12,7 @@ internal interface ResultsCollector {
     @Deprecated("")
     fun serverBiddingStarted()
     @Deprecated("")
-    fun serverBiddingFinished(bids: List<AdUnit>?)
+    fun serverBiddingFinished(adUnits: List<AdUnit>?)
     fun biddingTimeoutReached()
     fun add(result: AuctionResult)
     fun getRoundResults(): RoundResult

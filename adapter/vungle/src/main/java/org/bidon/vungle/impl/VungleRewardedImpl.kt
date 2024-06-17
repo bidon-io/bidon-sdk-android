@@ -1,21 +1,17 @@
 package org.bidon.vungle.impl
 
 import android.app.Activity
-import android.content.Context
 import com.vungle.ads.AdConfig
 import com.vungle.ads.BaseAd
 import com.vungle.ads.RewardedAd
 import com.vungle.ads.RewardedAdListener
-import com.vungle.ads.VungleAds
 import com.vungle.ads.VungleError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -31,7 +27,6 @@ import org.bidon.vungle.ext.asBidonError
  */
 internal class VungleRewardedImpl :
     AdSource.Rewarded<VungleFullscreenAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -40,14 +35,11 @@ internal class VungleRewardedImpl :
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canPlayAd() == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
-        VungleAds.getBiddingToken(context)
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             VungleFullscreenAuctionParams(
                 activity = activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

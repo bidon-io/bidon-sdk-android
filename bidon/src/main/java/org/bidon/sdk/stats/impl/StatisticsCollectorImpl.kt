@@ -198,10 +198,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         this.adType = adType
     }
 
-    override fun addImpressionId(impId: String) {
-        impressionId = impId
-    }
-
     override fun addAuctionConfigurationId(auctionConfigurationId: Long) {
         this.auctionConfigurationId = auctionConfigurationId
     }
@@ -230,34 +226,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         )
     }
 
-    override fun markTokenStarted(): Long {
-        val time = SystemTimeNow
-        stat = stat.copy(
-            tokenInfo = stat.tokenInfo?.copy(
-                tokenStartTs = time
-            ) ?: TokenInfo(
-                token = null,
-                tokenStartTs = time,
-                tokenFinishTs = null,
-                status = TokenInfo.Status.NO_TOKEN.code
-            )
-        )
-        return time
-    }
-
-    override fun markTokenFinished(status: TokenInfo.Status, token: String?) {
-        stat = stat.copy(
-            tokenInfo = stat.tokenInfo?.copy(
-                token = token,
-                tokenFinishTs = SystemTimeNow,
-                status = status.code
-            ) ?: run {
-                logError(TAG, "TokenInfo is null", NullPointerException())
-                return
-            }
-        )
-    }
-
     override fun setPrice(price: Double) {
         stat = stat.copy(
             ecpm = price
@@ -267,6 +235,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override fun setDsp(dspSource: String?) {
         stat = stat.copy(
             dspSource = dspSource
+        )
+    }
+
+    override fun setTokenInfo(tokenInfo: TokenInfo) {
+        stat = stat.copy(
+            tokenInfo = tokenInfo
         )
     }
 
@@ -296,7 +270,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             auctionId = auctionId,
             auctionConfigurationId = auctionConfigurationId,
             auctionConfigurationUid = auctionConfigurationUid,
-            impressionId = impressionId,
             demandId = demandId.demandId,
             price = stat.ecpm,
             banner = banner,

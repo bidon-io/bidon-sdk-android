@@ -22,18 +22,14 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.RoundRequest
-import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
-import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
+import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.models.NetworksResult
 import org.bidon.sdk.config.models.adapters.Process
 import org.bidon.sdk.config.models.adapters.TestAdapter
 import org.bidon.sdk.config.models.adapters.TestAdapterParameters
 import org.bidon.sdk.config.models.adapters.TestBiddingAdapter
 import org.bidon.sdk.config.models.auctions.impl.Admob
-import org.bidon.sdk.config.models.auctions.impl.Applovin
 import org.bidon.sdk.config.models.auctions.impl.BidMachine
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
@@ -52,7 +48,7 @@ import org.junit.Test
 /**
  * Created by Aleksei Cherniaev on 26/06/2023.
  */
-internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
+internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
 
     private val auctionConfig = AuctionResponse(
         adUnits = listOf(
@@ -88,8 +84,8 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
     private val conductBiddingAuction: ConductBiddingRoundUseCase = mockk()
     private val conductNetworkAuction: ConductNetworkRoundUseCase = mockk()
 
-    private val testee: ExecuteRoundUseCase by lazy {
-        ExecuteRoundUseCaseImpl(
+    private val testee: ExecuteAuctionUseCase by lazy {
+        ExecuteAuctionUseCaseImpl(
             adaptersSource = adaptersSource,
             regulation = regulation,
             conductNetworkAuction = conductNetworkAuction,
@@ -194,9 +190,7 @@ internal class ExecuteRoundUseCaseImplTest : ConcurrentTest() {
             adTypeParam = AdTypeParam.Interstitial(activity, 1.0, "auctionKey"),
             pricefloor = 0.4,
             adUnits = emptyList(),
-            resultsCollector = mockk(relaxed = true),
-            onFinish = { remainingLineItems ->
-            }
+            resultsCollector = mockk(relaxed = true)
         )
         results
             .onFailure {

@@ -1,16 +1,13 @@
 package org.bidon.bigoads.impl
 
 import android.app.Activity
-import android.content.Context
 import org.bidon.bigoads.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -18,7 +15,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import sg.bigo.ads.BigoAdSdk
 import sg.bigo.ads.api.AdError
 import sg.bigo.ads.api.AdInteractionListener
 import sg.bigo.ads.api.AdLoadListener
@@ -32,7 +28,6 @@ import sg.bigo.ads.api.InterstitialAdRequest
 internal class BigoAdsInterstitialImpl :
     AdSource.Interstitial<BigoFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    Mode.Bidding,
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var interstitialAd: InterstitialAd? = null
@@ -40,13 +35,10 @@ internal class BigoAdsInterstitialImpl :
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null && interstitialAd?.isExpired != false
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
-        BigoAdSdk.getBidderToken()
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             BigoFullscreenAuctionParams(
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

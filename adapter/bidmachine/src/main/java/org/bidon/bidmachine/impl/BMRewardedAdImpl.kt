@@ -3,7 +3,6 @@ package org.bidon.bidmachine.impl
 import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdRequest
-import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.rewarded.RewardedAd
@@ -18,11 +17,9 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -30,10 +27,10 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMRewardedAdImpl :
+internal class BMRewardedAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Rewarded<BMFullscreenAuctionParams>,
-    Mode.Bidding,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -46,13 +43,8 @@ internal class BMRewardedAdImpl :
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canShow() == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String {
-        bidType = BidType.RTB
-        return BidMachine.getBidToken(context)
-    }
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope, bidType)
+        return obtainAdAuctionParams.getBMFullscreenAuctionParams(auctionParamsScope)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {

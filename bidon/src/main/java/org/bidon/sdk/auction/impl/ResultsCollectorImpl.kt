@@ -25,6 +25,7 @@ internal class ResultsCollectorImpl(
 
     private val roundResult = MutableStateFlow<RoundResult>(RoundResult.Idle)
 
+    @Deprecated("")
     override fun serverBiddingStarted() {
         roundResult.update {
             require(it is RoundResult.Results)
@@ -36,7 +37,8 @@ internal class ResultsCollectorImpl(
         }
     }
 
-    override fun serverBiddingFinished(bids: List<AdUnit>?) {
+    @Deprecated("")
+    override fun serverBiddingFinished(adUnits: List<AdUnit>?) {
         roundResult.update { curRoundResult ->
             when (curRoundResult) {
                 RoundResult.Idle -> curRoundResult
@@ -44,7 +46,7 @@ internal class ResultsCollectorImpl(
                     RoundResult.Results(
                         biddingResult = run {
                             if (curRoundResult.biddingResult is BiddingResult.ServerBiddingStarted) {
-                                if (bids.isNullOrEmpty()) {
+                                if (adUnits.isNullOrEmpty()) {
                                     BiddingResult.NoBid(
                                         serverBiddingStartTs = curRoundResult.biddingResult.serverBiddingStartTs,
                                         serverBiddingFinishTs = SystemTimeNow,
@@ -53,7 +55,7 @@ internal class ResultsCollectorImpl(
                                     BiddingResult.FilledAd(
                                         serverBiddingStartTs = curRoundResult.biddingResult.serverBiddingStartTs,
                                         serverBiddingFinishTs = SystemTimeNow,
-                                        bids = bids,
+                                        adUnits = adUnits,
                                         results = emptyList()
                                     )
                                 }
@@ -91,7 +93,7 @@ internal class ResultsCollectorImpl(
                                 BiddingResult.FilledAd(
                                     serverBiddingStartTs = current.biddingResult.serverBiddingStartTs,
                                     serverBiddingFinishTs = current.biddingResult.serverBiddingFinishTs,
-                                    bids = current.biddingResult.bids,
+                                    adUnits = current.biddingResult.adUnits,
                                     results = current.biddingResult.results + result
                                 )
                             }

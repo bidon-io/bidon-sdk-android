@@ -9,14 +9,16 @@ import com.google.android.gms.ads.query.QueryInfoGenerationCallback
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.gam.GamInitParameters
 import org.bidon.gam.ext.asBundle
+import org.bidon.gam.ext.getAdFormat
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.auction.AdTypeParam
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 internal class GetTokenUseCase(private val configParams: GamInitParameters?) {
-    suspend operator fun invoke(context: Context, adType: AdType): String? {
+    suspend operator fun invoke(context: Context, adTypeParam: AdTypeParam): String? {
         val adRequest = AdManagerAdRequest.Builder()
             .apply {
                 val networkExtras = BidonSdk.regulation.asBundle().apply {
@@ -30,11 +32,7 @@ internal class GetTokenUseCase(private val configParams: GamInitParameters?) {
                 addNetworkExtrasBundle(AdMobAdapter::class.java, networkExtras)
             }
             .build()
-        val adFormat = when (adType) {
-            AdType.Banner -> AdFormat.BANNER
-            AdType.Interstitial -> AdFormat.INTERSTITIAL
-            AdType.Rewarded -> AdFormat.REWARDED
-        }
+        val adFormat = adTypeParam.getAdFormat()
         return withTimeoutOrNull(DefaultTokenTimeoutMs) {
             suspendCoroutine { continuation ->
                 QueryInfo.generate(

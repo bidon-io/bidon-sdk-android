@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
@@ -19,7 +18,6 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 11/09/2023.
@@ -27,8 +25,7 @@ import org.bidon.sdk.stats.models.BidType
 internal class InmobiRewardedImpl :
     AdSource.Rewarded<InmobiFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl(),
-    Mode.Network {
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var rewardedAd: InMobiInterstitial? = null
 
@@ -37,7 +34,7 @@ internal class InmobiRewardedImpl :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val adUnit = popAdUnit(demandId, BidType.CPM) ?: error(BidonError.NoAppropriateAdUnitId)
+            val adUnit = adUnit
             InmobiFullscreenAuctionParams(
                 context = activity.applicationContext,
                 adUnit = adUnit,

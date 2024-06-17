@@ -26,16 +26,12 @@ import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.BidRequestUseCase
-import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
-import org.bidon.sdk.auction.usecases.impl.BidRequestUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductBiddingRoundUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductNetworkRoundUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.bidding.BiddingConfigImpl
@@ -187,7 +183,7 @@ internal object DI {
                 AuctionImpl(
                     adaptersSource = get(),
                     getAuctionRequest = get(),
-                    executeRound = get(),
+                    executeAuction = get(),
                     auctionStat = get(),
                     tokenGetter = get(),
                     biddingConfig = get()
@@ -206,21 +202,14 @@ internal object DI {
             }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
-            factory<ConductBiddingRoundUseCase> {
-                ConductBiddingRoundUseCaseImpl()
+            factory<RequestAdUnitUseCase> {
+                RequestAdUnitUseCaseImpl()
             }
-            factory<ConductNetworkRoundUseCase> {
-                ConductNetworkRoundUseCaseImpl()
-            }
-            factory<BidRequestUseCase> {
-                BidRequestUseCaseImpl()
-            }
-            factory<ExecuteRoundUseCase> {
-                ExecuteRoundUseCaseImpl(
-                    conductNetworkAuction = get(),
-                    conductBiddingAuction = get(),
+            factory<ExecuteAuctionUseCase> {
+                ExecuteAuctionUseCaseImpl(
+                    requestAdUnit = get(),
                     adaptersSource = get(),
-                    regulation = get()
+                    regulation = get(),
                 )
             }
 

@@ -68,9 +68,7 @@ internal class LocationDataSourceImpl(
         val locationManager: LocationManager = getLocationManager(context)
         return locationManager.getBestProvider(Criteria(), false)?.let {
             try {
-                locationManager.getLastKnownLocation(it).also {
-                    logInfo(TAG, "Location $it")
-                }
+                locationManager.getLastKnownLocation(it)
             } catch (e: SecurityException) {
                 logError(TAG, "failed to retrieve GPS location: permission not granted", e)
                 null

@@ -22,7 +22,7 @@ internal sealed interface BiddingResult {
     class FilledAd(
         val serverBiddingStartTs: Long,
         val serverBiddingFinishTs: Long,
-        val bids: List<AdUnit>,
+        val adUnits: List<AdUnit>,
         val results: List<AuctionResult>
     ) : BiddingResult
 

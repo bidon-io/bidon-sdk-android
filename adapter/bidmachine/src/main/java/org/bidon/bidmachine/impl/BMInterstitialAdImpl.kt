@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdContentType
 import io.bidmachine.AdRequest
-import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.interstitial.InterstitialAd
@@ -19,11 +18,9 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -31,10 +28,10 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMInterstitialAdImpl :
+internal class BMInterstitialAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Interstitial<BMFullscreenAuctionParams>,
-    Mode.Bidding,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -42,18 +39,13 @@ internal class BMInterstitialAdImpl :
     private var context: Context? = null
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
-    private var bidType = BidType.CPM
+
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String {
-        bidType = BidType.RTB
-        return BidMachine.getBidToken(context)
-    }
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMFullscreenAuctionParams(auctionParamsScope, bidType)
+        return obtainAdAuctionParams.getBMFullscreenAuctionParams(auctionParamsScope)
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {
@@ -61,7 +53,7 @@ internal class BMInterstitialAdImpl :
         context = adParams.context
         val requestBuilder = InterstitialRequest.Builder()
             .apply {
-                if (bidType == BidType.CPM) {
+                if (adParams.adUnit.bidType == BidType.CPM) {
                     this.setNetworks("")
                 }
             }
@@ -76,7 +68,7 @@ internal class BMInterstitialAdImpl :
                         result: BMAuctionResult
                     ) {
                         logInfo(TAG, "onRequestSuccess $result: $this")
-                        fillRequest(request)
+                        fillRequest(request, adParams.adUnit.bidType)
                     }
 
                     override fun onRequestFailed(request: InterstitialRequest, bmError: BMError) {
@@ -127,7 +119,7 @@ internal class BMInterstitialAdImpl :
         interstitialAd = null
     }
 
-    private fun fillRequest(adRequest: InterstitialRequest?) {
+    private fun fillRequest(adRequest: InterstitialRequest?, bidType: BidType) {
         logInfo(TAG, "Starting fill: $this")
         val context = context
         if (context == null) {

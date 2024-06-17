@@ -86,7 +86,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
-                    bids = listOf(
+                    adUnits = listOf(
                         BidResponse(
                             id = "bid123",
                             impressionId = "imp1",
@@ -358,7 +358,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
-                    bids = listOf(
+                    adUnits = listOf(
                         BidResponse(
                             id = "bid123",
                             impressionId = "imp1",
@@ -584,7 +584,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
-                    bids = listOf(
+                    adUnits = listOf(
                         BidResponse(
                             id = "bid123",
                             impressionId = "imp1",

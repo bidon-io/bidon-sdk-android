@@ -12,11 +12,13 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.Auction.AuctionState
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
@@ -35,7 +37,7 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val executeRound: ExecuteRoundUseCase,
+    private val executeAuction: ExecuteAuctionUseCase,
     private val auctionStat: AuctionStat,
     private val tokenGetter: GetTokensUseCase,
     private val biddingConfig: BiddingConfig,
@@ -76,17 +78,12 @@ internal class AuctionImpl(
 
                     resultsCollector.serverBiddingStarted()
 
-                    val tokens = tokenGetter.invoke(
-                        adType = demandAd.adType,
-                        adTypeParam = adTypeParam,
-                        adaptersSource = adaptersSource,
-                        tokenTimeout = biddingConfig.tokenTimeout
-                    )
-
-                    if (tokens.isEmpty()) {
-                        logError(TAG, "No tokens found", BidonError.NoBid)
-                        resultsCollector.serverBiddingFinished(null)
-                    }
+                val tokens = tokenGetter.invoke(
+                    adType = demandAd.adType,
+                    adTypeParam = adTypeParam,
+                    adaptersSource = adaptersSource,
+                    tokenTimeout = biddingConfig.tokenTimeout
+                )
 
                     // Request for Auction-data at /auction
                     val auctionId = UUID.randomUUID().toString()
@@ -103,10 +100,12 @@ internal class AuctionImpl(
                         if (auctionId != auctionData.auctionId) {
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
+                        auctionData.printWaterfall()
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
+                            tokens = tokens,
                         ).ifEmpty {
                             throw BidonError.NoAuctionResults
                         }.also {
@@ -156,6 +155,7 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
+        tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
@@ -163,17 +163,14 @@ internal class AuctionImpl(
 
         val auctionPriceFloor = auctionData.pricefloor ?: 0.0
         // Start auction
-        executeRound(
+        executeAuction(
             pricefloor = auctionPriceFloor,
             demandAd = demandAd,
             adTypeParam = adTypeParamData,
             auctionResponse = auctionDataResponse,
             adUnits = mutableAdUnits,
             resultsCollector = resultsCollector,
-            onFinish = { remainingLineItems ->
-                mutableAdUnits.clear()
-                mutableAdUnits.addAll(remainingLineItems)
-            }
+            tokens = tokens,
         )
 
         // Save round results

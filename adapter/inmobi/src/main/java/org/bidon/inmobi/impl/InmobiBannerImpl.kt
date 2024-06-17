@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -21,7 +20,6 @@ import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -30,8 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class InmobiBannerImpl :
     AdSource.Banner<InmobiBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl(),
-    Mode.Network {
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerView: InMobiBanner? = null
     private var adMetaInfo: AdMetaInfo? = null
@@ -43,7 +40,7 @@ internal class InmobiBannerImpl :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val adUnit = popAdUnit(demandId, BidType.CPM) ?: error(BidonError.NoAppropriateAdUnitId)
+            val adUnit = adUnit
             InmobiBannerAuctionParams(
                 activity = activity,
                 bannerFormat = bannerFormat,

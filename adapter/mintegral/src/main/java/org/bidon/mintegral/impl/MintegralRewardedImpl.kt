@@ -1,8 +1,6 @@
 package org.bidon.mintegral.impl
 
 import android.app.Activity
-import android.content.Context
-import com.mbridge.msdk.mbbid.out.BidManager
 import com.mbridge.msdk.out.MBBidRewardVideoHandler
 import com.mbridge.msdk.out.MBridgeIds
 import com.mbridge.msdk.out.RewardInfo
@@ -12,11 +10,9 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.rewarded.Reward
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -33,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class MintegralRewardedImpl :
     AdSource.Rewarded<MintegralAuctionParam>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -43,13 +38,11 @@ internal class MintegralRewardedImpl :
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.isBidReady == true
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? = BidManager.getBuyerUid(context)
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             MintegralAuctionParam(
                 activity = activity,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }

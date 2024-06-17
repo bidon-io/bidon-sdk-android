@@ -56,7 +56,7 @@ class VungleInterstitialImplTest {
                 onAdUnitsConsumed = {},
                 optBannerFormat = BannerFormat.MRec,
                 optContainerWidth = 140f,
-                bidResponse = BidResponse(
+                adUnit = BidResponse(
                     id = "id",
                     price = 2.75,
                     ext = jsonObject {

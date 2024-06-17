@@ -1,7 +1,5 @@
 package org.bidon.mintegral.impl
 
-import android.content.Context
-import com.mbridge.msdk.mbbid.out.BidManager
 import com.mbridge.msdk.out.BannerAdListener
 import com.mbridge.msdk.out.BannerSize
 import com.mbridge.msdk.out.MBBannerView
@@ -12,12 +10,10 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -32,7 +28,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  */
 internal class MintegralBannerImpl :
     AdSource.Banner<MintegralBannerAuctionParam>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -41,14 +36,12 @@ internal class MintegralBannerImpl :
 
     override var isAdReadyToShow: Boolean = false
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? = BidManager.getBuyerUid(context)
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             MintegralBannerAuctionParam(
                 activity = activity,
                 bannerFormat = bannerFormat,
-                bidResponse = requiredBidResponse
+                adUnit = adUnit
             )
         }
     }
