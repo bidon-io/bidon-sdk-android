@@ -115,10 +115,11 @@ internal class AuctionStatImpl(
     private fun AuctionResult.asStatsAdUnit(): StatsAdUnit {
         return when (this) {
             is AuctionResult.Network -> {
-                val stat = this.adSource.getStats()
+                val stat = adSource.getStats()
                 StatsAdUnit(
                     demandId = stat.demandId.demandId,
-                    status = this.roundStatus.code,
+                    status = roundStatus.code.takeIf { !isAuctionCanceled }
+                        ?: RoundStatus.AuctionCancelled.code,
                     price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
                     tokenStartTs = null,
                     tokenFinishTs = null,
@@ -134,7 +135,8 @@ internal class AuctionStatImpl(
                 val stat = this.adSource.getStats()
                 StatsAdUnit(
                     demandId = stat.demandId.demandId,
-                    status = this.roundStatus.code,
+                    status = roundStatus.code.takeIf { !isAuctionCanceled }
+                        ?: RoundStatus.AuctionCancelled.code,
                     price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
                     tokenStartTs = stat.tokenInfo?.tokenStartTs,
                     tokenFinishTs = stat.tokenInfo?.tokenFinishTs,
@@ -149,7 +151,8 @@ internal class AuctionStatImpl(
             is AuctionResult.BiddingLose -> {
                 StatsAdUnit(
                     demandId = this.adapterName,
-                    status = this.roundStatus.code,
+                    status = roundStatus.code.takeIf { !isAuctionCanceled }
+                        ?: RoundStatus.AuctionCancelled.code,
                     price = this.ecpm,
                     tokenStartTs = null,
                     tokenFinishTs = null,
