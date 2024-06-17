@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -29,8 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class InmobiBannerImpl :
     AdSource.Banner<InmobiBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl(),
-    Mode.Network {
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerView: InMobiBanner? = null
     private var adMetaInfo: AdMetaInfo? = null

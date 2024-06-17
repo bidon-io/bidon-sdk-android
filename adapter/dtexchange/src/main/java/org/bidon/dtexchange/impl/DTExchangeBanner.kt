@@ -16,7 +16,6 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.ext.height
@@ -32,7 +31,6 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  */
 internal class DTExchangeBanner :
     AdSource.Banner<DTExchangeBannerAuctionParams>,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 

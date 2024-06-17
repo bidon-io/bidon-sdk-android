@@ -1,8 +1,6 @@
 package org.bidon.bidmachine.impl
 
-import android.content.Context
 import io.bidmachine.AdRequest
-import io.bidmachine.BidMachine
 import io.bidmachine.CustomParams
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.banner.BannerListener
@@ -20,13 +18,11 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -34,10 +30,10 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
-internal class BMBannerAdImpl :
+internal class BMBannerAdImpl(
+    private val obtainAdAuctionParams: GetAdAuctionParamUseCase = GetAdAuctionParamUseCase()
+) :
     AdSource.Banner<BMBannerAuctionParams>,
-    Mode.Bidding,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     WinLossNotifiable,
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -45,21 +41,16 @@ internal class BMBannerAdImpl :
     private var adRequest: BannerRequest? = null
     private var bannerView: BannerView? = null
     private var bannerFormat: BannerFormat? = null
-    private var bidType = BidType.CPM
 
     override val isAdReadyToShow: Boolean
         get() = bannerView?.canShow() == true
-
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String {
-        bidType = BidType.RTB
-        return BidMachine.getBidToken(context)
-    }
 
     override fun load(adParams: BMBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.activity.runOnUiThread {
             bannerView = BannerView(adParams.activity.applicationContext)
             bannerFormat = adParams.bannerFormat
+            val bidType = adParams.adUnit.bidType
             val requestBuilder = BannerRequest.Builder()
                 .apply {
                     if (bidType == BidType.CPM) {
@@ -74,7 +65,7 @@ internal class BMBannerAdImpl :
                     object : AdRequest.AdRequestListener<BannerRequest> {
                         override fun onRequestSuccess(request: BannerRequest, result: BMAuctionResult) {
                             logInfo(TAG, "onRequestSuccess $result: $this")
-                            fillRequest(request)
+                            fillRequest(request, bidType)
                         }
 
                         override fun onRequestFailed(request: BannerRequest, bmError: BMError) {
@@ -99,7 +90,7 @@ internal class BMBannerAdImpl :
     }
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return GetAdAuctionParamUseCase().getBMBannerAuctionParams(auctionParamsScope, bidType)
+        return obtainAdAuctionParams.getBMBannerAuctionParams(auctionParamsScope)
     }
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
@@ -131,7 +122,7 @@ internal class BMBannerAdImpl :
         bannerView = null
     }
 
-    private fun fillRequest(adRequest: BannerRequest?) {
+    private fun fillRequest(adRequest: BannerRequest?, bidType: BidType) {
         logInfo(TAG, "Starting fill: $this")
         val bannerView = bannerView
         if (bannerView == null) {

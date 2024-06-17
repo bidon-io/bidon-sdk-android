@@ -15,6 +15,6 @@ internal interface GetAuctionRequestUseCase {
         auctionId: String,
         demandAd: DemandAd,
         adapters: Map<String, AdapterInfo>,
-        tokens: List<Pair<String, TokenInfo>>,
+        tokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse>
 }

@@ -16,8 +16,9 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
@@ -40,6 +41,7 @@ internal class ExecuteAuctionUseCaseImpl(
         pricefloor: Double,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
+        tokens: Map<String, TokenInfo>
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
 
@@ -65,13 +67,20 @@ internal class ExecuteAuctionUseCaseImpl(
                     break
                 }
 
-                logInfo(tag = TAG, message = "Request start: $adUnit")
-
                 val adSource = adaptersSource.adapters
                     .find { it.demandId.demandId == adUnit.demandId }
-                    .also {
-                        it?.applyRegulation()
+                    ?.also { adapter ->
+                        adapter.applyRegulation()
                     }?.getAdSources(demandAd.adType)
+                    ?.also { adSource ->
+                        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
+                    }
+
+                if (adUnit.bidType == BidType.RTB) {
+                    tokens[adSource?.demandId?.demandId]?.let {
+                        adSource?.setTokenInfo(it)
+                    }
+                }
 
                 if (adSource != null) {
                     applyParams(
@@ -93,7 +102,10 @@ internal class ExecuteAuctionUseCaseImpl(
                         resultsCollector.add(it)
                     }
                     if (auctionResult?.roundStatus == RoundStatus.Successful
-                        && !shouldRequestNext(auctionResult = auctionResult, next = adUnitQueue.peek())
+                        && !shouldRequestNext(
+                            auctionResult = auctionResult,
+                            next = adUnitQueue.peek()
+                        )
                     ) {
                         logInfo(
                             TAG,

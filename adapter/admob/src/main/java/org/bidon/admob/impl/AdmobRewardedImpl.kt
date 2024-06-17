@@ -1,7 +1,6 @@
 package org.bidon.admob.impl
 
 import android.app.Activity
-import android.content.Context
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.OnPaidEventListener
 import com.google.android.gms.ads.rewarded.RewardedAd
@@ -13,43 +12,31 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.rewarded.Reward
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.sdk.stats.models.BidType
 
 internal class AdmobRewardedImpl(
     configParams: AdmobInitParameters?,
     private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(configParams),
     private val getFullScreenContentCallback: GetFullScreenContentCallbackUseCase = GetFullScreenContentCallbackUseCase(),
-    private val obtainToken: GetTokenUseCase = GetTokenUseCase(configParams),
     private val obtainAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
 ) : AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
-    Mode.Bidding,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var rewardedAd: RewardedAd? = null
-    private var bidType: BidType = BidType.CPM
     private var price: Double? = null
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
-        bidType = BidType.RTB
-        return obtainToken(context, demandAd.adType)
-    }
-
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        return obtainAdAuctionParams(auctionParamsScope, demandAd.adType, bidType)
+        return obtainAdAuctionParams(auctionParamsScope, demandAd.adType)
     }
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {

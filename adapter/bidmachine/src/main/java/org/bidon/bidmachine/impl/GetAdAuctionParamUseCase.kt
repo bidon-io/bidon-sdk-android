@@ -9,8 +9,9 @@ import org.bidon.sdk.stats.models.BidType
  * Created by Aleksei Cherniaev on 21/11/2023.
  */
 class GetAdAuctionParamUseCase {
-    fun getBMFullscreenAuctionParams(auctionParamsScope: AdAuctionParamSource, bidType: BidType): Result<BMFullscreenAuctionParams> {
+    fun getBMFullscreenAuctionParams(auctionParamsScope: AdAuctionParamSource): Result<BMFullscreenAuctionParams> {
         return auctionParamsScope {
+            val bidType = auctionParamsScope.adUnit.bidType
             BMFullscreenAuctionParams(
                 price = when (bidType) {
                     BidType.RTB -> adUnit.pricefloor
@@ -28,8 +29,9 @@ class GetAdAuctionParamUseCase {
         }
     }
 
-    fun getBMBannerAuctionParams(auctionParamsScope: AdAuctionParamSource, bidType: BidType): Result<BMBannerAuctionParams> {
+    fun getBMBannerAuctionParams(auctionParamsScope: AdAuctionParamSource): Result<BMBannerAuctionParams> {
         return auctionParamsScope {
+            val bidType = auctionParamsScope.adUnit.bidType
             BMBannerAuctionParams(
                 price = when (bidType) {
                     BidType.RTB -> adUnit.pricefloor

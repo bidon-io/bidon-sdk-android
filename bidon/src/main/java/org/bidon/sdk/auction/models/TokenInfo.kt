@@ -9,8 +9,11 @@ import org.bidon.sdk.utils.serializer.Serializable
 data class TokenInfo(
     @field:JsonName("token")
     val token: String?,
+    @field:JsonName("token_start_ts")
     val tokenStartTs: Long?,
+    @field:JsonName("token_finish_ts")
     val tokenFinishTs: Long?,
+    @field:JsonName("status")
     val status: String,
 ) : Serializable {
     enum class Status(val code: String) {
@@ -18,4 +21,10 @@ data class TokenInfo(
         TIMEOUT_REACHED("TIMEOUT_REACHED"),
         NO_TOKEN("NO_TOKEN"),
     }
+}
+
+sealed class TokenResult {
+    data class Success(val token: String) : TokenResult()
+    object NoToken : TokenResult()
+    object TimeoutReached : TokenResult()
 }
