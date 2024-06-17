@@ -29,6 +29,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         timeoutMs: Long
     ) = withTimeoutOrNull(timeoutMs) {
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
+        logInfo(TAG, "FillStarted: $adUnit")
 
         val adParam = adSource.getAuctionParam(
             AdAuctionParamSource(
@@ -69,7 +70,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
             BidType.CPM -> AuctionResult.Network(adSource, roundStatus)
         }
 
-        logInfo(TAG, "${adUnit.demandId} fillResult: ${auctionResult.roundStatus}")
+        logInfo(TAG, "FillFinished: $adUnit. \nResult: ${auctionResult.roundStatus}")
 
         adSource.markFillFinished(roundStatus, adSource.ad?.ecpm)
 

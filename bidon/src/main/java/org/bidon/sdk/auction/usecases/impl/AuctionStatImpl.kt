@@ -73,6 +73,8 @@ internal class AuctionStatImpl(
                 .takeIf { !isAuctionCanceled }
         )
 
+        logInfo(TAG, "Winner: ${roundWinner.toString()}")
+
         val winnerUuid = roundWinner?.adSource?.getStats()?.adUnit?.uid
 
         val results: List<StatsAdUnit> = roundResults

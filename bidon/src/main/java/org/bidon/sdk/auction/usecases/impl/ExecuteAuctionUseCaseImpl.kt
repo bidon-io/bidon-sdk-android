@@ -35,16 +35,19 @@ internal class ExecuteAuctionUseCaseImpl(
     private val regulation: Regulation,
 ) : ExecuteAuctionUseCase {
     override suspend fun invoke(
+        auctionId: String,
+        auctionConfigurationId: Long,
+        auctionConfigurationUid: String,
+        externalWinNotificationsEnabled: Boolean,
         demandAd: DemandAd,
-        auctionResponse: AuctionResponse,
         adTypeParam: AdTypeParam,
         pricefloor: Double,
+        auctionTimeout: Long,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
-
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
             val adUnitQueue = LinkedList(adUnits)
@@ -84,12 +87,14 @@ internal class ExecuteAuctionUseCaseImpl(
 
                 if (adSource != null) {
                     applyParams(
+                        auctionId = auctionId,
+                        auctionConfigurationId = auctionConfigurationId,
+                        auctionConfigurationUid = auctionConfigurationUid,
+                        externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         adSource = adSource,
                         adTypeParam = adTypeParam,
-                        auctionResponse = auctionResponse,
                         demandAd = demandAd,
-                        roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.pricefloor,
+                        auctionPricefloor = pricefloor,
                     )
 
                     val auctionResult = requestAdUnit.invoke(
@@ -97,7 +102,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         adTypeParam = adTypeParam,
                         adUnit = adUnit,
                         priceFloor = pricefloor,
-                        timeoutMs = auctionResponse.auctionTimeout
+                        timeoutMs = auctionTimeout
                     )?.also {
                         resultsCollector.add(it)
                     }
@@ -147,23 +152,24 @@ internal class ExecuteAuctionUseCaseImpl(
     }
 
     private fun applyParams(
+        auctionId: String,
+        auctionConfigurationId: Long,
+        auctionConfigurationUid: String,
+        externalWinNotificationsEnabled: Boolean,
         adSource: AdSource<AdAuctionParams>,
         adTypeParam: AdTypeParam,
-        auctionResponse: AuctionResponse,
         demandAd: DemandAd,
-        roundPricefloor: Double,
         auctionPricefloor: Double,
     ) {
         adSource.addRoundInfo(
-            auctionId = auctionResponse.auctionId,
+            auctionId = auctionId,
             demandAd = demandAd,
-            roundPricefloor = roundPricefloor,
             auctionPricefloor = auctionPricefloor,
         )
         adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
-        adSource.addAuctionConfigurationId(auctionResponse.auctionConfigurationId ?: 0)
-        adSource.addAuctionConfigurationUid(auctionResponse.auctionConfigurationUid ?: "")
-        adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
+        adSource.addAuctionConfigurationId(auctionConfigurationId)
+        adSource.addAuctionConfigurationUid(auctionConfigurationUid)
+        adSource.addExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
     }
 
     private fun Adapter?.applyRegulation() {
@@ -181,11 +187,12 @@ internal class ExecuteAuctionUseCaseImpl(
     }
 
     private fun Adapter.getAdSources(adType: AdType): AdSource<AdAuctionParams>? {
+        val adapterDemandId = demandId
         return when (adType) {
             AdType.Interstitial -> {
                 (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
                     runCatching {
-                        adapter.interstitial().apply { addDemandId(demandId) }
+                        adapter.interstitial().apply { addDemandId(adapterDemandId) }
                     }.onFailure {
                         logError(TAG, "Failed to create interstitial ad source", it)
                     }.getOrNull()
@@ -195,7 +202,7 @@ internal class ExecuteAuctionUseCaseImpl(
             AdType.Rewarded -> {
                 (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
                     runCatching {
-                        adapter.rewarded().apply { addDemandId(demandId) }
+                        adapter.rewarded().apply { addDemandId(adapterDemandId) }
                     }.onFailure {
                         logError(TAG, "Failed to create rewarded ad source", it)
                     }.getOrNull()
@@ -205,7 +212,7 @@ internal class ExecuteAuctionUseCaseImpl(
             AdType.Banner -> {
                 (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
                     runCatching {
-                        adapter.banner().apply { addDemandId(demandId) }
+                        adapter.banner().apply { addDemandId(adapterDemandId) }
                     }.onFailure {
                         logError(TAG, "Failed to create banner ad source", it)
                     }.getOrNull()

@@ -97,7 +97,6 @@ internal class AdCacheImpl(
                     )
                 ),
                 onSuccess = { auctionResults ->
-                    logInfo(tag, "Auction completed ${results.value.asString()}")
                     scope.launch {
                         results.update {
                             resolver.sortWinners(it + auctionResults).take(settings.cacheCapacity)

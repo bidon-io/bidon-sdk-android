@@ -5,7 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.Adapter
@@ -16,8 +15,6 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.models.TokenResult
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
-import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import org.bidon.sdk.utils.ext.TAG

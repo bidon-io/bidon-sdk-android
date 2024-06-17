@@ -13,10 +13,14 @@ import org.bidon.sdk.auction.models.TokenInfo
  */
 internal interface ExecuteAuctionUseCase {
     suspend operator fun invoke(
+        auctionId: String,
+        auctionConfigurationId: Long,
+        auctionConfigurationUid: String,
+        externalWinNotificationsEnabled: Boolean,
         demandAd: DemandAd,
-        auctionResponse: AuctionResponse,
         adTypeParam: AdTypeParam,
         pricefloor: Double,
+        auctionTimeout: Long,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>

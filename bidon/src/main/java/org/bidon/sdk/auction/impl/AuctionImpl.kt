@@ -13,7 +13,6 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.Auction.AuctionState
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.ext.printWaterfall
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
@@ -44,12 +43,9 @@ internal class AuctionImpl(
 ) : Auction {
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val state = MutableStateFlow(AuctionState.Initialized)
-    @Deprecated("Use adunits from auctionDataResponse instead")
-    private val mutableAdUnits = mutableListOf<AdUnit>()
+
 
     private var _auctionDataResponse: AuctionResponse? = null
-    private val auctionDataResponse: AuctionResponse get() = requireNotNull(_auctionDataResponse)
-
     private var _demandAd: DemandAd? = null
     private var job: Job? = null
     private var adTypeParam: AdTypeParam? = null
@@ -100,7 +96,7 @@ internal class AuctionImpl(
                         if (auctionId != auctionData.auctionId) {
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
-                        auctionData.printWaterfall()
+                        auctionData.printWaterfall(demandAd.adType)
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -159,16 +155,18 @@ internal class AuctionImpl(
     ): List<AuctionResult> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
-        mutableAdUnits.addAll(auctionData.adUnits ?: emptyList())
-
-        val auctionPriceFloor = auctionData.pricefloor ?: 0.0
+        val auctionPriceFloor = auctionData.pricefloor
         // Start auction
         executeAuction(
+            auctionId = auctionData.auctionId,
+            auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
+            auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
+            externalWinNotificationsEnabled = auctionData.externalWinNotificationsEnabled,
+            auctionTimeout = auctionData.auctionTimeout,
             pricefloor = auctionPriceFloor,
             demandAd = demandAd,
             adTypeParam = adTypeParamData,
-            auctionResponse = auctionDataResponse,
-            adUnits = mutableAdUnits,
+            adUnits = auctionData.adUnits ?: emptyList(),
             resultsCollector = resultsCollector,
             tokens = tokens,
         )
@@ -215,7 +213,6 @@ internal class AuctionImpl(
 
     private fun clearData() {
         resultsCollector.clear()
-        mutableAdUnits.clear()
         _auctionDataResponse = null
     }
 

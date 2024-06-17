@@ -36,7 +36,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
     private var auctionConfigurationUid: String = ""
     private var externalWinNotificationsEnabled: Boolean = true
     private lateinit var adType: StatisticsCollector.AdType
-    private var impressionId: String = UUID.randomUUID().toString()
 
     private val sendImpression by lazy {
         get<SendImpressionRequestUseCase>()
@@ -63,7 +62,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
         roundStatus = null,
         ecpm = 0.0,
         dspSource = null,
-        roundPricefloor = 0.0,
         auctionPricefloor = 0.0,
         tokenInfo = null,
     )
@@ -102,13 +100,11 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override fun addRoundInfo(
         auctionId: String,
         demandAd: DemandAd,
-        roundPricefloor: Double,
         auctionPricefloor: Double
     ) {
         this._demandAd = demandAd
         stat = stat.copy(
             auctionId = auctionId,
-            roundPricefloor = roundPricefloor,
             auctionPricefloor = auctionPricefloor
         )
     }

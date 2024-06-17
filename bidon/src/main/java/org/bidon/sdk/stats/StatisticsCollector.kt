@@ -52,7 +52,6 @@ interface StatisticsCollector {
     fun addRoundInfo(
         auctionId: String,
         demandAd: DemandAd,
-        roundPricefloor: Double,
         auctionPricefloor: Double,
     )
 
