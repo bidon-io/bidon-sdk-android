@@ -12,14 +12,13 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.ext.hasNext
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
-import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
@@ -28,6 +27,7 @@ import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
+import java.util.LinkedList
 
 internal class ExecuteAuctionUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -47,8 +47,16 @@ internal class ExecuteAuctionUseCaseImpl(
 
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
-            for (position in adUnits.indices) {
-                val adUnit = adUnits[position]
+            val adUnitQueue = LinkedList(adUnits)
+
+            while (adUnitQueue.isNotEmpty()) {
+
+                val adUnit = adUnitQueue.poll()
+
+                if (adUnit == null) {
+                    logInfo(TAG, "All adUnits were requested")
+                    break
+                }
 
                 if (adUnit.pricefloor < pricefloor) {
                     logInfo(
@@ -60,13 +68,13 @@ internal class ExecuteAuctionUseCaseImpl(
                 }
 
                 val adSource = adaptersSource.adapters
-                    .filter { it.demandId.demandId == adUnit.demandId }
-                    .onEach (::applyRegulation)
-                    .getAdSources(demandAd.adType)
-                    .onEach {
-                        it.setStatisticAdType(adTypeParam.asStatisticAdType())
+                    .find { it.demandId.demandId == adUnit.demandId }
+                    ?.also { adapter ->
+                        adapter.applyRegulation()
+                    }?.getAdSources(demandAd.adType)
+                    ?.also { adSource ->
+                        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
                     }
-                    .firstOrNull()
 
                 if (adUnit.bidType == BidType.RTB) {
                     tokens[adSource?.demandId?.demandId]?.let {
@@ -81,7 +89,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         auctionResponse = auctionResponse,
                         demandAd = demandAd,
                         roundPricefloor = pricefloor,
-                        auctionPricefloor = auctionResponse.pricefloor ?: 0.0,
+                        auctionPricefloor = auctionResponse.pricefloor,
                     )
 
                     val auctionResult = requestAdUnit.invoke(
@@ -96,8 +104,7 @@ internal class ExecuteAuctionUseCaseImpl(
                     if (auctionResult?.roundStatus == RoundStatus.Successful
                         && !shouldRequestNext(
                             auctionResult = auctionResult,
-                            adUnits = adUnits,
-                            currentPosition = position
+                            next = adUnitQueue.peek()
                         )
                     ) {
                         logInfo(
@@ -128,15 +135,13 @@ internal class ExecuteAuctionUseCaseImpl(
 
     private fun shouldRequestNext(
         auctionResult: AuctionResult,
-        currentPosition: Int,
-        adUnits: List<AdUnit>
+        next: AdUnit?
     ): Boolean {
-        if (!adUnits.hasNext(currentPosition)) {
+        if (next == null) {
             return false
         }
         val currentEcpm = auctionResult.adSource.getStats().ecpm
-        val nextEcpm =
-            if (currentPosition + 1 < adUnits.size) adUnits[currentPosition + 1].pricefloor else 0.0
+        val nextEcpm = next.pricefloor
         logInfo(TAG, "Loaded eCPM: $currentEcpm, next requested eCPM: $nextEcpm")
         return currentEcpm < nextEcpm
     }
@@ -161,11 +166,11 @@ internal class ExecuteAuctionUseCaseImpl(
         adSource.addExternalWinNotificationsEnabled(auctionResponse.externalWinNotificationsEnabled)
     }
 
-    private fun applyRegulation(adapter: Adapter) {
-        (adapter as? SupportsRegulation)?.let { supportsRegulation ->
+    private fun Adapter?.applyRegulation() {
+        (this as? SupportsRegulation)?.let { supportsRegulation ->
             logInfo(
                 TAG,
-                "Applying regulation to ${adapter.demandId.demandId} <- " +
+                "Applying regulation to ${demandId.demandId} <- " +
                         "GDPR=${regulation.gdpr}, " +
                         "COPPA=${regulation.coppa}, " +
                         "usPrivacyString=${regulation.usPrivacyString}, " +
@@ -175,41 +180,39 @@ internal class ExecuteAuctionUseCaseImpl(
         }
     }
 
-    private fun List<Adapter>.getAdSources(adType: AdType): List<AdSource<AdAuctionParams>> =
-        when (adType) {
+    private fun Adapter.getAdSources(adType: AdType): AdSource<AdAuctionParams>? {
+        return when (adType) {
             AdType.Interstitial -> {
-                this.filterIsInstance<AdProvider.Interstitial<AdAuctionParams>>()
-                    .mapNotNull { adapter ->
-                        runCatching {
-                            adapter.interstitial()
-                                .apply { addDemandId((adapter as Adapter).demandId) }
-                        }.onFailure {
-                            logError(TAG, "Failed to create interstitial ad source", it)
-                        }.getOrNull()
-                    }
+                (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
+                    runCatching {
+                        adapter.interstitial().apply { addDemandId(demandId) }
+                    }.onFailure {
+                        logError(TAG, "Failed to create interstitial ad source", it)
+                    }.getOrNull()
+                }
             }
 
             AdType.Rewarded -> {
-                this.filterIsInstance<AdProvider.Rewarded<AdAuctionParams>>()
-                    .mapNotNull { adapter ->
-                        runCatching {
-                            adapter.rewarded().apply { addDemandId((adapter as Adapter).demandId) }
-                        }.onFailure {
-                            logError(TAG, "Failed to create rewarded ad source", it)
-                        }.getOrNull()
-                    }
+                (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
+                    runCatching {
+                        adapter.rewarded().apply { addDemandId(demandId) }
+                    }.onFailure {
+                        logError(TAG, "Failed to create rewarded ad source", it)
+                    }.getOrNull()
+                }
             }
 
             AdType.Banner -> {
-                this.filterIsInstance<AdProvider.Banner<AdAuctionParams>>().mapNotNull { adapter ->
+                (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
                     runCatching {
-                        adapter.banner().apply { addDemandId((adapter as Adapter).demandId) }
+                        adapter.banner().apply { addDemandId(demandId) }
                     }.onFailure {
                         logError(TAG, "Failed to create banner ad source", it)
                     }.getOrNull()
                 }
             }
         }
+    }
 
     private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
         return when (this) {
