@@ -5,6 +5,7 @@ import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.RewardedVideoAd
 import com.facebook.ads.RewardedVideoAdListener
+import org.bidon.meta.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -49,7 +50,7 @@ class MetaRewardedAdImpl :
                 .withAdListener(object : RewardedVideoAdListener {
                     override fun onError(ad: Ad?, adError: AdError?) {
                         logInfo(TAG, "Error while loading ad(${adError?.errorCode}: ${adError?.errorMessage}). $this")
-                        emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                        emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
                     }
 
                     override fun onAdLoaded(ad: Ad?) {

@@ -7,6 +7,7 @@ import com.google.android.gms.ads.admanager.AdManagerInterstitialAd
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAdLoadCallback
 import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.gam.GamInitParameters
+import org.bidon.gam.asBidonError
 import org.bidon.gam.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -46,7 +47,7 @@ internal class GamInterstitialImpl(
         val requestListener = object : AdManagerInterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
 
             override fun onAdLoaded(interstitialAd: AdManagerInterstitialAd) {

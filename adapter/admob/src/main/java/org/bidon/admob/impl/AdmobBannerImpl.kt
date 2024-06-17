@@ -8,6 +8,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.OnPaidEventListener
 import org.bidon.admob.AdmobBannerAuctionParams
 import org.bidon.admob.AdmobInitParameters
+import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -60,7 +61,7 @@ internal class AdmobBannerImpl(
             val requestListener = object : AdListener() {
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                     logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
                 }
 
                 override fun onAdLoaded() {

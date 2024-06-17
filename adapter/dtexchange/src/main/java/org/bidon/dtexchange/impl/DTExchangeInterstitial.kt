@@ -112,16 +112,9 @@ internal class DTExchangeInterstitial :
                     inneractiveAdSpot: InneractiveAdSpot?,
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
-                    logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode", BidonError.NoFill(demandId))
-                    emitEvent(
-                        AdEvent.LoadFailed(
-                            if (inneractiveErrorCode == InneractiveErrorCode.ERROR_CONFIGURATION_NO_SUCH_SPOT) {
-                                BidonError.NoAppropriateAdUnitId
-                            } else {
-                                BidonError.NoFill(demandId)
-                            }
-                        )
-                    )
+                    val error = inneractiveErrorCode.asBidonError()
+                    logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode", error)
+                    emitEvent(AdEvent.LoadFailed(error))
                 }
             }
         )

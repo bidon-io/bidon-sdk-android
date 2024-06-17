@@ -120,20 +120,9 @@ internal class DTExchangeRewarded :
                     inneractiveAdSpot: InneractiveAdSpot?,
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
-                    logError(
-                        TAG,
-                        "Error while bidding: $inneractiveErrorCode",
-                        inneractiveErrorCode.asBidonError()
-                    )
-                    emitEvent(
-                        AdEvent.LoadFailed(
-                            if (inneractiveErrorCode == InneractiveErrorCode.ERROR_CONFIGURATION_NO_SUCH_SPOT) {
-                                BidonError.NoAppropriateAdUnitId
-                            } else {
-                                BidonError.NoFill(demandId)
-                            }
-                        )
-                    )
+                    val error = inneractiveErrorCode.asBidonError()
+                    logError(TAG, "Error while bidding: $inneractiveErrorCode", error)
+                    emitEvent(AdEvent.LoadFailed(error))
                 }
             }
         )

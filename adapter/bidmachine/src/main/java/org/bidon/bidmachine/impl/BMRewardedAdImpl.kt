@@ -71,7 +71,7 @@ internal class BMRewardedAdImpl(
 
                     override fun onRequestFailed(request: RewardedRequest, bmError: BMError) {
                         logInfo(TAG, "onRequestFailed $bmError. $this")
-                        emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                        emitEvent(AdEvent.LoadFailed(bmError.asBidonErrorOnFill(demandId)))
                     }
 
                     override fun onRequestExpired(request: RewardedRequest) {
@@ -152,7 +152,7 @@ internal class BMRewardedAdImpl(
                     val error = bmError.asBidonErrorOnFill(demandId)
                     logError(TAG, "onAdLoadFailed: $this", error)
                     getAd()?.let {
-                        emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                        emitEvent(AdEvent.LoadFailed(error))
                     }
                 }
 

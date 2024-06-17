@@ -6,6 +6,7 @@ import com.mbridge.msdk.newinterstitial.out.NewInterstitialListener
 import com.mbridge.msdk.out.MBridgeIds
 import com.mbridge.msdk.out.RewardInfo
 import org.bidon.mintegral.MintegralAuctionParam
+import org.bidon.mintegral.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -71,7 +72,8 @@ internal class MintegralInterstitialImpl :
 
             override fun onResourceLoadFail(mBridgeIds: MBridgeIds?, message: String?) {
                 logInfo(TAG, "onResourceLoadFail $mBridgeIds")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(message?.asBidonError()
+                    ?: BidonError.NoFill(demandId)))
             }
 
             override fun onAdShow(mBridgeIds: MBridgeIds?) {

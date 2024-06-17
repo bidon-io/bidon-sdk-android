@@ -5,6 +5,7 @@ import com.mbridge.msdk.out.BannerSize
 import com.mbridge.msdk.out.MBBannerView
 import com.mbridge.msdk.out.MBridgeIds
 import org.bidon.mintegral.MintegralBannerAuctionParam
+import org.bidon.mintegral.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -68,7 +69,8 @@ internal class MintegralBannerImpl :
             mbBannerView.setBannerAdListener(object : BannerAdListener {
                 override fun onLoadFailed(mBridgeIds: MBridgeIds?, message: String?) {
                     logInfo(TAG, "onLoadFailed $mBridgeIds")
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    emitEvent(AdEvent.LoadFailed(message?.asBidonError()
+                        ?: BidonError.NoFill(demandId)))
                 }
 
                 override fun onLoadSuccessed(mBridgeIds: MBridgeIds?) {

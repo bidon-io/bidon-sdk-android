@@ -60,7 +60,7 @@ internal class VungleInterstitialImpl :
 
             override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
                 logError(TAG, "onError placementId=${baseAd.placementId}. $this", null)
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
             }
 
             override fun onAdImpression(baseAd: BaseAd) {

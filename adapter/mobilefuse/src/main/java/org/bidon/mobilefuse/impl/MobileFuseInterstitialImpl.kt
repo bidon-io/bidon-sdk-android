@@ -93,8 +93,7 @@ class MobileFuseInterstitialImpl :
                         emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
                     }
 
-                    AdError.AD_ALREADY_LOADED,
-                    AdError.AD_RUNTIME_ERROR -> {
+                    AdError.AD_ALREADY_LOADED -> {
                         // do nothing
                     }
 
@@ -105,7 +104,8 @@ class MobileFuseInterstitialImpl :
                     }
 
                     else -> {
-                        // do nothing
+                        emitEvent(AdEvent.LoadFailed(BidonError.Unspecified(demandId,
+                            Throwable(adError?.errorMessage))))
                     }
                 }
             }

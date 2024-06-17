@@ -12,6 +12,7 @@ import com.applovin.sdk.AppLovinAdVideoPlaybackListener
 import com.applovin.sdk.AppLovinSdk
 import org.bidon.applovin.ApplovinFullscreenAdAuctionParams
 import org.bidon.applovin.ext.asBidonAdValue
+import org.bidon.applovin.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -99,7 +100,7 @@ internal class ApplovinInterstitialImpl(
 
             override fun failedToReceiveAd(errorCode: Int) {
                 logInfo(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(errorCode.asBidonError()))
             }
         }
         logInfo(TAG, "Starting fill: $this")
