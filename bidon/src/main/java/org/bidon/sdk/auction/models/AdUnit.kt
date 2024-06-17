@@ -17,4 +17,7 @@ data class AdUnit(
     val extra: JSONObject? = ext?.let {
         JSONObject(it)
     }
+
+    override fun toString() =
+        "Demand: ${demandId}, Pricefloor: ${pricefloor}, UID: ${uid}, BidType: ${bidType}"
 }

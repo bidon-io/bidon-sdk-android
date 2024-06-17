@@ -26,13 +26,8 @@ val BannerFormat.height
 
 internal fun AuctionResponse.printWaterfall() {
     adUnits?.joinToString(separator = "\n") { adUnit ->
-        adUnit.getInfo()
+        adUnit.toString()
     }?.let {
         logInfo("Auction Waterfall:\n", it)
     }
 }
-
-internal fun AdUnit.getInfo() =
-    "Demand: ${demandId}, Pricefloor: ${pricefloor}, UID: ${uid}, BidType: ${bidType}"
-
-internal fun List<Any?>.hasNext(position: Int) = position < size - 1

@@ -22,8 +22,8 @@ import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
+import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.config.models.BiddingConfig
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
@@ -37,19 +37,21 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val executeRound: ExecuteAuctionUseCase,
+    private val executeAuction: ExecuteAuctionUseCase,
     private val auctionStat: AuctionStat,
     private val tokenGetter: GetTokensUseCase,
     private val biddingConfig: BiddingConfig,
 ) : Auction {
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val state = MutableStateFlow(AuctionState.Initialized)
+    @Deprecated("Use adunits from auctionDataResponse instead")
     private val mutableAdUnits = mutableListOf<AdUnit>()
+
     private var _auctionDataResponse: AuctionResponse? = null
+    private val auctionDataResponse: AuctionResponse get() = requireNotNull(_auctionDataResponse)
+
     private var _demandAd: DemandAd? = null
     private var job: Job? = null
-    private val auctionDataResponse: AuctionResponse
-        get() = requireNotNull(_auctionDataResponse)
     private var adTypeParam: AdTypeParam? = null
     private val resultsCollector: ResultsCollector by lazy { get() }
 
@@ -70,10 +72,11 @@ internal class AuctionImpl(
             }
             this.adTypeParam = adTypeParam
             job = scope.launch {
-                resultsCollector.startRound(adTypeParam.pricefloor)
+                runCatching {
+                    logInfo(TAG, "Auction started $this")
+                    resultsCollector.startRound(adTypeParam.pricefloor)
 
-                val auctionId = UUID.randomUUID().toString()
-                resultsCollector.serverBiddingStarted()
+                    resultsCollector.serverBiddingStarted()
 
                 val tokens = tokenGetter.invoke(
                     adType = demandAd.adType,
@@ -82,9 +85,8 @@ internal class AuctionImpl(
                     tokenTimeout = biddingConfig.tokenTimeout
                 )
 
-                runCatching {
-                    logInfo(TAG, "Action started $this")
                     // Request for Auction-data at /auction
+                    val auctionId = UUID.randomUUID().toString()
                     auctionStat.markAuctionStarted(auctionId, adTypeParam)
                     getAuctionRequest.request(
                         adTypeParam = adTypeParam,
@@ -112,13 +114,13 @@ internal class AuctionImpl(
                             }
                         }
                     }.onFailure {
-                        logError(TAG, "Failed", it)
+                        logError(TAG, "Auction failed", it)
                         adTypeParam.activity.runOnUiThread {
                             onFailure(it)
                         }
                     }
                 }.onFailure {
-                    logError(TAG, "Failed", it)
+                    logError(TAG, "Auction failed", it)
                     adTypeParam.activity.runOnUiThread {
                         onFailure(it)
                     }
@@ -142,7 +144,7 @@ internal class AuctionImpl(
                         demandAd = requireNotNull(_demandAd),
                     )
                 }
-                logInfo(TAG, "Canceled")
+                logInfo(TAG, "Auction canceled")
                 clearData()
             }
         }
@@ -161,7 +163,7 @@ internal class AuctionImpl(
 
         val auctionPriceFloor = auctionData.pricefloor ?: 0.0
         // Start auction
-        executeRound(
+        executeAuction(
             pricefloor = auctionPriceFloor,
             demandAd = demandAd,
             adTypeParam = adTypeParamData,
@@ -174,7 +176,8 @@ internal class AuctionImpl(
         // Save round results
         resultsCollector.saveWinners(auctionPriceFloor)
         proceedRoundResults()
-        logInfo(TAG, "Completed")
+
+        logInfo(TAG, "Rounds completed")
 
         // Finding winner / notifying losers
         val finalResults = resultsCollector.getAll()
@@ -237,10 +240,7 @@ internal class AuctionImpl(
                  */
                 if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                    adSource.notifyLoss(
-                        winner.adSource.demandId.demandId,
-                        winner.adSource.getStats().ecpm
-                    )
+                    adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
                 }
                 if (auctionResult.roundStatus == RoundStatus.Successful) {
                     adSource.markLoss()

@@ -45,10 +45,6 @@ internal class ExecuteAuctionUseCaseImpl(
     ): Result<List<AuctionResult>> = coroutineScope {
         runCatching {
 
-            val adaptersForRequest = adaptersSource.adapters
-                .filter { it.demandId.demandId in adUnits.map { it.demandId } }
-                .onEach(::applyRegulation)
-
             resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
             for (position in adUnits.indices) {
@@ -63,8 +59,9 @@ internal class ExecuteAuctionUseCaseImpl(
                     break
                 }
 
-                val adSource = adaptersForRequest
+                val adSource = adaptersSource.adapters
                     .filter { it.demandId.demandId == adUnit.demandId }
+                    .onEach (::applyRegulation)
                     .getAdSources(demandAd.adType)
                     .onEach {
                         it.setStatisticAdType(adTypeParam.asStatisticAdType())

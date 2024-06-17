@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.usecases.models
 
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 
 /**
@@ -8,8 +7,4 @@ import org.bidon.sdk.auction.models.AuctionResult
  */
 internal class NetworksResult(
     val results: List<AuctionResult>,
-    /**
-     * Remaining LineItems, excluded consumed ones
-     */
-    val remainingAdUnits: List<AdUnit>
 )

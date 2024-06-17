@@ -9,8 +9,7 @@ import org.json.JSONObject
  */
 internal data class AuctionResponse(
     val adUnits: List<AdUnit>?,
-    val pricefloor: Double?,
-    val token: String?,
+    val pricefloor: Double,
     val auctionId: String,
     val auctionTimeout: Long,
     val auctionConfigurationId: Long?,
@@ -24,9 +23,8 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
         AuctionResponse(
             adUnits = JsonParsers.parseList(json.optJSONArray("ad_units")),
             pricefloor = json.optDouble("auction_pricefloor"),
-            token = json.optString("token"),
             auctionId = json.getString("auction_id"),
-            auctionTimeout = json.optLong("auction_timeout", defaultTimeout),
+            auctionTimeout = json.optLong("auction_timeout", auctionTimeoutDefault),
             auctionConfigurationId = json.optLong("auction_configuration_id"),
             auctionConfigurationUid = json.optString("auction_configuration_uid"),
             externalWinNotificationsEnabled = json.optBoolean("external_win_notifications", false),
@@ -34,4 +32,4 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
     }.getOrNull()
 }
 
-private const val defaultTimeout = 30000L
+private const val auctionTimeoutDefault = 30000L

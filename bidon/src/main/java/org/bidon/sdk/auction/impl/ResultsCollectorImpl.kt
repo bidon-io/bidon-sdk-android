@@ -25,6 +25,7 @@ internal class ResultsCollectorImpl(
 
     private val roundResult = MutableStateFlow<RoundResult>(RoundResult.Idle)
 
+    @Deprecated("")
     override fun serverBiddingStarted() {
         roundResult.update {
             require(it is RoundResult.Results)
@@ -36,6 +37,7 @@ internal class ResultsCollectorImpl(
         }
     }
 
+    @Deprecated("")
     override fun serverBiddingFinished(adUnits: List<AdUnit>?) {
         roundResult.update { curRoundResult ->
             when (curRoundResult) {
