@@ -16,7 +16,6 @@ internal class ResultBodySerializerTest {
     fun `it should serialize FAILURE`() {
         val actual = ResultBody(
             status = "FAIL",
-            roundId = "id13",
             auctionFinishTs = 1020,
             auctionStartTs = 1000,
             price = null,

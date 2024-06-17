@@ -16,9 +16,7 @@ import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.auction.models.InterstitialRequest
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
@@ -27,10 +25,10 @@ import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.DemandStat
 import org.bidon.sdk.stats.models.ResultBody
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.StatsAdUnit
 import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
@@ -72,49 +70,32 @@ internal class AuctionStatImplTest : ConcurrentTest() {
             auctionId = "auction_id_123",
             adTypeParam = AdTypeParam.Interstitial(
                 activity = mockk(),
-                pricefloor = 1.1
+                pricefloor = 1.1,
+                auctionKey = null
             )
         )
         val actual = testee.addRoundResults(
             RoundResult.Results(
-                round = RoundRequest(
-                    id = "ROUND_1",
-                    timeoutMs = 1000L,
-                    demandIds = listOf("dem1", "dem2", "dem3", "dem4"),
-                    biddingIds = listOf("bidmachine", "meta", "bid3", "bid4")
-                ),
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
                     adUnits = listOf(
-                        BidResponse(
-                            id = "bid123",
-                            impressionId = "imp1",
-                            price = 1.2,
-                            adUnit = AdUnit(
-                                demandId = "bidmachine",
-                                ext = null,
-                                label = "bidmachine_label",
-                                pricefloor = null,
-                                bidType = BidType.CPM,
-                                uid = "123"
-                            ),
+                        AdUnit(
+                            demandId = "bidmachine",
+                            label = "bidmachine_label",
+                            pricefloor = 0.0,
+                            bidType = BidType.CPM,
+                            uid = "123",
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
                         ),
-                        BidResponse(
-                            id = "bid2343",
-                            impressionId = "imp2",
-                            price = 1.15,
-                            adUnit = AdUnit(
-                                demandId = "meta",
-                                ext = null,
-                                label = "meta_label",
-                                pricefloor = null,
-                                bidType = BidType.CPM,
-                                uid = "123"
-                            ),
+                        AdUnit(
+                            demandId = "meta",
+                            label = "meta_label",
+                            pricefloor = 0.0,
+                            bidType = BidType.CPM,
+                            uid = "123",
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
@@ -126,21 +107,18 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                 every { it.demandId } returns DemandId("bidmachine")
                                 every { it.getStats() } returns BidStat(
                                     demandId = DemandId("bidmachine"),
-                                    roundId = "ROUND_1",
                                     ecpm = 1.2,
                                     auctionId = "auction_id_123",
                                     fillStartTs = 916,
                                     fillFinishTs = 917,
                                     roundStatus = RoundStatus.Successful,
-                                    roundIndex = 2,
                                     dspSource = "liftoff",
                                     auctionPricefloor = 0.1,
-                                    roundPricefloor = 0.11,
                                     adUnit = AdUnit(
                                         demandId = "bidmachine",
                                         ext = null,
                                         label = "bidmachine_label",
-                                        pricefloor = null,
+                                        pricefloor = 10.0,
                                         bidType = BidType.RTB,
                                         uid = "123",
                                     ),
@@ -161,22 +139,21 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     demandId = DemandId("meta"),
                                     adUnit = AdUnit(
                                         demandId = "meta",
-                                        ext = null,
                                         label = "meta_label",
-                                        pricefloor = null,
+                                        pricefloor = 1.0,
                                         bidType = BidType.RTB,
-                                        uid = "123"
+                                        uid = "123",
+                                        ext = jsonObject {
+                                            "payload" hasValue "payload123"
+                                        }.toString()
                                     ),
-                                    roundId = "ROUND_1",
                                     ecpm = 1.15,
                                     auctionId = "auction_id_123",
                                     fillStartTs = 916,
                                     fillFinishTs = 917,
                                     roundStatus = RoundStatus.Successful,
-                                    roundIndex = 2,
                                     dspSource = "liftoff",
                                     auctionPricefloor = 0.1,
-                                    roundPricefloor = 0.11,
                                     tokenInfo = TokenInfo(
                                         token = "token123",
                                         tokenStartTs = 678L,
@@ -198,15 +175,12 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem1"),
-                                roundId = "ROUND_1",
                                 ecpm = 1.3,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.Successful,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
-                                roundPricefloor = 0.22,
                                 auctionPricefloor = 0.21,
                                 adUnit = AdUnit(
                                     demandId = "dem1",
@@ -231,16 +205,13 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem2"),
-                                roundId = "ROUND_1",
                                 ecpm = 1.5,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.NoFill,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
                                 auctionPricefloor = 0.21,
-                                roundPricefloor = 0.22,
                                 adUnit = AdUnit(
                                     demandId = "dem2",
                                     ext = null,
@@ -274,65 +245,37 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         )
 
         assertThat(actual).isEqualTo(
-            listOf<RoundStat>(
-                RoundStat(
-                    auctionId = "auction_id_123",
-                    roundId = "ROUND_1",
-                    pricefloor = 1.1,
-                    demands = listOf(
-                        DemandStat.Network(
-                            demandId = "dem1",
-                            roundStatusCode = RoundStatus.Successful.code,
-                            price = 1.3,
-                            fillStartTs = 986,
-                            fillFinishTs = 987,
-                            adUnitUid = "123",
-                            adUnitLabel = "dem1_label",
-                        ),
-                        DemandStat.Network(
-                            demandId = "dem2",
-                            roundStatusCode = RoundStatus.NoFill.code,
-                            price = 1.5,
-                            fillStartTs = 986,
-                            fillFinishTs = 987,
-                            adUnitLabel = "dem2_label",
-                            adUnitUid = "123",
-                        ),
-                        getDemandStatAdapter("dem3", RoundStatus.UnknownAdapter),
-                        getDemandStatAdapter("dem4", RoundStatus.UnknownAdapter),
+            RoundStat(
+                auctionId = "auction_id_123",
+                pricefloor = 1.1,
+                demands = listOf(
+                    StatsAdUnit(
+                        demandId = "dem1",
+                        status = RoundStatus.Successful.code,
+                        price = 1.3,
+                        tokenStartTs = 678L,
+                        tokenFinishTs = 679L,
+                        bidType = BidType.RTB.code,
+                        fillStartTs = 986,
+                        fillFinishTs = 987,
+                        adUnitUid = "123",
+                        adUnitLabel = "dem1_label",
                     ),
-                    bidding = DemandStat.Bidding(
-                        bidStartTs = 28,
-                        bidFinishTs = 29,
-                        bids = listOf(
-                            DemandStat.Bidding.Bid(
-                                roundStatusCode = RoundStatus.Successful.code,
-                                demandId = "bidmachine",
-                                price = 1.2,
-                                fillStartTs = 916,
-                                fillFinishTs = 917,
-                                adUnitLabel = "bidmachine_label",
-                                adUnitUid = "123",
-                                tokenStartTs = 678L,
-                                tokenFinishTs = 679L,
-                            ),
-                            DemandStat.Bidding.Bid(
-                                roundStatusCode = RoundStatus.Successful.code,
-                                demandId = "meta",
-                                price = 1.15,
-                                fillStartTs = 916,
-                                fillFinishTs = 917,
-                                adUnitLabel = "meta_label",
-                                adUnitUid = "123",
-                                tokenStartTs = 678L,
-                                tokenFinishTs = 679L,
-                            ),
-                            getBiddingStatAdapter("bid3", RoundStatus.UnknownAdapter),
-                        )
-                    ),
-                    winnerDemandId = DemandId(demandId = "dem1"),
-                    winnerEcpm = 1.3
-                )
+                    StatsAdUnit(
+                        demandId = "dem2",
+                        status = RoundStatus.NoFill.code,
+                        price = 1.5,
+                        tokenStartTs = 678L,
+                        tokenFinishTs = 679L,
+                        bidType = BidType.CPM.code,
+                        fillStartTs = 986,
+                        fillFinishTs = 987,
+                        adUnitLabel = "dem2_label",
+                        adUnitUid = "123",
+                    )
+                ),
+                getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
+                getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
             )
         )
     }
@@ -344,37 +287,26 @@ internal class AuctionStatImplTest : ConcurrentTest() {
             auctionId = "auction_id_123",
             adTypeParam = AdTypeParam.Interstitial(
                 activity = mockk(),
-                pricefloor = 1.1
+                pricefloor = 1.1,
+                auctionKey = null
             )
         )
         val actual = testee.addRoundResults(
             RoundResult.Results(
-                round = RoundRequest(
-                    id = "ROUND_1",
-                    timeoutMs = 1000L,
-                    demandIds = listOf("dem1", "dem2", "dem3", "dem4"),
-                    biddingIds = listOf("bidmachine", "bid2", "bid3", "bid4")
-                ),
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
                     adUnits = listOf(
-                        BidResponse(
-                            id = "bid123",
-                            impressionId = "imp1",
-                            price = 1.5,
-                            adUnit = AdUnit(
-                                demandId = "bidmachine",
-                                ext = null,
-                                label = "bidmachine_label",
-                                pricefloor = null,
-                                bidType = BidType.RTB,
-                                uid = "123"
-                            ),
+                        AdUnit(
+                            demandId = "bidmachine",
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
-                            }.toString()
-                        ),
+                            }.toString(),
+                            label = "bidmachine_label",
+                            pricefloor = 1.1,
+                            bidType = BidType.RTB,
+                            uid = "123"
+                        )
                     ),
                     results = listOf(
                         AuctionResult.Bidding(
@@ -382,22 +314,19 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                 every { it.demandId } returns DemandId("bidmachine")
                                 every { it.getStats() } returns BidStat(
                                     demandId = DemandId("bidmachine"),
-                                    roundId = "ROUND_1",
                                     ecpm = 1.5,
                                     auctionId = "auction_id_123",
                                     fillStartTs = 916,
                                     fillFinishTs = 917,
                                     roundStatus = RoundStatus.Successful,
-                                    roundIndex = 2,
                                     dspSource = "liftoff",
-                                    roundPricefloor = 0.1,
                                     auctionPricefloor = 0.11,
                                     adUnit = AdUnit(
                                         bidType = BidType.RTB,
                                         demandId = "bidmachine",
                                         ext = null,
                                         label = "bidmachine_label",
-                                        pricefloor = null,
+                                        pricefloor = 0.0,
                                         uid = "123"
                                     ),
                                     tokenInfo = TokenInfo(
@@ -417,15 +346,12 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem1"),
-                                roundId = "ROUND_1",
                                 ecpm = 1.3,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.Successful,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
-                                roundPricefloor = 0.22,
                                 auctionPricefloor = 0.21,
                                 adUnit = AdUnit(
                                     bidType = BidType.CPM,
@@ -450,16 +376,13 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem2"),
-                                roundId = "ROUND_1",
                                 ecpm = 10.5,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.NoFill,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
                                 auctionPricefloor = 0.21,
-                                roundPricefloor = 0.22,
                                 adUnit = AdUnit(
                                     bidType = BidType.CPM,
                                     demandId = "dem2",
@@ -493,54 +416,39 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         )
 
         assertThat(actual).isEqualTo(
-            listOf<RoundStat>(
-                RoundStat(
-                    auctionId = "auction_id_123",
-                    roundId = "ROUND_1",
-                    pricefloor = 1.1,
-                    bidding = DemandStat.Bidding(
-                        bidStartTs = 28,
-                        bidFinishTs = 29,
-                        bids = listOf(
-                            DemandStat.Bidding.Bid(
-                                roundStatusCode = RoundStatus.Successful.code,
-                                demandId = "bidmachine",
-                                price = 1.5,
-                                fillStartTs = 916,
-                                fillFinishTs = 917,
-                                adUnitLabel = "bidmachine_label",
-                                adUnitUid = "123",
-                                tokenStartTs = 678L,
-                                tokenFinishTs = 679L,
-                            ),
-                        )
+            RoundStat(
+                auctionId = "auction_id_123",
+                pricefloor = 1.1,
+                demands = listOf(
+                    StatsAdUnit(
+                        demandId = "dem2",
+                        status = RoundStatus.NoFill.code,
+                        price = 1.5,
+                        tokenStartTs = 678L,
+                        tokenFinishTs = 679L,
+                        bidType = BidType.CPM.code,
+                        fillStartTs = 986,
+                        fillFinishTs = 987,
+                        adUnitLabel = "dem2_label",
+                        adUnitUid = "123",
                     ),
-                    demands = listOf(
-                        DemandStat.Network(
-                            demandId = "dem1",
-                            roundStatusCode = RoundStatus.Successful.code,
-                            price = 1.3,
-                            fillStartTs = 986,
-                            fillFinishTs = 987,
-                            adUnitLabel = "dem1_label",
-                            adUnitUid = "123",
-                        ),
-                        DemandStat.Network(
-                            demandId = "dem2",
-                            roundStatusCode = RoundStatus.NoFill.code,
-                            price = 10.5,
-                            fillStartTs = 986,
-                            fillFinishTs = 987,
-                            adUnitLabel = "dem2_label",
-                            adUnitUid = "123",
-                        ),
-                        getDemandStatAdapter("dem3", RoundStatus.UnknownAdapter),
-                        getDemandStatAdapter("dem4", RoundStatus.UnknownAdapter),
+                    StatsAdUnit(
+                        demandId = "dem2",
+                        status = RoundStatus.NoFill.code,
+                        price = 1.5,
+                        tokenStartTs = 678L,
+                        tokenFinishTs = 679L,
+                        bidType = BidType.CPM.code,
+                        fillStartTs = 986,
+                        fillFinishTs = 987,
+                        adUnitLabel = "dem2_label",
+                        adUnitUid = "123",
                     ),
-                    winnerDemandId = DemandId(demandId = "bidmachine"),
-                    winnerEcpm = 1.5,
-                )
-
+                    getDemandStatAdapter("dem3", RoundStatus.UnknownAdapter),
+                    getDemandStatAdapter("dem4", RoundStatus.UnknownAdapter),
+                ),
+                winnerDemandId = DemandId(demandId = "bidmachine"),
+                winnerEcpm = 1.5,
             )
         )
     }
@@ -549,74 +457,49 @@ internal class AuctionStatImplTest : ConcurrentTest() {
     fun `it should send stat, Bidding wins`() = runTest {
         val systemTime = freezeTime(100500L)
         val auctionData = AuctionResponse(
-            rounds = listOf(
-                RoundRequest(
-                    id = "ROUND_1",
-                    timeoutMs = 1000L,
-                    demandIds = listOf("dem1", "dem2", "dem3", "dem4"),
-                    biddingIds = listOf("bidmachine", "bid2", "bid3", "bid4")
-                ),
-                RoundRequest(
-                    id = "ROUND_2",
-                    timeoutMs = 25,
-                    demandIds = listOf("dem1", "dem2", "dem3"),
-                    biddingIds = listOf("bid2", "bid3"),
-                ),
-            ),
             adUnits = null,
             pricefloor = 0.01,
-            token = null,
             auctionId = "auction_id_123",
             auctionConfigurationId = 10,
             auctionConfigurationUid = "10",
             externalWinNotificationsEnabled = true,
+            auctionTimeout = 1000L
         )
         testee.markAuctionStarted(
             auctionId = "auction_id_123",
             adTypeParam = AdTypeParam.Interstitial(
                 activity = mockk(),
-                pricefloor = 1.1
+                pricefloor = 1.1,
+                auctionKey = null,
             )
         )
         testee.addRoundResults(
             RoundResult.Results(
-                round = auctionData.rounds!!.first(),
                 biddingResult = BiddingResult.FilledAd(
                     serverBiddingStartTs = 28,
                     serverBiddingFinishTs = 29,
                     adUnits = listOf(
-                        BidResponse(
-                            id = "bid123",
-                            impressionId = "imp1",
-                            price = 1.5,
-                            adUnit = AdUnit(
-                                demandId = "bidmachine",
-                                ext = null,
-                                label = "bidmachine_label",
-                                pricefloor = null,
-                                bidType = BidType.RTB,
-                                uid = "1234"
-                            ),
+                        AdUnit(
+                            demandId = "bidmachine",
+                            label = "bidmachine_label",
+                            pricefloor = 0.0,
+                            bidType = BidType.RTB,
+                            uid = "1234",
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
                         ),
-                        BidResponse(
-                            id = "bid2343",
-                            impressionId = "imp2",
-                            price = 1.15,
-                            adUnit = AdUnit(
-                                demandId = "meta",
-                                ext = null,
-                                label = "meta_label",
-                                pricefloor = null,
-                                bidType = BidType.RTB,
-                                uid = "1232"
-                            ),
+                        AdUnit(
+                            demandId = "meta",
+                            label = "meta_label",
+                            pricefloor = 0.0,
+                            bidType = BidType.RTB,
+                            uid = "1232",
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
                         )
+
                     ),
                     results = listOf(
                         AuctionResult.Bidding(
@@ -624,22 +507,19 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                 every { it.demandId } returns DemandId("bidmachine")
                                 every { it.getStats() } returns BidStat(
                                     demandId = DemandId("bidmachine"),
-                                    roundId = "ROUND_1",
                                     ecpm = 1.5,
                                     auctionId = "auction_id_123",
                                     fillStartTs = 916,
                                     fillFinishTs = 917,
                                     roundStatus = RoundStatus.Successful,
-                                    roundIndex = 2,
                                     dspSource = "liftoff",
-                                    roundPricefloor = 0.1,
                                     auctionPricefloor = 0.11,
                                     adUnit = AdUnit(
                                         demandId = "bidmachine",
                                         bidType = BidType.RTB,
                                         ext = null,
                                         label = "bidmachine_label",
-                                        pricefloor = null,
+                                        pricefloor = 0.1,
                                         uid = "1234"
                                     ),
                                     tokenInfo = TokenInfo(
@@ -659,15 +539,12 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem1"),
-                                roundId = "ROUND_1",
                                 ecpm = 1.3,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.Successful,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
-                                roundPricefloor = 0.22,
                                 auctionPricefloor = 0.21,
                                 adUnit = AdUnit(
                                     demandId = "dem1",
@@ -692,16 +569,13 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         adSource = mockk<AdSource<*>>(relaxed = true).also {
                             every { it.getStats() } returns BidStat(
                                 demandId = DemandId("dem2"),
-                                roundId = "ROUND_1",
                                 ecpm = 10.5,
                                 auctionId = "auction_id_123",
                                 fillStartTs = 986,
                                 fillFinishTs = 987,
                                 roundStatus = RoundStatus.NoFill,
-                                roundIndex = 2,
                                 dspSource = "liftoff",
                                 auctionPricefloor = 0.21,
-                                roundPricefloor = 0.22,
                                 adUnit = AdUnit(
                                     bidType = BidType.CPM,
                                     demandId = "dem2",
@@ -735,101 +609,32 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 auctionId = "auction_id_123",
                 auctionConfigurationId = 10,
                 auctionConfigurationUid = "10",
-                rounds = listOf(
-                    org.bidon.sdk.stats.models.Round(
-                        id = "ROUND_1",
-                        pricefloor = 1.1,
-                        winnerDemandId = "bidmachine",
-                        winnerEcpm = 1.5,
-                        demands = listOf(
-                            DemandStat.Network(
-                                demandId = "dem1",
-                                roundStatusCode = "LOSE",
-                                price = 1.3,
-                                fillStartTs = 986,
-                                fillFinishTs = 987,
-                                adUnitLabel = "dem1_label",
-                                adUnitUid = "123",
-                            ),
-                            DemandStat.Network(
-                                demandId = "dem2",
-                                roundStatusCode = "NO_FILL",
-                                price = 10.5,
-                                fillStartTs = 986,
-                                fillFinishTs = 987,
-                                adUnitLabel = "dem2_label",
-                                adUnitUid = "123",
-                            )
-                        ),
-                        bidding = DemandStat.Bidding(
-                            bidStartTs = 28,
-                            bidFinishTs = 29,
-                            bids = listOf(
-                                DemandStat.Bidding.Bid(
-                                    roundStatusCode = RoundStatus.Win.code,
-                                    demandId = "bidmachine",
-                                    price = 1.5,
-                                    fillStartTs = 916,
-                                    fillFinishTs = 917,
-                                    adUnitLabel = "bidmachine_label",
-                                    adUnitUid = "1234",
-                                    tokenStartTs = 678L,
-                                    tokenFinishTs = 679L,
-                                ),
-                            ),
-                        )
-                    ),
-                    org.bidon.sdk.stats.models.Round(
-                        id = "ROUND_2",
-                        demands = listOf(
-                            getDemandStatAdapter("dem1", RoundStatus.AuctionCancelled),
-                            getDemandStatAdapter("dem2", RoundStatus.AuctionCancelled),
-                            getDemandStatAdapter("dem3", RoundStatus.AuctionCancelled),
-                        ),
-                        bidding = DemandStat.Bidding(
-                            bidStartTs = null,
-                            bidFinishTs = null,
-                            bids = listOf(
-                                DemandStat.Bidding.Bid(
-                                    roundStatusCode = RoundStatus.AuctionCancelled.code,
-                                    demandId = null,
-                                    price = null,
-                                    fillStartTs = null,
-                                    fillFinishTs = null,
-                                    adUnitLabel = null,
-                                    adUnitUid = null,
-                                    tokenStartTs = null,
-                                    tokenFinishTs = null,
-                                ),
-                            ),
-                        ),
-                        pricefloor = null,
-                        winnerDemandId = null,
-                        winnerEcpm = null
-                    )
-                ),
+                auctionPricefloor = 1.0,
                 result = ResultBody(
                     status = "SUCCESS",
-                    roundId = "ROUND_1",
-                    price = 1.5,
-                    auctionStartTs = systemTime,
-                    auctionFinishTs = systemTime,
+                    winnerDemandId = "bidmachine",
                     bidType = BidType.RTB.code,
+                    price = 1.5,
                     winnerAdUnitUid = "1234",
                     winnerAdUnitLabel = "bidmachine_label",
-                    winnerDemandId = "bidmachine",
+                    auctionStartTs = systemTime,
+                    auctionFinishTs = systemTime,
                     banner = null,
                     interstitial = InterstitialRequest,
                     rewarded = null,
                 ),
+                adUnits = listOf()
             )
         )
     }
 
-    private fun getDemandStatAdapter(demandId: String, status: RoundStatus) = DemandStat.Network(
+    private fun getDemandStatAdapter(demandId: String, status: RoundStatus) = StatsAdUnit(
         demandId = demandId,
-        roundStatusCode = status.code,
+        status = status.code,
         price = null,
+        bidType = BidType.CPM.code,
+        tokenStartTs = null,
+        tokenFinishTs = null,
         fillStartTs = null,
         fillFinishTs = null,
         adUnitUid = null,
@@ -837,9 +642,10 @@ internal class AuctionStatImplTest : ConcurrentTest() {
     )
 
     private fun getBiddingStatAdapter(demandId: String, status: RoundStatus) =
-        DemandStat.Bidding.Bid(
+        StatsAdUnit(
             demandId = demandId,
-            roundStatusCode = status.code,
+            status = status.code,
+            bidType = BidType.RTB.code,
             price = null,
             fillStartTs = null,
             fillFinishTs = null,

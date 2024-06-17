@@ -26,20 +26,6 @@ internal class AuctionResponseParserTest {
     }
 
     private val expectedModel = AuctionResponse(
-        rounds = listOf(
-            RoundRequest(
-                id = "postbid",
-                timeoutMs = 15,
-                demandIds = listOf("admob", "bidmachine"),
-                biddingIds = listOf(),
-            ),
-            RoundRequest(
-                id = "prebid",
-                timeoutMs = 25,
-                demandIds = listOf("bidmachine"),
-                biddingIds = listOf("asd"),
-            ),
-        ),
         adUnits = listOf(
             AdUnit(
                 demandId = "admob",
@@ -53,17 +39,17 @@ internal class AuctionResponseParserTest {
                 demandId = "bidmachine",
                 label = "bidmachine_banner",
                 uid = "32387837129819",
-                pricefloor = null,
+                pricefloor = 0.01,
                 bidType = BidType.RTB,
                 ext = null,
             )
         ),
         pricefloor = 0.01,
-        token = "asdsad",
         auctionId = "49975154-b82a-444b-a7f0-30bd749e7fce",
         auctionConfigurationId = 10,
         auctionConfigurationUid = "10",
-        externalWinNotificationsEnabled = false
+        externalWinNotificationsEnabled = false,
+        auctionTimeout = 10000L
     )
 
     private val responseJsonStr = """
