@@ -24,4 +24,6 @@ internal data class StatsAdUnit(
     val adUnitUid: String?,
     @field:JsonName("ad_unit_label")
     val adUnitLabel: String?,
+    @field:JsonName("error_message")
+    val errorMessage: String? = null
 ) : Serializable

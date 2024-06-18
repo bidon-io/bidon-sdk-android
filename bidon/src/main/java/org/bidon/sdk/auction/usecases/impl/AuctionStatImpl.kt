@@ -128,6 +128,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
+                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
                 )
             }
 
@@ -145,6 +146,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
+                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
                 )
             }
 
@@ -161,6 +163,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = null,
                     adUnitUid = null,
                     adUnitLabel = null,
+                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
                 )
             }
 
@@ -190,13 +193,12 @@ internal class AuctionStatImpl(
                 winnerEcpm = winner?.adSource?.getStats()?.ecpm,
                 demands = roundStat?.demands?.map { demandStat ->
                     demandStat?.copy(
-                        status = RoundStatus.values().first {
-                            it.code == demandStat.status
-                        }.getFinalStatus(
+                        status = getFinalStatus(currentStatus = demandStat.status,
+
                             isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
                                     demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
                                     demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
-                        ).code
+                        )
                     )
                 } ?: listOf(),
             )
@@ -218,11 +220,12 @@ internal class AuctionStatImpl(
         return statsRequestBody
     }
 
-    private fun RoundStatus.getFinalStatus(isWinner: Boolean): RoundStatus {
+    private fun getFinalStatus(currentStatus: String?, isWinner: Boolean): String {
         return when {
-            isWinner -> RoundStatus.Win
-            this == RoundStatus.Successful -> RoundStatus.Lose
-            else -> this
+            isWinner -> RoundStatus.Win.code
+            currentStatus == RoundStatus.Successful.code -> RoundStatus.Lose.code
+            currentStatus == null -> RoundStatus.UnspecifiedException("").code
+            else -> currentStatus
         }
     }
 
