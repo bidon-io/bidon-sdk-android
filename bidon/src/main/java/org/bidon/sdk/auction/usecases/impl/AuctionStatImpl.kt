@@ -120,7 +120,7 @@ internal class AuctionStatImpl(
                     demandId = stat.demandId.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
-                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
+                    price = stat.ecpm,
                     tokenStartTs = null,
                     tokenFinishTs = null,
                     bidType = BidType.CPM.code,
@@ -128,7 +128,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -138,7 +138,7 @@ internal class AuctionStatImpl(
                     demandId = stat.demandId.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
-                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
+                    price = stat.ecpm,
                     tokenStartTs = stat.tokenInfo?.tokenStartTs,
                     tokenFinishTs = stat.tokenInfo?.tokenFinishTs,
                     bidType = BidType.RTB.code,
@@ -146,7 +146,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -163,7 +163,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = null,
                     adUnitUid = null,
                     adUnitLabel = null,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -240,15 +240,6 @@ internal class AuctionStatImpl(
         }
     }
 
-    private fun Double?.takeEcpmIfPossible(status: RoundStatus): Double? {
-        return this?.takeIf {
-            status !in arrayOf(
-                RoundStatus.NoBid,
-                RoundStatus.NoAppropriateAdUnitId
-            )
-        }
-    }
-
     private fun RoundStat.asStatsRequestBody(
         auctionId: String,
         auctionConfigurationId: Long,
@@ -291,6 +282,13 @@ internal class AuctionStatImpl(
             rewarded = rewardedRequestBody,
         )
     }
+
+    private fun RoundStatus.getStatusMessage() =
+        when (this) {
+            is RoundStatus.UnspecifiedException -> errorMessage
+            is RoundStatus.IncorrectAdUnit -> errorMessage
+            else -> null
+        }
 }
 
 private const val TAG = "AuctionStat"

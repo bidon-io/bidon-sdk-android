@@ -115,6 +115,12 @@ internal class ApplovinRewardedImpl(
     override fun load(adParams: ApplovinFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         adUnit = adParams.adUnit
+        adParams.zoneId ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "zoneId")
+                ))
+            return
+        }
         val incentivizedInterstitial =
             AppLovinIncentivizedInterstitial.create(adParams.zoneId, applovinSdk).also {
                 rewardedAd = it

@@ -16,6 +16,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseRewardedAdImpl :
@@ -38,6 +39,18 @@ class MobileFuseRewardedAdImpl :
 
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.signalData ?: run {
+                emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "signalData")))
+                return
+            }
+        }
         // placementId should be configured in the mediation platform UI and passed back to this method:
         val rewardedAd = MobileFuseRewardedAd(adParams.activity, adParams.placementId).also {
             rewardedAd = it

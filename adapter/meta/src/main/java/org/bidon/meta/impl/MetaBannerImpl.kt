@@ -21,6 +21,7 @@ import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 08/08/2023.
@@ -48,6 +49,18 @@ class MetaBannerImpl :
 
     override fun load(adParams: MetaBannerAuctionParams) {
         logInfo(TAG, "load: $adParams")
+        adParams.placementId ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                return
+            }
+        }
         bannerFormat = adParams.bannerFormat
         adParams.activity.runOnUiThread {
             val banner = AdView(adParams.activity.applicationContext, adParams.placementId, adParams.bannerSize).also {

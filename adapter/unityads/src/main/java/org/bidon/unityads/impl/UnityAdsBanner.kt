@@ -13,6 +13,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -41,8 +42,13 @@ internal class UnityAdsBanner :
     }
 
     override fun load(adParams: UnityAdsBannerAuctionParams) {
-        adUnit = adParams.adUnit
         logInfo(TAG, "Starting with $adParams")
+        val placementId = adParams.placementId ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+            return
+        }
+        adUnit = adParams.adUnit
         adParams.activity.runOnUiThread {
             val unityBannerSize = UnityBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
             val adView = BannerView(adParams.activity, adParams.placementId, unityBannerSize).also {

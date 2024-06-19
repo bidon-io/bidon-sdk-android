@@ -43,7 +43,19 @@ internal class GamRewardedImpl(
 
     override fun load(adParams: GamFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        val adRequest = getAdRequest(adParams)
+        val adUnitId = when (adParams) {
+            is GamFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
+            is GamFullscreenAdAuctionParams.Network -> adParams.adUnitId
+        } ?: run {
+            AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId"))
+            return
+        }
+        val adRequest = getAdRequest(adParams) ?: run {
+            AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload"))
+            return
+        }
         price = adParams.price
         val requestListener = object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
@@ -77,10 +89,6 @@ internal class GamRewardedImpl(
                     getAd()?.let { emitEvent(AdEvent.Fill(it)) }
                 }
             }
-        }
-        val adUnitId = when (adParams) {
-            is GamFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
-            is GamFullscreenAdAuctionParams.Network -> adParams.adUnitId
         }
         RewardedAd.load(adParams.activity, adUnitId, adRequest, requestListener)
     }

@@ -13,9 +13,9 @@ class MintegralAuctionParam(
     override val adUnit: AdUnit
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
-    val unitId: String = requireNotNull(adUnit.extra?.getString("unit_id"))
-    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
+    val payload: String? = adUnit.extra?.getString("payload")
+    val unitId: String? = adUnit.extra?.getString("unit_id")
+    val placementId: String? = adUnit.extra?.getString("placement_id")
 
     override fun toString(): String {
         return "MintegralAuctionParam(price=$price, adUnitId=$adUnit, placementId=$placementId, payload='$payload')"
@@ -28,9 +28,9 @@ class MintegralBannerAuctionParam(
     override val adUnit: AdUnit
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
-    val unitId: String = requireNotNull(adUnit.extra?.getString("unit_id"))
-    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id"))
+    val payload: String? = adUnit.extra?.getString("payload")
+    val unitId: String? = adUnit.extra?.getString("unit_id")
+    val placementId: String? = adUnit.extra?.getString("placement_id")
     override fun toString(): String {
         return "MintegralBannerAuctionParam($bannerFormat, price=$price, adUnitId=$adUnit, placementId=$placementId, payload='$payload')"
     }

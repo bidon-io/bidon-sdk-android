@@ -50,11 +50,23 @@ internal class AdmobBannerImpl(
     @SuppressLint("MissingPermission")
     override fun load(adParams: AdmobBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
+        val adUnitId: String = when (adParams) {
+            is AdmobBannerAuctionParams.Bidding -> adParams.adUnitId
+            is AdmobBannerAuctionParams.Network -> adParams.adUnitId
+        } ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId")))
+            return
+        }
         price = adParams.price
         adSize = adParams.adSize
         bannerFormat = adParams.bannerFormat
         adParams.activity.runOnUiThread {
-            val adRequest = getAdRequest(adParams)
+            val adRequest = getAdRequest(adParams)?: run {
+                emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                return@runOnUiThread
+            }
             val adView = AdView(adParams.activity.applicationContext).also {
                 adView = it
             }
@@ -86,10 +98,6 @@ internal class AdmobBannerImpl(
                 }
 
                 override fun onAdOpened() {}
-            }
-            val adUnitId = when (adParams) {
-                is AdmobBannerAuctionParams.Bidding -> adParams.adUnitId
-                is AdmobBannerAuctionParams.Network -> adParams.adUnitId
             }
             adView.apply {
                 this.setAdSize(adParams.adSize)

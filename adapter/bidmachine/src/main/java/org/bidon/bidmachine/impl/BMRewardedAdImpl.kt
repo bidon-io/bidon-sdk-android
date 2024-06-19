@@ -80,8 +80,14 @@ internal class BMRewardedAdImpl(
                     }
                 }
             )
-        adParams.payload?.let {
-            requestBuilder.setBidPayload(it)
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload?.let {
+                requestBuilder.setBidPayload(it)
+            } ?: run {
+                emitEvent(AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                return
+            }
         }
         requestBuilder.build()
             .also {

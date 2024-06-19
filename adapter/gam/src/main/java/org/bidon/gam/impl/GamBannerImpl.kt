@@ -44,11 +44,23 @@ internal class GamBannerImpl(
     @SuppressLint("MissingPermission")
     override fun load(adParams: GamBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
+        val adUnitId = when (adParams) {
+            is GamBannerAuctionParams.Bidding -> adParams.adUnitId
+            is GamBannerAuctionParams.Network -> adParams.adUnitId
+        } ?: run {
+            AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId"))
+            return
+        }
         price = adParams.price
         adSize = adParams.adSize
         bannerFormat = adParams.bannerFormat
         adParams.activity.runOnUiThread {
-            val adRequest = getAdRequest(adParams)
+            val adRequest = getAdRequest(adParams) ?: run {
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload"))
+                return@runOnUiThread
+            }
             val adView = AdManagerAdView(adParams.activity.applicationContext).also {
                 adView = it
             }
@@ -80,10 +92,6 @@ internal class GamBannerImpl(
                 }
 
                 override fun onAdOpened() {}
-            }
-            val adUnitId = when (adParams) {
-                is GamBannerAuctionParams.Bidding -> adParams.adUnitId
-                is GamBannerAuctionParams.Network -> adParams.adUnitId
             }
             adView.apply {
                 this.setAdSize(adParams.adSize)

@@ -13,17 +13,12 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             val bidType = auctionParamsScope.adUnit.bidType
             BMFullscreenAuctionParams(
-                price = when (bidType) {
-                    BidType.RTB -> adUnit.pricefloor
-                    BidType.CPM -> pricefloor
-                },
+                price = adUnit.pricefloor,
                 timeout = timeout,
                 context = activity.applicationContext,
                 adUnit = adUnit,
                 payload = if (bidType == BidType.RTB) {
-                    requireNotNull(adUnit.extra?.getString("payload")) {
-                        "No payload found in bid response"
-                    }
+                    adUnit.extra?.getString("payload")
                 } else null
             )
         }
@@ -33,18 +28,13 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             val bidType = auctionParamsScope.adUnit.bidType
             BMBannerAuctionParams(
-                price = when (bidType) {
-                    BidType.RTB -> adUnit.pricefloor
-                    BidType.CPM -> pricefloor
-                },
+                price = adUnit.pricefloor,
                 timeout = timeout,
                 activity = activity,
                 bannerFormat = bannerFormat,
                 adUnit = adUnit,
                 payload = if (bidType == BidType.RTB) {
-                    requireNotNull(adUnit.extra?.getString("payload")) {
-                        "No payload found in bid response"
-                    }
+                    adUnit.extra?.getString("payload")
                 } else null
             )
         }

@@ -50,6 +50,11 @@ internal class DTExchangeRewarded :
 
     override fun load(adParams: DTExchangeAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.spotId?: run {
+            emitEvent(AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, "spotId")))
+            return
+        }
         adUnit = adParams.adUnit
         val spot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveFullscreenUnitController()

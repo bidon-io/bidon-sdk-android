@@ -30,7 +30,7 @@ internal class UnityAdsInterstitial :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adUnit: AdUnit? = null
-    private var adUnitId: String? = null
+    private var placementId: String? = null
 
     override var isAdReadyToShow: Boolean = false
 
@@ -44,8 +44,12 @@ internal class UnityAdsInterstitial :
 
     override fun load(adParams: UnityAdsFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        placementId = adParams.placementId ?: run {
+            emitEvent(AdEvent.LoadFailed(
+                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+            return
+        }
         adUnit = adParams.adUnit
-        adUnitId = adParams.placementId
 
         val loadListener = object : IUnityAdsLoadListener {
             override fun onUnityAdsAdLoaded(placementId: String?) {
@@ -115,7 +119,7 @@ internal class UnityAdsInterstitial :
                 }
             }
         }
-        UnityAds.show(activity, adUnitId, UnityAdsShowOptions(), showListener)
+        UnityAds.show(activity, placementId, UnityAdsShowOptions(), showListener)
         isAdReadyToShow = false
     }
 
