@@ -24,5 +24,5 @@ internal interface ExecuteAuctionUseCase {
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
-    ): Result<List<AuctionResult>>
+    )
 }
