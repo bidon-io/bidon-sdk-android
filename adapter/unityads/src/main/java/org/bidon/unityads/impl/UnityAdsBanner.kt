@@ -13,10 +13,10 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.unityads.ext.asBidonError
 
 /**
  * Created by Aleksei Cherniaev on 12/04/2023.
@@ -72,7 +72,7 @@ internal class UnityAdsBanner :
                 ) {
                     logInfo(TAG, "Error while loading ad: $errorInfo. $this")
                     isAdReadyToShow = false
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    emitEvent(AdEvent.LoadFailed(errorInfo.asBidonError()))
                 }
 
                 override fun onBannerLeftApplication(bannerView: BannerView?) {

@@ -73,7 +73,7 @@ internal class BMInterstitialAdImpl(
 
                     override fun onRequestFailed(request: InterstitialRequest, bmError: BMError) {
                         logInfo(TAG, "onRequestFailed $bmError. $this")
-                        emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                        emitEvent(AdEvent.LoadFailed(bmError.asBidonErrorOnFill(demandId)))
                     }
 
                     override fun onRequestExpired(request: InterstitialRequest) {
@@ -141,7 +141,7 @@ internal class BMInterstitialAdImpl(
                 override fun onAdLoadFailed(interstitialAd: InterstitialAd, bmError: BMError) {
                     val error = bmError.asBidonErrorOnFill(demandId)
                     logError(TAG, "onAdLoadFailed: $this", error)
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    emitEvent(AdEvent.LoadFailed(error))
                 }
 
                 override fun onAdShowFailed(interstitialAd: InterstitialAd, bmError: BMError) {

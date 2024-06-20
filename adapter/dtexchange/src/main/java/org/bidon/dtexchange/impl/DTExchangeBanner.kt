@@ -20,7 +20,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -74,15 +73,7 @@ internal class DTExchangeBanner :
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
                 logInfo(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode")
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        if (inneractiveErrorCode == InneractiveErrorCode.ERROR_CONFIGURATION_NO_SUCH_SPOT) {
-                            BidonError.NoAppropriateAdUnitId
-                        } else {
-                            BidonError.NoFill(demandId)
-                        }
-                    )
-                )
+                emitEvent(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
             }
         })
         adSpot.requestAd(adRequest)

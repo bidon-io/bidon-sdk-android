@@ -7,6 +7,7 @@ import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.gam.GamInitParameters
+import org.bidon.gam.asBidonError
 import org.bidon.gam.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -47,7 +48,7 @@ internal class GamRewardedImpl(
         val requestListener = object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
 
             override fun onAdLoaded(rewardedAd: RewardedAd) {

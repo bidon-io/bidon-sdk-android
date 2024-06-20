@@ -109,11 +109,9 @@ class MobileFuseBannerImpl :
                         emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
                     }
 
-                    AdError.AD_ALREADY_LOADED,
-                    AdError.AD_RUNTIME_ERROR -> {
+                    AdError.AD_ALREADY_LOADED -> {
                         // do nothing
                     }
-
                     AdError.AD_LOAD_ERROR -> {
                         if (!isLoaded.getAndSet(true)) {
                             getAd()?.let { emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId))) }
@@ -121,7 +119,8 @@ class MobileFuseBannerImpl :
                     }
 
                     else -> {
-                        // do nothing
+                        emitEvent(AdEvent.LoadFailed(BidonError.Unspecified(demandId,
+                            Throwable(adError?.errorMessage))))
                     }
                 }
             }

@@ -9,6 +9,7 @@ import com.applovin.sdk.AppLovinAdSize
 import com.applovin.sdk.AppLovinSdk
 import org.bidon.applovin.ApplovinBannerAuctionParams
 import org.bidon.applovin.ext.asBidonAdValue
+import org.bidon.applovin.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -104,7 +105,7 @@ internal class ApplovinBannerImpl(
 
             override fun failedToReceiveAd(errorCode: Int) {
                 logInfo(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(errorCode.asBidonError()))
             }
         }
         adParams.activity.runOnUiThread {

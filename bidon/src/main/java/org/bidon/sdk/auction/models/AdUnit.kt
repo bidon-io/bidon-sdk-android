@@ -12,7 +12,8 @@ data class AdUnit(
     val pricefloor: Double,
     val uid: String,
     val bidType: BidType,
-    val ext: String?,
+    val timeout: Long,
+    private val ext: String?,
 ) {
     val extra: JSONObject? = ext?.let {
         JSONObject(it)

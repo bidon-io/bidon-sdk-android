@@ -26,8 +26,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         adUnit: AdUnit,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-        timeoutMs: Long
-    ) = withTimeoutOrNull(timeoutMs) {
+    ) = withTimeoutOrNull(adUnit.timeout) {
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
         logInfo(TAG, "FillStarted: $adUnit")
 
@@ -35,7 +34,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
             AdAuctionParamSource(
                 activity = adTypeParam.activity,
                 pricefloor = priceFloor,
-                timeout = timeoutMs,
+                timeout = adUnit.timeout,
                 optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
                 optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                 adUnit = adUnit,

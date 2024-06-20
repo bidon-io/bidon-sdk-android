@@ -71,7 +71,7 @@ internal class BMBannerAdImpl(
                         override fun onRequestFailed(request: BannerRequest, bmError: BMError) {
                             val error = bmError.asBidonErrorOnBid(demandId)
                             logError(TAG, "onRequestFailed $bmError. $this", error)
-                            emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                            emitEvent(AdEvent.LoadFailed(error))
                         }
 
                         override fun onRequestExpired(request: BannerRequest) {
@@ -149,7 +149,7 @@ internal class BMBannerAdImpl(
 
                     override fun onAdLoadFailed(bannerView: BannerView, bmError: BMError) {
                         logInfo(TAG, "onRequestFailed $bmError. $this")
-                        emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                        emitEvent(AdEvent.LoadFailed(bmError.asBidonErrorOnFill(demandId)))
                     }
 
                     override fun onAdImpression(bannerView: BannerView) {
