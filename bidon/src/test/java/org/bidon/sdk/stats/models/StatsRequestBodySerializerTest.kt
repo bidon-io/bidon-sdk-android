@@ -20,72 +20,57 @@ class StatsRequestBodySerializerTest {
             auctionId = "id123",
             auctionConfigurationId = 4,
             auctionConfigurationUid = "4",
-            rounds = listOf(
-                Round(
-                    id = "id13",
-                    demands = listOf(
-                        DemandStat.Network(
-                            demandId = "d345",
-                            price = 1.2,
-                            fillFinishTs = 3,
-                            fillStartTs = 4,
-                            roundStatusCode = "code",
-                            adUnitUid = "123",
-                            adUnitLabel = "label124",
-                        ),
-                        DemandStat.Network(
-                            demandId = "d6",
-                            roundStatusCode = "code2",
-                            price = null,
-                            fillFinishTs = null,
-                            fillStartTs = null,
-                            adUnitLabel = "label123",
-                            adUnitUid = "123",
-                        )
-                    ),
-                    pricefloor = 34.2,
-                    winnerDemandId = "asd",
-                    winnerEcpm = 234.1,
-                    bidding = null
+            auctionPricefloor = 1.0,
+            adUnits = listOf(
+                StatsAdUnit(
+                    demandId = "d345",
+                    status = "WIN",
+                    price = 1.2,
+                    tokenStartTs = 2,
+                    tokenFinishTs = 3,
+                    bidType = BidType.CPM.code,
+                    fillFinishTs = 3,
+                    fillStartTs = 4,
+                    adUnitUid = "123",
+                    adUnitLabel = "label124",
                 ),
-                Round(
-                    id = "id43",
-                    demands = listOf(),
-                    pricefloor = 34.2,
-                    winnerDemandId = null,
-                    winnerEcpm = null,
-                    bidding = DemandStat.Bidding(
-                        bidFinishTs = 3,
-                        bidStartTs = 2,
-                        bids = listOf(
-                            DemandStat.Bidding.Bid(
-                                demandId = "d011",
-                                roundStatusCode = "code3",
-                                price = 1.0,
-                                fillFinishTs = 6,
-                                fillStartTs = 5,
-                                adUnitUid = "123",
-                                adUnitLabel = "label123",
-                                tokenStartTs = 678L,
-                                tokenFinishTs = 679L,
-                            )
-                        )
-                    )
+                StatsAdUnit(
+                    demandId = "d6",
+                    status = "NO_FILL",
+                    price = null,
+                    fillFinishTs = null,
+                    fillStartTs = null,
+                    tokenStartTs = null,
+                    tokenFinishTs = null,
+                    bidType = BidType.CPM.code,
+                    adUnitLabel = "label123",
+                    adUnitUid = "123",
                 ),
+                StatsAdUnit(
+                    demandId = "d011",
+                    price = 1.0,
+                    status = "LOSE",
+                    fillFinishTs = 6,
+                    fillStartTs = 5,
+                    bidType = BidType.RTB.code,
+                    adUnitUid = "123",
+                    adUnitLabel = "label123",
+                    tokenStartTs = 678L,
+                    tokenFinishTs = 679L,
+                )
             ),
             result = ResultBody(
                 status = "SUCCESS",
-                price = 0.123,
+                winnerDemandId = "d345",
+                bidType = BidType.CPM.code,
+                price = 1.2,
+                winnerAdUnitUid = "123",
+                winnerAdUnitLabel = "label124",
                 auctionStartTs = 1000,
                 auctionFinishTs = 1300,
-                roundId = "id13",
-                bidType = BidType.CPM.code,
-                winnerAdUnitLabel = "label123",
-                winnerAdUnitUid = "123",
-                winnerDemandId = "admob",
+                banner = null,
                 rewarded = null,
                 interstitial = null,
-                banner = null
             ),
         ).serialize()
         println(json)
@@ -159,22 +144,17 @@ class StatsRequestBodySerializerTest {
     @Ignore
     @Test
     fun `test Bidding serialize`() {
-        val actual = DemandStat.Bidding(
-            bidFinishTs = 3,
-            bidStartTs = 2,
-            bids = listOf(
-                DemandStat.Bidding.Bid(
-                    demandId = "d011",
-                    roundStatusCode = "code3",
-                    price = 1.0,
-                    fillFinishTs = 6,
-                    fillStartTs = 5,
-                    adUnitLabel = "label123",
-                    adUnitUid = "123",
-                    tokenStartTs = 678L,
-                    tokenFinishTs = 679L,
-                )
-            )
+        val actual = StatsAdUnit(
+            demandId = "d011",
+            status = "code3",
+            price = 1.0,
+            fillFinishTs = 6,
+            fillStartTs = 5,
+            bidType = BidType.RTB.code,
+            adUnitLabel = "label123",
+            adUnitUid = "123",
+            tokenStartTs = 678L,
+            tokenFinishTs = 679L,
         ).serialize()
 
         actual.assertEquals(
@@ -182,6 +162,7 @@ class StatsRequestBodySerializerTest {
                 "id" hasValue "d011"
                 "status" hasValue "code3"
                 "ecpm" hasValue 1.0
+                "bid_type" hasValue "RTB"
                 "bid_start_ts" hasValue 2
                 "bid_finish_ts" hasValue 3
                 "fill_start_ts" hasValue 5

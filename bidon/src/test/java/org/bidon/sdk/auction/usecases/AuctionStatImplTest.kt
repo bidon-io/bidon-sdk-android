@@ -272,10 +272,12 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         fillFinishTs = 987,
                         adUnitLabel = "dem2_label",
                         adUnitUid = "123",
-                    )
+                    ),
+                    getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
+                    getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
                 ),
-                getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
-                getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
+                winnerEcpm = 1.3,
+                winnerDemandId = DemandId("dem1"),
             )
         )
     }

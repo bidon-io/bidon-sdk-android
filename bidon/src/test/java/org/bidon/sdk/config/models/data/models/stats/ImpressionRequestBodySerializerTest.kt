@@ -17,13 +17,9 @@ class ImpressionRequestBodySerializerTest {
     @Test
     fun `it should serialize impression request`() {
         val json = ImpressionRequestBody(
-            impressionId = "impr123",
-            roundId = "round123",
-            roundPricefloor = 0.12,
             auctionPricefloor = 0.01,
             auctionId = "id123",
             bidType = BidType.RTB.code,
-            roundIndex = 2,
             auctionConfigurationId = 4,
             auctionConfigurationUid = "4",
             demandId = "demandId123",
