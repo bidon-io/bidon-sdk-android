@@ -9,7 +9,6 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.BidResponse
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.json.jsonObject
 import kotlin.test.Test
@@ -32,55 +31,23 @@ class GetAdAuctionParamsUseCaseTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                adUnits = listOf(
-                    AdUnit(
-                        demandId = "admob",
-                        pricefloor = 3.5,
-                        label = "label888",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id888"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    AdUnit(
-                        demandId = "demand888",
-                        pricefloor = 4.0,
-                        label = "label111",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id111"
-                        }.toString(),
-                        uid = "uid111"
-                    ),
+                adUnit = AdUnit(
+                    demandId = "admob",
+                    pricefloor = 3.5,
+                    label = "label888",
+                    bidType = BidType.CPM,
+                    ext = jsonObject {
+                        "ad_unit_id" hasValue "ad_unit_id888"
+                    }.toString(),
+                    uid = "uid123"
                 ),
-                onAdUnitsConsumed = {},
                 optBannerFormat = BannerFormat.MRec,
                 optContainerWidth = 140f,
-                adUnit = BidResponse(
-                    id = "id",
-                    price = 2.75,
-                    ext = jsonObject {
-                        "payload" hasValue "payload123"
-                    }.toString(),
-                    adUnit = AdUnit(
-                        demandId = "admob",
-                        pricefloor = 2.6,
-                        label = "label123",
-                        bidType = BidType.RTB,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id4"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    impressionId = "impressionId123",
-                )
             )
         }
         val actual = testee.invoke(
             auctionParamsScope = auctionParamsScope,
             adType = AdType.Banner,
-            bidType = BidType.RTB,
         ).getOrThrow()
 
         require(actual is AdmobBannerAuctionParams.Bidding)
@@ -108,55 +75,23 @@ class GetAdAuctionParamsUseCaseTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                adUnits = listOf(
-                    AdUnit(
-                        demandId = "admob",
-                        pricefloor = 3.5,
-                        label = "label888",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id888"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    AdUnit(
-                        demandId = "demand888",
-                        pricefloor = 4.0,
-                        label = "label111",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id111"
-                        }.toString(),
-                        uid = "uid111"
-                    ),
+                AdUnit(
+                    demandId = "admob",
+                    pricefloor = 3.5,
+                    label = "label888",
+                    bidType = BidType.CPM,
+                    ext = jsonObject {
+                        "ad_unit_id" hasValue "ad_unit_id888"
+                    }.toString(),
+                    uid = "uid123"
                 ),
-                onAdUnitsConsumed = {},
                 optBannerFormat = BannerFormat.MRec,
                 optContainerWidth = 140f,
-                adUnit = BidResponse(
-                    id = "id",
-                    price = 2.75,
-                    ext = jsonObject {
-                        "payload" hasValue "payload123"
-                    }.toString(),
-                    adUnit = AdUnit(
-                        demandId = "admob",
-                        pricefloor = 2.6,
-                        label = "label123",
-                        bidType = BidType.RTB,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id4"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    impressionId = "impressionId123",
-                )
             )
         }
         val actual = testee.invoke(
             auctionParamsScope = auctionParamsScope,
             adType = AdType.Banner,
-            bidType = BidType.CPM,
         ).getOrThrow()
 
         require(actual is AdmobBannerAuctionParams.Network)
@@ -183,7 +118,6 @@ class GetAdAuctionParamsUseCaseTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                adUnits = listOf(
                     AdUnit(
                         demandId = "admob",
                         pricefloor = 3.5,
@@ -193,45 +127,14 @@ class GetAdAuctionParamsUseCaseTest {
                             "ad_unit_id" hasValue "ad_unit_id888"
                         }.toString(),
                         uid = "uid123"
-                    ),
-                    AdUnit(
-                        demandId = "demand888",
-                        pricefloor = 4.0,
-                        label = "label111",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id111"
-                        }.toString(),
-                        uid = "uid111"
-                    ),
                 ),
-                onAdUnitsConsumed = {},
                 optBannerFormat = BannerFormat.MRec,
                 optContainerWidth = 140f,
-                adUnit = BidResponse(
-                    id = "id",
-                    price = 2.75,
-                    ext = jsonObject {
-                        "payload" hasValue "payload123"
-                    }.toString(),
-                    adUnit = AdUnit(
-                        demandId = "admob",
-                        pricefloor = 2.6,
-                        label = "label123",
-                        bidType = BidType.RTB,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id4"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    impressionId = "impressionId123",
-                )
             )
         }
         val actual = testee.invoke(
             auctionParamsScope = auctionParamsScope,
             adType = AdType.Rewarded,
-            bidType = BidType.RTB,
         ).getOrThrow()
 
         require(actual is AdmobFullscreenAdAuctionParams.Bidding)
@@ -259,7 +162,6 @@ class GetAdAuctionParamsUseCaseTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                adUnits = listOf(
                     AdUnit(
                         demandId = "admob",
                         pricefloor = 3.5,
@@ -269,45 +171,14 @@ class GetAdAuctionParamsUseCaseTest {
                             "ad_unit_id" hasValue "ad_unit_id888"
                         }.toString(),
                         uid = "uid123"
-                    ),
-                    AdUnit(
-                        demandId = "demand888",
-                        pricefloor = 4.0,
-                        label = "label111",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id111"
-                        }.toString(),
-                        uid = "uid111"
-                    ),
                 ),
-                onAdUnitsConsumed = {},
                 optBannerFormat = null,
                 optContainerWidth = null,
-                adUnit = BidResponse(
-                    id = "id",
-                    price = 2.75,
-                    ext = jsonObject {
-                        "payload" hasValue "payload123"
-                    }.toString(),
-                    adUnit = AdUnit(
-                        demandId = "admob",
-                        pricefloor = 2.6,
-                        label = "label123",
-                        bidType = BidType.RTB,
-                        ext = jsonObject {
-                            "ad_unit_id" hasValue "ad_unit_id4"
-                        }.toString(),
-                        uid = "uid123"
-                    ),
-                    impressionId = "impressionId123",
-                )
             )
         }
         val actual = testee.invoke(
             auctionParamsScope = auctionParamsScope,
             adType = AdType.Interstitial,
-            bidType = BidType.CPM,
         ).getOrThrow()
 
         // parse fullscreen AdUnit CPM
