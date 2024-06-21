@@ -24,7 +24,6 @@ class AdAuctionParamSource(
      * DSP pricefloor or Bidding bid price
      */
     val pricefloor: Double,
-    val timeout: Long,
     val adUnit: AdUnit,
 
     /**

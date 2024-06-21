@@ -13,7 +13,6 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
@@ -101,12 +100,11 @@ internal class ExecuteAuctionUseCaseImpl(
                         adSource = adSource,
                         adTypeParam = adTypeParam,
                         adUnit = adUnit,
-                        priceFloor = pricefloor,
-                        timeoutMs = auctionTimeout
-                    )?.also {
+                        priceFloor = pricefloor
+                    ).also {
                         resultsCollector.add(it)
                     }
-                    if (auctionResult?.roundStatus == RoundStatus.Successful
+                    if (auctionResult.roundStatus == RoundStatus.Successful
                         && !shouldRequestNext(
                             auctionResult = auctionResult,
                             next = adUnitQueue.peek()

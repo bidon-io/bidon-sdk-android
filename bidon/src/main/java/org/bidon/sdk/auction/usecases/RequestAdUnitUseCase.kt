@@ -12,7 +12,6 @@ internal interface RequestAdUnitUseCase {
         adSource: AdSource<AdAuctionParams>,
         adUnit: AdUnit,
         adTypeParam: AdTypeParam,
-        priceFloor: Double,
-        timeoutMs: Long,
-    ): AuctionResult?
+        priceFloor: Double
+    ): AuctionResult
 }
