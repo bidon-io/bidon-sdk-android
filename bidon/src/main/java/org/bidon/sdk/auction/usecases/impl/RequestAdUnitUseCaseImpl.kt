@@ -34,7 +34,6 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
             AdAuctionParamSource(
                 activity = adTypeParam.activity,
                 pricefloor = priceFloor,
-                timeout = adUnit.timeout,
                 optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
                 optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                 adUnit = adUnit,
@@ -57,23 +56,40 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
                 .first { event -> event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired }
         } ?: AdEvent.LoadFailed(BidonError.FillTimedOut(adSource.demandId))
 
-        val roundStatus = when (adEvent) {
+        val requestStatus = when (adEvent) {
             is AdEvent.Fill -> RoundStatus.Successful
             is AdEvent.Expired -> RoundStatus.NoFill
             is AdEvent.LoadFailed -> adEvent.cause.asRoundStatus()
             else -> error("unexpected: $adEvent")
         }
 
-        val auctionResult = when (adUnit.bidType) {
-            BidType.RTB -> AuctionResult.Bidding(adSource, roundStatus)
-            BidType.CPM -> AuctionResult.Network(adSource, roundStatus)
-        }
+        val auctionResult = getAuctionResult(
+            bidType = adUnit.bidType,
+            adSource = adSource,
+            requestStatus = requestStatus
+        )
 
         logInfo(TAG, "FillFinished: $adUnit. \nResult: ${auctionResult.roundStatus}")
 
-        adSource.markFillFinished(roundStatus, adSource.ad?.ecpm)
+        adSource.markFillFinished(requestStatus, adSource.ad?.ecpm)
 
         auctionResult
+    } ?: run {
+        logInfo(TAG, "FillFinished: $adUnit. \nResult: FillTimeoutReached. Timeout: ${adUnit.timeout} ")
+        return getAuctionResult(
+            bidType = adUnit.bidType,
+            adSource = adSource,
+            requestStatus = RoundStatus.FillTimeoutReached
+        )
+    }
+
+    private fun getAuctionResult(
+        bidType: BidType,
+        adSource: AdSource<AdAuctionParams>,
+        requestStatus: RoundStatus
+    ) = when (bidType) {
+        BidType.RTB -> AuctionResult.Bidding(adSource, requestStatus)
+        BidType.CPM -> AuctionResult.Network(adSource, requestStatus)
     }
 }
 
