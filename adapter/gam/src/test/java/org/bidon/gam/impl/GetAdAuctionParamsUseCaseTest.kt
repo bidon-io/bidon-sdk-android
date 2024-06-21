@@ -29,20 +29,21 @@ class GetAdAuctionParamsUseCaseTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.75,
+                pricefloor = 2.6,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "gam",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                    pricefloor = 2.6,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "ad_unit_id" hasValue "ad_unit_id4"
+                        "payload" hasValue "test_payload"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
                 ),
-                optBannerFormat = BannerFormat.MRec,
+                optBannerFormat = BannerFormat.Banner,
                 optContainerWidth = 140f,
             )
         }
@@ -60,13 +61,14 @@ class GetAdAuctionParamsUseCaseTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id4"
+                    "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"
             )
         )
-        assertThat(actual.price).isEqualTo(2.75)
-        assertThat(actual.payload).isEqualTo("payload123")
+        assertThat(actual.price).isEqualTo(2.6)
+        assertThat(actual.payload).isEqualTo("test_payload")
         assertThat(actual.adUnitId).isEqualTo("ad_unit_id4")
     }
 
@@ -75,9 +77,9 @@ class GetAdAuctionParamsUseCaseTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.75,
+                pricefloor = 3.5,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 3.5,
                     label = "label888",
@@ -120,15 +122,16 @@ class GetAdAuctionParamsUseCaseTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.75,
+                pricefloor = 2.6,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "gam",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                    pricefloor = 2.6,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "ad_unit_id" hasValue "ad_unit_id4"
+                        "payload" hasValue "test_payload"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
@@ -151,13 +154,14 @@ class GetAdAuctionParamsUseCaseTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id4"
+                    "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"
             )
         )
-        assertThat(actual.price).isEqualTo(2.75)
-        assertThat(actual.payload).isEqualTo("payload123")
+        assertThat(actual.price).isEqualTo(2.6)
+        assertThat(actual.payload).isEqualTo("test_payload")
         assertThat(actual.adUnitId).isEqualTo("ad_unit_id4")
     }
 
@@ -168,7 +172,7 @@ class GetAdAuctionParamsUseCaseTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 3.5,
                     label = "label888",

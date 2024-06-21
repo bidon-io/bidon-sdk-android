@@ -29,17 +29,17 @@ class InmobiBannerImplTest {
                 activity = activity,
                 pricefloor = 2.5,
                 timeout = 1000,
-                    AdUnit(
-                        demandId = "inmobi",
-                        pricefloor = 3.5,
-                        label = "label888",
-                        bidType = BidType.CPM,
-                        ext = jsonObject {
-                            "placement_id" hasValue 42L
-                        }.toString(),
-                        timeout = 5000,
-                        uid = "uid123"
-                    ),
+                adUnit = AdUnit(
+                    demandId = "inmobi",
+                    pricefloor = 3.5,
+                    label = "label888",
+                    bidType = BidType.CPM,
+                    ext = jsonObject {
+                        "placement_id" hasValue 42L
+                    }.toString(),
+                    timeout = 5000,
+                    uid = "uid123"
+                ),
                 optBannerFormat = BannerFormat.MRec,
                 optContainerWidth = 140f,
             )

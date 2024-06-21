@@ -30,12 +30,6 @@ class BMInterstitialAdImplTest {
         }
     }
 
-    @Before
-    fun before() {
-        mockkStatic(BidMachine::class)
-        every { BidMachine.getBidToken(any()) } returns "token123"
-    }
-
     @Test
     fun `parse fullscreen AdUnit RTB`() = runTest {
         val auctionParamsScope by lazy {
@@ -43,19 +37,19 @@ class BMInterstitialAdImplTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "bidmachine",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
-                    ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
-                    }.toString(),
+                    pricefloor = 2.75,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     timeout = 5000,
-                    uid = "uid123"
+                    uid = "uid123",
+                    ext = jsonObject {
+                        "payload" hasValue "payload123"
+                    }.toString(),
                 ),
-                optBannerFormat = BannerFormat.MRec,
-                optContainerWidth = 140f,
+                optBannerFormat = null,
+                optContainerWidth = null,
             )
         }
 
@@ -65,15 +59,17 @@ class BMInterstitialAdImplTest {
         assertThat(actual.adUnit).isEqualTo(
             AdUnit(
                 demandId = "bidmachine",
-                pricefloor = 0.0,
+                pricefloor = 2.75,
                 label = "label123",
                 bidType = BidType.RTB,
-                ext = null,
                 timeout = 5000,
-                uid = "uid123"
+                uid = "uid123",
+                ext = jsonObject {
+                    "payload" hasValue "payload123"
+                }.toString(),
             )
         )
-        assertThat(actual.price).isEqualTo(2.85)
+        assertThat(actual.price).isEqualTo(2.75)
         assertThat(actual.payload).isEqualTo("payload123")
     }
 
@@ -84,15 +80,15 @@ class BMInterstitialAdImplTest {
                 activity = activity,
                 pricefloor = 2.75,
                 timeout = 1000,
-                    AdUnit(
-                        demandId = "bidmachine",
-                        pricefloor = 0.0,
-                        label = "label888",
-                        bidType = BidType.CPM,
-                        ext = null,
-                        timeout = 5000,
-                        uid = "uid123"
-                    ),
+                adUnit = AdUnit(
+                    demandId = "bidmachine",
+                    pricefloor = 2.75,
+                    label = "label888",
+                    bidType = BidType.CPM,
+                    ext = null,
+                    timeout = 5000,
+                    uid = "uid123"
+                ),
                 optBannerFormat = null,
                 optContainerWidth = null,
             )

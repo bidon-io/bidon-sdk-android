@@ -30,18 +30,19 @@ class AmazonBannerImplTest {
                 activity = activity,
                 pricefloor = 2.5,
                 timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                adUnit = AdUnit(
+                    demandId = "amazon",
+                    pricefloor = 2.7,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "slot_uuid" hasValue "slot_uuid4"
+                        "format" hasValue "BANNER"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
                 ),
-                optBannerFormat = BannerFormat.MRec,
+                optBannerFormat = BannerFormat.Banner,
                 optContainerWidth = 140f,
             )
         }

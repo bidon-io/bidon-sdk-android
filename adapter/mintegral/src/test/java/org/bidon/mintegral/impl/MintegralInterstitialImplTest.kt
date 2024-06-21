@@ -30,13 +30,15 @@ class MintegralInterstitialImplTest {
                 activity = activity,
                 pricefloor = 2.5,
                 timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                adUnit = AdUnit(
+                    demandId = "mintegral",
+                    pricefloor = 2.9,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "placement_id" hasValue "placemet_id4"
+                        "unit_id" hasValue "unit_id4"
+                        "payload" hasValue "payload123"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
@@ -57,6 +59,7 @@ class MintegralInterstitialImplTest {
                 ext = jsonObject {
                     "placement_id" hasValue "placemet_id4"
                     "unit_id" hasValue "unit_id4"
+                    "payload" hasValue "payload123"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"

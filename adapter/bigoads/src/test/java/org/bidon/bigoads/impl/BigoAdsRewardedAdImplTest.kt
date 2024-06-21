@@ -27,22 +27,22 @@ class BigoAdsRewardedAdImplTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.5,
-                timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
+                pricefloor = 2.7,
+                timeout = 5000,
+                adUnit = AdUnit(
+                    demandId = "bigoads",
+                    pricefloor = 2.7,
                     label = "label888",
-                    bidType = BidType.CPM,
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "slot_id" hasValue "ad_unit_id888"
+                        "payload" hasValue "test_payload"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
                 ),
-
-                optBannerFormat = BannerFormat.MRec,
-                optContainerWidth = 140f,
+                optBannerFormat = null,
+                optContainerWidth = null,
             )
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
@@ -52,17 +52,18 @@ class BigoAdsRewardedAdImplTest {
             AdUnit(
                 demandId = "bigoads",
                 pricefloor = 2.7,
-                label = "label123",
+                label = "label888",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "slot_id" hasValue "slot_id4"
+                    "slot_id" hasValue "ad_unit_id888"
+                    "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"
             )
         )
-        assertThat(actual.slotId).isEqualTo("slot_id4")
-        assertThat(actual.payload).isEqualTo("payload123")
-        assertThat(actual.price).isEqualTo(2.75)
+        assertThat(actual.slotId).isEqualTo("ad_unit_id888")
+        assertThat(actual.payload).isEqualTo("test_payload")
+        assertThat(actual.price).isEqualTo(2.7)
     }
 }

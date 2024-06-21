@@ -30,20 +30,22 @@ class MetaRewardedAdImplTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.5,
+                pricefloor = 3.5,
                 timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
+                adUnit = AdUnit(
+                    demandId = "meta",
                     pricefloor = 3.5,
                     label = "label888",
                     bidType = BidType.CPM,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "placement_id" hasValue "ad_unit_id888"
+                        "payload" hasValue "payload123"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
-                optBannerFormat = BannerFormat.MRec,
-                optContainerWidth = 140f,
+                optBannerFormat = null,
+                optContainerWidth = null,
             )
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
@@ -52,17 +54,19 @@ class MetaRewardedAdImplTest {
         assertThat(actual.adUnit).isEqualTo(
             AdUnit(
                 demandId = "meta",
-                pricefloor = 2.6,
-                label = "label123",
-                bidType = BidType.RTB,
+                pricefloor = 3.5,
+                label = "label888",
+                bidType = BidType.CPM,
                 ext = jsonObject {
-                    "placement_id" hasValue "placement_id4"
+                    "placement_id" hasValue "ad_unit_id888"
+                    "payload" hasValue "payload123"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )
-        assertThat(actual.placementId).isEqualTo("placement_id4")
-        assertThat(actual.price).isEqualTo(2.7)
+        assertThat(actual.placementId).isEqualTo("ad_unit_id888")
+        assertThat(actual.price).isEqualTo(3.5)
         assertThat(actual.payload).isEqualTo("payload123")
     }
 }

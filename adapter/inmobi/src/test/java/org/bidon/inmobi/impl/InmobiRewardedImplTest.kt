@@ -32,7 +32,7 @@ class InmobiRewardedImplTest {
                 activity = activity,
                 pricefloor = 2.5,
                 timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "inmobi",
                     pricefloor = 3.5,
                     label = "label888",
@@ -43,7 +43,7 @@ class InmobiRewardedImplTest {
                     timeout = 5000,
                     uid = "uid123"
                 ),
-                optBannerFormat = BannerFormat.MRec,
+                optBannerFormat = null,
                 optContainerWidth = 140f,
             )
         }

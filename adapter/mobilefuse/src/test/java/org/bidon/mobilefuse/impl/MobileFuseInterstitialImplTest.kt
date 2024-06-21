@@ -27,21 +27,22 @@ class MobileFuseInterstitialImplTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.5,
-                timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                pricefloor = 2.7,
+                timeout = 5000,
+                adUnit = AdUnit(
+                    demandId = "mobilefuse",
+                    pricefloor = 2.7,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "placement_id" hasValue "placement_id4"
+                        "signaldata" hasValue "signaldata_payload123"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
                 ),
-                optBannerFormat = BannerFormat.MRec,
-                optContainerWidth = 140f,
+                optBannerFormat = null,
+                optContainerWidth = null,
             )
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
@@ -55,6 +56,7 @@ class MobileFuseInterstitialImplTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "placement_id" hasValue "placement_id4"
+                    "signaldata" hasValue "signaldata_payload123"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"
@@ -62,6 +64,6 @@ class MobileFuseInterstitialImplTest {
         )
         Truth.assertThat(actual.placementId).isEqualTo("placement_id4")
         Truth.assertThat(actual.signalData).isEqualTo("signaldata_payload123")
-        Truth.assertThat(actual.price).isEqualTo(2.75)
+        Truth.assertThat(actual.price).isEqualTo(2.7)
     }
 }

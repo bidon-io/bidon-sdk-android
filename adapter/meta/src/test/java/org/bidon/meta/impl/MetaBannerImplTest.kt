@@ -30,15 +30,16 @@ class MetaBannerImplTest {
         val auctionParamsScope by lazy {
             AdAuctionParamSource(
                 activity = activity,
-                pricefloor = 2.5,
+                pricefloor = 2.6,
                 timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
-                    label = "label888",
-                    bidType = BidType.CPM,
+                adUnit = AdUnit(
+                    demandId = "meta",
+                    pricefloor = 2.6,
+                    label = "label123",
+                    bidType = BidType.RTB,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "placement_id" hasValue "placement_id4"
+                        "payload" hasValue "payload123"
                     }.toString(),
                     timeout = 5000,
                     uid = "uid123"
@@ -58,13 +59,14 @@ class MetaBannerImplTest {
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "placement_id" hasValue "placement_id4"
+                    "payload" hasValue "payload123"
                 }.toString(),
                 timeout = 5000,
                 uid = "uid123"
             )
         )
         assertThat(actual.placementId).isEqualTo("placement_id4")
-        assertThat(actual.price).isEqualTo(2.7)
+        assertThat(actual.price).isEqualTo(2.6)
         assertThat(actual.payload).isEqualTo("payload123")
     }
 }

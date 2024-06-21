@@ -29,19 +29,19 @@ class DTExchangeInterstitialTest {
                 activity = activity,
                 pricefloor = 2.5,
                 timeout = 1000,
-                AdUnit(
-                    demandId = "admob",
-                    pricefloor = 3.5,
-                    label = "label888",
+                adUnit = AdUnit(
+                    demandId = "dtexchange",
+                    pricefloor = 4.0,
+                    label = "label111",
                     bidType = BidType.CPM,
                     ext = jsonObject {
-                        "ad_unit_id" hasValue "ad_unit_id888"
+                        "spot_id" hasValue "spot_id111"
                     }.toString(),
                     timeout = 5000,
-                    uid = "uid123"
+                    uid = "uid111"
                 ),
-                optBannerFormat = BannerFormat.MRec,
-                optContainerWidth = 140f,
+                optBannerFormat = null,
+                optContainerWidth = null,
             )
         }
         val actual = testee.getAuctionParam(auctionParamsScope).getOrThrow()
