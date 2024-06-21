@@ -32,6 +32,7 @@ class AdAuctionParamSource(
     private val optBannerFormat: BannerFormat?,
     private val optContainerWidth: Float?,
 ) {
+    val timeout: Long = adUnit.timeout
     val bannerFormat: BannerFormat get() = requireNotNull(optBannerFormat)
     val containerWidth: Float get() = requireNotNull(optContainerWidth)
 

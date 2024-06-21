@@ -50,7 +50,7 @@ class DTExchangeAdapter :
 
     override suspend fun init(context: Context, configParams: DTExchangeParameters) =
         suspendCoroutine { continuation ->
-            if(configParams.appId.isNullOrEmpty()) {
+            if (configParams.appId.isNullOrEmpty()) {
                 val cause = Throwable("Adapter(${DTExchangeDemandId.demandId}) appId is null or empty")
                 continuation.resumeWithException(cause)
             }

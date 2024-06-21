@@ -5,7 +5,6 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.OnPaidEventListener
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import org.bidon.admob.AdmobBannerAuctionParams
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.admob.AdmobInitParameters
 import org.bidon.admob.asBidonError
@@ -42,7 +41,7 @@ internal class AdmobInterstitialImpl(
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        val adRequest = getAdRequest(adParams)?: run {
+        val adRequest = getAdRequest(adParams) ?: run {
             emitEvent(AdEvent.LoadFailed(
                 BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
             return

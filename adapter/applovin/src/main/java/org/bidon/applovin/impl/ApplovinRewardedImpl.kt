@@ -106,8 +106,7 @@ internal class ApplovinRewardedImpl(
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             ApplovinFullscreenAdAuctionParams(
-                adUnit = adUnit,
-                timeoutMs = timeout,
+                adUnit = adUnit
             )
         }
     }
@@ -117,8 +116,7 @@ internal class ApplovinRewardedImpl(
         adUnit = adParams.adUnit
         adParams.zoneId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "zoneId")
-                ))
+                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "zoneId")))
             return
         }
         val incentivizedInterstitial =

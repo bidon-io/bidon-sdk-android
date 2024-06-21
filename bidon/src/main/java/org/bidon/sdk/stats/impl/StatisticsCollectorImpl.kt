@@ -24,7 +24,6 @@ import org.bidon.sdk.stats.usecases.WinLossRequestData
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**

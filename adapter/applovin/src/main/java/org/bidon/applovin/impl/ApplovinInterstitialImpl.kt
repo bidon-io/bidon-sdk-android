@@ -77,10 +77,7 @@ internal class ApplovinInterstitialImpl(
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            ApplovinFullscreenAdAuctionParams(
-                adUnit = adUnit,
-                timeoutMs = timeout,
-            )
+            ApplovinFullscreenAdAuctionParams(adUnit = adUnit)
         }
     }
 

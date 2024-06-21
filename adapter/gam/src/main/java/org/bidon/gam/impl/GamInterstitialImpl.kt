@@ -5,7 +5,6 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.OnPaidEventListener
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAd
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAdLoadCallback
-import org.bidon.gam.GamBannerAuctionParams
 import org.bidon.gam.GamFullscreenAdAuctionParams
 import org.bidon.gam.GamInitParameters
 import org.bidon.gam.asBidonError

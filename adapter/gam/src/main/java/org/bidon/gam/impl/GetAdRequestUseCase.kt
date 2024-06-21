@@ -1,7 +1,6 @@
 package org.bidon.gam.impl
 
 import com.google.ads.mediation.admob.AdMobAdapter
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import org.bidon.gam.GamBannerAuctionParams
 import org.bidon.gam.GamFullscreenAdAuctionParams

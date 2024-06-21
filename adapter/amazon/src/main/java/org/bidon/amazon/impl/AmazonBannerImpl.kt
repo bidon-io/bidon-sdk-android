@@ -22,7 +22,8 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
-internal class AmazonBannerImpl(private val amazonInfos: List<AmazonInfo>) : AdSource.Banner<BannerAuctionParams>,
+internal class AmazonBannerImpl(private val amazonInfos: List<AmazonInfo>) :
+    AdSource.Banner<BannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
