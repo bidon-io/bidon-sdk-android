@@ -13,7 +13,6 @@ import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.regulation.Regulation
-import org.bidon.sdk.stats.models.BidType
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine

@@ -9,8 +9,6 @@ import com.google.android.gms.ads.AdFormat
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.MobileAds
 import org.bidon.gam.BuildConfig
-import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.AdTypeParam

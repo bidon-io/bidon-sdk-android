@@ -105,14 +105,10 @@ internal class ExecuteAuctionUseCaseImpl(
                         )?.also {
                             resultsCollector.add(it)
                         }
-                        if (auctionResult?.roundStatus == RoundStatus.Successful
-                            && !shouldRequestNext(
-                                auctionResult = auctionResult,
-                                next = adUnitQueue.peek()
-                            )
+                        if (auctionResult?.roundStatus == RoundStatus.Successful &&
+                            !shouldRequestNext(auctionResult = auctionResult, next = adUnitQueue.peek())
                         ) {
-                            logInfo(
-                                TAG,
+                            logInfo(TAG,
                                 "Auction was stopped since the filled eCPM larger than the next one"
                             )
                             break

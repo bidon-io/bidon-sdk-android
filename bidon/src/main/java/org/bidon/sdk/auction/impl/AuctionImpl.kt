@@ -44,7 +44,6 @@ internal class AuctionImpl(
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val state = MutableStateFlow(AuctionState.Initialized)
 
-
     private var _auctionDataResponse: AuctionResponse? = null
     private var _demandAd: DemandAd? = null
     private var job: Job? = null
@@ -74,12 +73,12 @@ internal class AuctionImpl(
 
                     resultsCollector.serverBiddingStarted()
 
-                val tokens = tokenGetter.invoke(
-                    adType = demandAd.adType,
-                    adTypeParam = adTypeParam,
-                    adaptersSource = adaptersSource,
-                    tokenTimeout = biddingConfig.tokenTimeout
-                )
+                    val tokens = tokenGetter.invoke(
+                        adType = demandAd.adType,
+                        adTypeParam = adTypeParam,
+                        adaptersSource = adaptersSource,
+                        tokenTimeout = biddingConfig.tokenTimeout
+                    )
 
                     // Request for Auction-data at /auction
                     val auctionId = UUID.randomUUID().toString()
@@ -237,7 +236,10 @@ internal class AuctionImpl(
                  */
                 if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                     logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                    adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
+                    adSource.notifyLoss(
+                        winner.adSource.demandId.demandId,
+                        winner.adSource.getStats().ecpm
+                    )
                 }
                 if (auctionResult.roundStatus == RoundStatus.Successful) {
                     adSource.markLoss()

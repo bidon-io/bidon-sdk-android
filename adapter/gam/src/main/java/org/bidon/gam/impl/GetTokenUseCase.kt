@@ -2,7 +2,6 @@ package org.bidon.gam.impl
 
 import android.content.Context
 import com.google.ads.mediation.admob.AdMobAdapter
-import com.google.android.gms.ads.AdFormat
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.query.QueryInfo
 import com.google.android.gms.ads.query.QueryInfoGenerationCallback
@@ -11,7 +10,6 @@ import org.bidon.gam.GamInitParameters
 import org.bidon.gam.ext.asBundle
 import org.bidon.gam.ext.getAdFormat
 import org.bidon.sdk.BidonSdk
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.auction.AdTypeParam
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException

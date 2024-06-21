@@ -103,8 +103,8 @@ class MobileFuseRewardedAdImpl :
                     }
 
                     else -> {
-                        emitEvent(AdEvent.LoadFailed(BidonError.Unspecified(demandId,
-                            Throwable(adError?.errorMessage))))
+                        emitEvent(AdEvent.LoadFailed(
+                            BidonError.Unspecified(demandId, Throwable(adError?.errorMessage))))
                     }
                 }
             }
