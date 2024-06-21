@@ -37,18 +37,14 @@ class ImpressionRequestBodySerializerTest {
                 "price" hasValue 2.33
                 "interstitial" hasJson expectedJsonStructure {}
                 "auction_id" hasValue "id123"
-                "round_id" hasValue "round123"
-                "round_idx" hasValue 2
                 "banner" hasJson expectedJsonStructure {
                     "format" hasValue "1"
                 }
                 "bid_type" hasValue "RTB"
                 "auction_configuration_id" hasValue 4
                 "auction_configuration_uid" hasValue 4UL
-                "imp_id" hasValue "impr123"
                 "ad_unit_uid" hasValue "1698961007059140608"
                 "ad_unit_label" hasValue "adUnitId43"
-                "round_pricefloor" hasValue 0.12
                 "auction_pricefloor" hasValue 0.01
             }
         )

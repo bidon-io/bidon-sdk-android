@@ -32,6 +32,7 @@ class AmazonRewardedImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = null,
@@ -51,6 +52,7 @@ class AmazonRewardedImplTest {
                     "slot_uuid" hasValue "slot_uuid4"
                     "format" hasValue "REWARDED"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

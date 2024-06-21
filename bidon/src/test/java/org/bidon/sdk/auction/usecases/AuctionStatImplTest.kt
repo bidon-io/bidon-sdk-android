@@ -13,23 +13,13 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
-import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.AuctionResponse
-import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.InterstitialRequest
-import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.auction.models.*
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
-import org.bidon.sdk.stats.models.BidStat
-import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.ResultBody
-import org.bidon.sdk.stats.models.RoundStat
-import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.stats.models.StatsAdUnit
-import org.bidon.sdk.stats.models.StatsRequestBody
+import org.bidon.sdk.stats.models.*
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
@@ -86,6 +76,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             pricefloor = 0.0,
                             bidType = BidType.CPM,
                             uid = "123",
+                            timeout = 5000,
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
@@ -96,6 +87,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             pricefloor = 0.0,
                             bidType = BidType.CPM,
                             uid = "123",
+                            timeout = 5000,
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
@@ -119,6 +111,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         ext = null,
                                         label = "bidmachine_label",
                                         pricefloor = 10.0,
+                                        timeout = 5000,
                                         bidType = BidType.RTB,
                                         uid = "123",
                                     ),
@@ -143,6 +136,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         pricefloor = 1.0,
                                         bidType = BidType.RTB,
                                         uid = "123",
+                                        timeout = 5000,
                                         ext = jsonObject {
                                             "payload" hasValue "payload123"
                                         }.toString()
@@ -188,6 +182,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     label = "dem1_label",
                                     pricefloor = 0.3,
                                     bidType = BidType.CPM,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -218,6 +213,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     label = "dem2_label",
                                     pricefloor = 0.3,
                                     bidType = BidType.CPM,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -255,7 +251,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         price = 1.3,
                         tokenStartTs = 678L,
                         tokenFinishTs = 679L,
-                        bidType = BidType.RTB.code,
+                        bidType = BidType.CPM.code,
                         fillStartTs = 986,
                         fillFinishTs = 987,
                         adUnitUid = "123",
@@ -307,7 +303,8 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             label = "bidmachine_label",
                             pricefloor = 1.1,
                             bidType = BidType.RTB,
-                            uid = "123"
+                            timeout = 5000,
+                            uid = "1234"
                         )
                     ),
                     results = listOf(
@@ -329,7 +326,8 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         ext = null,
                                         label = "bidmachine_label",
                                         pricefloor = 0.0,
-                                        uid = "123"
+                                        timeout = 5000,
+                                        uid = "1234"
                                     ),
                                     tokenInfo = TokenInfo(
                                         token = "token123",
@@ -361,6 +359,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     ext = null,
                                     label = "dem1_label",
                                     pricefloor = 0.3,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -391,6 +390,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     ext = null,
                                     label = "dem2_label",
                                     pricefloor = 0.3,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -423,34 +423,34 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 pricefloor = 1.1,
                 demands = listOf(
                     StatsAdUnit(
-                        demandId = "dem2",
-                        status = RoundStatus.NoFill.code,
-                        price = 1.5,
+                        demandId = "dem1",
+                        status = RoundStatus.Successful.code,
+                        price = 1.3,
                         tokenStartTs = 678L,
                         tokenFinishTs = 679L,
                         bidType = BidType.CPM.code,
                         fillStartTs = 986,
                         fillFinishTs = 987,
-                        adUnitLabel = "dem2_label",
                         adUnitUid = "123",
+                        adUnitLabel = "dem1_label",
                     ),
                     StatsAdUnit(
                         demandId = "dem2",
                         status = RoundStatus.NoFill.code,
-                        price = 1.5,
+                        price = 10.5,
                         tokenStartTs = 678L,
                         tokenFinishTs = 679L,
                         bidType = BidType.CPM.code,
                         fillStartTs = 986,
                         fillFinishTs = 987,
-                        adUnitLabel = "dem2_label",
                         adUnitUid = "123",
+                        adUnitLabel = "dem2_label",
                     ),
-                    getDemandStatAdapter("dem3", RoundStatus.UnknownAdapter),
-                    getDemandStatAdapter("dem4", RoundStatus.UnknownAdapter),
+                    getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
+                    getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
                 ),
-                winnerDemandId = DemandId(demandId = "bidmachine"),
                 winnerEcpm = 1.5,
+                winnerDemandId = DemandId("bidmachine"),
             )
         )
     }
@@ -459,7 +459,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
     fun `it should send stat, Bidding wins`() = runTest {
         val systemTime = freezeTime(100500L)
         val auctionData = AuctionResponse(
-            adUnits = null,
+            adUnits = listOf(),
             pricefloor = 0.01,
             auctionId = "auction_id_123",
             auctionConfigurationId = 10,
@@ -487,6 +487,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             pricefloor = 0.0,
                             bidType = BidType.RTB,
                             uid = "1234",
+                            timeout = 5000,
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
@@ -497,6 +498,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             pricefloor = 0.0,
                             bidType = BidType.RTB,
                             uid = "1232",
+                            timeout = 5000,
                             ext = jsonObject {
                                 "payload" hasValue "payload123"
                             }.toString()
@@ -522,6 +524,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         ext = null,
                                         label = "bidmachine_label",
                                         pricefloor = 0.1,
+                                        timeout = 5000,
                                         uid = "1234"
                                     ),
                                     tokenInfo = TokenInfo(
@@ -554,6 +557,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     ext = null,
                                     label = "dem1_label",
                                     pricefloor = 0.3,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -584,6 +588,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     ext = null,
                                     label = "dem2_label",
                                     pricefloor = 0.3,
+                                    timeout = 5000,
                                     uid = "123"
                                 ),
                                 tokenInfo = TokenInfo(
@@ -611,7 +616,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                 auctionId = "auction_id_123",
                 auctionConfigurationId = 10,
                 auctionConfigurationUid = "10",
-                auctionPricefloor = 1.0,
+                auctionPricefloor = 1.1,
                 result = ResultBody(
                     status = "SUCCESS",
                     winnerDemandId = "bidmachine",

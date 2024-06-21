@@ -128,6 +128,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                     ext = null,
                     demandId = "admob",
                     bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
                 AdUnit(
@@ -136,6 +137,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                     ext = null,
                     demandId = "admob",
                     bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
                 AdUnit(
@@ -144,6 +146,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                     ext = null,
                     demandId = "applovin",
                     bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
             ),
@@ -372,6 +375,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 ext = null,
                 demandId = "admob",
                 bidType = BidType.CPM,
+                timeout = 5000,
                 uid = "1",
             ),
             AdUnit(
@@ -380,6 +384,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 ext = null,
                 demandId = "admob",
                 bidType = BidType.CPM,
+                timeout = 5000,
                 uid = "1",
             ),
             AdUnit(
@@ -388,6 +393,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 ext = null,
                 demandId = "applovin",
                 bidType = BidType.CPM,
+                timeout = 5000,
                 uid = "1",
             ),
 

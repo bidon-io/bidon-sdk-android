@@ -38,6 +38,7 @@ class AmazonBannerImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -57,6 +58,7 @@ class AmazonBannerImplTest {
                     "slot_uuid" hasValue "slot_uuid4"
                     "format" hasValue "BANNER"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

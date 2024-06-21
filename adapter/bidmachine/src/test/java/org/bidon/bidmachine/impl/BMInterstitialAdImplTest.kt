@@ -51,6 +51,7 @@ class BMInterstitialAdImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -68,6 +69,7 @@ class BMInterstitialAdImplTest {
                 label = "label123",
                 bidType = BidType.RTB,
                 ext = null,
+                timeout = 5000,
                 uid = "uid123"
             )
         )
@@ -88,6 +90,7 @@ class BMInterstitialAdImplTest {
                         label = "label888",
                         bidType = BidType.CPM,
                         ext = null,
+                        timeout = 5000,
                         uid = "uid123"
                     ),
                 optBannerFormat = null,
@@ -106,6 +109,7 @@ class BMInterstitialAdImplTest {
                 label = "label888",
                 bidType = BidType.CPM,
                 ext = null,
+                timeout = 5000,
                 uid = "uid123"
             )
         )

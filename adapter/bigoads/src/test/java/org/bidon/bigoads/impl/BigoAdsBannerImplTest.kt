@@ -37,6 +37,7 @@ class BigoAdsBannerImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -55,6 +56,7 @@ class BigoAdsBannerImplTest {
                 ext = jsonObject {
                     "slot_id" hasValue "slot_id4"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

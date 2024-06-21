@@ -55,6 +55,7 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
                 pricefloor = 0.25,
                 uid = "12387837129819",
                 bidType = BidType.CPM,
+                timeout = 5000,
                 ext = jsonObject { "ad_unit_id" hasValue "ca-app-pub-3940256099942544/6300978111" }.toString(),
             ),
             AdUnit(
@@ -63,6 +64,7 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
                 uid = "32387837129819",
                 pricefloor = 0.0,
                 bidType = BidType.CPM,
+                timeout = 5000,
                 ext = null,
             )
         ),
@@ -116,94 +118,5 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
     @After
     fun after() {
         unmockkAll()
-    }
-
-    @Ignore
-    @Test
-    fun `it should conduct round`() = runTest {
-        // mockk results
-        coEvery {
-            requestAdUnit.invoke(
-                any(),
-                any(),
-                any(),
-                any(),
-                any()
-            )
-        } returns AuctionResult.Network(
-                        adSource = mockk<AdSource<*>>(relaxed = true).also {
-                            every { it.demandId } returns DemandId(Admob)
-                            every { it.ad } returns Ad(
-                                demandAd = DemandAd(AdType.Interstitial),
-                                currencyCode = USD,
-                                dsp = null,
-                                ecpm = 1.3,
-                                auctionId = "a123",
-                                adUnit = AdUnit(
-                                    demandId = "admob",
-                                    label = "admob_banner",
-                                    pricefloor = 0.25,
-                                    uid = "12387837129819",
-                                    bidType = BidType.CPM,
-                                    ext = jsonObject { "ad_unit_id" hasValue "ca-app-pub-3940256099942544/6300978111" }.toString(),
-                                )
-                            )
-                        },
-                        roundStatus = RoundStatus.Successful
-                    )
-        coEvery {
-            requestAdUnit.invoke(
-                adSource = any(),
-                adUnit = any(),
-                adTypeParam = any(),
-                priceFloor = any(),
-                timeoutMs = any()
-            )
-        } returns AuctionResult.Network(
-            adSource = mockk<AdSource<*>>(relaxed = true).also {
-                every { it.demandId } returns DemandId(Admob)
-                every { it.ad } returns Ad(
-                    demandAd = DemandAd(AdType.Interstitial),
-                    currencyCode = USD,
-                    dsp = null,
-                    ecpm = 1.3,
-                    auctionId = "a123",
-                    adUnit = AdUnit(
-                        demandId = "admob",
-                        label = "admob_banner",
-                        pricefloor = 0.25,
-                        uid = "12387837129819",
-                        bidType = BidType.CPM,
-                        ext = jsonObject { "ad_unit_id" hasValue "ca-app-pub-3940256099942544/6300978111" }.toString(),
-                    )
-                )
-            },
-            roundStatus = RoundStatus.Successful
-        )
-
-        // it should conduct round with 2 results
-        val results = testee.invoke(
-            auctionId = auctionConfig.auctionId,
-            auctionConfigurationId = auctionConfig.auctionConfigurationId ?: 0L,
-            externalWinNotificationsEnabled = auctionConfig.externalWinNotificationsEnabled,
-            auctionConfigurationUid = auctionConfig.auctionConfigurationUid ?: "",
-            demandAd = DemandAd(AdType.Interstitial),
-            adTypeParam = AdTypeParam.Interstitial(activity, 1.0, "auctionKey"),
-            pricefloor = 0.4,
-            auctionTimeout = auctionConfig.auctionTimeout,
-            adUnits = emptyList(),
-            resultsCollector = mockk(relaxed = true),
-            tokens = mapOf()
-        )
-        results
-            .onFailure {
-                it.printStackTrace()
-                error("unexpected")
-            }
-            .onSuccess {
-                assertThat(it).hasSize(4)
-                assertThat(it.filter { it.roundStatus == RoundStatus.UnknownAdapter }).hasSize(2)
-                assertThat(it.filter { it.roundStatus == RoundStatus.Successful }).hasSize(2)
-            }
     }
 }

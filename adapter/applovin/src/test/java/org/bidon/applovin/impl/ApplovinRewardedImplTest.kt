@@ -38,6 +38,7 @@ class ApplovinRewardedImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -56,6 +57,7 @@ class ApplovinRewardedImplTest {
                 ext = jsonObject {
                     "zone_id" hasValue "zone_id111"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid111"
             )
         )

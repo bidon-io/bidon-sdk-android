@@ -37,6 +37,7 @@ class UnityAdsRewardedTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -55,6 +56,7 @@ class UnityAdsRewardedTest {
                 ext = jsonObject {
                     "placement_id" hasValue "placement_id111"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid111"
             )
         )

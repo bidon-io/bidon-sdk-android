@@ -37,6 +37,7 @@ class InmobiBannerImplTest {
                         ext = jsonObject {
                             "placement_id" hasValue 42L
                         }.toString(),
+                        timeout = 5000,
                         uid = "uid123"
                     ),
                 optBannerFormat = BannerFormat.MRec,
@@ -55,6 +56,7 @@ class InmobiBannerImplTest {
                 ext = jsonObject {
                     "placement_id" hasValue 42L
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

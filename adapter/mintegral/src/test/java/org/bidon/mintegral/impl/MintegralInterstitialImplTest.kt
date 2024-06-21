@@ -38,6 +38,7 @@ class MintegralInterstitialImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -57,6 +58,7 @@ class MintegralInterstitialImplTest {
                     "placement_id" hasValue "placemet_id4"
                     "unit_id" hasValue "unit_id4"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

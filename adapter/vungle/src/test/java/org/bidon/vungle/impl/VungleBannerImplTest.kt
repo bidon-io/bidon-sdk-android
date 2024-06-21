@@ -38,6 +38,7 @@ class VungleBannerImplTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -56,6 +57,7 @@ class VungleBannerImplTest {
                 ext = jsonObject {
                     "placement_id" hasValue "placement_id4"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )

@@ -39,6 +39,7 @@ class GetAdAuctionParamsUseCaseTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -60,6 +61,7 @@ class GetAdAuctionParamsUseCaseTest {
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id4"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )
@@ -83,6 +85,7 @@ class GetAdAuctionParamsUseCaseTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -104,6 +107,7 @@ class GetAdAuctionParamsUseCaseTest {
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id888"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )
@@ -126,6 +130,7 @@ class GetAdAuctionParamsUseCaseTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = BannerFormat.MRec,
@@ -147,6 +152,7 @@ class GetAdAuctionParamsUseCaseTest {
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id4"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )
@@ -170,6 +176,7 @@ class GetAdAuctionParamsUseCaseTest {
                     ext = jsonObject {
                         "ad_unit_id" hasValue "ad_unit_id888"
                     }.toString(),
+                    timeout = 5000,
                     uid = "uid123"
                 ),
                 optBannerFormat = null,
@@ -192,6 +199,7 @@ class GetAdAuctionParamsUseCaseTest {
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id888"
                 }.toString(),
+                timeout = 5000,
                 uid = "uid123"
             )
         )
