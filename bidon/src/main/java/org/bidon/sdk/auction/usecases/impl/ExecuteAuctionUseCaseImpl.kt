@@ -45,90 +45,96 @@ internal class ExecuteAuctionUseCaseImpl(
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
-    ): Result<List<AuctionResult>> = coroutineScope {
-        runCatching {
-            resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
+    ) {
+        coroutineScope {
+            runCatching {
+                resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
-            val adUnitQueue = LinkedList(adUnits)
+                val adUnitQueue = LinkedList(adUnits)
 
-            while (adUnitQueue.isNotEmpty()) {
+                while (adUnitQueue.isNotEmpty()) {
 
-                val adUnit = adUnitQueue.poll()
+                    val adUnit = adUnitQueue.poll()
 
-                if (adUnit == null) {
-                    logInfo(TAG, "All adUnits were requested")
-                    break
-                }
-
-                if (adUnit.pricefloor < pricefloor) {
-                    logInfo(
-                        TAG,
-                        "Auction was stopped because the priceFloor: $pricefloor is less than " +
-                                "the next requested adUnit: ${adUnit.pricefloor}"
-                    )
-                    break
-                }
-
-                val adSource = adaptersSource.adapters
-                    .find { it.demandId.demandId == adUnit.demandId }
-                    ?.also { adapter ->
-                        adapter.applyRegulation()
-                    }?.getAdSources(demandAd.adType)
-                    ?.also { adSource ->
-                        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
+                    if (adUnit == null) {
+                        logInfo(TAG, "All adUnits were requested")
+                        break
                     }
 
-                if (adUnit.bidType == BidType.RTB) {
-                    tokens[adSource?.demandId?.demandId]?.let {
-                        adSource?.setTokenInfo(it)
-                    }
-                }
-
-                if (adSource != null) {
-                    applyParams(
-                        auctionId = auctionId,
-                        auctionConfigurationId = auctionConfigurationId,
-                        auctionConfigurationUid = auctionConfigurationUid,
-                        externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                        adSource = adSource,
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        auctionPricefloor = pricefloor,
-                    )
-
-                    val auctionResult = requestAdUnit.invoke(
-                        adSource = adSource,
-                        adTypeParam = adTypeParam,
-                        adUnit = adUnit,
-                        priceFloor = pricefloor
-                    ).also {
-                        resultsCollector.add(it)
-                    }
-                    if (auctionResult.roundStatus == RoundStatus.Successful &&
-                        !shouldRequestNext(auctionResult = auctionResult, next = adUnitQueue.peek())
-                    ) {
-                        logInfo(TAG,
-                            "Auction was stopped since the filled eCPM larger than the next one"
+                    if (adUnit.pricefloor < pricefloor) {
+                        logInfo(
+                            TAG,
+                            "Auction was stopped because the priceFloor: $pricefloor is less than " +
+                                    "the next requested adUnit: ${adUnit.pricefloor}"
                         )
                         break
                     }
-                    logInfo(TAG, "Perform load next")
-                } else {
-                    logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
-                }
-            }
 
-            logInfo(TAG, "Auction was finished")
-            /**
-             * Collecting results
-             */
-            resultsCollector.getRoundResults().let { roundResult ->
-                (roundResult as? RoundResult.Results)?.let {
-                    it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
-                }.orEmpty()
+                    val adSource = adaptersSource.adapters
+                        .find { it.demandId.demandId == adUnit.demandId }
+                        ?.also { adapter ->
+                            adapter.applyRegulation()
+                        }?.getAdSources(demandAd.adType)
+                        ?.also { adSource ->
+                            adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
+                        }
+
+                    if (adUnit.bidType == BidType.RTB) {
+                        tokens[adSource?.demandId?.demandId]?.let {
+                            adSource?.setTokenInfo(it)
+                        }
+                    }
+
+                    if (adSource != null) {
+                        applyParams(
+                            auctionId = auctionId,
+                            auctionConfigurationId = auctionConfigurationId,
+                            auctionConfigurationUid = auctionConfigurationUid,
+                            externalWinNotificationsEnabled = externalWinNotificationsEnabled,
+                            adSource = adSource,
+                            adTypeParam = adTypeParam,
+                            demandAd = demandAd,
+                            auctionPricefloor = pricefloor,
+                        )
+
+                        val auctionResult = requestAdUnit.invoke(
+                            adSource = adSource,
+                            adTypeParam = adTypeParam,
+                            adUnit = adUnit,
+                            priceFloor = pricefloor
+                        ).also {
+                            resultsCollector.add(it)
+                        }
+                        if (auctionResult.roundStatus == RoundStatus.Successful &&
+                            !shouldRequestNext(
+                                auctionResult = auctionResult,
+                                next = adUnitQueue.peek()
+                            )
+                        ) {
+                            logInfo(
+                                TAG,
+                                "Auction was stopped since the filled eCPM larger than the next one"
+                            )
+                            break
+                        }
+                        logInfo(TAG, "Perform load next")
+                    } else {
+                        logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
+                    }
+                }
+
+                logInfo(TAG, "Auction was finished")
+                /**
+                 * Collecting results
+                 */
+                resultsCollector.getRoundResults().let { roundResult ->
+                    (roundResult as? RoundResult.Results)?.let {
+                        it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
+                    }.orEmpty()
+                }
+            }.onFailure {
+                logError(TAG, "Failed to execute round", it)
             }
-        }.onFailure {
-            logError(TAG, "Failed to execute round", it)
         }
     }
 
