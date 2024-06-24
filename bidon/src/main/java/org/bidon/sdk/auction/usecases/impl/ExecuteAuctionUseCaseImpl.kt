@@ -1,6 +1,7 @@
 package org.bidon.sdk.auction.usecases.impl
 
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource

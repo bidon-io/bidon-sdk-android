@@ -55,7 +55,7 @@ internal class AdmobBannerImpl(
             is AdmobBannerAuctionParams.Network -> adParams.adUnitId
         } ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
             return
         }
         price = adParams.price
@@ -64,7 +64,7 @@ internal class AdmobBannerImpl(
         adParams.activity.runOnUiThread {
             val adRequest = getAdRequest(adParams)?: run {
                 emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
                 return@runOnUiThread
             }
             val adView = AdView(adParams.activity.applicationContext).also {

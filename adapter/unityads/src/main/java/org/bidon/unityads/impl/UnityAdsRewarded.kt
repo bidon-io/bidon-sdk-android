@@ -46,7 +46,7 @@ internal class UnityAdsRewarded :
         logInfo(TAG, "Starting with $adParams: $this")
         placementId = adParams.placementId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
         adUnit = adParams.adUnit

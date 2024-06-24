@@ -47,13 +47,13 @@ internal class BigoAdsRewardedAdImpl :
     override fun load(adParams: BigoFullscreenAuctionParams) {
         adParams.slotId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "slotId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.payload ?: run {
                 emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
                 return
             }
         }

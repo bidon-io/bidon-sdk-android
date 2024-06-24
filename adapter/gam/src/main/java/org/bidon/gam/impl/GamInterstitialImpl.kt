@@ -47,12 +47,12 @@ internal class GamInterstitialImpl(
             is GamFullscreenAdAuctionParams.Network -> adParams.adUnitId
         } ?: run {
             AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId"))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId"))
             return
         }
         val adRequest = getAdRequest(adParams) ?: run {
             AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload"))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "payload"))
             return
         }
         price = adParams.price

@@ -85,7 +85,7 @@ internal class BMBannerAdImpl(
                     requestBuilder.setBidPayload(it)
                 } ?: run {
                     emitEvent(AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
                     return@runOnUiThread
                 }
             }

@@ -43,7 +43,7 @@ fun Throwable.asRoundStatus() = when (this as? BidonError) {
     is BidonError.NoRoundResults -> RoundStatus.UnspecifiedException("NoRoundResults")
     is BidonError.Expired -> RoundStatus.UnspecifiedException("Expired")
     is BidonError.Unspecified -> RoundStatus.UnspecifiedException((this as BidonError.Unspecified).sourceError?.message)
-    is BidonError.IncorrectAdUnit -> RoundStatus.IncorrectAdUnit((this as BidonError.IncorrectAdUnit).errorMessage)
+    is BidonError.IncorrectAdUnit -> RoundStatus.IncorrectAdUnit((this as BidonError.IncorrectAdUnit).message)
     is BidonError.AuctionInProgress -> RoundStatus.UnspecifiedException("AuctionInProgress")
     is BidonError.SdkNotInitialized -> RoundStatus.UnspecifiedException("SdkNotInitialized")
     null -> RoundStatus.UnspecifiedException(null)

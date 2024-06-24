@@ -42,13 +42,13 @@ class MobileFuseInterstitialImpl :
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.signalData ?: run {
                 emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "signalData")))
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
                 return
             }
         }

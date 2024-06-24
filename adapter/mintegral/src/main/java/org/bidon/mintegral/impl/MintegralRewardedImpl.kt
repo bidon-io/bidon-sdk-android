@@ -53,18 +53,18 @@ internal class MintegralRewardedImpl :
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
         adParams.unitId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "unitId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "unitId")))
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.payload ?: run {
                 emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload")))
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
                 return
             }
         }

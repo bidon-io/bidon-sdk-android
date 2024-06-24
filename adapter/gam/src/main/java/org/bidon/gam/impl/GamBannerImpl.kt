@@ -49,7 +49,7 @@ internal class GamBannerImpl(
             is GamBannerAuctionParams.Network -> adParams.adUnitId
         } ?: run {
             AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "adUnitId"))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId"))
             return
         }
         price = adParams.price
@@ -58,7 +58,7 @@ internal class GamBannerImpl(
         adParams.activity.runOnUiThread {
             val adRequest = getAdRequest(adParams) ?: run {
                 AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "payload"))
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload"))
                 return@runOnUiThread
             }
             val adView = AdManagerAdView(adParams.activity.applicationContext).also {

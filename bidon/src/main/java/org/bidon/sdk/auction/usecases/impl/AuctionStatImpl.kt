@@ -287,6 +287,7 @@ internal class AuctionStatImpl(
         )
     }
 
+    // TODO: 24/06/2024
     private fun RoundStatus.getStatusMessage() =
         when (this) {
             is RoundStatus.UnspecifiedException -> errorMessage

@@ -54,7 +54,7 @@ internal class InmobiBannerImpl :
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, errorMessage = "placementId")))
+                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
         bannerFormat = adParams.bannerFormat
