@@ -47,7 +47,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
             .onEach { pair ->
                 logInfo(
                     TAG,
-                    "#${pair.key}: status: ${pair.value?.status} token:${pair.value?.token}"
+                    "#${pair.key}: status: ${pair.value.status} token:${pair.value.token}"
                 )
             }
 
