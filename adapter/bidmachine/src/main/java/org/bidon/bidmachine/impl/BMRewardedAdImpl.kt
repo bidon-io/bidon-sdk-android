@@ -38,7 +38,6 @@ internal class BMRewardedAdImpl(
     private var context: Context? = null
     private var adRequest: RewardedRequest? = null
     private var rewardedAd: RewardedAd? = null
-    private var bidType = BidType.CPM
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canShow() == true
@@ -50,6 +49,7 @@ internal class BMRewardedAdImpl(
     override fun load(adParams: BMFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
+        val bidType = adParams.adUnit.bidType
         val requestBuilder = RewardedRequest.Builder()
             .apply {
                 if (bidType == BidType.CPM) {
@@ -66,7 +66,7 @@ internal class BMRewardedAdImpl(
                         result: BMAuctionResult
                     ) {
                         logInfo(TAG, "onRequestSuccess $result: $this")
-                        fillAd(request)
+                        fillAd(request, bidType)
                     }
 
                     override fun onRequestFailed(request: RewardedRequest, bmError: BMError) {
@@ -80,7 +80,7 @@ internal class BMRewardedAdImpl(
                     }
                 }
             )
-        if (adParams.adUnit.bidType == BidType.RTB) {
+        if (bidType == BidType.RTB) {
             adParams.payload?.let {
                 requestBuilder.setBidPayload(it)
             } ?: run {
@@ -123,7 +123,7 @@ internal class BMRewardedAdImpl(
         rewardedAd = null
     }
 
-    private fun fillAd(adRequest: RewardedRequest?) {
+    private fun fillAd(adRequest: RewardedRequest?, bidType: BidType) {
         logInfo(TAG, "Starting fill: $this")
         val context = context
         if (context == null) {

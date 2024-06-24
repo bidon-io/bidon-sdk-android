@@ -50,9 +50,10 @@ internal class BMInterstitialAdImpl(
     override fun load(adParams: BMFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
+        val bidType = adParams.adUnit.bidType
         val requestBuilder = InterstitialRequest.Builder()
             .apply {
-                if (adParams.adUnit.bidType == BidType.CPM) {
+                if (bidType == BidType.CPM) {
                     this.setNetworks("")
                 }
             }
@@ -67,7 +68,7 @@ internal class BMInterstitialAdImpl(
                         result: BMAuctionResult
                     ) {
                         logInfo(TAG, "onRequestSuccess $result: $this")
-                        fillRequest(request, adParams.adUnit.bidType)
+                        fillRequest(request, bidType)
                     }
 
                     override fun onRequestFailed(request: InterstitialRequest, bmError: BMError) {
@@ -81,7 +82,7 @@ internal class BMInterstitialAdImpl(
                     }
                 }
             )
-        if (adParams.adUnit.bidType == BidType.RTB) {
+        if (bidType == BidType.RTB) {
             adParams.payload?.let {
                 requestBuilder.setBidPayload(it)
             } ?: run {

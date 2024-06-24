@@ -80,7 +80,7 @@ internal class BMBannerAdImpl(
                         }
                     }
                 )
-            if (adParams.adUnit.bidType == BidType.RTB) {
+            if (bidType == BidType.RTB) {
                 adParams.payload?.let {
                     requestBuilder.setBidPayload(it)
                 } ?: run {
