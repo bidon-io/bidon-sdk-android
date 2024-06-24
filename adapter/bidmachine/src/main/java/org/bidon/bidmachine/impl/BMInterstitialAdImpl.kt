@@ -40,7 +40,6 @@ internal class BMInterstitialAdImpl(
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
 
-
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
 

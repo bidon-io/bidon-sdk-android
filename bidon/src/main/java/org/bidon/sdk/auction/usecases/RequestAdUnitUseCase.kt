@@ -14,4 +14,3 @@ internal interface RequestAdUnitUseCase {
         adTypeParam: AdTypeParam,
         priceFloor: Double
     ): AuctionResult
-}

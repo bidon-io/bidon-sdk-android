@@ -73,13 +73,13 @@ internal class AuctionStatImpl(
                 .takeIf { !isAuctionCanceled }
         )
 
-        logInfo(TAG, "Winner: ${roundWinner.toString()}")
+        logInfo(TAG, "Winner: $roundWinner")
 
         val winnerUuid = roundWinner?.adSource?.getStats()?.adUnit?.uid
 
         val results: List<StatsAdUnit> = roundResults
             .map { it.asStatsAdUnit() }
-            //TODO try to find more useful solution, cause after auction ends, for filled ad we
+            // TODO try to find more useful solution, cause after auction ends, for filled ad we
             // receive Successful("INTERNAL_STATUS")
             .map { statsAdUnit ->
                 val currentUuid = statsAdUnit.adUnitUid
@@ -95,7 +95,7 @@ internal class AuctionStatImpl(
                         fillFinishTs = statsAdUnit.fillFinishTs,
                         adUnitUid = statsAdUnit.adUnitUid,
                         adUnitLabel = statsAdUnit.adUnitLabel,
-                   )
+                    )
                 } else {
                     statsAdUnit
                 }
@@ -184,7 +184,10 @@ internal class AuctionStatImpl(
         }
     }
 
-    override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd): StatsRequestBody? {
+    override fun sendAuctionStats(
+        auctionData: AuctionResponse,
+        demandAd: DemandAd
+    ): StatsRequestBody? {
         val roundResults =
             roundStat?.copy(
                 auctionId = auctionId,
@@ -193,7 +196,8 @@ internal class AuctionStatImpl(
                 winnerEcpm = winner?.adSource?.getStats()?.ecpm,
                 demands = roundStat?.demands?.map { demandStat ->
                     demandStat?.copy(
-                        status = getFinalStatus(currentStatus = demandStat.status,
+                        status = getFinalStatus(
+                            currentStatus = demandStat.status,
 
                             isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
                                     demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
@@ -229,7 +233,7 @@ internal class AuctionStatImpl(
         }
     }
 
-    private fun updateWinnerIfNeed(roundWinner: AuctionResult?) :AuctionResult?  {
+    private fun updateWinnerIfNeed(roundWinner: AuctionResult?): AuctionResult? {
         if (roundWinner == null) return winner
         val currentEcpm = winner?.adSource?.getStats()?.ecpm ?: 0.0
         return if (currentEcpm < roundWinner.adSource.getStats().ecpm) {
