@@ -59,10 +59,10 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
             logInfo(
                 TAG,
                 "Applying regulation to ${adapter.demandId.demandId} <- " +
-                        "GDPR=${BidonSdk.regulation.gdpr}, " +
-                        "COPPA=${BidonSdk.regulation.coppa}, " +
-                        "usPrivacyString=${BidonSdk.regulation.usPrivacyString}, " +
-                        "gdprConsentString=${BidonSdk.regulation.gdprConsentString}"
+                    "GDPR=${BidonSdk.regulation.gdpr}, " +
+                    "COPPA=${BidonSdk.regulation.coppa}, " +
+                    "usPrivacyString=${BidonSdk.regulation.usPrivacyString}, " +
+                    "gdprConsentString=${BidonSdk.regulation.gdprConsentString}"
             )
             supportsRegulation.updateRegulation(BidonSdk.regulation)
         }

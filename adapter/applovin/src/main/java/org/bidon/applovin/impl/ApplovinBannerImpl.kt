@@ -39,7 +39,7 @@ internal class ApplovinBannerImpl(
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adView: AppLovinAdView? = null
-    private var lineItem: AdUnit? = null
+    private var adUnit: AdUnit? = null
     private var bannerFormat: BannerFormat? = null
 
     private val listener by lazy {
@@ -47,7 +47,7 @@ internal class ApplovinBannerImpl(
             override fun adDisplayed(ad: AppLovinAd) {
                 logInfo(TAG, "adDisplayed: $ad")
                 getAd()?.let {
-                    emitEvent(AdEvent.PaidRevenue(it, lineItem?.pricefloor.asBidonAdValue()))
+                    emitEvent(AdEvent.PaidRevenue(it, adUnit?.pricefloor.asBidonAdValue()))
                 }
                 // tracked impression/shown by [BannerView]
             }
@@ -86,8 +86,14 @@ internal class ApplovinBannerImpl(
 
     override fun load(adParams: ApplovinBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        lineItem = adParams.adUnit
+        adUnit = adParams.adUnit
         bannerFormat = adParams.bannerFormat
+        val zoneId = adParams.zoneId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, "zoneId"))
+            )
+            return
+        }
         val adSize = adParams.bannerFormat.asApplovinAdSize() ?: error(
             BidonError.AdFormatIsNotSupported(
                 demandId.demandId,
@@ -110,7 +116,12 @@ internal class ApplovinBannerImpl(
         }
         adParams.activity.runOnUiThread {
             val bannerView =
-                AppLovinAdView(applovinSdk, adSize, adParams.zoneId, adParams.activity.applicationContext).also {
+                AppLovinAdView(
+                    applovinSdk,
+                    adSize,
+                    zoneId,
+                    adParams.activity.applicationContext
+                ).also {
                     it.setAdClickListener(listener)
                     it.setAdDisplayListener(listener)
                     adView = it

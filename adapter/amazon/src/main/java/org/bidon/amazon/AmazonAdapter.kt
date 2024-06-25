@@ -2,8 +2,6 @@ package org.bidon.amazon
 
 import android.content.Context
 import com.amazon.device.ads.AdRegistration
-import com.amazon.device.ads.AdType
-import com.amazon.device.ads.DTBAdSize
 import com.amazon.device.ads.MRAIDPolicy
 import com.amazon.device.ads.SDKUtilities
 import org.bidon.amazon.ext.adapterVersion

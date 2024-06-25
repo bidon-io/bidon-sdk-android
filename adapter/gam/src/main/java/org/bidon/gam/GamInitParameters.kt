@@ -26,7 +26,7 @@ sealed interface GamBannerAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit,
     ) : GamBannerAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
 
         override fun toString(): String {
             return "GamBannerAuctionParams($adUnit)"
@@ -40,11 +40,11 @@ sealed interface GamBannerAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit,
     ) : GamBannerAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val payload: String? = adUnit.extra?.getString("payload")
 
         override fun toString(): String {
-            return "GamBannerAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
+            return "GamBannerAuctionParams($adUnitId, bidPrice=$price, payload=${payload?.take(20)})"
         }
     }
 }
@@ -57,7 +57,7 @@ sealed interface GamFullscreenAdAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit,
     ) : GamFullscreenAdAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
 
         override fun toString(): String {
             return "GamFullscreenAdAuctionParams($adUnit)"
@@ -69,11 +69,11 @@ sealed interface GamFullscreenAdAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit
     ) : GamFullscreenAdAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String = requireNotNull(adUnit.extra?.getString("ad_unit_id"))
-        val payload: String = requireNotNull(adUnit.extra?.getString("payload"))
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val payload: String? = adUnit.extra?.getString("payload")
 
         override fun toString(): String {
-            return "GamFullscreenAdAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
+            return "GamFullscreenAdAuctionParams($adUnitId, bidPrice=$price, payload=${payload?.take(20)})"
         }
     }
 }

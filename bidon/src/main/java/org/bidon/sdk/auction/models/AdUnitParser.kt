@@ -5,7 +5,7 @@ import org.bidon.sdk.utils.json.JsonParser
 import org.json.JSONObject
 
 // TODO: remove after discuss
-private const val defaultTimeout = 50000L
+private const val defaultTimeout = 5000L
 
 internal class AdUnitParser : JsonParser<AdUnit> {
     override fun parseOrNull(jsonString: String): AdUnit? = runCatching {

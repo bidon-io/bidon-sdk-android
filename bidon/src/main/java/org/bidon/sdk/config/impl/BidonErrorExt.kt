@@ -16,7 +16,7 @@ internal fun Throwable.asBidonErrorOrUnspecified(): BidonError {
     }
 }
 
-//TODO try to find more useful solution
+// TODO try to find more useful solution
 private fun isJobCancellationException(throwable: Throwable): Boolean {
     return throwable::class.simpleName == "JobCancellationException"
 }

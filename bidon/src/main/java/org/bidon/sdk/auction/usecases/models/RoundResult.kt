@@ -1,7 +1,6 @@
 package org.bidon.sdk.auction.usecases.models
 
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.RoundRequest
 
 /**
  * Created by Aleksei Cherniaev on 26/07/2023.

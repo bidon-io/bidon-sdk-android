@@ -24,7 +24,6 @@ class AdAuctionParamSource(
      * DSP pricefloor or Bidding bid price
      */
     val pricefloor: Double,
-    val timeout: Long,
     val adUnit: AdUnit,
 
     /**
@@ -35,6 +34,7 @@ class AdAuctionParamSource(
 ) {
     val bannerFormat: BannerFormat get() = requireNotNull(optBannerFormat)
     val containerWidth: Float get() = requireNotNull(optContainerWidth)
+    val timeout: Long = adUnit.timeout
 
     operator fun <T> invoke(data: AdAuctionParamSource.() -> T): Result<T> = runCatching {
         data.invoke(this)

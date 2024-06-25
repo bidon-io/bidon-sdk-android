@@ -10,7 +10,6 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Process
 import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import java.lang.ref.WeakReference
 import java.util.*

@@ -1,7 +1,7 @@
 package org.bidon.sdk.stats.models
 
-import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Adapter
+import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.TokenInfo
 

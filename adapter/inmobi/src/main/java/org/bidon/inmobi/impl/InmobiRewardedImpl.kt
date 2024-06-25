@@ -45,6 +45,14 @@ internal class InmobiRewardedImpl :
 
     override fun load(adParams: InmobiFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
         val interstitialAd = InMobiInterstitial(
             adParams.context, adParams.placementId,
             object : InterstitialAdEventListener() {

@@ -65,7 +65,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         logInfo(
                             TAG,
                             "Auction was stopped because the priceFloor: $pricefloor is less than " +
-                                    "the next requested adUnit: ${adUnit.pricefloor}"
+                                "the next requested adUnit: ${adUnit.pricefloor}"
                         )
                         break
                     }
@@ -102,14 +102,14 @@ internal class ExecuteAuctionUseCaseImpl(
                             adTypeParam = adTypeParam,
                             adUnit = adUnit,
                             priceFloor = pricefloor,
-                        )?.also {
+                        ).also {
                             resultsCollector.add(it)
                         }
-                        if (auctionResult?.roundStatus == RoundStatus.Successful
-                            && !shouldRequestNext(
-                                auctionResult = auctionResult,
-                                next = adUnitQueue.peek()
-                            )
+                        if (auctionResult.roundStatus == RoundStatus.Successful &&
+                            !shouldRequestNext(
+                                    auctionResult = auctionResult,
+                                    next = adUnitQueue.peek()
+                                )
                         ) {
                             logInfo(
                                 TAG,
@@ -177,10 +177,10 @@ internal class ExecuteAuctionUseCaseImpl(
             logInfo(
                 TAG,
                 "Applying regulation to ${demandId.demandId} <- " +
-                        "GDPR=${regulation.gdpr}, " +
-                        "COPPA=${regulation.coppa}, " +
-                        "usPrivacyString=${regulation.usPrivacyString}, " +
-                        "gdprConsentString=${regulation.gdprConsentString}"
+                    "GDPR=${regulation.gdpr}, " +
+                    "COPPA=${regulation.coppa}, " +
+                    "usPrivacyString=${regulation.usPrivacyString}, " +
+                    "gdprConsentString=${regulation.gdprConsentString}"
             )
             supportsRegulation.updateRegulation(regulation)
         }

@@ -80,8 +80,17 @@ internal class BMBannerAdImpl(
                         }
                     }
                 )
-            adParams.payload?.let {
-                requestBuilder.setBidPayload(it)
+            if (bidType == BidType.RTB) {
+                adParams.payload?.let {
+                    requestBuilder.setBidPayload(it)
+                } ?: run {
+                    emitEvent(
+                        AdEvent.LoadFailed(
+                            BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                        )
+                    )
+                    return@runOnUiThread
+                }
             }
             requestBuilder.build()
                 .also { adRequest = it }

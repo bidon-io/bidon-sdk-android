@@ -20,6 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MobileFuseBannerImpl :
@@ -43,6 +44,24 @@ class MobileFuseBannerImpl :
 
     override fun load(adParams: MobileFuseBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.signalData ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")
+                    )
+                )
+                return
+            }
+        }
         this.bannerFormat = adParams.bannerFormat
         // placementId should be configured in the mediation platform UI and passed back to this method:
         val adSize = when (adParams.bannerFormat) {
@@ -119,8 +138,14 @@ class MobileFuseBannerImpl :
                     }
 
                     else -> {
-                        emitEvent(AdEvent.LoadFailed(BidonError.Unspecified(demandId,
-                            Throwable(adError?.errorMessage))))
+                        emitEvent(
+                            AdEvent.LoadFailed(
+                                BidonError.Unspecified(
+                                    demandId,
+                                    Throwable(adError?.errorMessage)
+                                )
+                            )
+                        )
                     }
                 }
             }

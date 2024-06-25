@@ -41,7 +41,25 @@ internal class AdmobInterstitialImpl(
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        val adRequest = getAdRequest(adParams)
+        val adRequest = getAdRequest(adParams) ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                )
+            )
+            return
+        }
+        val adUnitId = when (adParams) {
+            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
+            is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
+        } ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")
+                )
+            )
+            return
+        }
         price = adParams.price
         val requestListener = object : InterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
@@ -70,10 +88,6 @@ internal class AdmobInterstitialImpl(
                     getAd()?.let { emitEvent(AdEvent.Fill(it)) }
                 }
             }
-        }
-        val adUnitId = when (adParams) {
-            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
-            is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
         }
         InterstitialAd.load(adParams.activity, adUnitId, adRequest, requestListener)
     }

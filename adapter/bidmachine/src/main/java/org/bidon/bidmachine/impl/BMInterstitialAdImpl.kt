@@ -40,7 +40,6 @@ internal class BMInterstitialAdImpl(
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
 
-
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
 
@@ -51,9 +50,10 @@ internal class BMInterstitialAdImpl(
     override fun load(adParams: BMFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
+        val bidType = adParams.adUnit.bidType
         val requestBuilder = InterstitialRequest.Builder()
             .apply {
-                if (adParams.adUnit.bidType == BidType.CPM) {
+                if (bidType == BidType.CPM) {
                     this.setNetworks("")
                 }
             }
@@ -68,7 +68,7 @@ internal class BMInterstitialAdImpl(
                         result: BMAuctionResult
                     ) {
                         logInfo(TAG, "onRequestSuccess $result: $this")
-                        fillRequest(request, adParams.adUnit.bidType)
+                        fillRequest(request, bidType)
                     }
 
                     override fun onRequestFailed(request: InterstitialRequest, bmError: BMError) {
@@ -82,8 +82,17 @@ internal class BMInterstitialAdImpl(
                     }
                 }
             )
-        adParams.payload?.let {
-            requestBuilder.setBidPayload(it)
+        if (bidType == BidType.RTB) {
+            adParams.payload?.let {
+                requestBuilder.setBidPayload(it)
+            } ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
         }
         requestBuilder.build()
             .also {

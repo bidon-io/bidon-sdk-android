@@ -13,12 +13,8 @@ class MetaFullscreenAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price = adUnit.pricefloor
-    val placementId = requireNotNull(adUnit.extra?.optString("placement_id")) {
-        "Placement id is required for Meta"
-    }
-    val payload = requireNotNull(adUnit.extra?.optString("payload")) {
-        "Payload is required for Meta"
-    }
+    val placementId = adUnit.extra?.optString("placement_id")
+    val payload = adUnit.extra?.optString("payload")
 }
 
 class MetaBannerAuctionParams(
@@ -27,12 +23,8 @@ class MetaBannerAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price = adUnit.pricefloor
-    val placementId = requireNotNull(adUnit.extra?.optString("placement_id")) {
-        "Placement id is required for Meta"
-    }
-    val payload = requireNotNull(adUnit.extra?.optString("payload")) {
-        "Payload is required for Meta"
-    }
+    val placementId = adUnit.extra?.optString("placement_id")
+    val payload = adUnit.extra?.optString("payload")
 
     val bannerSize: AdSize
         get() = when (bannerFormat) {

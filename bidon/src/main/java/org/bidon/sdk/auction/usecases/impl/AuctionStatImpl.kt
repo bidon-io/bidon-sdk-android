@@ -73,13 +73,13 @@ internal class AuctionStatImpl(
                 .takeIf { !isAuctionCanceled }
         )
 
-        logInfo(TAG, "Winner: ${roundWinner.toString()}")
+        logInfo(TAG, "Winner: $roundWinner")
 
         val winnerUuid = roundWinner?.adSource?.getStats()?.adUnit?.uid
 
         val results: List<StatsAdUnit> = roundResults
             .map { it.asStatsAdUnit() }
-            //TODO try to find more useful solution, cause after auction ends, for filled ad we
+            // TODO try to find more useful solution, cause after auction ends, for filled ad we
             // receive Successful("INTERNAL_STATUS")
             .map { statsAdUnit ->
                 val currentUuid = statsAdUnit.adUnitUid
@@ -95,7 +95,7 @@ internal class AuctionStatImpl(
                         fillFinishTs = statsAdUnit.fillFinishTs,
                         adUnitUid = statsAdUnit.adUnitUid,
                         adUnitLabel = statsAdUnit.adUnitLabel,
-                   )
+                    )
                 } else {
                     statsAdUnit
                 }
@@ -120,7 +120,7 @@ internal class AuctionStatImpl(
                     demandId = stat.demandId.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
-                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
+                    price = stat.ecpm,
                     tokenStartTs = null,
                     tokenFinishTs = null,
                     bidType = BidType.CPM.code,
@@ -128,7 +128,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -138,7 +138,7 @@ internal class AuctionStatImpl(
                     demandId = stat.demandId.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
-                    price = stat.ecpm.takeEcpmIfPossible(this.roundStatus),
+                    price = stat.ecpm,
                     tokenStartTs = stat.tokenInfo?.tokenStartTs,
                     tokenFinishTs = stat.tokenInfo?.tokenFinishTs,
                     bidType = BidType.RTB.code,
@@ -146,7 +146,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = stat.fillFinishTs,
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -163,7 +163,7 @@ internal class AuctionStatImpl(
                     fillFinishTs = null,
                     adUnitUid = null,
                     adUnitLabel = null,
-                    errorMessage = (roundStatus as? RoundStatus.UnspecifiedException)?.errorMessage
+                    errorMessage = roundStatus.getStatusMessage()
                 )
             }
 
@@ -184,7 +184,10 @@ internal class AuctionStatImpl(
         }
     }
 
-    override fun sendAuctionStats(auctionData: AuctionResponse, demandAd: DemandAd): StatsRequestBody? {
+    override fun sendAuctionStats(
+        auctionData: AuctionResponse,
+        demandAd: DemandAd
+    ): StatsRequestBody? {
         val roundResults =
             roundStat?.copy(
                 auctionId = auctionId,
@@ -193,11 +196,12 @@ internal class AuctionStatImpl(
                 winnerEcpm = winner?.adSource?.getStats()?.ecpm,
                 demands = roundStat?.demands?.map { demandStat ->
                     demandStat?.copy(
-                        status = getFinalStatus(currentStatus = demandStat.status,
+                        status = getFinalStatus(
+                            currentStatus = demandStat.status,
 
                             isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
-                                    demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
-                                    demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
+                                demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
+                                demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.ecpm
                         )
                     )
                 } ?: listOf(),
@@ -229,7 +233,7 @@ internal class AuctionStatImpl(
         }
     }
 
-    private fun updateWinnerIfNeed(roundWinner: AuctionResult?) :AuctionResult?  {
+    private fun updateWinnerIfNeed(roundWinner: AuctionResult?): AuctionResult? {
         if (roundWinner == null) return winner
         val currentEcpm = winner?.adSource?.getStats()?.ecpm ?: 0.0
         return if (currentEcpm < roundWinner.adSource.getStats().ecpm) {
@@ -237,15 +241,6 @@ internal class AuctionStatImpl(
             roundWinner
         } else {
             winner
-        }
-    }
-
-    private fun Double?.takeEcpmIfPossible(status: RoundStatus): Double? {
-        return this?.takeIf {
-            status !in arrayOf(
-                RoundStatus.NoBid,
-                RoundStatus.NoAppropriateAdUnitId
-            )
         }
     }
 
@@ -291,6 +286,14 @@ internal class AuctionStatImpl(
             rewarded = rewardedRequestBody,
         )
     }
+
+    // TODO: 24/06/2024
+    private fun RoundStatus.getStatusMessage() =
+        when (this) {
+            is RoundStatus.UnspecifiedException -> errorMessage
+            is RoundStatus.IncorrectAdUnit -> errorMessage
+            else -> null
+        }
 }
 
 private const val TAG = "AuctionStat"

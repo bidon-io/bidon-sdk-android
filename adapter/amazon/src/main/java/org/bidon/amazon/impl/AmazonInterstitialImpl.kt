@@ -19,7 +19,8 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
-internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>) : AdSource.Interstitial<FullscreenAuctionParams>,
+internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>) :
+    AdSource.Interstitial<FullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -41,6 +42,14 @@ internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>)
         if (amazonInfos.isEmpty()) {
             logError(TAG, "No Amazon slot found", BidonError.NoAppropriateAdUnitId)
             emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
+            return
+        }
+        adParams.slotUuid ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "slotUuid")
+                )
+            )
             return
         }
         val dtbAdResponse = amazonInfos.firstOrNull { adParams.slotUuid == it.adSizes.slotUUID }?.dtbAdResponse
