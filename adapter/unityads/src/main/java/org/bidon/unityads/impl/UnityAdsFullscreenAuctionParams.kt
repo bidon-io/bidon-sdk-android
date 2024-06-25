@@ -24,6 +24,6 @@ class UnityAdsBannerAuctionParams(
     val placementId: String? = adUnit.extra?.getString("placement_id")
 
     override fun toString(): String {
-        return "UnityAdsBannerAuctionParams(bannerFormat=$bannerFormat, lineItem=$adUnit)"
+        return "UnityAdsBannerAuctionParams(bannerFormat=$bannerFormat, adUnit=$adUnit)"
     }
 }

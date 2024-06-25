@@ -24,6 +24,6 @@ class DTExchangeBannerAuctionParams(
     override val price: Double = adUnit.pricefloor
 
     override fun toString(): String {
-        return "DTExchangeBannerAuctionParams(bannerFormat=$bannerFormat, lineItem=$adUnit)"
+        return "DTExchangeBannerAuctionParams(bannerFormat=$bannerFormat, adUnit=$adUnit)"
     }
 }

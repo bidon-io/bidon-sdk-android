@@ -30,6 +30,6 @@ class ApplovinFullscreenAdAuctionParams(
     val zoneId: String? = adUnit.extra?.getString("zone_id")
 
     override fun toString(): String {
-        return "ApplovinFullscreenAdAuctionParams(lineItem=$adUnit)"
+        return "ApplovinFullscreenAdAuctionParams(adUnit=$adUnit)"
     }
 }
