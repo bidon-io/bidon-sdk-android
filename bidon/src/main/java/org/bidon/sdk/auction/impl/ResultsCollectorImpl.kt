@@ -132,6 +132,7 @@ internal class ResultsCollectorImpl(
         clearRoundResults()
     }
 
+    @Deprecated("")
     override suspend fun saveWinners(sourcePriceFloor: Double) {
         val roundResults = when (val r = roundResult.value) {
             RoundResult.Idle -> emptyList()

@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.usecases.impl
 
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -47,7 +46,7 @@ internal class ExecuteAuctionUseCaseImpl(
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
     ) {
-        coroutineScope {
+        withTimeoutOrNull(auctionTimeout) {
             runCatching {
                 resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
 
@@ -102,7 +101,7 @@ internal class ExecuteAuctionUseCaseImpl(
                             adSource = adSource,
                             adTypeParam = adTypeParam,
                             adUnit = adUnit,
-                            priceFloor = pricefloor
+                            priceFloor = pricefloor,
                         ).also {
                             resultsCollector.add(it)
                         }
@@ -134,9 +133,9 @@ internal class ExecuteAuctionUseCaseImpl(
                     }.orEmpty()
                 }
             }.onFailure {
-                logError(TAG, "Failed to execute round", it)
-            }
-        }
+                logError(TAG, "Failed to execute auction", it)
+            }.getOrNull()
+        } ?: logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
     }
 
     private fun shouldRequestNext(
