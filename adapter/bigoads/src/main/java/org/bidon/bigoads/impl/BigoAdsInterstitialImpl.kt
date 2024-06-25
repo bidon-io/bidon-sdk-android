@@ -15,6 +15,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import sg.bigo.ads.api.AdError
 import sg.bigo.ads.api.AdInteractionListener
 import sg.bigo.ads.api.AdLoadListener
@@ -44,6 +45,24 @@ internal class BigoAdsInterstitialImpl :
     }
 
     override fun load(adParams: BigoFullscreenAuctionParams) {
+        adParams.slotId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
+        }
         val builder = InterstitialAdRequest.Builder()
         builder
             .withBid(adParams.payload)

@@ -45,6 +45,14 @@ internal class AmazonRewardedImpl(
             emitEvent(AdEvent.LoadFailed(BidonError.NoAppropriateAdUnitId))
             return
         }
+        adParams.slotUuid ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "slotUuid")
+                )
+            )
+            return
+        }
         val dtbAdResponse = amazonInfos.firstOrNull { adParams.slotUuid == it.adSizes.slotUUID }?.dtbAdResponse
         if (dtbAdResponse == null) {
             logError(TAG, "DTBAdResponse is null", BidonError.NoBid)

@@ -21,6 +21,7 @@ import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 20/06/2023.
@@ -49,6 +50,32 @@ internal class MintegralBannerImpl :
 
     override fun load(adParams: MintegralBannerAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        adParams.unitId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "unitId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
+        }
         adParams.activity.runOnUiThread {
             val mbBannerView = MBBannerView(adParams.activity.applicationContext).also {
                 bannerView = it
@@ -69,8 +96,12 @@ internal class MintegralBannerImpl :
             mbBannerView.setBannerAdListener(object : BannerAdListener {
                 override fun onLoadFailed(mBridgeIds: MBridgeIds?, message: String?) {
                     logInfo(TAG, "onLoadFailed $mBridgeIds")
-                    emitEvent(AdEvent.LoadFailed(message?.asBidonError()
-                        ?: BidonError.NoFill(demandId)))
+                    emitEvent(
+                        AdEvent.LoadFailed(
+                            message?.asBidonError()
+                                ?: BidonError.NoFill(demandId)
+                        )
+                    )
                 }
 
                 override fun onLoadSuccessed(mBridgeIds: MBridgeIds?) {

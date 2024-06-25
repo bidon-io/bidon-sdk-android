@@ -13,5 +13,5 @@ internal interface RequestAdUnitUseCase {
         adUnit: AdUnit,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-    ): AuctionResult?
+    ): AuctionResult
 }

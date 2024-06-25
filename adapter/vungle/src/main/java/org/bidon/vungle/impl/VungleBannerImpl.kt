@@ -19,6 +19,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.vungle.VungleBannerAuctionParams
 import org.bidon.vungle.ext.asBidonError
 
@@ -47,6 +48,25 @@ internal class VungleBannerImpl :
     }
 
     override fun load(adParams: VungleBannerAuctionParams) {
+        logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
+        }
         this.bannerSize = adParams.bannerSize
         adParams.activity.runOnUiThread {
             val banner = BannerAd(

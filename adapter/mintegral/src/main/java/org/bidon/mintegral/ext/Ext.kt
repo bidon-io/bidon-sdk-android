@@ -14,9 +14,10 @@ internal var sdkVersion = MBConfiguration.SDK_VERSION
 /**
  * https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-android&lang=en#thedescriptionofreturnstatus
  */
-internal fun String?.asBidonError(): BidonError = when (this) {
-    "NO_ADS_SOURCE",
-    "EXCEPTION_RETURN_EMPTY" -> BidonError.NoFill(MintegralDemandId)
-    "EXCEPTION_TIMEOUT" -> BidonError.FillTimedOut(MintegralDemandId)
-    else -> BidonError.Unspecified(MintegralDemandId, Throwable(this))
-}
+internal fun String?.asBidonError(): BidonError =
+    when (this) {
+        "NO_ADS_SOURCE",
+        "EXCEPTION_RETURN_EMPTY" -> BidonError.NoFill(MintegralDemandId)
+        "EXCEPTION_TIMEOUT" -> BidonError.FillTimedOut(MintegralDemandId)
+        else -> BidonError.Unspecified(MintegralDemandId, Throwable(this))
+    }

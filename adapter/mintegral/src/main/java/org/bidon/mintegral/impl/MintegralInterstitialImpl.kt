@@ -21,6 +21,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 20/06/2023.
@@ -50,6 +51,32 @@ internal class MintegralInterstitialImpl :
 
     override fun load(adParams: MintegralAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        adParams.unitId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "unitId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
+        }
         val handler = MBBidNewInterstitialHandler(
             adParams.activity.applicationContext,
             adParams.placementId,
@@ -72,8 +99,12 @@ internal class MintegralInterstitialImpl :
 
             override fun onResourceLoadFail(mBridgeIds: MBridgeIds?, message: String?) {
                 logInfo(TAG, "onResourceLoadFail $mBridgeIds")
-                emitEvent(AdEvent.LoadFailed(message?.asBidonError()
-                    ?: BidonError.NoFill(demandId)))
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        message?.asBidonError()
+                            ?: BidonError.NoFill(demandId)
+                    )
+                )
             }
 
             override fun onAdShow(mBridgeIds: MBridgeIds?) {

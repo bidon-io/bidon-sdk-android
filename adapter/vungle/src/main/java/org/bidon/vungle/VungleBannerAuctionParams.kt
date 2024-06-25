@@ -13,12 +13,8 @@ class VungleBannerAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload")) {
-        "No payload found in bid response"
-    }
-    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id")) {
-        "placement_id is required"
-    }
+    val payload: String? = adUnit.extra?.getString("payload")
+    val placementId: String? = adUnit.extra?.getString("placement_id")
 
     val bannerSize
         get() = when (bannerFormat) {
@@ -34,10 +30,6 @@ class VungleFullscreenAuctionParams(
     override val adUnit: AdUnit
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String = requireNotNull(adUnit.extra?.getString("payload")) {
-        "No payload found in bid response"
-    }
-    val placementId: String = requireNotNull(adUnit.extra?.getString("placement_id")) {
-        "placement_id is required"
-    }
+    val payload: String? = adUnit.extra?.getString("payload")
+    val placementId: String? = adUnit.extra?.getString("placement_id")
 }

@@ -32,4 +32,4 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
     }.getOrNull()
 }
 
-private const val auctionTimeoutDefault = 30000L
+private const val auctionTimeoutDefault = 30_000L

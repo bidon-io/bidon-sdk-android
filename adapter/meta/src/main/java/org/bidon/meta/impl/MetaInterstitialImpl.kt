@@ -18,6 +18,7 @@ import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 08/08/2023.
@@ -42,6 +43,24 @@ class MetaInterstitialImpl :
     }
 
     override fun load(adParams: MetaFullscreenAuctionParams) {
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            adParams.payload ?: run {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
+                return
+            }
+        }
         val interstitial = InterstitialAd(adParams.context, adParams.placementId).also {
             interstitialAd = it
         }

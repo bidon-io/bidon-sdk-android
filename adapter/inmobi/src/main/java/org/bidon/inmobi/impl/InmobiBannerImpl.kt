@@ -15,6 +15,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -51,6 +52,14 @@ internal class InmobiBannerImpl :
 
     override fun load(adParams: InmobiBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
         bannerFormat = adParams.bannerFormat
         val bannerView = InMobiBanner(adParams.activity.applicationContext, adParams.placementId).also {
             this.bannerView = it
