@@ -29,7 +29,6 @@ class AmazonBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "amazon",
                     pricefloor = 2.7,

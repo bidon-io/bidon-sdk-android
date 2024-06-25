@@ -28,7 +28,6 @@ class DTExchangeBannerTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 4.0,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "dtexchange",
                     pricefloor = 4.0,

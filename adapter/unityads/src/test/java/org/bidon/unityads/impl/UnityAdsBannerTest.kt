@@ -28,7 +28,6 @@ class UnityAdsBannerTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 4.0,
-                timeout = 1000,
                 AdUnit(
                     demandId = "unityads",
                     pricefloor = 4.0,

@@ -2,19 +2,15 @@ package org.bidon.bidmachine.impl
 
 import android.app.Activity
 import com.google.common.truth.Truth.assertThat
-import io.bidmachine.BidMachine
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import kotlinx.coroutines.test.runTest
 import org.bidon.bidmachine.BMFullscreenAuctionParams
 import org.bidon.bidmachine.BidMachineDemandId
 import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.json.jsonObject
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -36,7 +32,6 @@ class BMInterstitialAdImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.75,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "bidmachine",
                     pricefloor = 2.75,
@@ -79,7 +74,6 @@ class BMInterstitialAdImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.75,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "bidmachine",
                     pricefloor = 2.75,

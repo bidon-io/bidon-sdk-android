@@ -28,7 +28,6 @@ class BigoAdsBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.7,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "bigoads",
                     pricefloor = 2.7,

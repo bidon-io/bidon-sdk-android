@@ -29,8 +29,7 @@ class VungleInterstitialImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.7,
-                timeout = 5000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "vungle",
                     pricefloor = 2.7,
                     label = "label123",

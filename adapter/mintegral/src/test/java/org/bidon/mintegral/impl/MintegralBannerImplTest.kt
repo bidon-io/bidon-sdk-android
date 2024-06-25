@@ -29,7 +29,6 @@ class MintegralBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "mintegral",
                     pricefloor = 2.9,

@@ -30,7 +30,6 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.6,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "admob",
                     pricefloor = 2.6,
@@ -78,8 +77,7 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 3.5,
-                timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "admob",
                     pricefloor = 3.5,
                     label = "label888",
@@ -123,8 +121,7 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.75,
-                timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "admob",
                     pricefloor = 2.75,
                     label = "label888",
@@ -150,7 +147,7 @@ class GetAdAuctionParamsUseCaseTest {
             AdUnit(
                 demandId = "admob",
                 pricefloor = 2.75,
-                label = "label123",
+                label = "label888",
                 bidType = BidType.RTB,
                 ext = jsonObject {
                     "ad_unit_id" hasValue "ad_unit_id888"
@@ -171,8 +168,7 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.75,
-                timeout = 1000,
-                AdUnit(
+                adUnit = AdUnit(
                     demandId = "admob",
                     pricefloor = 3.5,
                     label = "label888",

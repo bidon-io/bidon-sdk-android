@@ -29,7 +29,6 @@ class VungleBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.7,
-                timeout = 5000,
                 adUnit = AdUnit(
                     demandId = "vungle",
                     pricefloor = 2.7,

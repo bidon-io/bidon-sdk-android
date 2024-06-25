@@ -5,7 +5,6 @@ import com.google.common.truth.Truth
 import io.mockk.mockk
 import org.bidon.dtexchange.DTExchangeDemandId
 import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.json.jsonObject
@@ -28,7 +27,6 @@ class DTExchangeInterstitialTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "dtexchange",
                     pricefloor = 4.0,

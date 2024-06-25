@@ -1,25 +1,15 @@
 package org.bidon.sdk.auction.impl
 
 import android.app.Activity
-import com.google.common.truth.Truth.assertThat
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
-import kotlinx.coroutines.test.runTest
-import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.adapter.ext.ad
-import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
-import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
-import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
@@ -30,17 +20,13 @@ import org.bidon.sdk.config.models.adapters.TestBiddingAdapter
 import org.bidon.sdk.config.models.auctions.impl.Admob
 import org.bidon.sdk.config.models.auctions.impl.BidMachine
 import org.bidon.sdk.config.models.base.ConcurrentTest
-import org.bidon.sdk.logs.analytic.AdValue.Companion.USD
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.json.jsonObject
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
-import org.junit.Test
 
 /**
  * Created by Aleksei Cherniaev on 26/06/2023.

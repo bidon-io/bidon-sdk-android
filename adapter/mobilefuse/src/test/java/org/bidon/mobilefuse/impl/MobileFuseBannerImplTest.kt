@@ -28,7 +28,6 @@ class MobileFuseBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.7,
-                timeout = 5000,
                 adUnit = AdUnit(
                     demandId = "mobilefuse",
                     pricefloor = 2.7,

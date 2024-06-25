@@ -12,7 +12,7 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMFullscreenAuctionParams(
                 price = adUnit.pricefloor,
-                timeout = timeout,
+                timeout = adUnit.timeout,
                 context = activity.applicationContext,
                 adUnit = adUnit,
                 payload = adUnit.extra?.getString("payload")
@@ -24,7 +24,7 @@ class GetAdAuctionParamUseCase {
         return auctionParamsScope {
             BMBannerAuctionParams(
                 price = adUnit.pricefloor,
-                timeout = timeout,
+                timeout = adUnit.timeout,
                 activity = activity,
                 bannerFormat = bannerFormat,
                 adUnit = adUnit,

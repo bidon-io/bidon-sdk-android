@@ -31,7 +31,6 @@ class MetaBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.6,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "meta",
                     pricefloor = 2.6,

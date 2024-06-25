@@ -6,7 +6,6 @@ import io.mockk.every
 import io.mockk.mockk
 import org.bidon.inmobi.InmobiDemandId
 import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.json.jsonObject
@@ -31,7 +30,6 @@ class InmobiRewardedImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "inmobi",
                     pricefloor = 3.5,

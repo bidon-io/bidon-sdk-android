@@ -248,7 +248,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             adTypeParam = AdTypeParam.Interstitial(
                 activity = activity,
                 pricefloor = 1.0,
-                auctionKey = null),
+                auctionKey = null
+            ),
             onSuccess = { auctionResults ->
 
                 // THEN it should detect winner in round_1. "admob2" can not fill.
@@ -397,7 +398,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 uid = "1",
             ),
 
-            ),
+        ),
         pricefloor = 0.01,
         auctionId = "auctionId_123",
         auctionConfigurationId = 10,

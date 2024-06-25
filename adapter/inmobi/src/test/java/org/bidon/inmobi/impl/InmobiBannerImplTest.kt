@@ -28,7 +28,6 @@ class InmobiBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "inmobi",
                     pricefloor = 3.5,

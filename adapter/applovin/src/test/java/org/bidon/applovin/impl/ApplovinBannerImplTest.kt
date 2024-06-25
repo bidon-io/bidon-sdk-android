@@ -29,7 +29,6 @@ class ApplovinBannerImplTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "applovin",
                     pricefloor = 4.0,

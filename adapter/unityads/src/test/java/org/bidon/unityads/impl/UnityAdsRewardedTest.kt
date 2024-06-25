@@ -4,7 +4,6 @@ import android.app.Activity
 import com.google.common.truth.Truth
 import io.mockk.mockk
 import org.bidon.sdk.adapter.AdAuctionParamSource
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.utils.json.jsonObject
@@ -28,7 +27,6 @@ class UnityAdsRewardedTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 4.0,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "unityads",
                     pricefloor = 4.0,

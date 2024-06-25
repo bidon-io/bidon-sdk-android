@@ -30,7 +30,6 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.6,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 2.6,
@@ -78,7 +77,6 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 3.5,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 3.5,
@@ -123,7 +121,6 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.6,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 2.6,
@@ -171,7 +168,6 @@ class GetAdAuctionParamsUseCaseTest {
             AdAuctionParamSource(
                 activity = activity,
                 pricefloor = 2.75,
-                timeout = 1000,
                 adUnit = AdUnit(
                     demandId = "gam",
                     pricefloor = 3.5,
