@@ -45,8 +45,11 @@ internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>)
             return
         }
         adParams.slotUuid ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, "slotUuid")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "slotUuid")
+                )
+            )
             return
         }
         val dtbAdResponse = amazonInfos.firstOrNull { adParams.slotUuid == it.adSizes.slotUUID }?.dtbAdResponse

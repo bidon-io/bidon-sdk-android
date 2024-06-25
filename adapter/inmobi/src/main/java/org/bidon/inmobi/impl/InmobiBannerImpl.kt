@@ -53,8 +53,11 @@ internal class InmobiBannerImpl :
     override fun load(adParams: InmobiBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
             return
         }
         bannerFormat = adParams.bannerFormat

@@ -42,17 +42,23 @@ internal class AdmobRewardedImpl(
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        val adRequest = getAdRequest(adParams)?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId, "payload")))
+        val adRequest = getAdRequest(adParams) ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId, "payload")
+                )
+            )
             return
         }
         val adUnitId = when (adParams) {
             is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
         } ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId, "adUnitId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId, "adUnitId")
+                )
+            )
             return
         }
         price = adParams.price

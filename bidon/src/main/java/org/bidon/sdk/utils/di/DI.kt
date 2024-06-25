@@ -26,13 +26,13 @@ import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
-import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.bidding.BiddingConfigImpl
 import org.bidon.sdk.bidding.BiddingConfigSynchronizer

@@ -54,8 +54,11 @@ internal class DTExchangeBanner :
     override fun load(adParams: DTExchangeBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
         val spotId = adParams.spotId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, "spotId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "spotId")
+                )
+            )
             return
         }
         val adSpot = InneractiveAdSpotManager.get().createSpot()

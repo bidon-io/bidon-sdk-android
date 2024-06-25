@@ -44,14 +44,20 @@ class MetaInterstitialImpl :
 
     override fun load(adParams: MetaFullscreenAuctionParams) {
         adParams.placementId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.payload ?: run {
-                emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
                 return
             }
         }

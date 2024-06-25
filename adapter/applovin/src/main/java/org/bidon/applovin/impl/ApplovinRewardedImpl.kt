@@ -115,8 +115,11 @@ internal class ApplovinRewardedImpl(
         logInfo(TAG, "Starting with $adParams: $this")
         adUnit = adParams.adUnit
         val zoneId = adParams.zoneId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "zoneId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "zoneId")
+                )
+            )
             return
         }
         val incentivizedInterstitial =

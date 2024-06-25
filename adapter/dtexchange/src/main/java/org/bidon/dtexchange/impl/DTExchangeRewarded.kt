@@ -51,8 +51,11 @@ internal class DTExchangeRewarded :
     override fun load(adParams: DTExchangeAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         val spotId = adParams.spotId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, "spotId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "spotId")
+                )
+            )
             return
         }
         adUnit = adParams.adUnit

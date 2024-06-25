@@ -44,8 +44,11 @@ internal class UnityAdsBanner :
     override fun load(adParams: UnityAdsBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
         val placementId = adParams.placementId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
             return
         }
         adUnit = adParams.adUnit

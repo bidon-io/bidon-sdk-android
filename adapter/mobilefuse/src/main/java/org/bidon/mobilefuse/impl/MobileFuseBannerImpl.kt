@@ -45,14 +45,20 @@ class MobileFuseBannerImpl :
     override fun load(adParams: MobileFuseBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.signalData ?: run {
-                emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")
+                    )
+                )
                 return
             }
         }
@@ -132,8 +138,14 @@ class MobileFuseBannerImpl :
                     }
 
                     else -> {
-                        emitEvent(AdEvent.LoadFailed(BidonError.Unspecified(demandId,
-                            Throwable(adError?.errorMessage))))
+                        emitEvent(
+                            AdEvent.LoadFailed(
+                                BidonError.Unspecified(
+                                    demandId,
+                                    Throwable(adError?.errorMessage)
+                                )
+                            )
+                        )
                     }
                 }
             }

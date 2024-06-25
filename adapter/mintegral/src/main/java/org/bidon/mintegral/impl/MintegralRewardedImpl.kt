@@ -52,19 +52,28 @@ internal class MintegralRewardedImpl :
     override fun load(adParams: MintegralAuctionParam) {
         logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
             return
         }
         adParams.unitId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, message = "unitId")))
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "unitId")
+                )
+            )
             return
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.payload ?: run {
-                emitEvent(AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
+                    )
+                )
                 return
             }
         }
@@ -92,8 +101,12 @@ internal class MintegralRewardedImpl :
 
             override fun onVideoLoadFail(mBridgeIds: MBridgeIds?, message: String?) {
                 logInfo(TAG, "onVideoLoadFail $mBridgeIds")
-                emitEvent(AdEvent.LoadFailed(message?.asBidonError()
-                    ?: BidonError.NoFill(demandId)))
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        message?.asBidonError()
+                            ?: BidonError.NoFill(demandId)
+                    )
+                )
             }
 
             override fun onVideoAdClicked(mBridgeIds: MBridgeIds?) {

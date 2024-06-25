@@ -89,8 +89,9 @@ internal class ApplovinBannerImpl(
         adUnit = adParams.adUnit
         bannerFormat = adParams.bannerFormat
         val zoneId = adParams.zoneId ?: run {
-            emitEvent(AdEvent.LoadFailed(
-                BidonError.IncorrectAdUnit(demandId = demandId, "zoneId")))
+            emitEvent(
+                AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, "zoneId"))
+            )
             return
         }
         val adSize = adParams.bannerFormat.asApplovinAdSize() ?: error(
@@ -115,7 +116,12 @@ internal class ApplovinBannerImpl(
         }
         adParams.activity.runOnUiThread {
             val bannerView =
-                AppLovinAdView(applovinSdk, adSize, zoneId, adParams.activity.applicationContext).also {
+                AppLovinAdView(
+                    applovinSdk,
+                    adSize,
+                    zoneId,
+                    adParams.activity.applicationContext
+                ).also {
                     it.setAdClickListener(listener)
                     it.setAdDisplayListener(listener)
                     adView = it
