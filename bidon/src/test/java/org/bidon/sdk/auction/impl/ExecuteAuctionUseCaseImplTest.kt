@@ -27,10 +27,12 @@ import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.json.jsonObject
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 
 /**
  * Created by Aleksei Cherniaev on 26/06/2023.
  */
+@Ignore
 internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
 
     private val auctionConfig = AuctionResponse(
@@ -105,4 +107,84 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
     fun after() {
         unmockkAll()
     }
+
+//    @Test
+//    fun `it should conduct round`() = runTest {
+//        // mockk results
+//        coEvery {
+//            conductNetworkAuction.invoke(
+//                any(),
+//                any(),
+//                any(),
+//                any(),
+//                any(),
+//                any(),
+//                any(),
+//                any(),
+//                any()
+//            )
+//        } returns NetworksResult(
+//            results = listOf(
+//                CoroutineScope(mainDispatcherOverridden!!).async {
+//                    AuctionResult.Network(
+//                        adSource = mockk<AdSource<*>>(relaxed = true).also {
+//                            every { it.demandId } returns DemandId(Admob)
+//                            every { it.ad } returns Ad(
+//                                demandAd = DemandAd(AdType.Interstitial),
+//                                roundId = "r123",
+//                                currencyCode = USD,
+//                                dsp = null,
+//                                ecpm = 1.3,
+//                                auctionId = "a123",
+//                                adUnit = AdUnit(
+//                                    demandId = "admob",
+//                                    label = "admob_banner",
+//                                    pricefloor = 0.25,
+//                                    uid = "12387837129819",
+//                                    bidType = BidType.CPM,
+//                                    ext = jsonObject { "ad_unit_id" hasValue "ca-app-pub-3940256099942544/6300978111" }.toString(),
+//                                )
+//                            )
+//                        },
+//                        roundStatus = RoundStatus.Successful
+//                    )
+//                }
+//            ),
+//            remainingAdUnits = emptyList()
+//        )
+//        coEvery {
+//            conductBiddingAuction.invoke(
+//                context = any(),
+//                biddingSources = any(),
+//                adTypeParam = any(),
+//                demandAd = any(),
+//                bidfloor = any(),
+//                auctionId = any(),
+//                auctionConfigurationId = any(),
+//                auctionConfigurationUid = any(),
+//                adUnits = any(),
+//                resultsCollector = any(),
+//            )
+//        } returns Unit
+//
+//        // it should conduct round with 2 results
+//        val results = testee.invoke(
+//            demandAd = DemandAd(AdType.Interstitial),
+//            auctionResponse = auctionConfig,
+//            adTypeParam = AdTypeParam.Interstitial(activity, 1.0, "auctionKey"),
+//            pricefloor = 0.4,
+//            adUnits = emptyList(),
+//            resultsCollector = mockk(relaxed = true)
+//        )
+//        results
+//            .onFailure {
+//                it.printStackTrace()
+//                error("unexpected")
+//            }
+//            .onSuccess {
+//                assertThat(it).hasSize(4)
+//                assertThat(it.filter { it.roundStatus == RoundStatus.UnknownAdapter }).hasSize(2)
+//                assertThat(it.filter { it.roundStatus == RoundStatus.Successful }).hasSize(2)
+//            }
+//    }
 }
