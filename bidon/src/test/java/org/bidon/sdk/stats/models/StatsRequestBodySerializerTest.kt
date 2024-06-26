@@ -5,7 +5,6 @@ import org.bidon.sdk.config.models.json_scheme_utils.expectedJsonStructure
 import org.bidon.sdk.utils.json.jsonArray
 import org.bidon.sdk.utils.json.jsonObject
 import org.bidon.sdk.utils.serializer.serialize
-import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -13,7 +12,6 @@ import org.junit.Test
  */
 class StatsRequestBodySerializerTest {
 
-    @Ignore
     @Test
     fun `it should serialize stat request`() {
         val json = StatsRequestBody(
@@ -76,72 +74,60 @@ class StatsRequestBodySerializerTest {
         println(json)
         json.assertEquals(
             expectedJsonStructure {
+                "auction_id" hasValue "id123"
+                "auction_configuration_id" hasValue 4
+                "auction_configuration_uid" hasValue "4"
+                "auction_pricefloor" hasValue 1.0
+                "ad_units" hasArray jsonArray {
+                    putValues(
+                        listOf(
+                            jsonObject {
+                                "demand_id" hasValue "d345"
+                                "status" hasValue "WIN"
+                                "price" hasValue 1.2
+                                "fill_start_ts" hasValue 4
+                                "fill_finish_ts" hasValue 3
+                                "bid_type" hasValue "CPM"
+                                "ad_unit_uid" hasValue "123"
+                                "ad_unit_label" hasValue "label124"
+                                "token_start_ts" hasValue 2
+                                "token_finish_ts" hasValue 3
+                            },
+                            jsonObject {
+                                "demand_id" hasValue "d6"
+                                "status" hasValue "NO_FILL"
+                                "ad_unit_label" hasValue "label123"
+                                "ad_unit_uid" hasValue "123"
+                            },
+                            jsonObject {
+                                "demand_id" hasValue "d011"
+                                "status" hasValue "LOSE"
+                                "price" hasValue 1.0
+                                "fill_start_ts" hasValue 5
+                                "fill_finish_ts" hasValue 6
+                                "bid_type" hasValue "RTB"
+                                "ad_unit_uid" hasValue "123"
+                                "ad_unit_label" hasValue "label123"
+                                "token_start_ts" hasValue 678L
+                                "token_finish_ts" hasValue 679L
+                            }
+                        )
+                    )
+                }
                 "result" hasJson expectedJsonStructure {
                     "status" hasValue "SUCCESS"
-                    "winner_id" hasValue "admob"
-                    "ecpm" hasValue 0.123
-                    "ad_unit_id" hasValue "id123"
+                    "winner_demand_id" hasValue "d345"
+                    "bid_type" hasValue "CPM"
+                    "price" hasValue 1.2
+                    "winner_ad_unit_uid" hasValue "123"
+                    "winner_ad_unit_label" hasValue "label124"
                     "auction_start_ts" hasValue 1000
                     "auction_finish_ts" hasValue 1300
-                    "bid_type" hasValue "CPM"
-                }
-                "auction_id" hasValue "id123"
-                "rounds" hasArray jsonArray {
-                    val list = listOf(
-                        jsonObject {
-                            "winner_ecpm" hasValue 234.1
-                            "winner_id" hasValue "asd"
-                            "id" hasValue "id13"
-                            "pricefloor" hasValue 34.2
-                            "biddings" hasValue jsonArray {}
-                            "demands" hasValue jsonArray {
-                                putValues(
-                                    listOf(
-                                        jsonObject {
-                                            "ad_unit_id" hasValue "asd223"
-                                            "bid_finish_ts" hasValue 1
-                                            "ecpm" hasValue 1.2
-                                            "fill_start_ts" hasValue 4
-                                            "fill_finish_ts" hasValue 3
-                                            "token_start_ts" hasValue 678L
-                                            "token_finish_ts" hasValue 679L
-                                            "id" hasValue "d345"
-                                            "bid_start_ts" hasValue 2
-                                            "status" hasValue "code"
-                                        },
-                                        jsonObject {
-                                            "id" hasValue "d6"
-                                            "status" hasValue "code2"
-                                        }
-                                    )
-                                )
-                            }
-                        },
-                        jsonObject {
-                            "biddings" hasValue jsonArray {
-//                                jsonObject {
-//                                    // fixme cannot check internal jsonObject
-//                                    "bid_start_ts" hasValue 2
-//                                    "bid_finish_ts" hasValue 3
-//                                    "fill_start_ts" hasValue 5
-//                                    "fill_finish_ts" hasValue 6
-//                                    "ecpm" hasValue 1.0
-//                                    "id" hasValue "d001"
-//                                    "status" hasValue "code3"
-//                                }
-                            }
-                            "id" hasValue "id43"
-                            "demands" hasValue jsonArray { }
-                            "pricefloor" hasValue 34.2
-                        }
-                    )
-                    putValues(list)
                 }
             }
         )
     }
 
-    @Ignore
     @Test
     fun `test Bidding serialize`() {
         val actual = StatsAdUnit(
@@ -159,14 +145,14 @@ class StatsRequestBodySerializerTest {
 
         actual.assertEquals(
             expectedJsonStructure {
-                "id" hasValue "d011"
+                "demand_id" hasValue "d011"
                 "status" hasValue "code3"
-                "ecpm" hasValue 1.0
-                "bid_type" hasValue "RTB"
-                "bid_start_ts" hasValue 2
-                "bid_finish_ts" hasValue 3
+                "price" hasValue 1.0
                 "fill_start_ts" hasValue 5
                 "fill_finish_ts" hasValue 6
+                "bid_type" hasValue "RTB"
+                "ad_unit_uid" hasValue "123"
+                "ad_unit_label" hasValue "label123"
                 "token_start_ts" hasValue 678L
                 "token_finish_ts" hasValue 679L
             }
