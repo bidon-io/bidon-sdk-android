@@ -25,6 +25,7 @@ import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
@@ -71,6 +72,9 @@ internal class AuctionImpl(
                     logInfo(TAG, "Auction started $this")
                     resultsCollector.startRound(adTypeParam.pricefloor)
 
+                    /**
+                     * Bids Loading
+                     */
                     resultsCollector.serverBiddingStarted()
 
                     val tokens = tokenGetter.invoke(
@@ -96,6 +100,14 @@ internal class AuctionImpl(
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
                         auctionData.printWaterfall(demandAd.adType)
+
+                        /**
+                         * Finish bidding
+                         */
+                        val rtbAdUnits =
+                            auctionData.adUnits?.filter { adUnit -> adUnit.bidType == BidType.RTB }
+                        resultsCollector.serverBiddingFinished(rtbAdUnits)
+
                         conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -110,6 +122,10 @@ internal class AuctionImpl(
                         }
                     }.onFailure {
                         logError(TAG, "Auction failed", it)
+                        /**
+                         * Finish bidding with error
+                         */
+                        resultsCollector.serverBiddingFinished(null)
                         adTypeParam.activity.runOnUiThread {
                             onFailure(it)
                         }

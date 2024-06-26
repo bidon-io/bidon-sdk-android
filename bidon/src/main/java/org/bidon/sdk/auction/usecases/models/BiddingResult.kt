@@ -25,9 +25,4 @@ internal sealed interface BiddingResult {
         val adUnits: List<AdUnit>,
         val results: List<AuctionResult>
     ) : BiddingResult
-
-    data class TimeoutReached(
-        val serverBiddingStartTs: Long,
-        val serverBiddingFinishTs: Long?,
-    ) : BiddingResult
 }

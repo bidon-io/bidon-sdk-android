@@ -48,8 +48,6 @@ internal class ExecuteAuctionUseCaseImpl(
     ) {
         withTimeoutOrNull(auctionTimeout) {
             runCatching {
-                resultsCollector.serverBiddingFinished(adUnits.filter { it.bidType == BidType.RTB })
-
                 val adUnitQueue = LinkedList(adUnits)
 
                 while (adUnitQueue.isNotEmpty()) {

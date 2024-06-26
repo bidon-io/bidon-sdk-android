@@ -24,7 +24,6 @@ internal class ResultsCollectorImpl(
 
     private val roundResult = MutableStateFlow<RoundResult>(RoundResult.Idle)
 
-    @Deprecated("")
     override fun serverBiddingStarted() {
         roundResult.update {
             require(it is RoundResult.Results)
@@ -36,7 +35,6 @@ internal class ResultsCollectorImpl(
         }
     }
 
-    @Deprecated("")
     override fun serverBiddingFinished(adUnits: List<AdUnit>?) {
         roundResult.update { curRoundResult ->
             when (curRoundResult) {
@@ -101,8 +99,7 @@ internal class ResultsCollectorImpl(
 
                             BiddingResult.Idle,
                             is BiddingResult.NoBid,
-                            is BiddingResult.ServerBiddingStarted,
-                            is BiddingResult.TimeoutReached -> {
+                            is BiddingResult.ServerBiddingStarted -> {
                                 current.biddingResult
                             }
                         },
@@ -131,7 +128,6 @@ internal class ResultsCollectorImpl(
         clearRoundResults()
     }
 
-    @Deprecated("")
     override suspend fun saveWinners(sourcePriceFloor: Double) {
         val roundResults = when (val r = roundResult.value) {
             RoundResult.Idle -> emptyList()
@@ -175,27 +171,6 @@ internal class ResultsCollectorImpl(
                         }
                 }
                 .take(ResultsCollector.MaxAuctionResultsAmount)
-        }
-    }
-
-    override fun biddingTimeoutReached() {
-        roundResult.update {
-            require(it is RoundResult.Results)
-            val (startTs, finishTs) = when (it.biddingResult) {
-                is BiddingResult.ServerBiddingStarted -> it.biddingResult.serverBiddingStartTs to SystemTimeNow
-                is BiddingResult.FilledAd -> it.biddingResult.serverBiddingStartTs to it.biddingResult.serverBiddingFinishTs
-                BiddingResult.Idle -> null to null
-                is BiddingResult.NoBid -> it.biddingResult.serverBiddingStartTs to it.biddingResult.serverBiddingFinishTs
-                is BiddingResult.TimeoutReached -> it.biddingResult.serverBiddingStartTs to it.biddingResult.serverBiddingFinishTs
-            }
-            RoundResult.Results(
-                biddingResult = BiddingResult.TimeoutReached(
-                    serverBiddingStartTs = startTs ?: 0,
-                    serverBiddingFinishTs = finishTs
-                ),
-                networkResults = it.networkResults,
-                pricefloor = it.pricefloor,
-            )
         }
     }
 
