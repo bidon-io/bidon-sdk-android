@@ -26,7 +26,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         adUnit: AdUnit,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-    ) = withTimeoutOrNull(adUnit.timeout) {
+    ): AuctionResult = withTimeoutOrNull(adUnit.timeout) {
         adSource.markFillStarted(adUnit, adUnit.pricefloor)
         logInfo(TAG, "FillStarted: $adUnit")
 
@@ -87,7 +87,7 @@ class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         bidType: BidType,
         adSource: AdSource<AdAuctionParams>,
         requestStatus: RoundStatus
-    ) = when (bidType) {
+    ): AuctionResult = when (bidType) {
         BidType.RTB -> AuctionResult.Bidding(adSource, requestStatus)
         BidType.CPM -> AuctionResult.Network(adSource, requestStatus)
     }
