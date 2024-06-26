@@ -1,10 +1,8 @@
 package org.bidon.sdk.auction.models
 
-import org.bidon.sdk.config.models.json_scheme_utils.TestJson
 import org.bidon.sdk.config.models.json_scheme_utils.assertEquals
 import org.bidon.sdk.config.models.json_scheme_utils.expectedJsonStructure
 import org.bidon.sdk.utils.serializer.serialize
-import org.json.JSONObject
 import org.junit.Test
 
 /**
@@ -36,7 +34,7 @@ internal class AdObjectRequestBodySerializerTest {
                 }
                 "interstitial" hasJson expectedJsonStructure { /* EMPTY */ }
                 "rewarded" hasJson expectedJsonStructure { /* EMPTY */ }
-                "demands" hasJson TestJson(JSONObject())
+                "demands" hasJson expectedJsonStructure { /* EMPTY */ }
             }
         )
     }
@@ -63,7 +61,7 @@ internal class AdObjectRequestBodySerializerTest {
                 "banner" hasJson expectedJsonStructure {
                     "format" hasValue "LEADERBOARD"
                 }
-                "demands" hasJson TestJson(JSONObject())
+                "demands" hasJson expectedJsonStructure { /* EMPTY */ }
             }
         )
     }
@@ -88,7 +86,7 @@ internal class AdObjectRequestBodySerializerTest {
                 "auction_id" hasValue "aId"
                 "orientation" hasValue "PORTRAIT"
                 "interstitial" hasJson expectedJsonStructure { /* EMPTY */ }
-                "demands" hasJson TestJson(JSONObject())
+                "demands" hasJson expectedJsonStructure { /* EMPTY */ }
             }
         )
     }
@@ -113,7 +111,7 @@ internal class AdObjectRequestBodySerializerTest {
                 "auction_id" hasValue "aId"
                 "orientation" hasValue "PORTRAIT"
                 "rewarded" hasJson expectedJsonStructure { /* EMPTY */ }
-                "demands" hasJson TestJson(JSONObject())
+                "demands" hasJson expectedJsonStructure { /* EMPTY */ }
             }
         )
     }

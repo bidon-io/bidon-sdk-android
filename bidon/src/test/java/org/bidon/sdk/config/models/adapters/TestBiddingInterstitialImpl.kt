@@ -10,7 +10,6 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
@@ -19,7 +18,6 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 internal class TestBiddingInterstitialImpl(
-    override val demandId: DemandId,
     private val testParameters: TestAdapterParameters,
 ) : AdSource.Interstitial<TestInterstitialParameters>,
     AdEventFlow by AdEventFlowImpl(),
