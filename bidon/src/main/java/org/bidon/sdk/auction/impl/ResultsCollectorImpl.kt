@@ -7,7 +7,6 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.AuctionResult.UnknownAdapter.Type
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
@@ -60,7 +59,11 @@ internal class ResultsCollectorImpl(
                                     )
                                 }
                             } else {
-                                logError(TAG, "Unexpected bidding result: ${curRoundResult.biddingResult}", null)
+                                logError(
+                                    TAG,
+                                    "Unexpected bidding result: ${curRoundResult.biddingResult}",
+                                    null
+                                )
                                 curRoundResult.biddingResult
                             }
                         },
@@ -83,10 +86,8 @@ internal class ResultsCollectorImpl(
     override fun add(result: AuctionResult) {
         roundResult.update { current ->
             require(current is RoundResult.Results)
-            when {
-                result is AuctionResult.BiddingLose ||
-                    result is AuctionResult.Bidding ||
-                    (result as? AuctionResult.UnknownAdapter)?.type == Type.Bidding -> {
+            when (result) {
+                is AuctionResult.Bidding -> {
                     RoundResult.Results(
                         biddingResult = when (current.biddingResult) {
                             is BiddingResult.FilledAd -> {
@@ -110,15 +111,13 @@ internal class ResultsCollectorImpl(
                     )
                 }
 
-                result is AuctionResult.Network || (result as? AuctionResult.UnknownAdapter)?.type == Type.Network -> {
+                is AuctionResult.Network -> {
                     RoundResult.Results(
                         biddingResult = current.biddingResult,
                         networkResults = current.networkResults + result,
                         pricefloor = current.pricefloor,
                     )
                 }
-
-                else -> current
             }
         }
     }
@@ -163,7 +162,10 @@ internal class ResultsCollectorImpl(
                              */
                             if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                                 logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                                adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
+                                adSource.notifyLoss(
+                                    winner.adSource.demandId.demandId,
+                                    winner.adSource.getStats().ecpm
+                                )
                             }
                             if (auctionResult.roundStatus == RoundStatus.Successful) {
                                 adSource.markLoss()

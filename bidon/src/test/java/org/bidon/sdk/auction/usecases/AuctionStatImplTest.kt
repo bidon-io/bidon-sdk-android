@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
@@ -13,13 +14,23 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
-import org.bidon.sdk.auction.models.*
+import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.AuctionResponse
+import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.InterstitialRequest
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
-import org.bidon.sdk.stats.models.*
+import org.bidon.sdk.stats.models.BidStat
+import org.bidon.sdk.stats.models.BidType
+import org.bidon.sdk.stats.models.ResultBody
+import org.bidon.sdk.stats.models.RoundStat
+import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.StatsAdUnit
+import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
@@ -28,6 +39,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 internal class AuctionStatImplTest : ConcurrentTest() {
 
     private val statRequestUseCase: StatsRequestUseCase = mockk(relaxed = true)
@@ -116,10 +128,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                             },
                             roundStatus = RoundStatus.Successful
                         ),
-                        AuctionResult.UnknownAdapter(
-                            adapterName = "bid3",
-                            type = AuctionResult.UnknownAdapter.Type.Bidding
-                        ),
                     )
                 ),
                 networkResults = listOf(
@@ -180,14 +188,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         },
                         roundStatus = RoundStatus.NoFill,
                     ),
-                    AuctionResult.UnknownAdapter(
-                        adapterName = "dem3",
-                        type = AuctionResult.UnknownAdapter.Type.Network
-                    ),
-                    AuctionResult.UnknownAdapter(
-                        adapterName = "dem4",
-                        type = AuctionResult.UnknownAdapter.Type.Network
-                    ),
                 ),
                 pricefloor = 1.1
             )
@@ -233,9 +233,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                     adUnitLabel = "dem1_label",
                     adUnitUid = "123",
                 ),
-                getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
-                getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
-                getDemandStatAdapter(demandId = "bid3", status = RoundStatus.UnknownAdapter),
             ),
             winnerEcpm = 1.24,
             winnerDemandId = DemandId("vungle"),
@@ -370,14 +367,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                         },
                         roundStatus = RoundStatus.NoFill,
                     ),
-                    AuctionResult.UnknownAdapter(
-                        adapterName = "dem3",
-                        type = AuctionResult.UnknownAdapter.Type.Network
-                    ),
-                    AuctionResult.UnknownAdapter(
-                        adapterName = "dem4",
-                        type = AuctionResult.UnknownAdapter.Type.Network
-                    )
                 ),
                 pricefloor = 1.1
             )
@@ -422,8 +411,6 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                     adUnitUid = "123",
                     adUnitLabel = "dem1_label",
                 ),
-                getDemandStatAdapter(demandId = "dem3", status = RoundStatus.UnknownAdapter),
-                getDemandStatAdapter(demandId = "dem4", status = RoundStatus.UnknownAdapter),
             ),
             winnerEcpm = 1.5,
             winnerDemandId = DemandId("bidmachine"),
@@ -646,31 +633,4 @@ internal class AuctionStatImplTest : ConcurrentTest() {
         )
         assertThat(actual).isEqualTo(expected)
     }
-
-    private fun getDemandStatAdapter(demandId: String, status: RoundStatus) = StatsAdUnit(
-        demandId = demandId,
-        status = status.code,
-        price = null,
-        bidType = null,
-        tokenStartTs = null,
-        tokenFinishTs = null,
-        fillStartTs = null,
-        fillFinishTs = null,
-        adUnitUid = null,
-        adUnitLabel = null,
-    )
-
-    private fun getBiddingStatAdapter(demandId: String, status: RoundStatus) =
-        StatsAdUnit(
-            demandId = demandId,
-            status = status.code,
-            bidType = null,
-            price = null,
-            fillStartTs = null,
-            fillFinishTs = null,
-            adUnitUid = null,
-            adUnitLabel = null,
-            tokenStartTs = null,
-            tokenFinishTs = null,
-        )
 }

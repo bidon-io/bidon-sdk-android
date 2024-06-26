@@ -149,38 +149,6 @@ internal class AuctionStatImpl(
                     errorMessage = roundStatus.getStatusMessage()
                 )
             }
-
-            is AuctionResult.BiddingLose -> {
-                StatsAdUnit(
-                    demandId = this.adapterName,
-                    status = roundStatus.code.takeIf { !isAuctionCanceled }
-                        ?: RoundStatus.AuctionCancelled.code,
-                    price = this.ecpm,
-                    tokenStartTs = null,
-                    tokenFinishTs = null,
-                    bidType = BidType.RTB.code,
-                    fillStartTs = null,
-                    fillFinishTs = null,
-                    adUnitUid = null,
-                    adUnitLabel = null,
-                    errorMessage = roundStatus.getStatusMessage()
-                )
-            }
-
-            is AuctionResult.UnknownAdapter -> {
-                StatsAdUnit(
-                    demandId = this.adapterName,
-                    status = this.roundStatus.code,
-                    price = null,
-                    tokenStartTs = null,
-                    tokenFinishTs = null,
-                    bidType = null,
-                    fillStartTs = null,
-                    fillFinishTs = null,
-                    adUnitUid = null,
-                    adUnitLabel = null,
-                )
-            }
         }
     }
 
