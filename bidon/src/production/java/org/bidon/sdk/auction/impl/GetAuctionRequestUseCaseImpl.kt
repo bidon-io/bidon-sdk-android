@@ -2,7 +2,6 @@ package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
-import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.ext.asAdRequestBody
@@ -46,7 +45,6 @@ internal class GetAuctionRequestUseCaseImpl(
         adTypeParam: AdTypeParam,
         auctionId: String,
         demandAd: DemandAd,
-        adapters: Map<String, AdapterInfo>,
         tokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse> {
         return withContext(SdkDispatchers.IO) {

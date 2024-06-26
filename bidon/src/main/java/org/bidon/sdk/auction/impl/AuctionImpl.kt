@@ -91,9 +91,6 @@ internal class AuctionImpl(
                         adTypeParam = adTypeParam,
                         auctionId = auctionId,
                         demandAd = demandAd,
-                        adapters = adaptersSource.adapters.associate {
-                            it.demandId.demandId to it.adapterInfo
-                        },
                         tokens = tokens,
                     ).mapCatching { auctionData ->
                         if (auctionId != auctionData.auctionId) {
