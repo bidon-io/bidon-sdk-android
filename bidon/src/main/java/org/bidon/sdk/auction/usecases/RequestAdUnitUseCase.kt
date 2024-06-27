@@ -7,7 +7,6 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 
 internal interface RequestAdUnitUseCase {
-
     suspend fun invoke(
         adSource: AdSource<AdAuctionParams>,
         adUnit: AdUnit,

@@ -17,7 +17,7 @@ sealed interface AdmobBannerAuctionParams : AdAuctionParams {
     val activity: Activity
     val bannerFormat: BannerFormat
     val containerWidth: Float
-    val adSize: AdSize get() = bannerFormat.toAdmobAdSize(activity, containerWidth)
+    val adSize: AdSize get() = bannerFormat.toAdmobAdSize()
 
     class Network(
         override val activity: Activity,
