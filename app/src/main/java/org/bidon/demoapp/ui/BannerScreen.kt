@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
 import org.bidon.sdk.ads.banner.BannerView
@@ -105,12 +106,11 @@ fun BannerScreen(navController: NavHostController) {
                             setBannerFormat(bannerFormat.value)
                             setBannerListener(
                                 object : BannerListener {
-                                    override fun onAdLoaded(ad: Ad) {
+                                    override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                                         logFlow.log("onAdLoaded WINNER:\n$ad")
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
-                                        }
-                                    }
+                                        }                                    }
 
                                     override fun onAdLoadFailed(cause: BidonError) {
                                         logFlow.log("onAdLoadFailed: $cause")

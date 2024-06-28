@@ -12,5 +12,10 @@ internal sealed interface RoundResult {
         val pricefloor: Double,
         val biddingResult: BiddingResult,
         val networkResults: List<AuctionResult>,
-    ) : RoundResult
+    ) : RoundResult {
+
+        fun getAuctionResults(): List<AuctionResult> {
+            return networkResults + (biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
+        }
+    }
 }

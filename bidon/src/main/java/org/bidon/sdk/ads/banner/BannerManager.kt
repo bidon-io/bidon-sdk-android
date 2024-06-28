@@ -6,6 +6,7 @@ import android.graphics.PointF
 import androidx.core.view.children
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.refresh.BannersCache
 import org.bidon.sdk.ads.banner.refresh.BannersCacheImpl
 import org.bidon.sdk.ads.banner.render.AdRenderer
@@ -40,6 +41,7 @@ class BannerManager private constructor(
     private var weakActivity = WeakReference<Activity>(null)
     private var nextBannerView: BannerView? = null
     private var nextAd: Ad? = null
+    private var nextAuctionInfo: AuctionInfo? = null
 
     private var currentBannerView: BannerView? = null
     private val showAfterLoad = AtomicBoolean(false)
@@ -104,7 +106,13 @@ class BannerManager private constructor(
             val nextBannerView = nextBannerView
             if (nextBannerView != null) {
                 logInfo(tag, "Ad is already loaded")
-                nextAd?.let { publisherListener?.onAdLoaded(it) }
+                nextAd?.let {
+                    publisherListener?.onAdLoaded(
+                        ad = it,
+                        auctionInfo = requireNotNull(nextAuctionInfo) {
+                            "Could not receive nextAuctionInfo"
+                        })
+                }
                 return@runOnUiThread
             }
             bannersCache.get(
@@ -112,10 +120,11 @@ class BannerManager private constructor(
                 format = bannerFormat,
                 pricefloor = pricefloor,
                 extras = extras,
-                onLoaded = { ad, bannerView ->
+                onLoaded = { ad, auctionInfo, bannerView ->
                     this.nextBannerView = bannerView
                     this.nextAd = ad
-                    publisherListener?.onAdLoaded(ad)
+                    nextAuctionInfo = auctionInfo
+                    publisherListener?.onAdLoaded(ad, auctionInfo)
                     if (showAfterLoad.getAndSet(false) || isDisplaying) {
                         weakActivity.get()?.let { activity ->
                             showAd(activity)
@@ -159,7 +168,7 @@ class BannerManager private constructor(
             logInfo(tag, "RenderAd at $activity")
             bannerView.setBannerListener(
                 object : BannerListener {
-                    override fun onAdLoaded(ad: Ad) {}
+                    override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {}
                     override fun onAdLoadFailed(cause: BidonError) {}
 
                     override fun onAdShown(ad: Ad) {

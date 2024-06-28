@@ -3,6 +3,9 @@ package org.bidon.sdk.auction.impl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.WinLossNotifiable
+import org.bidon.sdk.ads.AdUnitInfo
+import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
@@ -22,8 +25,31 @@ internal class ResultsCollectorImpl(
      * Keeps all succeeded auction results
      */
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
-
+    private val noBids = mutableListOf<BidsInfo>()
+    private val adUnitInfo = mutableListOf<AdUnitInfo>()
     private val roundResult = MutableStateFlow<RoundResult>(RoundResult.Idle)
+
+    override fun addNoBidData(bidInfo: List<BidsInfo>) {
+        noBids.addAll(bidInfo)
+    }
+
+    override fun addAdUnitInfoData(bidInfo: List<AdUnitInfo>) {
+        adUnitInfo.addAll(bidInfo)
+    }
+
+    override fun getAuctionInfo(
+        auctionId: String,
+        auctionConfigurationId: Long,
+        auctionConfigurationUid: String,
+        auctionPriceFloor: Double,
+    ) = AuctionInfo(
+        auctionId = auctionId,
+        auctionConfigurationId = auctionConfigurationId,
+        auctionConfigurationUid = auctionConfigurationUid,
+        auctionPricefloor = auctionPriceFloor,
+        noBids = noBids,
+        adUnits = adUnitInfo,
+    )
 
     @Deprecated("")
     override fun serverBiddingStarted() {
@@ -45,6 +71,8 @@ internal class ResultsCollectorImpl(
                 is RoundResult.Results -> {
                     RoundResult.Results(
                         biddingResult = run {
+                            //TODO We should we process no_bids adUnits from AuctionResponse?
+                            // I think no, since we don`t send NO_BIDS adUnits to /stats
                             if (curRoundResult.biddingResult is BiddingResult.ServerBiddingStarted) {
                                 if (adUnits.isNullOrEmpty()) {
                                     BiddingResult.NoBid(
@@ -60,7 +88,11 @@ internal class ResultsCollectorImpl(
                                     )
                                 }
                             } else {
-                                logError(TAG, "Unexpected bidding result: ${curRoundResult.biddingResult}", null)
+                                logError(
+                                    TAG,
+                                    "Unexpected bidding result: ${curRoundResult.biddingResult}",
+                                    null
+                                )
                                 curRoundResult.biddingResult
                             }
                         },
@@ -85,8 +117,8 @@ internal class ResultsCollectorImpl(
             require(current is RoundResult.Results)
             when {
                 result is AuctionResult.BiddingLose ||
-                    result is AuctionResult.Bidding ||
-                    (result as? AuctionResult.UnknownAdapter)?.type == Type.Bidding -> {
+                        result is AuctionResult.Bidding ||
+                        (result as? AuctionResult.UnknownAdapter)?.type == Type.Bidding -> {
                     RoundResult.Results(
                         biddingResult = when (current.biddingResult) {
                             is BiddingResult.FilledAd -> {
@@ -163,7 +195,10 @@ internal class ResultsCollectorImpl(
                              */
                             if (auctionResult !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
                                 logInfo(TAG, "Notified loss: ${adSource.demandId}")
-                                adSource.notifyLoss(winner.adSource.demandId.demandId, winner.adSource.getStats().ecpm)
+                                adSource.notifyLoss(
+                                    winner.adSource.demandId.demandId,
+                                    winner.adSource.getStats().ecpm
+                                )
                             }
                             if (auctionResult.roundStatus == RoundStatus.Successful) {
                                 adSource.markLoss()

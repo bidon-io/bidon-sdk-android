@@ -35,6 +35,8 @@ import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.AdUnitInfo
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.interstitial.InterstitialAd
 import org.bidon.sdk.ads.interstitial.InterstitialListener
 import org.bidon.sdk.config.BidonError
@@ -59,7 +61,7 @@ fun InterstitialScreen(
         InterstitialAd().apply {
             setInterstitialListener(
                 object : InterstitialListener {
-                    override fun onAdLoaded(ad: Ad) {
+                    override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                         logFlow.log("onAdLoaded WINNER:\n$ad")
                     }
 

@@ -62,10 +62,7 @@ internal class AuctionStatImpl(
     override suspend fun addRoundResults(result: RoundResult.Results): RoundStat {
         // get, sort results + update winner
         // save stats
-        val biddingResults = (result.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
-        val networkResults = result.networkResults
-
-        val roundResults = resolver.sortWinners(networkResults + biddingResults)
+        val roundResults = resolver.sortWinners(result.getAuctionResults())
 
         val roundWinner = updateWinnerIfNeed(
             roundResults

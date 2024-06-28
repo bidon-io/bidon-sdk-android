@@ -15,6 +15,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
@@ -66,12 +67,13 @@ internal class InterstitialImpl(
                 pricefloor = pricefloor,
                 auctionKey = auctionKey,
             ),
-            onSuccess = { auctionResult ->
+            onSuccess = { auctionResult, auctionInfo ->
                 subscribeToWinner(auctionResult.adSource)
                 listener.onAdLoaded(
-                    requireNotNull(auctionResult.adSource.ad) {
+                    ad = requireNotNull(auctionResult.adSource.ad) {
                         "[Ad] should exist when action succeeds"
-                    }
+                    },
+                    auctionInfo = auctionInfo
                 )
             },
             onFailure = { cause ->
@@ -170,8 +172,8 @@ internal class InterstitialImpl(
     }
 
     private fun getInterstitialListener() = object : InterstitialListener {
-        override fun onAdLoaded(ad: Ad) {
-            userListener?.onAdLoaded(ad)
+        override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
+            userListener?.onAdLoaded(ad, auctionInfo)
         }
 
         override fun onAdLoadFailed(cause: BidonError) {

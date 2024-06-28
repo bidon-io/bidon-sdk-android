@@ -10,7 +10,7 @@ interface AdListener {
     /**
      * Callback invokes after auction completed and winner is selected.
      */
-    fun onAdLoaded(ad: Ad)
+    fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo)
 
     /**
      * Callback invokes after auction completed, but no winner found.

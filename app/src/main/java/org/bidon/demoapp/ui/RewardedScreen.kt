@@ -24,6 +24,7 @@ import org.bidon.demoapp.component.*
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.rewarded.Reward
 import org.bidon.sdk.ads.rewarded.RewardedAd
 import org.bidon.sdk.ads.rewarded.RewardedListener
@@ -50,7 +51,7 @@ fun RewardedScreen(
         RewardedAd().apply {
             setRewardedListener(
                 object : RewardedListener {
-                    override fun onAdLoaded(ad: Ad) {
+                    override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                         logFlow.log("onAdLoaded WINNER:\n$ad")
                     }
 
