@@ -17,7 +17,7 @@ internal interface AdCache : Cacheable {
     fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
-        onFailure: (Throwable) -> Unit,
+        onFailure: (AuctionInfo, Throwable) -> Unit,
     )
 
     /**
