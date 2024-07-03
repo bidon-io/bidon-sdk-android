@@ -33,7 +33,10 @@ internal class ExecuteAuctionUseCaseImpl(
     private val requestAdUnit: RequestAdUnitUseCase,
     private val regulation: Regulation,
 ) : ExecuteAuctionUseCase {
-    override suspend fun invoke(
+
+    private var adUnitQueue: LinkedList<AdUnit> = LinkedList()
+
+    override suspend fun execute(
         auctionId: String,
         auctionConfigurationId: Long,
         auctionConfigurationUid: String,
@@ -48,7 +51,7 @@ internal class ExecuteAuctionUseCaseImpl(
     ) {
         withTimeoutOrNull(auctionTimeout) {
             runCatching {
-                val adUnitQueue = LinkedList(adUnits)
+                adUnitQueue = LinkedList(adUnits)
 
                 while (adUnitQueue.isNotEmpty()) {
 
@@ -59,13 +62,16 @@ internal class ExecuteAuctionUseCaseImpl(
                         break
                     }
 
+                    logInfo(TAG, "Perform load nex $adUnit")
+
                     if (adUnit.pricefloor < pricefloor) {
                         logInfo(
                             TAG,
-                            "Auction was stopped because the priceFloor: $pricefloor is less than " +
+                            "Request was skipped since the priceFloor: $pricefloor is less than " +
                                 "the next requested adUnit: ${adUnit.pricefloor}"
                         )
-                        break
+                        resultsCollector.add(getBelowPriceFloorResult(adUnit))
+                        continue
                     }
 
                     val adSource = adaptersSource.adapters
@@ -105,18 +111,21 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
                             !shouldRequestNext(
-                                    auctionResult = auctionResult,
-                                    next = adUnitQueue.peek()
-                                )
+                                auctionResult = auctionResult,
+                                next = adUnitQueue.peek()
+                            )
                         ) {
                             logInfo(
                                 TAG,
-                                "Auction was stopped since the filled eCPM larger than the next one"
+                                "Request was skipped since the filled eCPM larger than the next one"
                             )
+                            adUnitQueue.forEach {
+                                resultsCollector.add(getBelowPriceFloorResult(it))
+                            }
                             break
                         }
-                        logInfo(TAG, "Perform load next")
                     } else {
+                        resultsCollector.add(AuctionResult.UnknownAdapter(adUnit = adUnit))
                         logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
                     }
                 }
@@ -134,6 +143,19 @@ internal class ExecuteAuctionUseCaseImpl(
                 logError(TAG, "Failed to execute auction", it)
             }.getOrNull()
         } ?: logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+    }
+
+    override suspend fun cancel(resultsCollector: ResultsCollector) {
+        adUnitQueue.forEach {
+            resultsCollector.add(AuctionResult.AuctionCancelled(it))
+        }
+    }
+
+    private fun getBelowPriceFloorResult(adUnit: AdUnit): AuctionResult {
+        return when (adUnit.bidType) {
+            BidType.RTB -> AuctionResult.BiddingLose(adUnit)
+            BidType.CPM -> AuctionResult.NetworkBelowPriceFloor(adUnit)
+        }
     }
 
     private fun shouldRequestNext(

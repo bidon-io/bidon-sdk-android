@@ -107,13 +107,17 @@ fun BannerScreen(navController: NavHostController) {
                             setBannerListener(
                                 object : BannerListener {
                                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                                        logFlow.log("onAdLoaded WINNER:\n$ad")
+                                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: $auctionInfo")
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
-                                        }                                    }
+                                        }
+                                    }
 
-                                    override fun onAdLoadFailed(cause: BidonError) {
-                                        logFlow.log("onAdLoadFailed: $cause")
+                                    override fun onAdLoadFailed(
+                                        auctionInfo: AuctionInfo?,
+                                        cause: BidonError
+                                    ) {
+                                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: $auctionInfo")
                                     }
 
                                     override fun onAdShown(ad: Ad) {
@@ -227,7 +231,10 @@ fun BannerScreen(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .padding(bottom = 2.dp)
-                        .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                        .background(
+                            MaterialTheme.colorScheme.secondary,
+                            MaterialTheme.shapes.medium
+                        )
                         .padding(4.dp)
                 ) {
                     Body2Text(text = logLine)

@@ -27,12 +27,12 @@ public class JavaMainActivity extends AppCompatActivity {
 
         InterstitialListener listener = new InterstitialListener() {
             @Override
-            public void onAdLoaded(@NonNull Ad ad, @Nullable AuctionInfo auctionInfo) {
+            public void onAdLoaded(@NonNull Ad ad, @NonNull AuctionInfo auctionInfo) {
 
             }
 
             @Override
-            public void onAdLoadFailed(@NonNull BidonError bidonError) {
+            public void onAdLoadFailed(@Nullable AuctionInfo auctionInfo, @NonNull BidonError bidonError) {
 
             }
 

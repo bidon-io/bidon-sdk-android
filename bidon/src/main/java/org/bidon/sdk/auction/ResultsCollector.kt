@@ -1,8 +1,5 @@
 package org.bidon.sdk.auction
 
-import org.bidon.sdk.ads.AdUnitInfo
-import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
@@ -19,14 +16,6 @@ internal interface ResultsCollector {
     fun biddingTimeoutReached()
     fun add(result: AuctionResult)
     fun getRoundResults(): RoundResult
-    fun addNoBidData(bidInfo: List<BidsInfo>)
-    fun addAdUnitInfoData(bidInfo: List<AdUnitInfo>)
-    fun getAuctionInfo(
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        auctionPriceFloor: Double
-    ) : AuctionInfo
 
     fun getAll(): List<AuctionResult>
     fun clear()

@@ -16,8 +16,10 @@ private class PriceAuctionResolver : AuctionResolver {
             when (it) {
                 is AuctionResult.Bidding -> it.adSource.getStats().ecpm
                 is AuctionResult.Network -> it.adSource.getStats().ecpm
-                is AuctionResult.BiddingLose,
-                is AuctionResult.UnknownAdapter -> Double.MIN_VALUE
+                is AuctionResult.NetworkBelowPriceFloor -> it.adUnit.pricefloor
+                is AuctionResult.BiddingLose -> it.adUnit.pricefloor
+                is AuctionResult.UnknownAdapter -> it.adUnit.pricefloor
+                is AuctionResult.AuctionCancelled -> it.adUnit.pricefloor
             }
         }
     }

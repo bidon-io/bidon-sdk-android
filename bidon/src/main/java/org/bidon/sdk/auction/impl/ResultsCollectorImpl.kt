@@ -3,18 +3,15 @@ package org.bidon.sdk.auction.impl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.WinLossNotifiable
-import org.bidon.sdk.ads.AdUnitInfo
-import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.AuctionResult.UnknownAdapter.Type
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
@@ -25,31 +22,7 @@ internal class ResultsCollectorImpl(
      * Keeps all succeeded auction results
      */
     private val auctionResults = MutableStateFlow(listOf<AuctionResult>())
-    private val noBids = mutableListOf<BidsInfo>()
-    private val adUnitInfo = mutableListOf<AdUnitInfo>()
     private val roundResult = MutableStateFlow<RoundResult>(RoundResult.Idle)
-
-    override fun addNoBidData(bidInfo: List<BidsInfo>) {
-        noBids.addAll(bidInfo)
-    }
-
-    override fun addAdUnitInfoData(bidInfo: List<AdUnitInfo>) {
-        adUnitInfo.addAll(bidInfo)
-    }
-
-    override fun getAuctionInfo(
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        auctionPriceFloor: Double,
-    ) = AuctionInfo(
-        auctionId = auctionId,
-        auctionConfigurationId = auctionConfigurationId,
-        auctionConfigurationUid = auctionConfigurationUid,
-        auctionPricefloor = auctionPriceFloor,
-        noBids = noBids,
-        adUnits = adUnitInfo,
-    )
 
     @Deprecated("")
     override fun serverBiddingStarted() {
@@ -71,7 +44,7 @@ internal class ResultsCollectorImpl(
                 is RoundResult.Results -> {
                     RoundResult.Results(
                         biddingResult = run {
-                            //TODO We should we process no_bids adUnits from AuctionResponse?
+                            // TODO We should we process no_bids adUnits from AuctionResponse?
                             // I think no, since we don`t send NO_BIDS adUnits to /stats
                             if (curRoundResult.biddingResult is BiddingResult.ServerBiddingStarted) {
                                 if (adUnits.isNullOrEmpty()) {
@@ -118,7 +91,8 @@ internal class ResultsCollectorImpl(
             when {
                 result is AuctionResult.BiddingLose ||
                         result is AuctionResult.Bidding ||
-                        (result as? AuctionResult.UnknownAdapter)?.type == Type.Bidding -> {
+                        (result as? AuctionResult.AuctionCancelled)?.adUnit?.bidType == BidType.RTB ||
+                        (result as? AuctionResult.UnknownAdapter)?.adUnit?.bidType == BidType.RTB -> {
                     RoundResult.Results(
                         biddingResult = when (current.biddingResult) {
                             is BiddingResult.FilledAd -> {
@@ -142,7 +116,10 @@ internal class ResultsCollectorImpl(
                     )
                 }
 
-                result is AuctionResult.Network || (result as? AuctionResult.UnknownAdapter)?.type == Type.Network -> {
+                result is AuctionResult.Network ||
+                        result is AuctionResult.NetworkBelowPriceFloor ||
+                        (result as? AuctionResult.AuctionCancelled)?.adUnit?.bidType == BidType.CPM ||
+                        (result as? AuctionResult.UnknownAdapter)?.adUnit?.bidType == BidType.CPM -> {
                     RoundResult.Results(
                         biddingResult = current.biddingResult,
                         networkResults = current.networkResults + result,

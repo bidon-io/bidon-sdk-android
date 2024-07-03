@@ -12,7 +12,7 @@ internal interface Auction {
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         onSuccess: (winners: List<AuctionResult>, auctionInfo: AuctionInfo) -> Unit,
-        onFailure: (Throwable) -> Unit
+        onFailure: (AuctionInfo?, Throwable) -> Unit
     )
 
     /**

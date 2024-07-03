@@ -100,7 +100,7 @@ class BannerManager private constructor(
         activity.runOnUiThread {
             weakActivity = WeakReference(activity)
             if (!BidonSdk.isInitialized()) {
-                publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
+                publisherListener?.onAdLoadFailed(null, BidonError.SdkNotInitialized)
                 return@runOnUiThread
             }
             val nextBannerView = nextBannerView
@@ -131,8 +131,8 @@ class BannerManager private constructor(
                         }
                     }
                 },
-                onFailed = { cause ->
-                    publisherListener?.onAdLoadFailed(cause)
+                onFailed = { auctionInfo, cause ->
+                    publisherListener?.onAdLoadFailed(auctionInfo, cause)
                 }
             )
         }
@@ -145,7 +145,7 @@ class BannerManager private constructor(
         activity.runOnUiThread {
             weakActivity = WeakReference(activity)
             if (!BidonSdk.isInitialized()) {
-                publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
+                publisherListener?.onAdLoadFailed(null, BidonError.SdkNotInitialized)
                 return@runOnUiThread
             }
             val bannerView = nextBannerView ?: currentBannerView
@@ -169,7 +169,7 @@ class BannerManager private constructor(
             bannerView.setBannerListener(
                 object : BannerListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {}
-                    override fun onAdLoadFailed(cause: BidonError) {}
+                    override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {}
 
                     override fun onAdShown(ad: Ad) {
                         activity.runOnUiThread {

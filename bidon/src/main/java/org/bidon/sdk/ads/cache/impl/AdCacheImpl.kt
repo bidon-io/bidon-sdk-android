@@ -46,7 +46,7 @@ internal class AdCacheImpl(
     override fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
-        onFailure: (Throwable) -> Unit,
+        onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         load(adTypeParam, onSuccess, onFailure)
     }
@@ -79,7 +79,7 @@ internal class AdCacheImpl(
     private fun load(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
-        onFailure: (Throwable) -> Unit,
+        onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         logInfo(tag, "Cache started: ${results.value.asString()}")
         if (results.value.size >= settings.minCacheSize) {
@@ -108,9 +108,9 @@ internal class AdCacheImpl(
                         results.value.firstOrNull()?.let { onSuccess.invoke(it, auctionInfo) }
                     }
                 },
-                onFailure = {
+                onFailure = { auctionInfo, cause ->
                     logInfo(tag, "Auction failed: ${results.value.asString()}")
-                    onFailure.invoke(it)
+                    onFailure.invoke(auctionInfo, cause)
                     isLoading.value = false
                 },
             )
