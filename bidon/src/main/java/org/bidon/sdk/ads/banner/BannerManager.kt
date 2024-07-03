@@ -145,7 +145,7 @@ class BannerManager private constructor(
         activity.runOnUiThread {
             weakActivity = WeakReference(activity)
             if (!BidonSdk.isInitialized()) {
-                publisherListener?.onAdLoadFailed(null, BidonError.SdkNotInitialized)
+                publisherListener?.onAdLoadFailed(BidonError.SdkNotInitialized)
                 return@runOnUiThread
             }
             val bannerView = nextBannerView ?: currentBannerView

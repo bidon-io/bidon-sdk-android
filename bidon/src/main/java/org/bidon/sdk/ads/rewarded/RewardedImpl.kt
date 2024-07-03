@@ -55,7 +55,7 @@ internal class RewardedImpl(
     override fun loadAd(activity: Activity, pricefloor: Double) {
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
-            listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
+            listener.onAdLoadFailed(BidonError.SdkNotInitialized)
             return
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
@@ -66,7 +66,7 @@ internal class RewardedImpl(
                 auctionKey = auctionKey,
             ),
             onSuccess = { auctionResult, auctionInfo ->
-                subscribeToWinner(auctionInfo, auctionResult.adSource)
+                subscribeToWinner(auctionResult.adSource)
                 listener.onAdLoaded(
                     ad = requireNotNull(auctionResult.adSource.ad) {
                         "[Ad] should exist when action succeeds"
@@ -74,8 +74,8 @@ internal class RewardedImpl(
                     auctionInfo = auctionInfo
                 )
             },
-            onFailure = { auctionResult, cause ->
-                listener.onAdLoadFailed(auctionInfo = auctionResult, cause = cause.asBidonErrorOrUnspecified())
+            onFailure = { cause ->
+                listener.onAdLoadFailed(cause = cause.asBidonErrorOrUnspecified())
             }
         )
     }
@@ -136,7 +136,7 @@ internal class RewardedImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
+    private fun subscribeToWinner(adSource: AdSource<*>) {
         require(adSource is AdSource.Rewarded<*>)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
@@ -167,7 +167,7 @@ internal class RewardedImpl(
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
+                is AdEvent.LoadFailed -> listener.onAdLoadFailed(adEvent.cause)
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
@@ -178,8 +178,8 @@ internal class RewardedImpl(
             userListener?.onAdLoaded(ad, auctionInfo)
         }
 
-        override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-            userListener?.onAdLoadFailed(auctionInfo, cause)
+        override fun onAdLoadFailed(cause: BidonError) {
+            userListener?.onAdLoadFailed(cause)
         }
 
         override fun onAdShowFailed(cause: BidonError) {

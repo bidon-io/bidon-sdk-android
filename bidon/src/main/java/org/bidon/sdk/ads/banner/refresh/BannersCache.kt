@@ -27,7 +27,7 @@ internal interface BannersCache {
         pricefloor: Double,
         extras: Extras,
         onLoaded: (Ad, AuctionInfo, BannerView) -> Unit,
-        onFailed: (AuctionInfo, BidonError) -> Unit,
+        onFailed: (BidonError) -> Unit,
     )
 
     fun clear()
@@ -47,7 +47,7 @@ internal class BannersCacheImpl : BannersCache {
         pricefloor: Double,
         extras: Extras,
         onLoaded: (Ad, AuctionInfo, BannerView) -> Unit,
-        onFailed: (AuctionInfo?, BidonError) -> Unit,
+        onFailed: (BidonError) -> Unit,
     ) {
         if (cache.isNotEmpty()) {
             val (ad, banner) = cache.pop() ?: return
@@ -66,9 +66,9 @@ internal class BannersCacheImpl : BannersCache {
                         isLoading.set(false)
                     }
 
-                    override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
+                    override fun onAdLoadFailed(cause: BidonError) {
                         logInfo(Tag, "Banner load failed: $cause")
-                        onFailed(auctionInfo, cause)
+                        onFailed(cause)
                         isLoading.set(false)
                     }
 

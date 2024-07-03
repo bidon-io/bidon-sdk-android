@@ -105,7 +105,7 @@ class BannerView @JvmOverloads constructor(
         logInfo(TAG, "LoadAd. $this. ${Thread.currentThread()}")
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
-            listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
+            listener.onAdLoadFailed(BidonError.SdkNotInitialized)
             return
         }
         if (adLifecycleFlow.compareAndSet(
@@ -118,7 +118,7 @@ class BannerView @JvmOverloads constructor(
             when (adLifecycleFlow.value) {
                 AdLifecycle.Loading -> {
                     logInfo(TAG, "Auction already in progress")
-                    userListener?.onAdLoadFailed(null, BidonError.AuctionInProgress)
+                    userListener?.onAdLoadFailed(BidonError.AuctionInProgress)
                 }
 
                 AdLifecycle.Loaded -> {
@@ -202,7 +202,7 @@ class BannerView @JvmOverloads constructor(
         when (adLifecycleFlow.value) {
             AdLifecycle.Loading -> {
                 destroyAd()
-                userListener?.onAdLoadFailed(null, BidonError.AuctionCancelled)
+                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
             }
 
             AdLifecycle.Loaded -> {

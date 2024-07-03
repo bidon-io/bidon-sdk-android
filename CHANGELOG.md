@@ -1,3 +1,7 @@
+# Next 0.6.0-next.2
+## Features:
+- [BDN-687](https://appodeal.atlassian.net/browse/BDN-687) Provided AuctionInfo to public callback
+
 # Next 0.6.0-next.1
 ## Features:
 - [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Merge Bidding And Classic Demands Into One Auction 
