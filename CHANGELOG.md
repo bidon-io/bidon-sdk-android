@@ -1,4 +1,4 @@
-# Next 0.6.0-next.2
+# Next 0.7.0-next.1
 ## Features:
 - [BDN-687](https://appodeal.atlassian.net/browse/BDN-687) Provided AuctionInfo to public callback
 
