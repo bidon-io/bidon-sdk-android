@@ -84,6 +84,7 @@ class MetaBannerImpl :
                             logInfo(TAG, "onAdLoaded $ad: $bannerView, $this")
                             val bidonAd = getAd()
                             if (bannerView != null && bidonAd != null) {
+                                setPrecision(Precision.Precise)
                                 emitEvent(AdEvent.Fill(bidonAd))
                             } else {
                                 emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -104,7 +105,7 @@ class MetaBannerImpl :
                                     ad = bidonAd,
                                     adValue = AdValue(
                                         adRevenue = adParams.price / 1000.0,
-                                        precision = Precision.Precise,
+                                        precision = bidonAd.precision,
                                         currency = AdValue.USD,
                                     )
                                 )

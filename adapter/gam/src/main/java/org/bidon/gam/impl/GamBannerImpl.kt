@@ -102,7 +102,9 @@ internal class GamBannerImpl(
 
                 this.onPaidEventListener = OnPaidEventListener { adValue ->
                     getAd()?.let {
-                        emitEvent(AdEvent.PaidRevenue(it, adValue.asBidonAdValue()))
+                        val bidonAdValue = adValue.asBidonAdValue()
+                        setPrecision(bidonAdValue.precision)
+                        emitEvent(AdEvent.PaidRevenue(ad = it, adValue = bidonAdValue))
                     }
                 }
                 adView.loadAd(adRequest)

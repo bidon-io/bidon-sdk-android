@@ -24,6 +24,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -147,6 +148,7 @@ internal class BMBannerAdImpl(
                             setPrice(bannerView.auctionResult?.price ?: 0.0)
                         }
                         getAd()?.let {
+                            setPrecision(Precision.Precise)
                             emitEvent(AdEvent.Fill(it))
                         }
                     }
@@ -168,7 +170,7 @@ internal class BMBannerAdImpl(
                             emitEvent(
                                 AdEvent.PaidRevenue(
                                     ad = it,
-                                    adValue = bannerView.auctionResult.asBidonAdValue()
+                                    adValue = bannerView.auctionResult.asBidonAdValue(it.precision)
                                 )
                             )
                         }

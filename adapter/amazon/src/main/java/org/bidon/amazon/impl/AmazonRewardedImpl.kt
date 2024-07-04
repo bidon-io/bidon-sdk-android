@@ -64,7 +64,10 @@ internal class AmazonRewardedImpl(
             object : DTBAdInterstitialListener {
                 override fun onAdLoaded(p0: View?) {
                     logInfo(TAG, "onAdLoaded")
-                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                    getAd()?.let {
+                        setPrecision(Precision.Precise)
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
 
                 override fun onAdFailed(view: View?) {
@@ -99,7 +102,7 @@ internal class AmazonRewardedImpl(
                                 adValue = AdValue(
                                     adRevenue = adParams.price,
                                     currency = AdValue.USD,
-                                    Precision.Precise
+                                    precision = it.precision
                                 )
                             )
                         )

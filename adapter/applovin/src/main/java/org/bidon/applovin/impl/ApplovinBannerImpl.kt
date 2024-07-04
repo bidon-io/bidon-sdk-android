@@ -23,6 +23,7 @@ import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -47,7 +48,10 @@ internal class ApplovinBannerImpl(
             override fun adDisplayed(ad: AppLovinAd) {
                 logInfo(TAG, "adDisplayed: $ad")
                 getAd()?.let {
-                    emitEvent(AdEvent.PaidRevenue(it, adUnit?.pricefloor.asBidonAdValue()))
+                    emitEvent(AdEvent.PaidRevenue(
+                        ad = it,
+                        adValue = adUnit?.pricefloor.asBidonAdValue(it.precision)
+                    ))
                 }
                 // tracked impression/shown by [BannerView]
             }
@@ -105,6 +109,7 @@ internal class ApplovinBannerImpl(
                 logInfo(TAG, "adReceived: $this")
                 isAdReadyToShow = true
                 getAd()?.let {
+                    setPrecision(Precision.Estimated)
                     emitEvent(AdEvent.Fill(it))
                 }
             }

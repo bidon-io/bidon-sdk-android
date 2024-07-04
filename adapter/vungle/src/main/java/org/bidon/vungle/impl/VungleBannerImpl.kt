@@ -80,6 +80,7 @@ internal class VungleBannerImpl :
                 override fun onAdLoaded(baseAd: BaseAd) {
                     val ad = getAd()
                     if (ad != null) {
+                        setPrecision(Precision.Precise)
                         emitEvent(AdEvent.Fill(ad))
                         logInfo(TAG, "onAdLoad =${baseAd.placementId}. $this")
                     } else {
@@ -100,7 +101,7 @@ internal class VungleBannerImpl :
                             ad = ad,
                             adValue = AdValue(
                                 adRevenue = adParams.price / 1000.0,
-                                precision = Precision.Precise,
+                                precision = ad.precision,
                                 currency = AdValue.USD,
                             )
                         )

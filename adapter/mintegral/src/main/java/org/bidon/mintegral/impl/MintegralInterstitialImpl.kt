@@ -91,6 +91,7 @@ internal class MintegralInterstitialImpl :
                 logInfo(TAG, "Starting fill: $this")
                 val ad = getAd()
                 if (mBridgeIds != null && ad != null) {
+                    setPrecision(Precision.Precise)
                     emitEvent(AdEvent.Fill(ad))
                 } else {
                     emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -116,7 +117,7 @@ internal class MintegralInterstitialImpl :
                         ad = ad,
                         adValue = AdValue(
                             adRevenue = adParams.price / 1000.0,
-                            precision = Precision.Precise,
+                            precision = ad.precision,
                             currency = USD
                         )
                     )

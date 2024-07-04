@@ -7,6 +7,7 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.RoundStatus
 
@@ -31,6 +32,7 @@ interface StatisticsCollector {
      * Need to be used before [AdEvent.Fill] is exposed
      */
     fun setPrice(price: Double)
+    fun setPrecision(precision: Precision)
 
     /**
      * Set DSP source name (actually for BidMachine, DTExchange) if it's possible.

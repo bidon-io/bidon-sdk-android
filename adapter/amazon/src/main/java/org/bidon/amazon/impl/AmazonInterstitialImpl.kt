@@ -63,7 +63,10 @@ internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>)
             object : DTBAdInterstitialListener {
                 override fun onAdLoaded(p0: View?) {
                     logInfo(TAG, "onAdLoaded")
-                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                    getAd()?.let {
+                        setPrecision(Precision.Precise)
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
 
                 override fun onAdFailed(view: View?) {
@@ -95,7 +98,7 @@ internal class AmazonInterstitialImpl(private val amazonInfos: List<AmazonInfo>)
                                 adValue = AdValue(
                                     adRevenue = adParams.price,
                                     currency = AdValue.USD,
-                                    Precision.Precise
+                                    precision = it.precision
                                 )
                             )
                         )

@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -68,10 +69,11 @@ internal class DTExchangeRewarded :
                 adSpot: InneractiveAdSpot?,
                 impressionData: ImpressionData?
             ) {
-                val adValue = impressionData?.asAdValue() ?: return
+                logInfo(TAG, "onAdImpression: $adSpot")
+                val ad = getAd() ?: return
+                val adValue = impressionData?.asAdValue(ad.precision) ?: return
                 demandSource = impressionData.demandSource
                 setDsp(demandSource)
-                val ad = getAd() ?: return
                 emitEvent(AdEvent.PaidRevenue(ad, adValue))
                 emitEvent(AdEvent.Shown(ad))
             }
@@ -120,6 +122,7 @@ internal class DTExchangeRewarded :
                     this@DTExchangeRewarded.inneractiveAdSpot = inneractiveAdSpot
                     setDsp(demandSource ?: inneractiveAdSpot?.mediationNameString)
                     getAd()?.let { ad ->
+                        setPrecision(Precision.Precise)
                         emitEvent(AdEvent.Fill(ad))
                     }
                 }

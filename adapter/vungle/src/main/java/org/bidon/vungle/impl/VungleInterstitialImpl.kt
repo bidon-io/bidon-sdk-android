@@ -72,6 +72,7 @@ internal class VungleInterstitialImpl :
             override fun onAdLoaded(baseAd: BaseAd) {
                 val ad = getAd()
                 if (ad != null) {
+                    setPrecision(Precision.Precise)
                     emitEvent(AdEvent.Fill(ad))
                 } else {
                     emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -91,7 +92,7 @@ internal class VungleInterstitialImpl :
                         ad = ad,
                         adValue = AdValue(
                             adRevenue = adParams.price / 1000.0,
-                            precision = Precision.Precise,
+                            precision = ad.precision,
                             currency = AdValue.USD,
                         )
                     )

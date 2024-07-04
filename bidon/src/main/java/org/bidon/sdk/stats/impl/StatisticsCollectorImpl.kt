@@ -12,6 +12,7 @@ import org.bidon.sdk.auction.models.InterstitialRequest
 import org.bidon.sdk.auction.models.RewardedRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -63,6 +64,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
         dspSource = null,
         auctionPricefloor = 0.0,
         tokenInfo = null,
+        precision = Precision.Estimated
     )
 
     override val demandAd: DemandAd
@@ -86,7 +88,9 @@ class StatisticsCollectorImpl : StatisticsCollector {
             currencyCode = AdValue.USD,
             auctionId = auctionId,
             dsp = stat.dspSource,
-            adUnit = adUnit
+            adUnit = adUnit,
+            auctionPricefloor = stat.auctionPricefloor,
+            precision = stat.precision
         )
     }
 
@@ -224,6 +228,12 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override fun setPrice(price: Double) {
         stat = stat.copy(
             ecpm = price
+        )
+    }
+
+    override fun setPrecision(precision: Precision) {
+        stat = stat.copy(
+            precision = precision
         )
     }
 

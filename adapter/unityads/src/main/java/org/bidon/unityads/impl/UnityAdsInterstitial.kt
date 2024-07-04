@@ -59,6 +59,7 @@ internal class UnityAdsInterstitial :
                 logInfo(TAG, "onUnityAdsAdLoaded: $this")
                 isAdReadyToShow = true
                 getAd()?.let {
+                    setPrecision(Precision.Estimated)
                     emitEvent(AdEvent.Fill(it))
                 }
             }
@@ -100,7 +101,7 @@ internal class UnityAdsInterstitial :
                             adValue = AdValue(
                                 adRevenue = (adUnit?.pricefloor ?: 0.0) / 1000.0,
                                 currency = AdValue.USD,
-                                precision = Precision.Estimated
+                                precision = it.precision
                             )
                         )
                     )

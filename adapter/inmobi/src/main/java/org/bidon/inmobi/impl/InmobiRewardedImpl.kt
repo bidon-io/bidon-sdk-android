@@ -58,8 +58,11 @@ internal class InmobiRewardedImpl :
             object : InterstitialAdEventListener() {
                 override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdLoadSucceeded: $this, ${adMetaInfo.bid} USD")
-                    setPrice(adMetaInfo.bid)
-                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                    getAd()?.let {
+                        setPrice(adMetaInfo.bid)
+                        setPrecision(Precision.Precise)
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
 
                 override fun onAdLoadFailed(interstitial: InMobiInterstitial, status: InMobiAdRequestStatus) {
@@ -80,7 +83,7 @@ internal class InmobiRewardedImpl :
                             ad = ad,
                             adValue = AdValue(
                                 adRevenue = adMetaInfo.bid / 1000.0,
-                                precision = Precision.Precise,
+                                precision = ad.precision,
                                 currency = AdValue.USD,
                             )
                         )

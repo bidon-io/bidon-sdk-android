@@ -109,6 +109,7 @@ internal class MintegralBannerImpl :
                     isAdReadyToShow = true
                     val ad = getAd()
                     if (mBridgeIds != null && ad != null) {
+                        setPrecision(Precision.Precise)
                         emitEvent(AdEvent.Fill(ad))
                     } else {
                         emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -123,7 +124,7 @@ internal class MintegralBannerImpl :
                             ad = ad,
                             adValue = AdValue(
                                 adRevenue = adParams.price / 1000.0,
-                                precision = Precision.Precise,
+                                precision = ad.precision,
                                 currency = AdValue.USD
                             )
                         )

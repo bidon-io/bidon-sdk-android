@@ -20,6 +20,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -57,7 +58,10 @@ internal class ApplovinRewardedImpl(
                 logInfo(TAG, "adDisplayed: $this")
                 getAd()?.let {
                     emitEvent(AdEvent.Shown(it))
-                    emitEvent(AdEvent.PaidRevenue(it, adUnit?.pricefloor.asBidonAdValue()))
+                    emitEvent(AdEvent.PaidRevenue(
+                        ad = it,
+                        adValue = adUnit?.pricefloor.asBidonAdValue(it.precision)
+                    ))
                 }
             }
 
@@ -131,6 +135,7 @@ internal class ApplovinRewardedImpl(
                 logInfo(TAG, "adReceived: $this")
                 applovinAd = ad
                 getAd()?.let {
+                    setPrecision(Precision.Estimated)
                     emitEvent(AdEvent.Fill(it))
                 }
             }

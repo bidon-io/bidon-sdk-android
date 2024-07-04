@@ -74,12 +74,9 @@ internal class AdmobRewardedImpl(
                 adParams.activity.runOnUiThread {
                     rewardedAd.onPaidEventListener = OnPaidEventListener { adValue ->
                         getAd()?.let {
-                            emitEvent(
-                                AdEvent.PaidRevenue(
-                                    ad = it,
-                                    adValue = adValue.asBidonAdValue()
-                                )
-                            )
+                            val bidonAdValue = adValue.asBidonAdValue()
+                            setPrecision(bidonAdValue.precision)
+                            emitEvent(AdEvent.PaidRevenue(ad = it, adValue = bidonAdValue))
                         }
                     }
                     rewardedAd.fullScreenContentCallback = getFullScreenContentCallback.createCallback(

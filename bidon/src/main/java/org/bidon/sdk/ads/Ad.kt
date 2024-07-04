@@ -2,6 +2,7 @@ package org.bidon.sdk.ads
 
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.stats.models.BidType
 
 /**
@@ -11,8 +12,10 @@ class Ad(
     val demandAd: DemandAd,
     val ecpm: Double,
     val auctionId: String,
+    val auctionPricefloor: Double,
     val dsp: String?,
     val currencyCode: String?,
+    val precision: Precision,
     val adUnit: AdUnit
 ) {
     // Monetization Network name

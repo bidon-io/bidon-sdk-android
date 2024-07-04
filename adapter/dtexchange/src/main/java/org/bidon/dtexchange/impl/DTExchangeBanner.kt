@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -72,6 +73,7 @@ internal class DTExchangeBanner :
                 adParams.activity.runOnUiThread {
                     createViewHolder(inneractiveAdSpot, adParams)
                     getAd()?.let {
+                        setPrecision(Precision.Precise)
                         emitEvent(AdEvent.Fill(it))
                     }
                 }
@@ -109,11 +111,11 @@ internal class DTExchangeBanner :
                 impressionData: ImpressionData?
             ) {
                 logInfo(TAG, "onAdImpression: $adSpot, $impressionData")
-                val adValue = impressionData?.asAdValue() ?: return
+                val ad = getAd() ?: return
+                val adValue = impressionData?.asAdValue(ad.precision) ?: return
                 demandSource = impressionData.demandSource
                 setDsp(demandSource)
-                val ad = getAd() ?: return
-                emitEvent(AdEvent.PaidRevenue(ad, adValue))
+                emitEvent(AdEvent.PaidRevenue(ad = ad, adValue = adValue))
                 // tracked impression/shown by [BannerView]
             }
 

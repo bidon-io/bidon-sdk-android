@@ -14,6 +14,8 @@ import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -62,11 +64,25 @@ internal class UnityAdsBanner :
                     this@UnityAdsBanner.bannerAdView = bannerAdView
                     isAdReadyToShow = true
                     getAd()?.let {
+                        setPrecision(Precision.Estimated)
                         emitEvent(AdEvent.Fill(it))
                     }
                 }
 
-                override fun onBannerShown(bannerAdView: BannerView?) {}
+                override fun onBannerShown(bannerAdView: BannerView?) {
+                    getAd()?.let {
+                        emitEvent(
+                            AdEvent.PaidRevenue(
+                                ad = it,
+                                adValue = AdValue(
+                                    adRevenue = (adUnit?.pricefloor ?: 0.0) / 1000.0,
+                                    currency = AdValue.USD,
+                                    precision = it.precision
+                                )
+                            )
+                        )
+                    }
+                }
 
                 override fun onBannerClick(bannerAdView: BannerView?) {
                     logInfo(TAG, "onAdClicked: $this")

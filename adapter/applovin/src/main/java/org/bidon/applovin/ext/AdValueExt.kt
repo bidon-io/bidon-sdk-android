@@ -7,10 +7,10 @@ import org.bidon.sdk.logs.analytic.Precision
 /**
  * Created by Bidon Team on 21/02/2023.
  */
-internal fun Double?.asBidonAdValue(): AdValue {
+internal fun Double?.asBidonAdValue(precision: Precision): AdValue {
     return AdValue(
         adRevenue = (this ?: 0.0) / 1000.0,
-        precision = Precision.Estimated,
+        precision = precision,
         currency = AdValue.USD
     )
 }

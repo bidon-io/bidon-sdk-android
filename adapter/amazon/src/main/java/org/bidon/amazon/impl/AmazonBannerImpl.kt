@@ -69,7 +69,10 @@ internal class AmazonBannerImpl(private val amazonInfos: List<AmazonInfo>) :
             object : DTBAdBannerListener {
                 override fun onAdLoaded(view: View?) {
                     logInfo(TAG, "onAdLoaded")
-                    emitEvent(AdEvent.Fill(getAd() ?: return))
+                    getAd()?.let {
+                        setPrecision(Precision.Precise)
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
 
                 override fun onAdFailed(view: View?) {
@@ -89,13 +92,14 @@ internal class AmazonBannerImpl(private val amazonInfos: List<AmazonInfo>) :
 
                 override fun onImpressionFired(view: View?) {
                     logInfo(TAG, "onImpressionFired")
+                    val ad = getAd() ?: return
                     emitEvent(
                         AdEvent.PaidRevenue(
-                            ad = getAd() ?: return,
+                            ad = ad,
                             adValue = AdValue(
                                 adRevenue = adParams.price,
                                 currency = USD,
-                                Precision.Precise
+                                ad.precision
                             )
                         )
                     )

@@ -124,7 +124,7 @@ internal class MintegralRewardedImpl :
                         ad = ad,
                         adValue = AdValue(
                             adRevenue = adParams.price / 1000.0,
-                            precision = Precision.Precise,
+                            precision = ad.precision,
                             currency = AdValue.USD
                         )
                     )
@@ -180,6 +180,7 @@ internal class MintegralRewardedImpl :
         logInfo(TAG, "Starting fill: $this")
         val ad = getAd()
         if (rewardedAd != null && ad != null) {
+            setPrecision(Precision.Precise)
             emitEvent(AdEvent.Fill(ad))
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))

@@ -118,7 +118,7 @@ internal class BigoAdsInterstitialImpl :
                             ad = ad,
                             adValue = AdValue(
                                 adRevenue = adParams.price / 1000.0,
-                                precision = Precision.Precise,
+                                precision = ad.precision,
                                 currency = AdValue.USD,
                             )
                         )
@@ -149,6 +149,7 @@ internal class BigoAdsInterstitialImpl :
             }
         })
         getAd()?.let { ad ->
+            setPrecision(Precision.Precise)
             emitEvent(AdEvent.Fill(ad))
         }
     }

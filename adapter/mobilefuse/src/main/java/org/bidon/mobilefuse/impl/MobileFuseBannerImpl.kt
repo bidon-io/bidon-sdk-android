@@ -82,7 +82,10 @@ class MobileFuseBannerImpl :
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
                     logInfo(TAG, "onAdLoaded")
-                    getAd()?.let { emitEvent(AdEvent.Fill(it)) }
+                    getAd()?.let {
+                        setPrecision(Precision.Precise)
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
             }
 
@@ -103,7 +106,7 @@ class MobileFuseBannerImpl :
                                 AdValue(
                                     adRevenue = bidInfo?.cpmPrice?.toDouble() ?: 0.0,
                                     currency = bidInfo?.currency ?: AdValue.USD,
-                                    precision = Precision.Precise
+                                    precision = it.precision
                                 )
                             }
                         )

@@ -8,10 +8,10 @@ import org.bidon.sdk.logs.analytic.Precision
  * Created by Bidon Team on 21/02/2023.
  */
 
-internal fun AuctionResult?.asBidonAdValue(): AdValue {
+internal fun AuctionResult?.asBidonAdValue(precision: Precision): AdValue {
     return AdValue(
         adRevenue = (this?.price ?: 0.0) / 1000.0,
-        precision = Precision.Precise,
+        precision = precision,
         currency = AdValue.USD
     )
 }

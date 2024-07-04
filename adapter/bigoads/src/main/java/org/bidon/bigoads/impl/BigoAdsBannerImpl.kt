@@ -119,7 +119,7 @@ internal class BigoAdsBannerImpl :
                                     ad = ad,
                                     adValue = AdValue(
                                         adRevenue = adParams.price / 1000.0,
-                                        precision = Precision.Precise,
+                                        precision = ad.precision,
                                         currency = USD,
                                     )
                                 )
@@ -138,6 +138,7 @@ internal class BigoAdsBannerImpl :
                     override fun onAdClosed() {}
                 })
                 getAd()?.let { ad ->
+                    setPrecision(Precision.Precise)
                     emitEvent(AdEvent.Fill(ad))
                 }
             }

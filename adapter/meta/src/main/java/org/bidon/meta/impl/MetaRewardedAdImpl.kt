@@ -76,6 +76,7 @@ class MetaRewardedAdImpl :
                         logInfo(TAG, "onAdLoaded $ad: $rewardedVideoAd, $this")
                         val bidonAd = getAd()
                         if (rewardedVideoAd != null && bidonAd != null) {
+                            setPrecision(Precision.Precise)
                             emitEvent(AdEvent.Fill(bidonAd))
                         } else {
                             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
@@ -96,7 +97,7 @@ class MetaRewardedAdImpl :
                                 ad = bidonAd,
                                 adValue = AdValue(
                                     adRevenue = adParams.price / 1000.0,
-                                    precision = Precision.Precise,
+                                    precision = bidonAd.precision,
                                     currency = AdValue.USD,
                                 )
                             )

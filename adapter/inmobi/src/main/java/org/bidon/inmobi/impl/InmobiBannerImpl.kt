@@ -71,8 +71,11 @@ internal class InmobiBannerImpl :
             override fun onAdLoadSucceeded(inMobiBanner: InMobiBanner, adMetaInfo: AdMetaInfo) {
                 this@InmobiBannerImpl.adMetaInfo = adMetaInfo
                 logInfo(TAG, "onAdLoadSucceeded: $this")
-                setPrice(adMetaInfo.bid)
-                emitEvent(AdEvent.Fill(getAd() ?: return))
+                getAd()?.let {
+                    setPrice(adMetaInfo.bid)
+                    setPrecision(Precision.Precise)
+                    emitEvent(AdEvent.Fill(it))
+                }
             }
 
             override fun onAdLoadFailed(inMobiBanner: InMobiBanner, status: InMobiAdRequestStatus) {
@@ -97,7 +100,7 @@ internal class InmobiBannerImpl :
                             ad = ad,
                             adValue = AdValue(
                                 adRevenue = it.bid / 1000.0,
-                                precision = Precision.Precise,
+                                precision = ad.precision,
                                 currency = AdValue.USD,
                             )
                         )

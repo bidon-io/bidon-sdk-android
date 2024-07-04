@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -153,6 +154,7 @@ internal class BMRewardedAdImpl(
                         setPrice(rewardedAd.auctionResult?.price ?: 0.0)
                     }
                     getAd()?.let {
+                        setPrecision(Precision.Precise)
                         emitEvent(AdEvent.Fill(it))
                     }
                 }
@@ -175,7 +177,10 @@ internal class BMRewardedAdImpl(
                     logInfo(TAG, "onAdShown: $this")
                     getAd()?.let {
                         emitEvent(AdEvent.Shown(it))
-                        emitEvent(AdEvent.PaidRevenue(it, rewardedAd.auctionResult.asBidonAdValue()))
+                        emitEvent(AdEvent.PaidRevenue(
+                            ad = it,
+                            adValue = rewardedAd.auctionResult.asBidonAdValue(it.precision)
+                        ))
                     }
                 }
 
