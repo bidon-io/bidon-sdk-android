@@ -11,7 +11,6 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.ads.toPublicApi
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
@@ -37,7 +36,6 @@ import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
-import org.bidon.sdk.utils.ext.SystemTimeNow
 import java.util.UUID
 
 /**
@@ -55,7 +53,6 @@ internal class AuctionImpl(
     private val state = MutableStateFlow(AuctionState.Initialized)
 
     private var _auctionDataResponse: AuctionResponse? = null
-    private var noBidsInfo: List<BidsInfo>? = null
     private var _demandAd: DemandAd? = null
     private var job: Job? = null
     private var adTypeParam: AdTypeParam? = null
@@ -83,7 +80,6 @@ internal class AuctionImpl(
                 runCatching {
                     logInfo(TAG, "Auction started $this")
                     resultsCollector.startRound(adTypeParam.pricefloor)
-                    val biddingStartTs = SystemTimeNow
                     resultsCollector.serverBiddingStarted()
 
                     val tokens = tokenGetter.invoke(
@@ -111,17 +107,16 @@ internal class AuctionImpl(
                         resultsCollector.serverBiddingFinished(
                             auctionData.adUnits?.filter { it.bidType == BidType.RTB }
                         )
-                        val noBidsInfo = auctionData.noBids.map {
-                            it.toBidsInfo(biddingStartTs, SystemTimeNow)
+                        auctionData.noBids.map {
+                            it.toBidsInfo()
                         }.also {
-                            noBidsInfo = it
+                            resultsCollector.setNoBidInfo(it)
                         }
                         auctionData.printWaterfall(demandAd.adType)
                         val result = conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
-                            noBidsInfo = noBidsInfo,
                             tokens = tokens,
                         )
                         result.first.ifEmpty {
@@ -197,7 +192,6 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        noBidsInfo: List<BidsInfo>,
         tokens: Map<String, TokenInfo>,
     ): Pair<List<AuctionResult>, AuctionInfo> {
         _auctionDataResponse = auctionData
@@ -261,7 +255,7 @@ internal class AuctionImpl(
 
     private suspend fun proceedRoundResults(): RoundStat? {
         (resultsCollector.getRoundResults() as? RoundResult.Results)?.let {
-            return auctionStat.addRoundResults(bidsInfo = noBidsInfo ?: listOf(), result = it)
+            return auctionStat.addRoundResults(it)
         }
         return null
     }
@@ -269,7 +263,6 @@ internal class AuctionImpl(
     private fun clearData() {
         resultsCollector.clear()
         onFailureCallback = null
-        noBidsInfo = null
         _auctionDataResponse = null
     }
 

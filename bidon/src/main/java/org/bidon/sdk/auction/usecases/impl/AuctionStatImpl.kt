@@ -3,7 +3,6 @@ package org.bidon.sdk.auction.usecases.impl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.ads.ext.asAdRequestBody
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
@@ -60,7 +59,7 @@ internal class AuctionStatImpl(
         isAuctionCanceled = true
     }
 
-    override suspend fun addRoundResults(bidsInfo: List<BidsInfo>, result: RoundResult.Results): RoundStat {
+    override suspend fun addRoundResults(result: RoundResult.Results): RoundStat {
         // get, sort results + update winner
         // save stats
         val roundResults = resolver.sortWinners(result.getAuctionResults())
@@ -104,7 +103,7 @@ internal class AuctionStatImpl(
             pricefloor = result.pricefloor,
             winnerDemandId = roundWinner?.adSource?.demandId,
             winnerEcpm = roundWinner?.adSource?.getStats()?.ecpm,
-            noBids = bidsInfo,
+            noBids = result.noBidsInfo,
             demands = results,
         )
         this.roundStat = roundStat

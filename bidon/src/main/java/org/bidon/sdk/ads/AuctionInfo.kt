@@ -17,9 +17,6 @@ class BidsInfo(
     val price: Double?,
     val uid: String?,
     val bidType: String?,
-    val fillStartTs: Long?,
-    val fillFinishTs: Long?,
-    val status: String?,
     val ext: JSONObject?,
 )
 class AdUnitInfo(

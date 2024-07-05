@@ -3,6 +3,7 @@ package org.bidon.sdk.auction.impl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.WinLossNotifiable
+import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
@@ -32,6 +33,7 @@ internal class ResultsCollectorImpl(
                 biddingResult = BiddingResult.ServerBiddingStarted(serverBiddingStartTs = SystemTimeNow),
                 networkResults = it.networkResults,
                 pricefloor = it.pricefloor,
+                noBidsInfo = it.noBidsInfo
             )
         }
     }
@@ -71,9 +73,22 @@ internal class ResultsCollectorImpl(
                         },
                         networkResults = curRoundResult.networkResults,
                         pricefloor = curRoundResult.pricefloor,
+                        noBidsInfo = curRoundResult.noBidsInfo,
                     )
                 }
             }
+        }
+    }
+
+    override fun setNoBidInfo(noBidsInfo: List<BidsInfo>) {
+        roundResult.update { current ->
+            require(current is RoundResult.Results)
+            RoundResult.Results(
+                pricefloor = current.pricefloor,
+                biddingResult = current.biddingResult,
+                networkResults = current.networkResults,
+                noBidsInfo = noBidsInfo
+            )
         }
     }
 
@@ -82,6 +97,7 @@ internal class ResultsCollectorImpl(
             biddingResult = BiddingResult.Idle,
             networkResults = emptyList(),
             pricefloor = pricefloor,
+            noBidsInfo = listOf()
         )
     }
 
@@ -113,6 +129,7 @@ internal class ResultsCollectorImpl(
                         },
                         networkResults = current.networkResults,
                         pricefloor = current.pricefloor,
+                        noBidsInfo = current.noBidsInfo,
                     )
                 }
 
@@ -124,6 +141,7 @@ internal class ResultsCollectorImpl(
                         biddingResult = current.biddingResult,
                         networkResults = current.networkResults + result,
                         pricefloor = current.pricefloor,
+                        noBidsInfo = current.noBidsInfo,
                     )
                 }
 
@@ -205,6 +223,7 @@ internal class ResultsCollectorImpl(
                 ),
                 networkResults = it.networkResults,
                 pricefloor = it.pricefloor,
+                noBidsInfo = it.noBidsInfo,
             )
         }
     }

@@ -2,7 +2,6 @@ package org.bidon.sdk.auction.models
 
 import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.RoundStatus
 import org.json.JSONObject
 
 /**
@@ -25,15 +24,12 @@ data class AdUnit(
         "Demand: $demandId, Pricefloor: $pricefloor, UID: $uid, BidType: $bidType"
 }
 
-internal fun AdUnit.toBidsInfo(startBidding: Long, finishBidding: Long) =
+internal fun AdUnit.toBidsInfo() =
     BidsInfo(
         demandId = demandId,
         label = label,
         price = pricefloor,
         uid = uid,
         bidType = bidType.code,
-        fillStartTs = startBidding,
-        fillFinishTs = finishBidding,
-        status = RoundStatus.NoBid.code,
         ext = extra,
     )
