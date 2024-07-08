@@ -18,6 +18,7 @@ import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.models.base.ConcurrentTest
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.stats.models.*
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
@@ -112,6 +113,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         tokenFinishTs = 679L,
                                         status = TokenInfo.Status.SUCCESS.code,
                                     ),
+                                    precision = Precision.Precise
                                 )
                             },
                             roundStatus = RoundStatus.Successful
@@ -149,6 +151,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     tokenFinishTs = 679L,
                                     status = TokenInfo.Status.SUCCESS.code,
                                 ),
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("bidmachine")
                         },
@@ -175,6 +178,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     uid = "123"
                                 ),
                                 tokenInfo = null,
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("admob")
                         },
@@ -301,6 +305,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         tokenFinishTs = 679L,
                                         status = TokenInfo.Status.SUCCESS.code,
                                     ),
+                                    precision = Precision.Precise
                                 )
                             },
                             roundStatus = RoundStatus.Successful
@@ -334,6 +339,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     tokenFinishTs = 679L,
                                     status = TokenInfo.Status.SUCCESS.code,
                                 ),
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("dem1")
                         },
@@ -365,6 +371,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     tokenFinishTs = 679L,
                                     status = TokenInfo.Status.SUCCESS.code,
                                 ),
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("dem2")
                         },
@@ -509,6 +516,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                         tokenFinishTs = 679L,
                                         status = TokenInfo.Status.SUCCESS.code,
                                     ),
+                                    precision = Precision.Precise
                                 )
                             },
                             roundStatus = RoundStatus.Successful
@@ -542,6 +550,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     tokenFinishTs = 679L,
                                     status = TokenInfo.Status.SUCCESS.code,
                                 ),
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("dem1")
                         },
@@ -573,6 +582,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                                     tokenFinishTs = 679L,
                                     status = TokenInfo.Status.SUCCESS.code,
                                 ),
+                                precision = Precision.Precise
                             )
                             every { it.demandId } returns DemandId("dem2")
                         },

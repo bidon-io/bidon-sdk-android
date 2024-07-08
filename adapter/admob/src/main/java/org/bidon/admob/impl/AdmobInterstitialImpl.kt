@@ -75,7 +75,8 @@ internal class AdmobInterstitialImpl(
                         getAd()?.let {
                             val bidonAdValue = adValue.asBidonAdValue()
                             setPrecision(bidonAdValue.precision)
-                            emitEvent(AdEvent.PaidRevenue(ad = it, adValue = bidonAdValue))                       }
+                            emitEvent(AdEvent.PaidRevenue(ad = it, adValue = bidonAdValue))
+                        }
                     }
                     interstitialAd.fullScreenContentCallback = getFullScreenContentCallback.createCallback(
                         adEventFlow = this@AdmobInterstitialImpl,
