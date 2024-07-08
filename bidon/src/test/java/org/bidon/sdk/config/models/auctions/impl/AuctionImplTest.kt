@@ -155,7 +155,16 @@ internal class AuctionImplTest : ConcurrentTest() {
             auctionConfigurationId = 10,
             auctionConfigurationUid = "10",
             externalWinNotificationsEnabled = true,
-            auctionTimeout = 10000L
+            auctionTimeout = 10000L,
+            noBids = listOf(AdUnit(
+                bidType = BidType.RTB,
+                demandId = "dem7",
+                label = "dem7_label",
+                pricefloor = 0.021,
+                uid = "123567",
+                timeout = 5000L,
+                ext = ""
+            ))
         )
         coEvery {
             getAuctionRequestUseCase.request(
@@ -175,7 +184,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 pricefloor = 1.0,
                 auctionKey = null
             ),
-            onSuccess = { auctionResults ->
+            onSuccess = { auctionResults, auctionInfo ->
 
                 // THEN it should detect winner in round_2
                 assertThat(auctionResults).hasSize(3)
@@ -206,8 +215,8 @@ internal class AuctionImplTest : ConcurrentTest() {
                 assertThat(actualRoundStat[1].demands[0]?.fillFinishTs).isNotNull()
                 assertThat(actualRoundStat[1].demands[0]?.adUnitUid).isEqualTo("1")
             },
-            onFailure = {
-                error("unexpected: $it")
+            onFailure = { auctionInfo, throwable ->
+                error("unexpected: $throwable")
             }
         )
     }
@@ -250,7 +259,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 pricefloor = 1.0,
                 auctionKey = null
             ),
-            onSuccess = { auctionResults ->
+            onSuccess = { auctionResults, auctionInfo ->
 
                 // THEN it should detect winner in round_1. "admob2" can not fill.
                 /**
@@ -266,8 +275,8 @@ internal class AuctionImplTest : ConcurrentTest() {
                 assertThat(winnerAd.ecpm).isEqualTo(2.25)
                 assertThat(winner.adSource.getStats().ecpm).isEqualTo(2.25)
             },
-            onFailure = {
-                error("unexpected: $it")
+            onFailure = { auctionInfo, throwable ->
+                error("unexpected: $throwable")
             }
         )
     }
@@ -310,12 +319,12 @@ internal class AuctionImplTest : ConcurrentTest() {
                 pricefloor = 1.0,
                 auctionKey = null
             ),
-            onSuccess = {
+            onSuccess = { auctionResults, auctionInfo ->
                 error("unexpected")
             },
-            onFailure = {
+            onFailure = { auctionInfo, throwable ->
                 // THEN it should expose NoAuctionResults
-                assertThat(it).isEqualTo(BidonError.NoAuctionResults)
+                assertThat(throwable).isEqualTo(BidonError.NoAuctionResults)
             }
         )
     }
@@ -358,12 +367,12 @@ internal class AuctionImplTest : ConcurrentTest() {
                 pricefloor = 1.0,
                 auctionKey = null
             ),
-            onSuccess = {
+            onSuccess = { auctionResults, auctionInfo ->
                 error("unexpected")
             },
-            onFailure = {
+            onFailure = { auctionInfo, throwable ->
                 // THEN it should expose NoAuctionResults
-                assertThat(it).isEqualTo(BidonError.NoAuctionResults)
+                assertThat(throwable).isEqualTo(BidonError.NoAuctionResults)
             }
         )
     }
@@ -404,6 +413,15 @@ internal class AuctionImplTest : ConcurrentTest() {
         auctionConfigurationId = 10,
         auctionConfigurationUid = "10",
         externalWinNotificationsEnabled = true,
-        auctionTimeout = 10000L
+        auctionTimeout = 10000L,
+        noBids = listOf(AdUnit(
+            bidType = BidType.RTB,
+            demandId = "dem7",
+            label = "dem7_label",
+            pricefloor = 0.021,
+            uid = "123567",
+            timeout = 5000L,
+            ext = ""
+        ))
     )
 }

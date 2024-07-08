@@ -43,7 +43,6 @@ internal class AuctionStatImpl(
             else field
         }
 
-    private var roundStat: RoundStat? = null
     private var isAuctionCanceled = false
 
     override fun markAuctionStarted(auctionId: String, adTypeParam: AdTypeParam) {
@@ -106,7 +105,6 @@ internal class AuctionStatImpl(
             noBids = result.noBidsInfo,
             demands = results,
         )
-        this.roundStat = roundStat
         return roundStat
     }
 
