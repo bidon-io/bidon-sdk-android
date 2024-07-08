@@ -97,7 +97,7 @@ internal class AuctionStatImpl(
                 }
             }
 
-        val roundStat = RoundStat(
+        return RoundStat(
             auctionId = auctionId,
             pricefloor = result.pricefloor,
             winnerDemandId = roundWinner?.adSource?.demandId,
@@ -105,7 +105,6 @@ internal class AuctionStatImpl(
             noBids = result.noBidsInfo,
             demands = results,
         )
-        return roundStat
     }
 
     private fun AuctionResult.asStatsAdUnit(): StatsAdUnit {
@@ -289,7 +288,6 @@ internal class AuctionStatImpl(
         )
     }
 
-    // TODO: 24/06/2024
     private fun RoundStatus.getStatusMessage() =
         when (this) {
             is RoundStatus.UnspecifiedException -> errorMessage
