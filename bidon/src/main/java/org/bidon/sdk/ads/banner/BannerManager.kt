@@ -74,7 +74,10 @@ class BannerManager private constructor(
     }
 
     override fun setCustomPosition(offset: Point, rotation: Int, anchor: PointF) {
-        logInfo(tag, "Set position by coordinates Offset($offset), Rotation($rotation), Anchor($anchor)")
+        logInfo(
+            tag,
+            "Set position by coordinates Offset($offset), Rotation($rotation), Anchor($anchor)"
+        )
         positionState = PositionState.Coordinate(
             AdRenderer.AdContainerParams(offset, rotation, anchor)
         )
@@ -111,7 +114,8 @@ class BannerManager private constructor(
                         ad = it,
                         auctionInfo = requireNotNull(nextAuctionInfo) {
                             "Could not receive nextAuctionInfo"
-                        })
+                        }
+                    )
                 }
                 return@runOnUiThread
             }
@@ -156,7 +160,10 @@ class BannerManager private constructor(
                 return@runOnUiThread
             }
             if (!bannerView.isReady()) {
-                logInfo(tag, "Source network banner is not ready ${bannerView.children.firstOrNull()}")
+                logInfo(
+                    tag,
+                    "Source network banner is not ready ${bannerView.children.firstOrNull()}"
+                )
             }
             nextBannerView = null
             nextAd = null

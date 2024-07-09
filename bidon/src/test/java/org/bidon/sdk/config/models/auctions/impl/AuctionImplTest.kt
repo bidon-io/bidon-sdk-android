@@ -156,15 +156,17 @@ internal class AuctionImplTest : ConcurrentTest() {
             auctionConfigurationUid = "10",
             externalWinNotificationsEnabled = true,
             auctionTimeout = 10000L,
-            noBids = listOf(AdUnit(
-                bidType = BidType.RTB,
-                demandId = "dem7",
-                label = "dem7_label",
-                pricefloor = 0.021,
-                uid = "123567",
-                timeout = 5000L,
-                ext = ""
-            ))
+            noBids = listOf(
+                AdUnit(
+                    bidType = BidType.RTB,
+                    demandId = "dem7",
+                    label = "dem7_label",
+                    pricefloor = 0.021,
+                    uid = "123567",
+                    timeout = 5000L,
+                    ext = ""
+                )
+            )
         )
         coEvery {
             getAuctionRequestUseCase.request(
@@ -406,7 +408,6 @@ internal class AuctionImplTest : ConcurrentTest() {
                 timeout = 5000,
                 uid = "1",
             ),
-
         ),
         pricefloor = 0.01,
         auctionId = "auctionId_123",
@@ -414,14 +415,16 @@ internal class AuctionImplTest : ConcurrentTest() {
         auctionConfigurationUid = "10",
         externalWinNotificationsEnabled = true,
         auctionTimeout = 10000L,
-        noBids = listOf(AdUnit(
-            bidType = BidType.RTB,
-            demandId = "dem7",
-            label = "dem7_label",
-            pricefloor = 0.021,
-            uid = "123567",
-            timeout = 5000L,
-            ext = ""
-        ))
+        noBids = listOf(
+            AdUnit(
+                bidType = BidType.RTB,
+                demandId = "dem7",
+                label = "dem7_label",
+                pricefloor = 0.021,
+                uid = "123567",
+                timeout = 5000L,
+                ext = ""
+            )
+        )
     )
 }

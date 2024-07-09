@@ -14,13 +14,23 @@ import org.bidon.sdk.ads.BidsInfo
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
-import org.bidon.sdk.auction.models.*
+import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.AuctionResponse
+import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.InterstitialRequest
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
-import org.bidon.sdk.stats.models.*
+import org.bidon.sdk.stats.models.BidStat
+import org.bidon.sdk.stats.models.BidType
+import org.bidon.sdk.stats.models.ResultBody
+import org.bidon.sdk.stats.models.RoundStat
+import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.StatsAdUnit
+import org.bidon.sdk.stats.models.StatsRequestBody
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
@@ -484,14 +494,15 @@ internal class AuctionStatImplTest : ConcurrentTest() {
             ),
             winnerEcpm = 1.5,
             winnerDemandId = DemandId("bidmachine"),
-            noBids = listOf(BidsInfo(
-                bidType = BidType.RTB.code,
-                demandId = "dem5",
-                label = "dem5_label",
-                price = 0.2,
-                uid = "12365",
-                ext = JSONObject()
-            ),
+            noBids = listOf(
+                BidsInfo(
+                    bidType = BidType.RTB.code,
+                    demandId = "dem5",
+                    label = "dem5_label",
+                    price = 0.2,
+                    uid = "12365",
+                    ext = JSONObject()
+                ),
                 BidsInfo(
                     bidType = BidType.RTB.code,
                     demandId = "dem6",
@@ -499,7 +510,8 @@ internal class AuctionStatImplTest : ConcurrentTest() {
                     price = 0.02,
                     uid = "12356",
                     ext = JSONObject()
-                ))
+                )
+            )
         )
         assertThat(actual).isEqualTo(expected)
     }

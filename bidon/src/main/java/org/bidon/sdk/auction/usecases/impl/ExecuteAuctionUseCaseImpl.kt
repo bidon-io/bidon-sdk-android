@@ -111,9 +111,9 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
                             !shouldRequestNext(
-                                auctionResult = auctionResult,
-                                next = adUnitQueue.peek()
-                            )
+                                    auctionResult = auctionResult,
+                                    next = adUnitQueue.peek()
+                                )
                         ) {
                             logInfo(
                                 TAG,

@@ -57,7 +57,6 @@ internal class AuctionImpl(
     private var job: Job? = null
     private var adTypeParam: AdTypeParam? = null
     private val resultsCollector: ResultsCollector by lazy { get() }
-    private var onFailureCallback: ((AuctionInfo?, Throwable) -> Unit)? = null
 
     override fun start(
         demandAd: DemandAd,
@@ -65,7 +64,6 @@ internal class AuctionImpl(
         onSuccess: (results: List<AuctionResult>, auctionInfo: AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
-        onFailureCallback = onFailure
         if (state.compareAndSet(
                 expect = AuctionState.Initialized,
                 update = AuctionState.InProgress
@@ -113,17 +111,17 @@ internal class AuctionImpl(
                             resultsCollector.setNoBidInfo(it)
                         }
                         auctionData.printWaterfall(demandAd.adType)
-                        val result = conductAuction(
+                        val (results, auctionInfo) = conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
                             tokens = tokens,
                         )
-                        result.first.ifEmpty {
-                            onFailure(result.second, BidonError.NoAuctionResults)
+                        results.ifEmpty {
+                            onFailure(auctionInfo, BidonError.NoAuctionResults)
                         }
                         adTypeParam.activity.runOnUiThread {
-                            onSuccess(result.first, result.second)
+                            onSuccess(results, auctionInfo)
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed", cause)
@@ -143,7 +141,7 @@ internal class AuctionImpl(
         }
     }
 
-    override fun cancel() {
+    override fun cancel(onFailure: (AuctionInfo?, Throwable) -> Unit) {
         if (job?.isActive == true) {
             job?.cancel()
             scope.launch {
@@ -153,7 +151,7 @@ internal class AuctionImpl(
                 val auctionData = _auctionDataResponse
                 if (auctionData == null) {
                     logInfo(TAG, "No AuctionResponse info. There is nothing to send.")
-                    onFailureCallback?.invoke(null, BidonError.AuctionCancelled)
+                    onFailure.invoke(null, BidonError.AuctionCancelled)
                 } else {
                     auctionStat.sendAuctionStats(
                         auctionData = auctionData,
@@ -166,7 +164,7 @@ internal class AuctionImpl(
                     )
                     logInfo(TAG, "Auction canceled")
                     withContext(Dispatchers.Main) {
-                        onFailureCallback?.invoke(auctionInfo, BidonError.AuctionCancelled)
+                        onFailure.invoke(auctionInfo, BidonError.AuctionCancelled)
                     }
                 }
                 resultsCollector.clearRoundResults()
@@ -196,15 +194,12 @@ internal class AuctionImpl(
     ): Pair<List<AuctionResult>, AuctionInfo> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
-        val auctionId = auctionData.auctionId
         val auctionPriceFloor = auctionData.pricefloor
-        val auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L
-        val auctionConfigurationUid = auctionData.auctionConfigurationUid ?: ""
         // Start auction
         auctionExecutable.execute(
-            auctionId = auctionId,
-            auctionConfigurationId = auctionConfigurationId,
-            auctionConfigurationUid = auctionConfigurationUid,
+            auctionId = auctionData.auctionId,
+            auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
+            auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
             externalWinNotificationsEnabled = auctionData.externalWinNotificationsEnabled,
             auctionTimeout = auctionData.auctionTimeout,
             pricefloor = auctionPriceFloor,
@@ -262,7 +257,6 @@ internal class AuctionImpl(
 
     private fun clearData() {
         resultsCollector.clear()
-        onFailureCallback = null
         _auctionDataResponse = null
     }
 

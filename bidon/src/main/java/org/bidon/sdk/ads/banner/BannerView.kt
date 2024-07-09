@@ -91,11 +91,12 @@ class BannerView @JvmOverloads constructor(
     private var internalAdSize: AdSize? = null
 
     override val adSize: AdSize?
-        get() = internalAdSize ?: (winner?.adSource as? AdSource.Banner)?.getAdView()?.let { holder ->
-            AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp).also {
-                internalAdSize = it
+        get() = internalAdSize ?: (winner?.adSource as? AdSource.Banner)?.getAdView()
+            ?.let { holder ->
+                AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp).also {
+                    internalAdSize = it
+                }
             }
-        }
 
     override fun setBannerFormat(bannerFormat: BannerFormat) {
         this.format = bannerFormat
@@ -123,10 +124,17 @@ class BannerView @JvmOverloads constructor(
 
                 AdLifecycle.Loaded -> {
                     winner?.adSource?.ad?.let {
-                        logInfo(TAG, "Banner loaded")
-                        userListener?.onAdLoaded(it, requireNotNull(auctionInfo) {
-                            "[AuctionInfo] should exist when action succeeds"
-                        })
+                        logInfo(
+                            TAG,
+                            "Banner loaded"
+                        )
+
+                        userListener?.onAdLoaded(
+                            it,
+                            requireNotNull(auctionInfo) {
+                                "[AuctionInfo] should exist when action succeeds"
+                            }
+                        )
                     }
                 }
 
@@ -239,7 +247,12 @@ class BannerView @JvmOverloads constructor(
         }
         adLifecycleFlow.value = AdLifecycle.Destroyed
         visibilityTracker.stop()
-        auction.cancel()
+        auction.cancel { auctionInfo, cause ->
+            listener.onAdLoadFailed(
+                auctionInfo = auctionInfo,
+                cause = cause.asBidonErrorOrUnspecified()
+            )
+        }
         winner?.adSource?.destroy()
         winner = null
         auctionInfo = null
@@ -255,7 +268,8 @@ class BannerView @JvmOverloads constructor(
             logError(TAG, "No AdView found.", NullPointerException())
             return
         }
-        val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
+        val layoutParams =
+            LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
         addView(adViewHolder.networkAdview, layoutParams)
         this.visibility = VISIBLE
         adViewHolder.networkAdview.visibility = VISIBLE
