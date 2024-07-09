@@ -1,3 +1,7 @@
+# Next 0.7.0-next.1
+## Features:
+- [BDN-626](https://appodeal.atlassian.net/browse/BDN-626) Integrated MyTarget as Ad Adapter
+
 # Next 0.6.0-next.1
 ## Features:
 - [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Merge Bidding And Classic Demands Into One Auction 
