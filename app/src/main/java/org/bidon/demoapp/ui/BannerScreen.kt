@@ -25,6 +25,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
+import org.bidon.demoapp.ui.ext.toImpressionData
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerListener
@@ -110,6 +111,8 @@ fun BannerScreen(navController: NavHostController) {
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
                                         }
+                                        val impressionData = ad.toImpressionData()
+                                        logFlow.log("onAdLoaded ImpressionInfo: ${impressionData.toJson()}")
                                     }
 
                                     override fun onAdLoadFailed(cause: BidonError) {
@@ -118,6 +121,8 @@ fun BannerScreen(navController: NavHostController) {
 
                                     override fun onAdShown(ad: Ad) {
                                         logFlow.log("onAdShown: $ad")
+                                        val impressionData = ad.toImpressionData()
+                                        logFlow.log("onAdShown ImpressionInfo: ${impressionData.toJson()}")
                                     }
 
                                     override fun onAdClicked(ad: Ad) {
@@ -130,6 +135,8 @@ fun BannerScreen(navController: NavHostController) {
 
                                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                                        val impressionData = ad.toImpressionData()
+                                        logFlow.log("onRevenuePaid ImpressionInfo: ${impressionData.toJson()}")
                                     }
 
                                     override fun onAdShowFailed(cause: BidonError) {
