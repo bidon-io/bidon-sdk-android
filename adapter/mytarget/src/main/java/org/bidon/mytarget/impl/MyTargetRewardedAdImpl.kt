@@ -54,8 +54,11 @@ class MyTargetRewardedAdImpl :
             emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))
             return
         }
-        rewardedAd = MyTargetRewardedAd(adParams.slotId, context)
-        rewardedAd?.listener = object : MyTargetRewardedAd.RewardedAdListener {
+        val rewardedAd = MyTargetRewardedAd(adParams.slotId, context).also {
+            it.customParams.setCustomParam("mediation", adParams.mediation)
+            rewardedAd = it
+        }
+        rewardedAd.listener = object : MyTargetRewardedAd.RewardedAdListener {
             override fun onLoad(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))
@@ -74,7 +77,6 @@ class MyTargetRewardedAdImpl :
             override fun onDismiss(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onDismiss: $this")
                 emitEvent(AdEvent.Closed(getAd() ?: return))
-                rewardedAd = null
             }
 
             override fun onReward(reward: Reward, rewarded: RewardedAd) {
@@ -108,9 +110,9 @@ class MyTargetRewardedAdImpl :
                 )
                 return
             }
-            rewardedAd?.loadFromBid(adParams.payload)
+            rewardedAd.loadFromBid(adParams.payload)
         } else {
-            rewardedAd?.load()
+            rewardedAd.load()
         }
     }
 

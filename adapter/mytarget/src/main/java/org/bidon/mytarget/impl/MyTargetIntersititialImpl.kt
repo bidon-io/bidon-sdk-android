@@ -57,9 +57,10 @@ class MyTargetIntersititialImpl :
             return
         }
         val interstitialAd = MyTargetInterstitialAd(adParams.slotId, context).also {
+            it.customParams.setCustomParam("mediation", adParams.mediation)
             interstitialAd = it
         }
-        interstitialAd?.listener = object : MyTargetInterstitialAd.InterstitialAdListener {
+        interstitialAd.listener = object : MyTargetInterstitialAd.InterstitialAdListener {
             override fun onLoad(interstitial: MyTargetInterstitialAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))

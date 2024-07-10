@@ -68,6 +68,7 @@ class MyTargetBannerImpl :
             return
         }
         val adView = MyTargetView(adParams.context).also {
+            it.customParams.setCustomParam("mediation", adParams.mediation)
             adView = it
         }
         adSize ?: adParams.bannerFormat.toAdSize()?.let {

@@ -10,6 +10,7 @@ class MyTargetFullscreenAuctionParams(
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
     val payload: String? = adUnit.extra?.optString("payload")
+    val mediation = adUnit.extra?.optString("mediation")
     val slotId: Int? = adUnit.extra?.optInt("slot_id")
 }
 
@@ -20,5 +21,6 @@ class MyTargetViewAuctionParams(
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
     val payload: String? = adUnit.extra?.optString("payload")
+    val mediation = adUnit.extra?.optString("mediation")
     val slotId: Int? = adUnit.extra?.optInt("slot_id")
 }
