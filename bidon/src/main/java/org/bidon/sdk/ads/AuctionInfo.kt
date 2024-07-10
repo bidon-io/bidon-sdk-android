@@ -1,6 +1,5 @@
 package org.bidon.sdk.ads
 
-import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.StatsAdUnit
 import org.json.JSONObject
 
@@ -9,18 +8,10 @@ class AuctionInfo(
     val auctionConfigurationId: Long?,
     val auctionConfigurationUid: String?,
     val auctionPricefloor: Double,
-    val noBids: List<BidsInfo>?,
+    val noBids: List<AdUnitInfo>?,
     val adUnits: List<AdUnitInfo>?,
 )
-class BidsInfo(
-    val demandId: String,
-    val label: String?,
-    val price: Double?,
-    val uid: String?,
-    val status: String = RoundStatus.NoBid.code,
-    val bidType: String?,
-    val ext: JSONObject?,
-)
+
 class AdUnitInfo(
     val demandId: String,
     val label: String?,

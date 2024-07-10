@@ -1,6 +1,6 @@
 package org.bidon.sdk.auction.usecases.models
 
-import org.bidon.sdk.ads.BidsInfo
+import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.auction.models.AuctionResult
 
 /**
@@ -13,7 +13,7 @@ internal sealed interface RoundResult {
         val pricefloor: Double,
         val biddingResult: BiddingResult,
         val networkResults: List<AuctionResult>,
-        val noBidsInfo: List<BidsInfo>,
+        val noBidsInfo: List<AdUnitInfo>,
     ) : RoundResult {
 
         fun getAuctionResults(): List<AuctionResult> {
