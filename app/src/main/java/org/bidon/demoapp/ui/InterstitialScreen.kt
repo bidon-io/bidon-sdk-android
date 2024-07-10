@@ -33,6 +33,7 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
+import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -61,11 +62,12 @@ fun InterstitialScreen(
             setInterstitialListener(
                 object : InterstitialListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: $auctionInfo")
+                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: ${auctionInfo.toJson()}")
+
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: $auctionInfo")
+                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: ${auctionInfo?.toJson()}")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {
