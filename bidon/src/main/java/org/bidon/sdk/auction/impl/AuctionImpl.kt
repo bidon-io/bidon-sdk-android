@@ -1,10 +1,12 @@
 package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
@@ -135,23 +137,33 @@ internal class AuctionImpl(
         }
     }
 
-    override fun cancel() {
+    override fun cancel(onFailure: (AuctionInfo?, Throwable) -> Unit) {
         if (job?.isActive == true) {
             job?.cancel()
             scope.launch {
                 auctionStat.markAuctionCanceled()
-                val roundStatus = proceedRoundResults()
+                auctionExecutable.cancel(resultsCollector)
+                val statResult = proceedRoundResults()
                 val auctionData = _auctionDataResponse
                 if (auctionData == null) {
                     logInfo(TAG, "No AuctionResponse info. There is nothing to send.")
+                    onFailure.invoke(null, BidonError.AuctionCancelled)
                 } else {
                     auctionStat.sendAuctionStats(
                         auctionData = auctionData,
+                        roundStat = statResult,
                         demandAd = requireNotNull(_demandAd),
-                        roundStat = roundStatus,
                     )
+                    val auctionInfo = getAuctionInfo(
+                        auctionData = auctionData,
+                        statResult = statResult
+                    )
+                    logInfo(TAG, "Auction canceled")
+                    withContext(Dispatchers.Main) {
+                        onFailure.invoke(auctionInfo, BidonError.AuctionCancelled)
+                    }
                 }
-                logInfo(TAG, "Auction canceled")
+                resultsCollector.clearRoundResults()
                 clearData()
             }
         }
@@ -180,7 +192,7 @@ internal class AuctionImpl(
         _demandAd = demandAd
         val auctionPriceFloor = auctionData.pricefloor
         // Start auction
-        auctionExecutable(
+        auctionExecutable.execute(
             auctionId = auctionData.auctionId,
             auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
             auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",

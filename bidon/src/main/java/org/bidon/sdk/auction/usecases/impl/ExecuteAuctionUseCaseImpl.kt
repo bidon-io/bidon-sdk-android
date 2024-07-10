@@ -34,7 +34,9 @@ internal class ExecuteAuctionUseCaseImpl(
     private val regulation: Regulation,
 ) : ExecuteAuctionUseCase {
 
-    override suspend operator fun invoke(
+    private var adUnitQueue: LinkedList<AdUnit> = LinkedList()
+
+    override suspend fun execute(
         auctionId: String,
         auctionConfigurationId: Long,
         auctionConfigurationUid: String,
@@ -49,7 +51,7 @@ internal class ExecuteAuctionUseCaseImpl(
     ) {
         withTimeoutOrNull(auctionTimeout) {
             runCatching {
-                val adUnitQueue = LinkedList(adUnits)
+                adUnitQueue = LinkedList(adUnits)
 
                 while (adUnitQueue.isNotEmpty()) {
 
@@ -141,6 +143,12 @@ internal class ExecuteAuctionUseCaseImpl(
                 logError(TAG, "Failed to execute auction", it)
             }.getOrNull()
         } ?: logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+    }
+
+    override suspend fun cancel(resultsCollector: ResultsCollector) {
+        adUnitQueue.forEach {
+            resultsCollector.add(AuctionResult.AuctionCancelled(it))
+        }
     }
 
     private fun getBelowPriceFloorResult(adUnit: AdUnit): AuctionResult {
