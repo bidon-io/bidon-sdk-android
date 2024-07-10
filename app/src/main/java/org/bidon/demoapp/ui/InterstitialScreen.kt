@@ -33,6 +33,7 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
+import org.bidon.demoapp.ui.ext.toImpressionData
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.interstitial.InterstitialAd
@@ -61,6 +62,8 @@ fun InterstitialScreen(
                 object : InterstitialListener {
                     override fun onAdLoaded(ad: Ad) {
                         logFlow.log("onAdLoaded WINNER:\n$ad")
+                        val impressionData = ad.toImpressionData()
+                        logFlow.log("onAdLoaded ImpressionInfo: ${impressionData.toJson()}")
                     }
 
                     override fun onAdLoadFailed(cause: BidonError) {
@@ -73,6 +76,8 @@ fun InterstitialScreen(
 
                     override fun onAdShown(ad: Ad) {
                         logFlow.log("onAdShown: $ad")
+                        val impressionData = ad.toImpressionData()
+                        logFlow.log("onAdShown ImpressionInfo: ${impressionData.toJson()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
@@ -89,6 +94,8 @@ fun InterstitialScreen(
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                        val impressionData = ad.toImpressionData()
+                        logFlow.log("onRevenuePaid ImpressionInfo: ${impressionData.toJson()}")
                     }
                 }
             )
