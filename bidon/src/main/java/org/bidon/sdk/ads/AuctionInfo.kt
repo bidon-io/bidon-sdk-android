@@ -1,8 +1,5 @@
 package org.bidon.sdk.ads
 
-import org.bidon.sdk.stats.models.StatsAdUnit
-import org.json.JSONObject
-
 class AuctionInfo(
     val auctionId: String,
     val auctionConfigurationId: Long?,
@@ -22,19 +19,5 @@ class AdUnitInfo(
     val fillFinishTs: Long?,
     val status: String?,
     val errorMessage: String? = null,
-    val ext: JSONObject?,
+    val ext: String?,
 )
-
-internal fun StatsAdUnit.toPublicApi() =
-    AdUnitInfo(
-        demandId = demandId,
-        label = adUnitLabel,
-        price = price,
-        uid = adUnitUid,
-        bidType = bidType,
-        fillStartTs = fillStartTs,
-        fillFinishTs = fillFinishTs,
-        status = status,
-        errorMessage = errorMessage,
-        ext = ext,
-    )

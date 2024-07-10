@@ -24,17 +24,3 @@ data class AdUnit(
     override fun toString() =
         "Demand: $demandId, Pricefloor: $pricefloor, UID: $uid, BidType: $bidType"
 }
-
-internal fun AdUnit.toBidsInfo() =
-    AdUnitInfo(
-        demandId = demandId,
-        label = label,
-        price = pricefloor,
-        uid = uid,
-        bidType = bidType.code,
-        status = RoundStatus.NoBid.code,
-        errorMessage = null,
-        fillStartTs = null,
-        fillFinishTs = null,
-        ext = extra,
-    )

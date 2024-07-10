@@ -3,7 +3,6 @@ package org.bidon.sdk.auction.impl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.WinLossNotifiable
-import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
@@ -80,7 +79,7 @@ internal class ResultsCollectorImpl(
         }
     }
 
-    override fun setNoBidInfo(noBidsInfo: List<AdUnitInfo>) {
+    override fun setNoBidInfo(noBidsInfo: List<AdUnit>) {
         roundResult.update { current ->
             require(current is RoundResult.Results)
             RoundResult.Results(
