@@ -25,8 +25,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
-import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.demoapp.ui.ext.getImpressionInfo
+import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat

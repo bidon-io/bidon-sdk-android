@@ -22,29 +22,29 @@ fun AuctionInfo.toJson(): String {
     return """
             {
                 "auction_id": "$auctionId",
-                "auction_configuration_id": ${auctionConfigurationId},
+                "auction_configuration_id": $auctionConfigurationId,
                 "auction_configuration_uid": ${auctionConfigurationUid?.let { "\"$it\"" }},
                 "auction_pricefloor": $auctionPricefloor,
                 "no_bids": ${
-        noBids?.let {
-            it.joinToString(
-                prefix = "[",
-                postfix = "]",
-                separator = ","
-            ) { adUnit -> adUnit.toJson() }
-        }
+    noBids?.let {
+        it.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ","
+        ) { adUnit -> adUnit.toJson() }
+    }
     },
                 "adUnits": ${
-        adUnits?.let {
-            it.joinToString(
-                prefix = "[",
-                postfix = "]",
-                separator = ","
-            ) { adUnit -> adUnit.toJson() }
-        }
+    adUnits?.let {
+        it.joinToString(
+            prefix = "[",
+            postfix = "]",
+            separator = ","
+        ) { adUnit -> adUnit.toJson() }
+    }
     }
             }
-        """.trimIndent()
+    """.trimIndent()
 }
 
 fun AdUnitInfo.toJson(): String {
@@ -52,16 +52,16 @@ fun AdUnitInfo.toJson(): String {
             {
                 "demand_id": "$demandId",
                 "label": ${label?.let { "\"$it\"" }},
-                "price": ${price},
+                "price": $price,
                 "uid": ${uid?.let { "\"$it\"" }},
                 "bid_type": ${bidType?.let { "\"$it\"" }},
-                "fill_start_ts": ${fillStartTs},
-                "fill_finish_ts": ${fillFinishTs},
+                "fill_start_ts": $fillStartTs,
+                "fill_finish_ts": $fillFinishTs,
                 "status": ${status?.let { "\"$it\"" }},
                 "error_message": ${errorMessage?.let { "\"$it\"" }},
                 "ext": ${ext?.let { "\"$it\"" }}
             }
-        """.trimIndent()
+    """.trimIndent()
 }
 
 internal fun Ad.getImpressionInfo(): String {
