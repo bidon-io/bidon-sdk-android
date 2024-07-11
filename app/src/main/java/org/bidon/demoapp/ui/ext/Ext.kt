@@ -1,8 +1,6 @@
 package org.bidon.demoapp.ui.ext
 
 import android.os.Build
-import org.bidon.demoapp.ui.model.ImpExt
-import org.bidon.demoapp.ui.model.ImpressionInfo
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.stats.models.BidType
 import java.time.LocalDateTime
@@ -17,20 +15,35 @@ internal val LocalDateTimeNow get() = if (Build.VERSION.SDK_INT >= Build.VERSION
     System.currentTimeMillis()
 }
 
-internal fun Ad.toImpressionData() =
-    ImpressionInfo(
-        adUnitName = adUnit.label,
-        networkName = networkName,
-        placementId = null,
-        placementName = null,
-        revenue = ecpm,
-        currency = currencyCode,
-        precision = if (adUnit.bidType == BidType.RTB) "exact" else "estimated",
-        demandSource = dsp,
-        ext = ImpExt(
-            networkName = networkName,
-            dspName = dsp,
-            adUnitId = adUnit.uid,
-            credentials = adUnit.extra.toString()
-        )
-    )
+internal fun Ad.getImpressionInfo(): String {
+    val unitName = adUnit.label
+    val networkName = networkName
+    val placementId = null
+    val placementName = null
+    val revenue = ecpm
+    val currency = currencyCode?.let { "\"$it\"" }
+    val precision = if (adUnit.bidType == BidType.RTB) "exact" else "estimated"
+    val demandSource = dsp?.let { "\"$it\"" }
+    val ext = buildString {
+        append("{")
+        append("\"network_name\": \"$networkName\",")
+        append("\"dsp_name\": ${dsp?.let { "\"$it\"" }},")
+        append("\"ad_unit_id\": \"${adUnit.uid}\",")
+        append("\"credentials\": ${adUnit.extra?.let { "\"$it\"" }}")
+        append("}")
+    }
+
+    return buildString {
+        append("{")
+        append("\"unit_name\": \"$unitName\",")
+        append("\"network_name\": \"$networkName\",")
+        append("\"placement_id\": \"$placementId\",")
+        append("\"placement_name\": \"$placementName\",")
+        append("\"revenue\": $revenue,")
+        append("\"currency\": $currency,")
+        append("\"precision\": \"$precision\",")
+        append("\"demand_source\": $demandSource,")
+        append("\"ext\": $ext")
+        append("}")
+    }
+}
