@@ -79,7 +79,7 @@ internal class ResultsCollectorImpl(
         }
     }
 
-    override fun setNoBidInfo(noBidsInfo: List<AdUnit>) {
+    override fun setNoBidInfo(noBidsInfo: List<AdUnit>?) {
         roundResult.update { current ->
             require(current is RoundResult.Results)
             RoundResult.Results(
