@@ -92,7 +92,9 @@ internal class AuctionStatImpl(
                         adUnitUid = statsAdUnit.adUnitUid,
                         adUnitLabel = statsAdUnit.adUnitLabel,
                     )
-                } else if(statsAdUnit.bidType == BidType.RTB.code && statsAdUnit.status == RoundStatus.Successful.code) {
+                } else if (statsAdUnit.bidType == BidType.RTB.code
+                    && statsAdUnit.status == RoundStatus.Successful.code
+                ) {
                     statsAdUnit.copy(
                         demandId = statsAdUnit.demandId,
                         status = RoundStatus.Lose.code,
@@ -160,7 +162,7 @@ internal class AuctionStatImpl(
                 )
             }
 
-            is AuctionResult.BiddingLose ->
+            is AuctionResult.AuctionFailed ->
                 StatsAdUnit(
                     demandId = adUnit.demandId,
                     status = RoundStatus.Lose.code.takeIf { !isAuctionCanceled }
@@ -176,10 +178,6 @@ internal class AuctionStatImpl(
                     errorMessage = roundStatus.getStatusMessage(),
                     ext = adUnit.extra
                 )
-
-            is AuctionResult.UnknownAdapter -> getStatsAdUnit(adUnit, this.roundStatus.code)
-            is AuctionResult.NetworkBelowPriceFloor -> getStatsAdUnit(adUnit, this.roundStatus.code)
-            is AuctionResult.AuctionCancelled -> getStatsAdUnit(adUnit, this.roundStatus.code)
         }
     }
 

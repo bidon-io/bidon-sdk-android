@@ -125,7 +125,12 @@ internal class ExecuteAuctionUseCaseImpl(
                             break
                         }
                     } else {
-                        resultsCollector.add(AuctionResult.UnknownAdapter(adUnit = adUnit))
+                        resultsCollector.add(
+                            AuctionResult.AuctionFailed(
+                                adUnit = adUnit,
+                                roundStatus = RoundStatus.UnknownAdapter
+                            )
+                        )
                         logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
                     }
                 }
@@ -142,19 +147,41 @@ internal class ExecuteAuctionUseCaseImpl(
             }.onFailure {
                 logError(TAG, "Failed to execute auction", it)
             }.getOrNull()
-        } ?: logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+        } ?: {
+            adUnitQueue.forEach {
+                resultsCollector.add(
+                    AuctionResult.AuctionFailed(
+                        adUnit = it,
+                        roundStatus = RoundStatus.FillTimeoutReached
+                    )
+                )
+            }
+            logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+        }
     }
 
     override suspend fun cancel(resultsCollector: ResultsCollector) {
         adUnitQueue.forEach {
-            resultsCollector.add(AuctionResult.AuctionCancelled(it))
+            resultsCollector.add(
+                AuctionResult.AuctionFailed(
+                    adUnit = it,
+                    roundStatus = RoundStatus.AuctionCancelled
+                )
+            )
         }
     }
 
     private fun getBelowPriceFloorResult(adUnit: AdUnit): AuctionResult {
         return when (adUnit.bidType) {
-            BidType.RTB -> AuctionResult.BiddingLose(adUnit)
-            BidType.CPM -> AuctionResult.NetworkBelowPriceFloor(adUnit)
+            BidType.RTB -> AuctionResult.AuctionFailed(
+                adUnit = adUnit,
+                roundStatus = RoundStatus.Lose
+            )
+
+            BidType.CPM -> AuctionResult.AuctionFailed(
+                adUnit = adUnit,
+                roundStatus = RoundStatus.BelowPricefloor
+            )
         }
     }
 
