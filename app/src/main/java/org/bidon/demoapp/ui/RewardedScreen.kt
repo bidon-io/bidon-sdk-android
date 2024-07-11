@@ -53,11 +53,11 @@ fun RewardedScreen(
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: ${auctionInfo.toJson()}")
+                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: ${auctionInfo?.toJson()}")
+                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: \n${auctionInfo?.toJson()}")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {

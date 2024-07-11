@@ -19,11 +19,11 @@ internal val LocalDateTimeNow
 fun AuctionInfo.toJson(): String {
     return """
             {
-                "auctionId": "$auctionId",
-                "auctionConfigurationId": ${auctionConfigurationId},
-                "auctionConfigurationUid": ${auctionConfigurationUid?.let { "\"$it\"" }},
-                "auctionPricefloor": $auctionPricefloor,
-                "noBids": ${
+                "auction_id": "$auctionId",
+                "auction_configuration_id": ${auctionConfigurationId},
+                "auction_configuration_uid": ${auctionConfigurationUid?.let { "\"$it\"" }},
+                "auction_pricefloor": $auctionPricefloor,
+                "no_bids": ${
         noBids?.let {
             it.joinToString(
                 prefix = "[",
@@ -48,15 +48,15 @@ fun AuctionInfo.toJson(): String {
 fun AdUnitInfo.toJson(): String {
     return """
             {
-                "demandId": "$demandId",
+                "demand_id": "$demandId",
                 "label": ${label?.let { "\"$it\"" }},
                 "price": ${price},
                 "uid": ${uid?.let { "\"$it\"" }},
-                "bidType": ${bidType?.let { "\"$it\"" }},
-                "fillStartTs": ${fillStartTs},
-                "fillFinishTs": ${fillFinishTs},
+                "bid_type": ${bidType?.let { "\"$it\"" }},
+                "fill_start_ts": ${fillStartTs},
+                "fill_finish_ts": ${fillFinishTs},
                 "status": ${status?.let { "\"$it\"" }},
-                "errorMessage": ${errorMessage?.let { "\"$it\"" }},
+                "error_message": ${errorMessage?.let { "\"$it\"" }},
                 "ext": ${ext?.let { "\"$it\"" }}
             }
         """.trimIndent()
