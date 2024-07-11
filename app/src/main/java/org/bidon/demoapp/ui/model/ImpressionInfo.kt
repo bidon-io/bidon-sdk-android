@@ -16,12 +16,12 @@ data class ImpressionInfo(
             {
                 "unit_name": "$adUnitName",
                 "network_name": "$networkName",
-                "placement_id": ${placementId?.let { "\"$it\"" } ?: null},
-                "placement_name": ${placementName?.let { "\"$it\"" } ?: null},
+                "placement_id": ${placementId?.let { "\"$it\"" }},
+                "placement_name": ${placementName?.let { "\"$it\"" }},
                 "revenue": $revenue,
-                "currency": ${currency?.let { "\"$it\"" } ?: null},
+                "currency": ${currency?.let { "\"$it\"" }},
                 "precision": "$precision",
-                "demand_source": ${demandSource?.let { "\"$it\"" } ?: null},
+                "demand_source": ${demandSource?.let { "\"$it\"" }},
                 "ext": ${ext.toJson()}
             }
         """.trimIndent()
@@ -37,10 +37,10 @@ data class ImpExt(
     fun toJson(): String {
         return """
             {
-                "networknname": "$networkName",
-                "dsp_name": ${dspName?.let { "\"$it\"" } ?: null},
+                "network_name": "$networkName",
+                "dsp_name": ${dspName?.let { "\"$it\"" }},
                 "ad_unit_id": "$adUnitId",
-                "credentials": ${credentials?.let { "\"$it\"" } ?: null}
+                "credentials": ${credentials?.let { "\"$it\"" }}
             }
         """.trimIndent()
     }

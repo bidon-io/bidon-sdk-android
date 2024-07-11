@@ -54,7 +54,7 @@ fun RewardedScreen(
                     override fun onAdLoaded(ad: Ad) {
                         logFlow.log("onAdLoaded WINNER:\n$ad")
                         val impressionData = ad.toImpressionData()
-                        logFlow.log("onAdLoaded ImpressionInfo: ${impressionData.toJson()}")
+                        logFlow.log("onAdLoaded ImpressionInfo: \n${impressionData.toJson()}")
                     }
 
                     override fun onAdLoadFailed(cause: BidonError) {
@@ -68,7 +68,7 @@ fun RewardedScreen(
                     override fun onAdShown(ad: Ad) {
                         logFlow.log("onAdShown: $ad")
                         val impressionData = ad.toImpressionData()
-                        logFlow.log("onAdShown ImpressionInfo: ${impressionData.toJson()}")
+                        logFlow.log("onAdShown ImpressionInfo: \n${impressionData.toJson()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
@@ -90,7 +90,7 @@ fun RewardedScreen(
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
                         val impressionData = ad.toImpressionData()
-                        logFlow.log("onRevenuePaid ImpressionInfo: ${impressionData.toJson()}")
+                        logFlow.log("onRevenuePaid ImpressionInfo: \n${impressionData.toJson()}")
                     }
                 }
             )

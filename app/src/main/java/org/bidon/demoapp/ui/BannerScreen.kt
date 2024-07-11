@@ -112,7 +112,7 @@ fun BannerScreen(navController: NavHostController) {
                                             bannerView?.showAd()
                                         }
                                         val impressionData = ad.toImpressionData()
-                                        logFlow.log("onAdLoaded ImpressionInfo: ${impressionData.toJson()}")
+                                        logFlow.log("onAdLoaded ImpressionInfo: \n${impressionData.toJson()}")
                                     }
 
                                     override fun onAdLoadFailed(cause: BidonError) {
@@ -122,7 +122,7 @@ fun BannerScreen(navController: NavHostController) {
                                     override fun onAdShown(ad: Ad) {
                                         logFlow.log("onAdShown: $ad")
                                         val impressionData = ad.toImpressionData()
-                                        logFlow.log("onAdShown ImpressionInfo: ${impressionData.toJson()}")
+                                        logFlow.log("onAdShown ImpressionInfo: \n${impressionData.toJson()}")
                                     }
 
                                     override fun onAdClicked(ad: Ad) {
@@ -136,7 +136,7 @@ fun BannerScreen(navController: NavHostController) {
                                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
                                         val impressionData = ad.toImpressionData()
-                                        logFlow.log("onRevenuePaid ImpressionInfo: ${impressionData.toJson()}")
+                                        logFlow.log("onRevenuePaid ImpressionInfo: \n${impressionData.toJson()}")
                                     }
 
                                     override fun onAdShowFailed(cause: BidonError) {
