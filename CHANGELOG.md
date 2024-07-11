@@ -1,5 +1,6 @@
 # Next 0.7.0-next.1
 ## Features:
+- [BDN-688](https://appodeal.atlassian.net/browse/BDN-688) Added impression info to Ad object
 - [BDN-687](https://appodeal.atlassian.net/browse/BDN-687) Provided AuctionInfo to public callback
 
 # Next 0.6.0-next.1

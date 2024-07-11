@@ -22,6 +22,7 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
 import org.bidon.demoapp.component.AppToolbar
+import org.bidon.demoapp.ui.ext.getImpressionInfo
 import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
@@ -54,6 +55,7 @@ fun RewardedScreen(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                         logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
+                        logFlow.log("onAdLoaded ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
@@ -66,6 +68,7 @@ fun RewardedScreen(
 
                     override fun onAdShown(ad: Ad) {
                         logFlow.log("onAdShown: $ad")
+                        logFlow.log("onAdShown ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
@@ -86,6 +89,7 @@ fun RewardedScreen(
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                        logFlow.log("onRevenuePaid ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
                 }
             )
