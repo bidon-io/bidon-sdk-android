@@ -168,8 +168,8 @@ internal class AuctionStatImpl(
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
                     price = this.adUnit.pricefloor,
-                    tokenStartTs = null,
-                    tokenFinishTs = null,
+                    tokenStartTs = tokenInfo.tokenStartTs,
+                    tokenFinishTs = tokenInfo.tokenFinishTs,
                     bidType = BidType.RTB.code,
                     fillStartTs = null,
                     fillFinishTs = null,
