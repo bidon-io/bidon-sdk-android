@@ -18,7 +18,7 @@ internal interface Auction {
     /**
      * Cancel auction in progress and sent /stats
      */
-    fun cancel()
+    fun cancel(onFailure: (AuctionInfo?, Throwable) -> Unit)
 
     enum class AuctionState {
         Initialized,

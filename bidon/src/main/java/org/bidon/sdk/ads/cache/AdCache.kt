@@ -35,5 +35,5 @@ internal interface AdCache : Cacheable {
      */
     suspend fun poll(): AuctionResult
 
-    fun clear()
+    fun clear(onFailure: (AuctionInfo?, Throwable) -> Unit)
 }

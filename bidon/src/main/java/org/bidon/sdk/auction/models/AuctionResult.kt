@@ -20,16 +20,6 @@ sealed interface AuctionResult {
         }
     }
 
-    class NetworkBelowPriceFloor(
-        val adUnit: AdUnit,
-    ) : AuctionResult {
-        override val roundStatus: RoundStatus = RoundStatus.BelowPricefloor
-        override val adSource: AdSource<*> get() = error("unexpected")
-        override fun toString(): String {
-            return "AuctionResult.${adUnit.getType()}(ecpm=${adUnit.pricefloor}, roundStatus=$roundStatus, ${adUnit.demandId})"
-        }
-    }
-
     class Bidding(
         override val adSource: AdSource<*>,
         override val roundStatus: RoundStatus,
@@ -39,34 +29,13 @@ sealed interface AuctionResult {
         }
     }
 
-    data class BiddingLose(
+    class AuctionFailed(
         val adUnit: AdUnit,
-        val tokenInfo: TokenInfo,
+        override val roundStatus: RoundStatus
     ) : AuctionResult {
-        override val roundStatus: RoundStatus = RoundStatus.Lose
-        override val adSource: AdSource<*> get() = error("unexpected")
-        override fun toString(): String {
-            return "AuctionResult.${adUnit.getType()}(${adUnit.demandId})"
-        }
-    }
-
-    class AuctionCancelled(
-        val adUnit: AdUnit
-    ) : AuctionResult {
-        override val roundStatus: RoundStatus = RoundStatus.AuctionCancelled
         override val adSource: AdSource<*> get() = error("unexpected")
         override fun toString(): String {
             return "AuctionResult.${adUnit.getType()}(ecpm=${adUnit.pricefloor}, roundStatus=$roundStatus, ${adUnit.demandId})"
-        }
-    }
-
-    data class UnknownAdapter(
-        val adUnit: AdUnit,
-    ) : AuctionResult {
-        override val roundStatus = RoundStatus.UnknownAdapter
-        override val adSource: AdSource<*> get() = error("unexpected")
-        override fun toString(): String {
-            return "AuctionResult.${adUnit.getType()}(${adUnit.demandId})"
         }
     }
 }

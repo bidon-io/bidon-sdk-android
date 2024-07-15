@@ -67,11 +67,11 @@ internal class AdCacheImpl(
         return next
     }
 
-    override fun clear() {
+    override fun clear(onFailure: (AuctionInfo?, Throwable) -> Unit) {
         results.value = emptyList()
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "Ad is loading, cancel auction")
-            auction?.cancel()
+            auction?.cancel(onFailure)
             auction = null
         }
     }

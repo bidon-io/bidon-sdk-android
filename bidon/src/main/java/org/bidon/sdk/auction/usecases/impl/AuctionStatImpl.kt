@@ -61,8 +61,7 @@ internal class AuctionStatImpl(
     override suspend fun addRoundResults(result: RoundResult.Results): RoundStat {
         // get, sort results + update winner
         // save stats
-        val auctionResult = result.getAuctionResults()
-        val roundResults = resolver.sortWinners(auctionResult)
+        val roundResults = resolver.sortWinners(result.getAuctionResults())
 
         val roundWinner = updateWinnerIfNeed(
             roundResults
@@ -84,6 +83,21 @@ internal class AuctionStatImpl(
                     statsAdUnit.copy(
                         demandId = statsAdUnit.demandId,
                         status = RoundStatus.Win.code,
+                        price = statsAdUnit.price,
+                        tokenStartTs = statsAdUnit.tokenStartTs,
+                        tokenFinishTs = statsAdUnit.tokenFinishTs,
+                        bidType = statsAdUnit.bidType,
+                        fillStartTs = statsAdUnit.fillStartTs,
+                        fillFinishTs = statsAdUnit.fillFinishTs,
+                        adUnitUid = statsAdUnit.adUnitUid,
+                        adUnitLabel = statsAdUnit.adUnitLabel,
+                    )
+                } else if (statsAdUnit.bidType == BidType.RTB.code
+                    && statsAdUnit.status == RoundStatus.Successful.code
+                ) {
+                    statsAdUnit.copy(
+                        demandId = statsAdUnit.demandId,
+                        status = RoundStatus.Lose.code,
                         price = statsAdUnit.price,
                         tokenStartTs = statsAdUnit.tokenStartTs,
                         tokenFinishTs = statsAdUnit.tokenFinishTs,
@@ -148,7 +162,7 @@ internal class AuctionStatImpl(
                 )
             }
 
-            is AuctionResult.BiddingLose ->
+            is AuctionResult.AuctionFailed ->
                 StatsAdUnit(
                     demandId = adUnit.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
@@ -164,10 +178,6 @@ internal class AuctionStatImpl(
                     errorMessage = roundStatus.getStatusMessage(),
                     ext = adUnit.extra
                 )
-
-            is AuctionResult.UnknownAdapter -> getStatsAdUnit(adUnit, this.roundStatus.code)
-            is AuctionResult.NetworkBelowPriceFloor -> getStatsAdUnit(adUnit, this.roundStatus.code)
-            is AuctionResult.AuctionCancelled -> getStatsAdUnit(adUnit, this.roundStatus.code)
         }
     }
 
