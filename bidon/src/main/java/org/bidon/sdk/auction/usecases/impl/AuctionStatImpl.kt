@@ -167,10 +167,10 @@ internal class AuctionStatImpl(
                     demandId = adUnit.demandId,
                     status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
-                    price = this.adUnit.pricefloor,
-                    tokenStartTs = tokenInfo.tokenStartTs,
-                    tokenFinishTs = tokenInfo.tokenFinishTs,
-                    bidType = BidType.RTB.code,
+                    price = adUnit.pricefloor,
+                    tokenStartTs = tokenInfo?.tokenStartTs,
+                    tokenFinishTs = tokenInfo?.tokenFinishTs,
+                    bidType = adUnit.bidType.code,
                     fillStartTs = null,
                     fillFinishTs = null,
                     adUnitUid = adUnit.uid,
@@ -180,20 +180,6 @@ internal class AuctionStatImpl(
                 )
         }
     }
-
-    private fun getStatsAdUnit(adUnit: AdUnit, status: String) = StatsAdUnit(
-        demandId = adUnit.demandId,
-        status = status,
-        price = adUnit.pricefloor,
-        tokenStartTs = null,
-        tokenFinishTs = null,
-        bidType = adUnit.bidType.code,
-        fillStartTs = null,
-        fillFinishTs = null,
-        adUnitUid = adUnit.uid,
-        adUnitLabel = adUnit.label,
-        ext = adUnit.extra
-    )
 
     override fun sendAuctionStats(
         auctionData: AuctionResponse,
