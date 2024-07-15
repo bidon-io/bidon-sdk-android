@@ -41,6 +41,7 @@ sealed interface AuctionResult {
 
     data class BiddingLose(
         val adUnit: AdUnit,
+        val tokenInfo: TokenInfo,
     ) : AuctionResult {
         override val roundStatus: RoundStatus = RoundStatus.Lose
         override val adSource: AdSource<*> get() = error("unexpected")
