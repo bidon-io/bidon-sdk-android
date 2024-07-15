@@ -145,30 +145,36 @@ internal class ExecuteAuctionUseCaseImpl(
                     }.orEmpty()
                 }
             }.onFailure {
+                finishByException(resultsCollector, it)
                 logError(TAG, "Failed to execute auction", it)
             }.getOrNull()
         } ?: {
-            adUnitQueue.forEach {
-                resultsCollector.add(
-                    AuctionResult.AuctionFailed(
-                        adUnit = it,
-                        roundStatus = RoundStatus.FillTimeoutReached
-                    )
-                )
-            }
+            finishByTimeout(resultsCollector)
             logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
         }
     }
 
-    override suspend fun cancel(resultsCollector: ResultsCollector) {
+    private fun finishByStatus(resultsCollector: ResultsCollector, status: RoundStatus) {
         adUnitQueue.forEach {
             resultsCollector.add(
                 AuctionResult.AuctionFailed(
                     adUnit = it,
-                    roundStatus = RoundStatus.AuctionCancelled
+                    roundStatus = status
                 )
             )
         }
+    }
+
+    private fun finishByException(resultsCollector: ResultsCollector, throwable: Throwable) {
+        finishByStatus(resultsCollector, RoundStatus.UnspecifiedException(throwable.message))
+    }
+
+    private fun finishByTimeout(resultsCollector: ResultsCollector) {
+        finishByStatus(resultsCollector, RoundStatus.FillTimeoutReached)
+    }
+
+    override suspend fun cancel(resultsCollector: ResultsCollector) {
+        finishByStatus(resultsCollector, RoundStatus.AuctionCancelled)
     }
 
     private fun getBelowPriceFloorResult(adUnit: AdUnit): AuctionResult {
