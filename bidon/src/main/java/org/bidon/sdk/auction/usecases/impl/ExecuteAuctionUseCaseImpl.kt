@@ -49,8 +49,8 @@ internal class ExecuteAuctionUseCaseImpl(
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
     ) {
-        withTimeoutOrNull(auctionTimeout) {
-            runCatching {
+        runCatching {
+            val result = withTimeoutOrNull(auctionTimeout) {
                 adUnitQueue = LinkedList(adUnits)
 
                 while (adUnitQueue.isNotEmpty()) {
@@ -70,7 +70,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         logInfo(
                             TAG,
                             "Request was skipped since the priceFloor: $pricefloor is less than " +
-                                "the next requested adUnit: ${adUnit.pricefloor}"
+                                    "the next requested adUnit: ${adUnit.pricefloor}"
                         )
                         resultsCollector.add(
                             getBelowPriceFloorResult(
@@ -118,9 +118,9 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
                             !shouldRequestNext(
-                                    auctionResult = auctionResult,
-                                    next = adUnitQueue.peek()
-                                )
+                                auctionResult = auctionResult,
+                                next = adUnitQueue.peek()
+                            )
                         ) {
                             logInfo(
                                 TAG,
@@ -157,18 +157,15 @@ internal class ExecuteAuctionUseCaseImpl(
                         it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty()
                     }.orEmpty()
                 }
-            }.onFailure {
-                finishByException(
-                    tokens = tokens,
-                    resultsCollector = resultsCollector,
-                    throwable = it
-                )
-                logError(TAG, "Failed to execute auction", it)
-            }.getOrNull()
-        } ?: {
-            finishByTimeout(tokens = tokens, resultsCollector = resultsCollector)
-            logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
-        }
+            }
+            if (result.isNullOrEmpty()) {
+                finishByTimeout(tokens = tokens, resultsCollector = resultsCollector)
+                logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+            }
+        }.onFailure {
+            finishByException(tokens = tokens, resultsCollector = resultsCollector, throwable = it)
+            logError(TAG, "Failed to execute auction", it)
+        }.getOrNull()
     }
 
     private fun finishByStatus(
@@ -270,10 +267,10 @@ internal class ExecuteAuctionUseCaseImpl(
             logInfo(
                 TAG,
                 "Applying regulation to ${demandId.demandId} <- " +
-                    "GDPR=${regulation.gdpr}, " +
-                    "COPPA=${regulation.coppa}, " +
-                    "usPrivacyString=${regulation.usPrivacyString}, " +
-                    "gdprConsentString=${regulation.gdprConsentString}"
+                        "GDPR=${regulation.gdpr}, " +
+                        "COPPA=${regulation.coppa}, " +
+                        "usPrivacyString=${regulation.usPrivacyString}, " +
+                        "gdprConsentString=${regulation.gdprConsentString}"
             )
             supportsRegulation.updateRegulation(regulation)
         }
