@@ -64,20 +64,13 @@ internal class ExecuteAuctionUseCaseImpl(
 
                     logInfo(TAG, "Perform load nex $adUnit")
 
-                    val tokenInfo = tokens[adUnit.demandId]
-
                     if (adUnit.pricefloor < pricefloor) {
                         logInfo(
                             TAG,
                             "Request was skipped since the priceFloor: $pricefloor is less than " +
                                 "the next requested adUnit: ${adUnit.pricefloor}"
                         )
-                        resultsCollector.add(
-                            getBelowPriceFloorResult(
-                                adUnit = adUnit,
-                                tokenInfo = tokenInfo
-                            )
-                        )
+                        resultsCollector.add(getBelowPriceFloorResult(adUnit))
                         continue
                     }
 
@@ -91,7 +84,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
 
                     if (adUnit.bidType == BidType.RTB) {
-                        tokenInfo?.let {
+                        tokens[adSource?.demandId?.demandId]?.let {
                             adSource?.setTokenInfo(it)
                         }
                     }
@@ -127,12 +120,7 @@ internal class ExecuteAuctionUseCaseImpl(
                                 "Request was skipped since the filled eCPM larger than the next one"
                             )
                             adUnitQueue.forEach {
-                                resultsCollector.add(
-                                    getBelowPriceFloorResult(
-                                        adUnit = it,
-                                        tokenInfo = tokens[it.demandId]
-                                    )
-                                )
+                                resultsCollector.add(getBelowPriceFloorResult(it))
                             }
                             break
                         }
@@ -140,8 +128,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         resultsCollector.add(
                             AuctionResult.AuctionFailed(
                                 adUnit = adUnit,
-                                roundStatus = RoundStatus.UnknownAdapter,
-                                tokenInfo = tokens[adUnit.demandId]
+                                roundStatus = RoundStatus.UnknownAdapter
                             )
                         )
                         logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
@@ -158,75 +145,48 @@ internal class ExecuteAuctionUseCaseImpl(
                     }.orEmpty()
                 }
             }.onFailure {
-                finishByException(
-                    tokens = tokens,
-                    resultsCollector = resultsCollector,
-                    throwable = it
-                )
+                finishByException(resultsCollector, it)
                 logError(TAG, "Failed to execute auction", it)
             }.getOrNull()
         } ?: {
-            finishByTimeout(tokens = tokens, resultsCollector = resultsCollector)
+            finishByTimeout(resultsCollector)
             logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
         }
     }
 
-    private fun finishByStatus(
-        tokens: Map<String, TokenInfo>?,
-        resultsCollector: ResultsCollector,
-        status: RoundStatus
-    ) {
+    private fun finishByStatus(resultsCollector: ResultsCollector, status: RoundStatus) {
         adUnitQueue.forEach {
             resultsCollector.add(
                 AuctionResult.AuctionFailed(
                     adUnit = it,
-                    roundStatus = status,
-                    tokenInfo = tokens?.get(it.demandId)
+                    roundStatus = status
                 )
             )
         }
     }
 
-    private fun finishByException(
-        tokens: Map<String, TokenInfo>,
-        resultsCollector: ResultsCollector,
-        throwable: Throwable
-    ) {
-        finishByStatus(
-            tokens = tokens,
-            resultsCollector = resultsCollector,
-            status = RoundStatus.UnspecifiedException(throwable.message)
-        )
+    private fun finishByException(resultsCollector: ResultsCollector, throwable: Throwable) {
+        finishByStatus(resultsCollector, RoundStatus.UnspecifiedException(throwable.message))
     }
 
-    private fun finishByTimeout(
-        tokens: Map<String, TokenInfo>,
-        resultsCollector: ResultsCollector
-    ) {
-        finishByStatus(
-            tokens = tokens,
-            resultsCollector = resultsCollector,
-            status = RoundStatus.FillTimeoutReached
-        )
+    private fun finishByTimeout(resultsCollector: ResultsCollector) {
+        finishByStatus(resultsCollector, RoundStatus.FillTimeoutReached)
     }
 
-    //TODO solution to receive tokens
     override suspend fun cancel(resultsCollector: ResultsCollector) {
-        finishByStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
+        finishByStatus(resultsCollector, RoundStatus.AuctionCancelled)
     }
 
-    private fun getBelowPriceFloorResult(adUnit: AdUnit, tokenInfo: TokenInfo?): AuctionResult {
+    private fun getBelowPriceFloorResult(adUnit: AdUnit): AuctionResult {
         return when (adUnit.bidType) {
             BidType.RTB -> AuctionResult.AuctionFailed(
                 adUnit = adUnit,
-                roundStatus = RoundStatus.Lose,
-                tokenInfo = tokenInfo,
+                roundStatus = RoundStatus.Lose
             )
 
             BidType.CPM -> AuctionResult.AuctionFailed(
                 adUnit = adUnit,
-                roundStatus = RoundStatus.BelowPricefloor,
-                tokenInfo = null
+                roundStatus = RoundStatus.BelowPricefloor
             )
         }
     }

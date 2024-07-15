@@ -31,9 +31,8 @@ sealed interface AuctionResult {
 
     class AuctionFailed(
         val adUnit: AdUnit,
-        val tokenInfo: TokenInfo?,
-        override val roundStatus: RoundStatus,
-        ) : AuctionResult {
+        override val roundStatus: RoundStatus
+    ) : AuctionResult {
         override val adSource: AdSource<*> get() = error("unexpected")
         override fun toString(): String {
             return "AuctionResult.${adUnit.getType()}(ecpm=${adUnit.pricefloor}, roundStatus=$roundStatus, ${adUnit.demandId})"
