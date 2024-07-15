@@ -9,7 +9,7 @@ import org.json.JSONObject
  */
 internal data class AuctionResponse(
     val adUnits: List<AdUnit>?,
-    val noBids: List<AdUnit>,
+    val noBids: List<AdUnit>?,
     val pricefloor: Double,
     val auctionId: String,
     val auctionTimeout: Long,
@@ -23,7 +23,7 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
         val json = JSONObject(jsonString)
         AuctionResponse(
             adUnits = JsonParsers.parseList(json.optJSONArray("ad_units")),
-            noBids = JsonParsers.parseList(json.optJSONArray("no_bids")) ?: listOf(),
+            noBids = JsonParsers.parseList(json.optJSONArray("no_bids")),
             pricefloor = json.optDouble("auction_pricefloor"),
             auctionId = json.getString("auction_id"),
             auctionTimeout = json.optLong("auction_timeout", auctionTimeoutDefault),

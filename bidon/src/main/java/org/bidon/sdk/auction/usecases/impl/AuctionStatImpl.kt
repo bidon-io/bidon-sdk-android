@@ -165,7 +165,7 @@ internal class AuctionStatImpl(
             is AuctionResult.AuctionFailed ->
                 StatsAdUnit(
                     demandId = adUnit.demandId,
-                    status = RoundStatus.Lose.code.takeIf { !isAuctionCanceled }
+                    status = roundStatus.code.takeIf { !isAuctionCanceled }
                         ?: RoundStatus.AuctionCancelled.code,
                     price = this.adUnit.pricefloor,
                     tokenStartTs = null,

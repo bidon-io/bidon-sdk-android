@@ -10,7 +10,7 @@ internal data class RoundStat(
     val auctionId: String,
     val pricefloor: Double?,
     val demands: List<StatsAdUnit>,
-    val noBids: List<AdUnit>,
+    val noBids: List<AdUnit>?,
     val winnerDemandId: DemandId?,
     val winnerEcpm: Double?,
 )

@@ -25,6 +25,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.bidon.demoapp.component.*
+import org.bidon.demoapp.ui.ext.getImpressionInfo
+import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -107,21 +109,20 @@ fun BannerScreen(navController: NavHostController) {
                             setBannerListener(
                                 object : BannerListener {
                                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: $auctionInfo")
+                                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
                                         }
+                                        logFlow.log("onAdLoaded ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
-                                    override fun onAdLoadFailed(
-                                        auctionInfo: AuctionInfo?,
-                                        cause: BidonError
-                                    ) {
-                                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: $auctionInfo")
+                                    override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
+                                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: \n${auctionInfo?.toJson()}")
                                     }
 
                                     override fun onAdShown(ad: Ad) {
                                         logFlow.log("onAdShown: $ad")
+                                        logFlow.log("onAdShown ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
                                     override fun onAdClicked(ad: Ad) {
@@ -134,6 +135,7 @@ fun BannerScreen(navController: NavHostController) {
 
                                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                                        logFlow.log("onRevenuePaid ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
                                     override fun onAdShowFailed(cause: BidonError) {
@@ -231,10 +233,7 @@ fun BannerScreen(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .padding(bottom = 2.dp)
-                        .background(
-                            MaterialTheme.colorScheme.secondary,
-                            MaterialTheme.shapes.medium
-                        )
+                        .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
                         .padding(4.dp)
                 ) {
                     Body2Text(text = logLine)

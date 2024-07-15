@@ -1,8 +1,6 @@
 package org.bidon.sdk.auction.models
 
-import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.RoundStatus
 import org.json.JSONObject
 
 /**
