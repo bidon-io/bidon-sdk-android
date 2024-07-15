@@ -139,6 +139,7 @@ internal class AuctionStatImpl(
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
                     errorMessage = roundStatus.getStatusMessage(),
+                    timeout = stat.adUnit?.timeout,
                     ext = stat.adUnit?.extra
                 )
             }
@@ -158,6 +159,7 @@ internal class AuctionStatImpl(
                     adUnitUid = stat.adUnit?.uid,
                     adUnitLabel = stat.adUnit?.label,
                     errorMessage = roundStatus.getStatusMessage(),
+                    timeout = stat.adUnit?.timeout,
                     ext = stat.adUnit?.extra
                 )
             }
@@ -176,6 +178,7 @@ internal class AuctionStatImpl(
                     adUnitUid = adUnit.uid,
                     adUnitLabel = adUnit.label,
                     errorMessage = roundStatus.getStatusMessage(),
+                    timeout = adUnit.timeout,
                     ext = adUnit.extra
                 )
         }

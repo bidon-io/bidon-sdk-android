@@ -178,6 +178,7 @@ internal class AuctionImpl(
         auctionConfigurationId = auctionData.auctionConfigurationId,
         auctionConfigurationUid = auctionData.auctionConfigurationUid,
         auctionPricefloor = auctionData.pricefloor,
+        auctionTimeout = auctionData.auctionTimeout,
         noBids = statResult?.noBids?.map { it.toAuctionNoBidInfo() },
         adUnits = statResult?.demands?.map { it.toAuctionInfo() },
     )

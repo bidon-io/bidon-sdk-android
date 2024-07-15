@@ -17,6 +17,7 @@ internal fun StatsAdUnit.toAuctionInfo() =
         fillFinishTs = fillFinishTs,
         status = status,
         errorMessage = errorMessage,
+        timeout = timeout,
         ext = ext.toString(),
     )
 
@@ -30,6 +31,7 @@ internal fun AdUnit.toAuctionNoBidInfo() =
         fillStartTs = null,
         fillFinishTs = null,
         status = RoundStatus.NoBid.code,
+        timeout = timeout,
         errorMessage = null,
         ext = extra.toString(),
     )
