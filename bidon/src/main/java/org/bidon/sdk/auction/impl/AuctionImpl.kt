@@ -113,14 +113,15 @@ internal class AuctionImpl(
                             adTypeParamData = adTypeParam,
                             tokens = tokens,
                         )
-                        results.ifEmpty {
+                        if (results.isEmpty()) {
                             onFailure(auctionInfo, BidonError.NoAuctionResults)
-                        }
-                        adTypeParam.activity.runOnUiThread {
-                            onSuccess(results, auctionInfo)
+                        } else {
+                            adTypeParam.activity.runOnUiThread {
+                                onSuccess(results, auctionInfo)
+                            }
                         }
                     }.onFailure { cause ->
-                        logError(TAG, "Auction failed", cause)
+                        logError(TAG, "Auction failed during AuctionRequest", cause)
                         if (cause.asBidonErrorOrUnspecified() != BidonError.AuctionCancelled) {
                             adTypeParam.activity.runOnUiThread {
                                 onFailure(null, cause)
@@ -147,7 +148,9 @@ internal class AuctionImpl(
                 val auctionData = _auctionDataResponse
                 if (auctionData == null) {
                     logInfo(TAG, "No AuctionResponse info. There is nothing to send.")
-                    onFailure.invoke(null, BidonError.AuctionCancelled)
+                    withContext(Dispatchers.Main) {
+                        onFailure.invoke(null, BidonError.AuctionCancelled)
+                    }
                 } else {
                     auctionStat.sendAuctionStats(
                         auctionData = auctionData,
@@ -212,7 +215,9 @@ internal class AuctionImpl(
         val statResult = proceedRoundResults()
 
         val auctionInfo = getAuctionInfo(auctionData = auctionData, statResult = statResult)
-
+        logInfo(TAG, "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
+                "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
+                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}")
         resultsCollector.clearRoundResults()
 
         logInfo(TAG, "Rounds completed")

@@ -52,6 +52,7 @@ internal class ExecuteAuctionUseCaseImpl(
         runCatching {
             val result = withTimeoutOrNull(auctionTimeout) {
                 adUnitQueue = LinkedList(adUnits)
+                logInfo(TAG, "AdUnits for request: ${adUnitQueue.size}")
 
                 while (adUnitQueue.isNotEmpty()) {
 
@@ -62,7 +63,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         break
                     }
 
-                    logInfo(TAG, "Perform load nex $adUnit")
+                    logInfo(TAG, "Perform load next: \n$adUnit")
 
                     val tokenInfo = tokens[adUnit.demandId]
 
@@ -207,7 +208,7 @@ internal class ExecuteAuctionUseCaseImpl(
         )
     }
 
-    //TODO solution to receive tokens
+    // TODO solution to receive tokens
     override suspend fun cancel(resultsCollector: ResultsCollector) {
         finishByStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
     }

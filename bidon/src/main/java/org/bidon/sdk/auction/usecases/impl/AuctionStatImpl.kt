@@ -6,7 +6,6 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.ext.asAdRequestBody
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
@@ -92,8 +91,8 @@ internal class AuctionStatImpl(
                         adUnitUid = statsAdUnit.adUnitUid,
                         adUnitLabel = statsAdUnit.adUnitLabel,
                     )
-                } else if (statsAdUnit.bidType == BidType.RTB.code
-                    && statsAdUnit.status == RoundStatus.Successful.code
+                } else if (statsAdUnit.bidType == BidType.RTB.code &&
+                    statsAdUnit.status == RoundStatus.Successful.code
                 ) {
                     statsAdUnit.copy(
                         demandId = statsAdUnit.demandId,
