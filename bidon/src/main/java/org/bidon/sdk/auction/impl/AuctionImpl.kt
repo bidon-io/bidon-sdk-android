@@ -3,6 +3,7 @@ package org.bidon.sdk.auction.impl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -18,6 +19,7 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.Auction.AuctionState
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.ext.printWaterfall
+import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
@@ -28,7 +30,6 @@ import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
@@ -37,6 +38,7 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import java.util.UUID
+import kotlin.coroutines.coroutineContext
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -113,6 +115,7 @@ internal class AuctionImpl(
                             adTypeParamData = adTypeParam,
                             tokens = tokens,
                         )
+                        ensureActive()
                         if (results.isEmpty()) {
                             onFailure(auctionInfo, BidonError.NoAuctionResults)
                         } else {
@@ -122,14 +125,14 @@ internal class AuctionImpl(
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed during AuctionRequest", cause)
-                        if (cause.asBidonErrorOrUnspecified() != BidonError.AuctionCancelled) {
-                            adTypeParam.activity.runOnUiThread {
-                                onFailure(null, cause)
-                            }
+                        ensureActive()
+                        adTypeParam.activity.runOnUiThread {
+                            onFailure(null, cause)
                         }
                     }
                 }.onFailure { cause ->
                     logError(TAG, "Auction failed", cause)
+                    ensureActive()
                     adTypeParam.activity.runOnUiThread {
                         onFailure(null, cause)
                     }
@@ -139,8 +142,9 @@ internal class AuctionImpl(
     }
 
     override fun cancel(onFailure: (AuctionInfo?, Throwable) -> Unit) {
+        logInfo(TAG, "Trying to cancel auction. Is active: ${job?.isActive}")
         if (job?.isActive == true) {
-            job?.cancel()
+            job?.cancel(AuctionCancellation())
             scope.launch {
                 auctionStat.markAuctionCanceled()
                 auctionExecutable.cancel(resultsCollector)
@@ -162,11 +166,11 @@ internal class AuctionImpl(
                         statResult = statResult
                     )
                     logInfo(TAG, "Auction canceled")
+                    printStatsData(auctionData, statResult, auctionInfo)
                     withContext(Dispatchers.Main) {
                         onFailure.invoke(auctionInfo, BidonError.AuctionCancelled)
                     }
                 }
-                resultsCollector.clearRoundResults()
                 clearData()
             }
         }
@@ -215,10 +219,7 @@ internal class AuctionImpl(
         val statResult = proceedRoundResults()
 
         val auctionInfo = getAuctionInfo(auctionData = auctionData, statResult = statResult)
-        logInfo(TAG, "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
-                "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
-                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}")
-        resultsCollector.clearRoundResults()
+        printStatsData(auctionData, statResult, auctionInfo)
 
         logInfo(TAG, "Rounds completed")
 
@@ -232,6 +233,7 @@ internal class AuctionImpl(
             logInfo(TAG, "Action result #$index: $auctionResult")
         }
 
+        coroutineContext.ensureActive()
         // Sending auction statistics
         auctionStat.sendAuctionStats(
             auctionData = auctionData,
@@ -250,6 +252,19 @@ internal class AuctionImpl(
         return Pair(results, auctionInfo)
     }
 
+    private fun printStatsData(
+        auctionData: AuctionResponse,
+        statResult: RoundStat?,
+        auctionInfo: AuctionInfo
+    ) {
+        logInfo(
+            TAG,
+            "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
+                    "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
+                    "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
+        )
+    }
+
     private suspend fun proceedRoundResults(): RoundStat? {
         (resultsCollector.getRoundResults() as? RoundResult.Results)?.let {
             return auctionStat.addRoundResults(it)
@@ -258,6 +273,7 @@ internal class AuctionImpl(
     }
 
     private fun clearData() {
+        resultsCollector.clearRoundResults()
         resultsCollector.clear()
         _auctionDataResponse = null
     }

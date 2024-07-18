@@ -1,5 +1,6 @@
 package org.bidon.sdk.config.impl
 
+import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.config.BidonError
 
 /**
@@ -8,15 +9,10 @@ import org.bidon.sdk.config.BidonError
 internal fun Throwable.asBidonErrorOrUnspecified(): BidonError {
     return when {
         this is BidonError -> this
-        isJobCancellationException(this) -> BidonError.AuctionCancelled
+        this is AuctionCancellation -> BidonError.AuctionCancelled
         else -> BidonError.Unspecified(
             demandId = null,
             sourceError = this
         )
     }
-}
-
-// TODO try to find more useful solution
-private fun isJobCancellationException(throwable: Throwable): Boolean {
-    return throwable::class.simpleName == "JobCancellationException"
 }

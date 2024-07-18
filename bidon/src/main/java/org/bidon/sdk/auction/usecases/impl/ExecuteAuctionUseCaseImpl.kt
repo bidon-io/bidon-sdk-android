@@ -1,5 +1,6 @@
 package org.bidon.sdk.auction.usecases.impl
 
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -27,6 +28,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import java.util.LinkedList
+import kotlin.coroutines.coroutineContext
 
 internal class ExecuteAuctionUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -56,8 +58,7 @@ internal class ExecuteAuctionUseCaseImpl(
 
                 while (adUnitQueue.isNotEmpty()) {
 
-                    val adUnit = adUnitQueue.poll()
-
+                    val adUnit = adUnitQueue.peek()
                     if (adUnit == null) {
                         logInfo(TAG, "All adUnits were requested")
                         break
@@ -73,11 +74,12 @@ internal class ExecuteAuctionUseCaseImpl(
                             "Request was skipped since the priceFloor: $pricefloor is less than " +
                                     "the next requested adUnit: ${adUnit.pricefloor}"
                         )
-                        resultsCollector.add(
-                            getBelowPriceFloorResult(
+                        addResult(
+                            resultsCollector = resultsCollector,
+                            auctionResult = getBelowPriceFloorResult(
                                 adUnit = adUnit,
-                                tokenInfo = tokenInfo
-                            )
+                                tokenInfo = tokenInfo,
+                            ),
                         )
                         continue
                     }
@@ -114,13 +116,18 @@ internal class ExecuteAuctionUseCaseImpl(
                             adTypeParam = adTypeParam,
                             adUnit = adUnit,
                             priceFloor = pricefloor,
-                        ).also {
-                            resultsCollector.add(it)
-                        }
+                        )
+
+                        addResult(
+                            resultsCollector = resultsCollector,
+                            auctionResult = auctionResult
+                        )
+
+                        val nextRequested = adUnitQueue.poll()
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
                             !shouldRequestNext(
                                 auctionResult = auctionResult,
-                                next = adUnitQueue.peek()
+                                next = nextRequested
                             )
                         ) {
                             logInfo(
@@ -128,8 +135,9 @@ internal class ExecuteAuctionUseCaseImpl(
                                 "Request was skipped since the filled eCPM larger than the next one"
                             )
                             adUnitQueue.forEach {
-                                resultsCollector.add(
-                                    getBelowPriceFloorResult(
+                                addResult(
+                                    resultsCollector = resultsCollector,
+                                    auctionResult = getBelowPriceFloorResult(
                                         adUnit = it,
                                         tokenInfo = tokens[it.demandId]
                                     )
@@ -138,8 +146,10 @@ internal class ExecuteAuctionUseCaseImpl(
                             break
                         }
                     } else {
-                        resultsCollector.add(
-                            AuctionResult.AuctionFailed(
+                        adUnitQueue.remove()
+                        addResult(
+                            resultsCollector = resultsCollector,
+                            auctionResult = AuctionResult.AuctionFailed(
                                 adUnit = adUnit,
                                 roundStatus = RoundStatus.UnknownAdapter,
                                 tokenInfo = tokens[adUnit.demandId]
@@ -160,23 +170,32 @@ internal class ExecuteAuctionUseCaseImpl(
                 }
             }
             if (result.isNullOrEmpty()) {
-                finishByTimeout(tokens = tokens, resultsCollector = resultsCollector)
+                finishWithStatus(
+                    tokens = tokens,
+                    resultsCollector = resultsCollector,
+                    status = RoundStatus.FillTimeoutReached
+                )
                 logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
             }
-        }.onFailure {
-            finishByException(tokens = tokens, resultsCollector = resultsCollector, throwable = it)
+        }.getOrElse {
+            finishWithStatus(
+                tokens = tokens,
+                resultsCollector = resultsCollector,
+                status = RoundStatus.UnspecifiedException(it.message)
+            )
             logError(TAG, "Failed to execute auction", it)
-        }.getOrNull()
+        }
     }
 
-    private fun finishByStatus(
+    private suspend fun finishWithStatus(
         tokens: Map<String, TokenInfo>?,
         resultsCollector: ResultsCollector,
         status: RoundStatus
     ) {
         adUnitQueue.forEach {
-            resultsCollector.add(
-                AuctionResult.AuctionFailed(
+            addResult(
+                resultsCollector = resultsCollector,
+                auctionResult = AuctionResult.AuctionFailed(
                     adUnit = it,
                     roundStatus = status,
                     tokenInfo = tokens?.get(it.demandId)
@@ -185,32 +204,17 @@ internal class ExecuteAuctionUseCaseImpl(
         }
     }
 
-    private fun finishByException(
-        tokens: Map<String, TokenInfo>,
+    private suspend fun addResult(
         resultsCollector: ResultsCollector,
-        throwable: Throwable
+        auctionResult: AuctionResult
     ) {
-        finishByStatus(
-            tokens = tokens,
-            resultsCollector = resultsCollector,
-            status = RoundStatus.UnspecifiedException(throwable.message)
-        )
-    }
-
-    private fun finishByTimeout(
-        tokens: Map<String, TokenInfo>,
-        resultsCollector: ResultsCollector
-    ) {
-        finishByStatus(
-            tokens = tokens,
-            resultsCollector = resultsCollector,
-            status = RoundStatus.FillTimeoutReached
-        )
+        coroutineContext.ensureActive()
+        resultsCollector.add(auctionResult)
     }
 
     // TODO solution to receive tokens
     override suspend fun cancel(resultsCollector: ResultsCollector) {
-        finishByStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
+        finishWithStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
     }
 
     private fun getBelowPriceFloorResult(adUnit: AdUnit, tokenInfo: TokenInfo?): AuctionResult {
