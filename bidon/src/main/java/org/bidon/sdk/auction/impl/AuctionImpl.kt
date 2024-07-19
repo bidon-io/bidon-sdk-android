@@ -1,13 +1,10 @@
 package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
@@ -38,7 +35,6 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import java.util.UUID
-import kotlin.coroutines.coroutineContext
 
 /**
  * Created by Aleksei Cherniaev on 06/02/2023.
@@ -115,7 +111,6 @@ internal class AuctionImpl(
                             adTypeParamData = adTypeParam,
                             tokens = tokens,
                         )
-                        ensureActive()
                         if (results.isEmpty()) {
                             onFailure(auctionInfo, BidonError.NoAuctionResults)
                         } else {
@@ -125,54 +120,43 @@ internal class AuctionImpl(
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed during AuctionRequest", cause)
-                        ensureActive()
-                        adTypeParam.activity.runOnUiThread {
-                            onFailure(null, cause)
-                        }
+                        auctionResultAfterFailed(adTypeParam, onFailure, cause)
                     }
                 }.onFailure { cause ->
+                    auctionResultAfterFailed(adTypeParam, onFailure, cause)
                     logError(TAG, "Auction failed", cause)
-                    ensureActive()
-                    adTypeParam.activity.runOnUiThread {
-                        onFailure(null, cause)
-                    }
                 }
             }
         }
     }
 
-    override fun cancel(onFailure: (AuctionInfo?, Throwable) -> Unit) {
+    private suspend fun auctionResultAfterFailed(
+        adTypeParam: AdTypeParam,
+        onFailure: (AuctionInfo?, Throwable) -> Unit,
+        cause: Throwable
+    ) {
+        _auctionDataResponse?.let {
+            val statResult = proceedRoundResults()
+            val auctionInfo = getAuctionInfo(
+                auctionData = it,
+                statResult = statResult
+            )
+            printStatsData(it, statResult, auctionInfo)
+            adTypeParam.activity.runOnUiThread {
+                onFailure(auctionInfo, cause)
+            }
+        } ?: {
+            adTypeParam.activity.runOnUiThread {
+                onFailure(null, cause)
+            }
+        }
+
+    }
+
+    override fun cancel() {
         logInfo(TAG, "Trying to cancel auction. Is active: ${job?.isActive}")
         if (job?.isActive == true) {
             job?.cancel(AuctionCancellation())
-            scope.launch {
-                auctionStat.markAuctionCanceled()
-                auctionExecutable.cancel(resultsCollector)
-                val statResult = proceedRoundResults()
-                val auctionData = _auctionDataResponse
-                if (auctionData == null) {
-                    logInfo(TAG, "No AuctionResponse info. There is nothing to send.")
-                    withContext(Dispatchers.Main) {
-                        onFailure.invoke(null, BidonError.AuctionCancelled)
-                    }
-                } else {
-                    auctionStat.sendAuctionStats(
-                        auctionData = auctionData,
-                        roundStat = statResult,
-                        demandAd = requireNotNull(_demandAd),
-                    )
-                    val auctionInfo = getAuctionInfo(
-                        auctionData = auctionData,
-                        statResult = statResult
-                    )
-                    logInfo(TAG, "Auction canceled")
-                    printStatsData(auctionData, statResult, auctionInfo)
-                    withContext(Dispatchers.Main) {
-                        onFailure.invoke(auctionInfo, BidonError.AuctionCancelled)
-                    }
-                }
-                clearData()
-            }
         }
         job = null
     }
@@ -233,7 +217,6 @@ internal class AuctionImpl(
             logInfo(TAG, "Action result #$index: $auctionResult")
         }
 
-        coroutineContext.ensureActive()
         // Sending auction statistics
         auctionStat.sendAuctionStats(
             auctionData = auctionData,

@@ -71,7 +71,7 @@ internal class AdCacheImpl(
         results.value = emptyList()
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "Ad is loading, cancel auction")
-            auction?.cancel(onFailure)
+            auction?.cancel()
             auction = null
         }
     }

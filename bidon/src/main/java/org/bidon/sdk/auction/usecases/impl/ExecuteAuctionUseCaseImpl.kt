@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.usecases.impl
 
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -14,6 +13,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
@@ -28,7 +28,6 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import java.util.LinkedList
-import kotlin.coroutines.coroutineContext
 
 internal class ExecuteAuctionUseCaseImpl(
     private val adaptersSource: AdaptersSource,
@@ -178,16 +177,21 @@ internal class ExecuteAuctionUseCaseImpl(
                 logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
             }
         }.getOrElse {
+            val status = if(it is AuctionCancellation) {
+                RoundStatus.AuctionCancelled
+            } else {
+                RoundStatus.UnspecifiedException(it.message)
+            }
             finishWithStatus(
                 tokens = tokens,
                 resultsCollector = resultsCollector,
-                status = RoundStatus.UnspecifiedException(it.message)
+                status = status
             )
             logError(TAG, "Failed to execute auction", it)
         }
     }
 
-    private suspend fun finishWithStatus(
+    private fun finishWithStatus(
         tokens: Map<String, TokenInfo>?,
         resultsCollector: ResultsCollector,
         status: RoundStatus
@@ -204,16 +208,15 @@ internal class ExecuteAuctionUseCaseImpl(
         }
     }
 
-    private suspend fun addResult(
+    private fun addResult(
         resultsCollector: ResultsCollector,
         auctionResult: AuctionResult
     ) {
-        coroutineContext.ensureActive()
         resultsCollector.add(auctionResult)
     }
 
     // TODO solution to receive tokens
-    override suspend fun cancel(resultsCollector: ResultsCollector) {
+    override fun cancel(resultsCollector: ResultsCollector) {
         finishWithStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
     }
 
