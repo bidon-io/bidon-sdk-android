@@ -150,7 +150,9 @@ internal class AuctionImpl(
                 onFailure(null, cause)
             }
         }
-
+        // Finish auction
+        state.value = AuctionState.Finished
+        clearData()
     }
 
     override fun cancel() {
