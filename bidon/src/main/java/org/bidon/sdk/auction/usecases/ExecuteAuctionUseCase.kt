@@ -24,5 +24,5 @@ internal interface ExecuteAuctionUseCase {
         tokens: Map<String, TokenInfo>
     )
 
-    suspend fun cancel(resultsCollector: ResultsCollector)
+    fun cancel(resultsCollector: ResultsCollector)
 }
