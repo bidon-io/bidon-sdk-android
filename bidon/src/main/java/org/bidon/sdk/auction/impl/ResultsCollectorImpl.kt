@@ -105,7 +105,7 @@ internal class ResultsCollectorImpl(
             require(current is RoundResult.Results)
             when {
                 result is AuctionResult.Bidding ||
-                        (result as? AuctionResult.AuctionFailed)?.adUnit?.bidType == BidType.RTB -> {
+                    (result as? AuctionResult.AuctionFailed)?.adUnit?.bidType == BidType.RTB -> {
                     RoundResult.Results(
                         biddingResult = when (current.biddingResult) {
                             is BiddingResult.FilledAd -> {
@@ -131,7 +131,7 @@ internal class ResultsCollectorImpl(
                 }
 
                 result is AuctionResult.Network ||
-                        (result as? AuctionResult.AuctionFailed)?.adUnit?.bidType == BidType.CPM -> {
+                    (result as? AuctionResult.AuctionFailed)?.adUnit?.bidType == BidType.CPM -> {
                     RoundResult.Results(
                         biddingResult = current.biddingResult,
                         networkResults = current.networkResults + result,

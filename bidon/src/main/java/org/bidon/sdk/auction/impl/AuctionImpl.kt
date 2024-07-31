@@ -245,8 +245,8 @@ internal class AuctionImpl(
         logInfo(
             TAG,
             "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
-                    "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
-                    "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
+                "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
+                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
         )
     }
 
