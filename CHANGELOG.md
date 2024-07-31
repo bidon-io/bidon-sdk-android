@@ -3,12 +3,23 @@
 - [BDN-688](https://appodeal.atlassian.net/browse/BDN-688) Added impression info to Ad object
 - [BDN-687](https://appodeal.atlassian.net/browse/BDN-687) Provided AuctionInfo to public callback
 
-# Next 0.6.0-next.1
+# Release 0.6.0
 ## Features:
-- [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Merge Bidding And Classic Demands Into One Auction 
-- [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Added auction key field to public ad api 
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Bidmachine to 2.7.0
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update AppLovin to 12.6.0
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update BigoAds to 4.8.2
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Inmobi to 10.7.4
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Mintegral to 16.7.71
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Unity Ads to 4.12.1
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Vungle to 7.4.0
+- [BDN-705](https://appodeal.atlassian.net/browse/BDN-705) Update Meta dependencies (disabled Jetifier)
 
-# Next 0.5
+# Release 0.6.0-next.1
+## Features:
+- [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Merge Bidding And Classic Demands Into One Auction
+- [BDN-643](https://appodeal.atlassian.net/browse/BDN-643) Added auction key field to public ad api
+
+# Skip Release 0.5
 ## Features:
 - [BDN-596](https://appodeal.atlassian.net/browse/BDN-596) Add bid_finish_ts for BID_TIMEOUT_REACHED
 - [BDN-492](https://appodeal.atlassian.net/browse/BDN-492) Continue awaiting adapter after timed out
@@ -16,6 +27,14 @@
 - [BDN-474](https://appodeal.atlassian.net/browse/BDN-474) Remove obsolete _id-fields
 - [BDN-475](https://appodeal.atlassian.net/browse/BDN-475) Update Ad object
 - [BDN-631](https://appodeal.atlassian.net/browse/BDN-631) Gradle maintenance
+- [BDN-625](https://appodeal.atlassian.net/browse/BDN-625) Fixed OnReward event emitting order for Mintegral Rewarded
+
+# Release 0.4.29.3 (2024.05.22)
+## Features:
+- [APDM-638](https://appodeal.atlassian.net/browse/APDM-638) Update Applovin SDK to 12.5.0
+- [APDM-639](https://appodeal.atlassian.net/browse/APDM-639) Update Bidmachine SDK to 2.7.0
+- [APDM-640](https://appodeal.atlassian.net/browse/APDM-640) Update BigoAds SDK to 4.7.3
+- [APDM-641](https://appodeal.atlassian.net/browse/APDM-641) Update Mintegral SDK to 16.7.31
 - [BDN-625](https://appodeal.atlassian.net/browse/BDN-625) Fixed OnReward event emitting order for Mintegral Rewarded
 
 # Release 0.4.29.2 (2024.04.10)
