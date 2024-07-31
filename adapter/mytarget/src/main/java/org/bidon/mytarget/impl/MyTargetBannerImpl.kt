@@ -43,8 +43,8 @@ class MyTargetBannerImpl :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         val bannerFormat = auctionParamsScope.bannerFormat
-        if (bannerFormat == BannerFormat.Adaptive && DeviceInfo.isTablet
-            || bannerFormat == BannerFormat.LeaderBoard
+        if (bannerFormat == BannerFormat.Adaptive && DeviceInfo.isTablet ||
+            bannerFormat == BannerFormat.LeaderBoard
         ) {
             throw BidonError.AdFormatIsNotSupported(demandId.demandId, bannerFormat)
         }

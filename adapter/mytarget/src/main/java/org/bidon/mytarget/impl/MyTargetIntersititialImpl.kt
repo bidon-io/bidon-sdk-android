@@ -82,7 +82,6 @@ class MyTargetIntersititialImpl :
             }
 
             override fun onVideoCompleted(interstitial: MyTargetInterstitialAd) {
-
             }
 
             override fun onDisplay(interstitial: MyTargetInterstitialAd) {
@@ -101,7 +100,6 @@ class MyTargetIntersititialImpl :
                 logInfo(TAG, "onAdDisplayed: $this")
                 emitEvent(AdEvent.Shown(ad))
             }
-
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
             adParams.payload ?: run {
