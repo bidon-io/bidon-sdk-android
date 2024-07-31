@@ -6,12 +6,12 @@ plugins {
 }
 
 project.extra.apply {
-    this.set("AdapterArtifactId", "mytarget-adapter")
+    this.set("AdapterArtifactId", "vkads-adapter")
     this.set("AdapterVersionName", Versions.Adapters.MyTarget)
 }
 
 android {
-    namespace = "org.bidon.mytarget"
+    namespace = "org.bidon.vkads"
 
     defaultConfig {
         ADAPTER_VERSION = Versions.Adapters.MyTarget

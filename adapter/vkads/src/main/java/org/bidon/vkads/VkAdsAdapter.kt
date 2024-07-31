@@ -1,15 +1,8 @@
-package org.bidon.mytarget
+package org.bidon.vkads
 
 import android.content.Context
 import com.my.target.common.MyTargetManager
 import com.my.target.common.MyTargetPrivacy
-import org.bidon.mytarget.ext.adapterVersion
-import org.bidon.mytarget.ext.sdkVersion
-import org.bidon.mytarget.impl.MyTargetBannerImpl
-import org.bidon.mytarget.impl.MyTargetFullscreenAuctionParams
-import org.bidon.mytarget.impl.MyTargetIntersititialImpl
-import org.bidon.mytarget.impl.MyTargetRewardedAdImpl
-import org.bidon.mytarget.impl.MyTargetViewAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -21,20 +14,29 @@ import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.vkads.ext.adapterVersion
+import org.bidon.vkads.ext.sdkVersion
+import org.bidon.vkads.impl.VkAdsFullscreenAuctionParams
+import org.bidon.vkads.impl.VkAdsViewAuctionParams
+import org.bidon.vkads.impl.VkAdsBannerImpl
+import org.bidon.vkads.impl.VkAdsInterstitialImpl
+import org.bidon.vkads.impl.VkAdsRewardedAdImpl
 
-val MyTargetDemandId = DemandId("mytarget")
+internal val VkAdsDemandId = DemandId("vk_ads")
 
-class MyTargetAdapter :
+@Suppress("unused")
+internal class VkAdsAdapter :
     Adapter.Bidding,
     Adapter.Network,
-    Initializable<MyTargetParams>,
+    Initializable<VkAdsParameters>,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
-    AdProvider.Banner<MyTargetViewAuctionParams>,
-    AdProvider.Interstitial<MyTargetFullscreenAuctionParams>,
-    AdProvider.Rewarded<MyTargetFullscreenAuctionParams> {
-    override val demandId: DemandId = MyTargetDemandId
-    override val adapterInfo: AdapterInfo = AdapterInfo(
+    AdProvider.Banner<VkAdsViewAuctionParams>,
+    AdProvider.Interstitial<VkAdsFullscreenAuctionParams>,
+    AdProvider.Rewarded<VkAdsFullscreenAuctionParams> {
+
+    override val demandId = VkAdsDemandId
+    override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
     )
@@ -42,15 +44,15 @@ class MyTargetAdapter :
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
         MyTargetManager.getBidderToken(context)
 
-    override suspend fun init(context: Context, configParams: MyTargetParams) {
+    override suspend fun init(context: Context, configParams: VkAdsParameters) {
         if (isTestMode) {
             MyTargetManager.setDebugMode(true)
         }
         MyTargetManager.initSdk(context)
     }
 
-    override fun parseConfigParam(json: String): MyTargetParams {
-        return MyTargetParams()
+    override fun parseConfigParam(json: String): VkAdsParameters {
+        return VkAdsParameters()
     }
 
     override fun updateRegulation(regulation: Regulation) {
@@ -65,12 +67,12 @@ class MyTargetAdapter :
         }
     }
 
-    override fun interstitial(): AdSource.Interstitial<MyTargetFullscreenAuctionParams> =
-        MyTargetIntersititialImpl()
+    override fun interstitial(): AdSource.Interstitial<VkAdsFullscreenAuctionParams> =
+        VkAdsInterstitialImpl()
 
-    override fun banner(): AdSource.Banner<MyTargetViewAuctionParams> =
-        MyTargetBannerImpl()
+    override fun banner(): AdSource.Banner<VkAdsViewAuctionParams> =
+        VkAdsBannerImpl()
 
-    override fun rewarded(): AdSource.Rewarded<MyTargetFullscreenAuctionParams> =
-        MyTargetRewardedAdImpl()
+    override fun rewarded(): AdSource.Rewarded<VkAdsFullscreenAuctionParams> =
+        VkAdsRewardedAdImpl()
 }

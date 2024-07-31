@@ -1,9 +1,10 @@
-package org.bidon.mytarget.impl
+package org.bidon.vkads.impl
 
 import android.app.Activity
 import android.content.Context
+import com.my.target.ads.Reward
+import com.my.target.ads.RewardedAd
 import com.my.target.common.models.IAdLoadingError
-import org.bidon.mytarget.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -17,33 +18,30 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
-import com.my.target.ads.InterstitialAd as MyTargetInterstitialAd
+import org.bidon.vkads.ext.asBidonError
+import com.my.target.ads.RewardedAd as MyTargetRewardedAd
 
-class MyTargetIntersititialImpl :
-    AdSource.Interstitial<MyTargetFullscreenAuctionParams>,
+internal class VkAdsRewardedAdImpl :
+    AdSource.Rewarded<VkAdsFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var interstitialAd: MyTargetInterstitialAd? = null
+    private var rewardedAd: MyTargetRewardedAd? = null
     private var context: Context? = null
 
-    override fun show(activity: Activity) {
-        interstitialAd?.show(activity)
-    }
-
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd != null
+        get() = rewardedAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         context = auctionParamsScope.activity
         return auctionParamsScope {
-            MyTargetFullscreenAuctionParams(
+            VkAdsFullscreenAuctionParams(
                 adUnit = adUnit,
             )
         }
     }
 
-    override fun load(adParams: MyTargetFullscreenAuctionParams) {
+    override fun load(adParams: VkAdsFullscreenAuctionParams) {
         adParams.slotId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -56,35 +54,37 @@ class MyTargetIntersititialImpl :
             emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))
             return
         }
-        val interstitialAd = MyTargetInterstitialAd(adParams.slotId, context).also {
+        val rewardedAd = MyTargetRewardedAd(adParams.slotId, context).also {
             it.customParams.setCustomParam("mediation", adParams.mediation)
-            interstitialAd = it
+            rewardedAd = it
         }
-        interstitialAd.listener = object : MyTargetInterstitialAd.InterstitialAdListener {
-            override fun onLoad(interstitial: MyTargetInterstitialAd) {
+        rewardedAd.listener = object : MyTargetRewardedAd.RewardedAdListener {
+            override fun onLoad(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))
             }
 
-            override fun onNoAd(error: IAdLoadingError, interstitial: MyTargetInterstitialAd) {
+            override fun onNoAd(error: IAdLoadingError, rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "Error while loading ad: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
-            override fun onClick(interstitial: MyTargetInterstitialAd) {
+            override fun onClick(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onClick: $this")
                 emitEvent(AdEvent.Clicked(getAd() ?: return))
             }
 
-            override fun onDismiss(interstitial: MyTargetInterstitialAd) {
+            override fun onDismiss(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onDismiss: $this")
                 emitEvent(AdEvent.Closed(getAd() ?: return))
             }
 
-            override fun onVideoCompleted(interstitial: MyTargetInterstitialAd) {
+            override fun onReward(reward: Reward, rewarded: RewardedAd) {
+                logInfo(TAG, "onAdRewarded: $reward, $this")
+                emitEvent(AdEvent.OnReward(getAd() ?: return, null))
             }
 
-            override fun onDisplay(interstitial: MyTargetInterstitialAd) {
+            override fun onDisplay(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onVideoCompleted: $this")
                 val ad = getAd() ?: return
                 emitEvent(
@@ -110,17 +110,21 @@ class MyTargetIntersititialImpl :
                 )
                 return
             }
-            interstitialAd.loadFromBid(adParams.payload)
+            rewardedAd.loadFromBid(adParams.payload)
         } else {
-            interstitialAd.load()
+            rewardedAd.load()
         }
     }
 
+    override fun show(activity: Activity) {
+        rewardedAd?.show(activity)
+    }
+
     override fun destroy() {
-        interstitialAd?.destroy()
-        interstitialAd = null
+        rewardedAd?.destroy()
+        rewardedAd = null
         context = null
     }
 }
 
-private const val TAG = "MyTargetInterstitialImpl"
+private const val TAG = "MyTargetRewardedImpl"

@@ -1,11 +1,11 @@
-package org.bidon.mytarget.impl
+package org.bidon.vkads.impl
 
 import android.content.Context
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
-class MyTargetFullscreenAuctionParams(
+internal class VkAdsFullscreenAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
@@ -14,7 +14,7 @@ class MyTargetFullscreenAuctionParams(
     val slotId: Int? = adUnit.extra?.optInt("slot_id")
 }
 
-class MyTargetViewAuctionParams(
+internal class VkAdsViewAuctionParams(
     val context: Context,
     override val adUnit: AdUnit,
     val bannerFormat: BannerFormat,

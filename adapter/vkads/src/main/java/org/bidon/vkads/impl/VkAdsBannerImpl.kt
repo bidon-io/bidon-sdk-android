@@ -1,9 +1,7 @@
-package org.bidon.mytarget.impl
+package org.bidon.vkads.impl
 
 import com.my.target.ads.MyTargetView
 import com.my.target.common.models.IAdLoadingError
-import org.bidon.mytarget.ext.asBidonError
-import org.bidon.mytarget.ext.toAdSize
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -20,9 +18,11 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
+import org.bidon.vkads.ext.asBidonError
+import org.bidon.vkads.ext.toAdSize
 
-class MyTargetBannerImpl :
-    AdSource.Banner<MyTargetViewAuctionParams>,
+internal class VkAdsBannerImpl :
+    AdSource.Banner<VkAdsViewAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -50,7 +50,7 @@ class MyTargetBannerImpl :
         }
         adSize = bannerFormat.toAdSize()
         return auctionParamsScope {
-            MyTargetViewAuctionParams(
+            VkAdsViewAuctionParams(
                 context = auctionParamsScope.activity,
                 bannerFormat = bannerFormat,
                 adUnit = auctionParamsScope.adUnit
@@ -58,7 +58,7 @@ class MyTargetBannerImpl :
         }
     }
 
-    override fun load(adParams: MyTargetViewAuctionParams) {
+    override fun load(adParams: VkAdsViewAuctionParams) {
         adParams.slotId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

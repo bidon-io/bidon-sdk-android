@@ -20,5 +20,5 @@ enum class DefaultAdapters(val classPath: String) {
     InmobiAdapter(classPath = "org.bidon.inmobi.InmobiAdapter"),
     AmazonAdapter(classPath = "org.bidon.amazon.AmazonAdapter"),
     MobilefuseAdapter(classPath = "org.bidon.mobilefuse.MobileFuseAdapter"),
-    MyTargetAdapter(classPath = "org.bidon.mytarget.MyTargetAdapter"),
+    VkAdsAdapter(classPath = "org.bidon.vkads.VkAdsAdapter"),
 }

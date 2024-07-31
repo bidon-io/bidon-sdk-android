@@ -1,4 +1,4 @@
-package org.bidon.mytarget.ext
+package org.bidon.vkads.ext
 
 import com.my.target.ads.MyTargetView.AdSize
 import com.my.target.common.MyTargetVersion
@@ -11,13 +11,13 @@ import com.my.target.common.models.IAdLoadingError.LoadErrorType.REQUEST_TIMEOUT
 import com.my.target.common.models.IAdLoadingError.LoadErrorType.REQUIRED_FIELD_MISSED
 import com.my.target.common.models.IAdLoadingError.LoadErrorType.UNDEFINED_DATA_ERROR
 import com.my.target.common.models.IAdLoadingError.LoadErrorType.UNDEFINED_PARSE_ERROR
-import org.bidon.mytarget.MyTargetDemandId
 import org.bidon.sdk.BuildConfig
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.config.BidonError
+import org.bidon.vkads.VkAdsDemandId
 
 internal const val adapterVersion = BuildConfig.ADAPTER_VERSION
-internal val sdkVersion = MyTargetVersion.VERSION
+internal const val sdkVersion = MyTargetVersion.VERSION
 
 internal fun BannerFormat.toAdSize() =
     when (this) {
@@ -28,18 +28,18 @@ internal fun BannerFormat.toAdSize() =
 
 internal fun IAdLoadingError.asBidonError(bannerFormat: BannerFormat? = null): BidonError {
     return when (this.code) {
-        NETWORK_CONNECTION_FAILED -> BidonError.NetworkError(MyTargetDemandId)
-        REQUEST_TIMEOUT -> BidonError.FillTimedOut(MyTargetDemandId)
+        NETWORK_CONNECTION_FAILED -> BidonError.NetworkError(VkAdsDemandId)
+        REQUEST_TIMEOUT -> BidonError.FillTimedOut(VkAdsDemandId)
         INVALID_URL,
         INTERNAL_SERVER_ERROR,
         UNDEFINED_DATA_ERROR,
-        UNDEFINED_PARSE_ERROR -> BidonError.Unspecified(MyTargetDemandId, Throwable(message))
+        UNDEFINED_PARSE_ERROR -> BidonError.Unspecified(VkAdsDemandId, Throwable(message))
 
-        REQUIRED_FIELD_MISSED -> BidonError.IncorrectAdUnit(MyTargetDemandId, message)
+        REQUIRED_FIELD_MISSED -> BidonError.IncorrectAdUnit(VkAdsDemandId, message)
         INVALID_BANNER_TYPE -> bannerFormat?.let {
-            BidonError.AdFormatIsNotSupported(MyTargetDemandId.demandId, it)
-        } ?: BidonError.Unspecified(MyTargetDemandId, Throwable(message))
+            BidonError.AdFormatIsNotSupported(VkAdsDemandId.demandId, it)
+        } ?: BidonError.Unspecified(VkAdsDemandId, Throwable(message))
 
-        else -> BidonError.NoFill(MyTargetDemandId)
+        else -> BidonError.NoFill(VkAdsDemandId)
     }
 }
