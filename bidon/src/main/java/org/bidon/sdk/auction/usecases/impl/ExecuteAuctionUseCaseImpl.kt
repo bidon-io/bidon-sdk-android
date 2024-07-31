@@ -71,7 +71,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         logInfo(
                             TAG,
                             "Request was skipped since the priceFloor: $pricefloor is less than " +
-                                    "the next requested adUnit: ${adUnit.pricefloor}"
+                                "the next requested adUnit: ${adUnit.pricefloor}"
                         )
                         resultsCollector.add(
                             getBelowPriceFloorResult(
@@ -119,9 +119,9 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
                             !shouldRequestNext(
-                                auctionResult = auctionResult,
-                                next = adUnitQueue.peek()
-                            )
+                                    auctionResult = auctionResult,
+                                    next = adUnitQueue.peek()
+                                )
                         ) {
                             logInfo(
                                 TAG,
@@ -268,10 +268,10 @@ internal class ExecuteAuctionUseCaseImpl(
             logInfo(
                 TAG,
                 "Applying regulation to ${demandId.demandId} <- " +
-                        "GDPR=${regulation.gdpr}, " +
-                        "COPPA=${regulation.coppa}, " +
-                        "usPrivacyString=${regulation.usPrivacyString}, " +
-                        "gdprConsentString=${regulation.gdprConsentString}"
+                    "GDPR=${regulation.gdpr}, " +
+                    "COPPA=${regulation.coppa}, " +
+                    "usPrivacyString=${regulation.usPrivacyString}, " +
+                    "gdprConsentString=${regulation.gdprConsentString}"
             )
             supportsRegulation.updateRegulation(regulation)
         }

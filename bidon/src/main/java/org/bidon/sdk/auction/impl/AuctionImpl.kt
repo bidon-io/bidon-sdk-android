@@ -215,9 +215,12 @@ internal class AuctionImpl(
         val statResult = proceedRoundResults()
 
         val auctionInfo = getAuctionInfo(auctionData = auctionData, statResult = statResult)
-        logInfo(TAG, "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
+        logInfo(
+            TAG,
+            "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
                 "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
-                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}")
+                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
+        )
         resultsCollector.clearRoundResults()
 
         logInfo(TAG, "Rounds completed")
