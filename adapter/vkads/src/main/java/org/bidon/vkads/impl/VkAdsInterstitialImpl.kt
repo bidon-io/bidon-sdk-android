@@ -1,7 +1,6 @@
 package org.bidon.vkads.impl
 
 import android.app.Activity
-import android.content.Context
 import com.my.target.common.models.IAdLoadingError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -25,41 +24,26 @@ internal class VkAdsInterstitialImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var interstitialAd: MyTargetInterstitialAd? = null
-    private var context: Context? = null
-
-    override fun show(activity: Activity) {
-        interstitialAd?.show(activity)
-    }
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        context = auctionParamsScope.activity
         return auctionParamsScope {
             VkAdsFullscreenAuctionParams(
+                activity = auctionParamsScope.activity,
                 adUnit = adUnit,
             )
         }
     }
 
     override fun load(adParams: VkAdsFullscreenAuctionParams) {
-        adParams.slotId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")
-                )
-            )
-            return
-        }
-        val context: Context = context ?: run {
-            emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))
-            return
-        }
-        val interstitialAd = MyTargetInterstitialAd(adParams.slotId, context).also {
-            it.customParams.setCustomParam("mediation", adParams.mediation)
-            interstitialAd = it
-        }
+        val slotId = adParams.slotId
+            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
+
+        val interstitialAd = MyTargetInterstitialAd(slotId, adParams.activity)
+            .also { interstitialAd = it }
+        interstitialAd.customParams.setCustomParam("mediation", adParams.mediation)
         interstitialAd.listener = object : MyTargetInterstitialAd.InterstitialAdListener {
             override fun onLoad(interstitial: MyTargetInterstitialAd) {
                 logInfo(TAG, "onLoad: $this")
@@ -67,7 +51,7 @@ internal class VkAdsInterstitialImpl :
             }
 
             override fun onNoAd(error: IAdLoadingError, interstitial: MyTargetInterstitialAd) {
-                logInfo(TAG, "Error while loading ad: ${error.code} ${error.message}. $this")
+                logInfo(TAG, "onNoAd: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
@@ -82,44 +66,47 @@ internal class VkAdsInterstitialImpl :
             }
 
             override fun onVideoCompleted(interstitial: MyTargetInterstitialAd) {
+                logInfo(TAG, "onVideoCompleted: $this")
             }
 
             override fun onDisplay(interstitial: MyTargetInterstitialAd) {
-                logInfo(TAG, "onVideoCompleted: $this")
-                val ad = getAd() ?: return
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = ad,
-                        adValue = AdValue(
-                            adRevenue = ad.ecpm / 1000.0,
-                            precision = Precision.Estimated,
-                            currency = AdValue.USD,
+                logInfo(TAG, "onDisplay: $this")
+                getAd()?.let {
+                    emitEvent(AdEvent.Shown(it))
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = it,
+                            adValue = AdValue(
+                                adRevenue = adParams.price,
+                                currency = AdValue.USD,
+                                precision = Precision.Precise
+                            )
                         )
                     )
-                )
-                logInfo(TAG, "onAdDisplayed: $this")
-                emitEvent(AdEvent.Shown(ad))
+                }
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.payload ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
-                    )
-                )
-                return
-            }
-            interstitialAd.loadFromBid(adParams.payload)
+            val payload = adParams.payload ?:
+                return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+            interstitialAd.loadFromBid(payload)
         } else {
             interstitialAd.load()
+        }
+    }
+
+    override fun show(activity: Activity) {
+        val interstitialAd = interstitialAd
+        if (interstitialAd != null) {
+            interstitialAd.show()
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
     }
 
     override fun destroy() {
         interstitialAd?.destroy()
         interstitialAd = null
-        context = null
     }
 }
 

@@ -1,11 +1,12 @@
 package org.bidon.vkads.impl
 
-import android.content.Context
+import android.app.Activity
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
 internal class VkAdsFullscreenAuctionParams(
+    val activity: Activity,
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
@@ -15,9 +16,9 @@ internal class VkAdsFullscreenAuctionParams(
 }
 
 internal class VkAdsViewAuctionParams(
-    val context: Context,
-    override val adUnit: AdUnit,
+    val activity: Activity,
     val bannerFormat: BannerFormat,
+    override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
     val payload: String? = adUnit.extra?.optString("payload")

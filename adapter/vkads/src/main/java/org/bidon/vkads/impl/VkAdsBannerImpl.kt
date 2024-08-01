@@ -9,8 +9,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -27,31 +25,14 @@ internal class VkAdsBannerImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adView: MyTargetView? = null
-    private var adSize: MyTargetView.AdSize? = null
-
-    override fun getAdView(): AdViewHolder? = adView?.let {
-        val adSize = adSize ?: return null
-        AdViewHolder(
-            networkAdview = it,
-            widthDp = adSize.width,
-            heightDp = adSize.height
-        )
-    }
 
     override val isAdReadyToShow: Boolean
         get() = adView != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        val bannerFormat = auctionParamsScope.bannerFormat
-        if (bannerFormat == BannerFormat.Adaptive && DeviceInfo.isTablet ||
-            bannerFormat == BannerFormat.LeaderBoard
-        ) {
-            throw BidonError.AdFormatIsNotSupported(demandId.demandId, bannerFormat)
-        }
-        adSize = bannerFormat.toAdSize()
         return auctionParamsScope {
             VkAdsViewAuctionParams(
-                context = auctionParamsScope.activity,
+                activity = auctionParamsScope.activity,
                 bannerFormat = bannerFormat,
                 adUnit = auctionParamsScope.adUnit
             )
@@ -59,22 +40,15 @@ internal class VkAdsBannerImpl :
     }
 
     override fun load(adParams: VkAdsViewAuctionParams) {
-        adParams.slotId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")
-                )
-            )
-            return
-        }
-        val adView = MyTargetView(adParams.context).also {
-            it.customParams.setCustomParam("mediation", adParams.mediation)
-            adView = it
-        }
-        adSize ?: adParams.bannerFormat.toAdSize()?.let {
-            adView.setAdSize(it)
-        }
-        adView.setSlotId(adParams.slotId)
+        val slotId = adParams.slotId
+            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
+
+        val adView = MyTargetView(adParams.activity)
+            .also { adView = it }
+        adView.setAdSize(adParams.bannerFormat.toAdSize())
+        adView.setSlotId(slotId)
+        adView.setRefreshAd(false)
+        adView.customParams.setCustomParam("mediation", adParams.mediation)
         adView.listener = object : MyTargetView.MyTargetViewListener {
             override fun onLoad(adView: MyTargetView) {
                 logInfo(TAG, "onLoad: $this")
@@ -82,22 +56,24 @@ internal class VkAdsBannerImpl :
             }
 
             override fun onNoAd(error: IAdLoadingError, adView: MyTargetView) {
-                logInfo(TAG, "Error while loading ad: ${error.code} ${error.message}. $this")
+                logInfo(TAG, "onNoAd: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError(adParams.bannerFormat)))
             }
 
             override fun onShow(adView: MyTargetView) {
-                val ad = getAd() ?: return
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = ad,
-                        adValue = AdValue(
-                            adRevenue = ad.ecpm / 1000.0,
-                            precision = Precision.Estimated,
-                            currency = AdValue.USD,
+                logInfo(TAG, "onShow: $this")
+                getAd()?.let { ad ->
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = ad,
+                            adValue = AdValue(
+                                adRevenue = adParams.price,
+                                currency = AdValue.USD,
+                                precision = Precision.Precise,
+                            )
                         )
                     )
-                )
+                }
             }
 
             override fun onClick(adView: MyTargetView) {
@@ -106,24 +82,26 @@ internal class VkAdsBannerImpl :
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.payload ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
-                    )
-                )
-                return
-            }
-            adView.loadFromBid(adParams.payload)
+            val payload = adParams.payload
+                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+            adView.loadFromBid(payload)
         } else {
             adView.load()
         }
     }
 
+    override fun getAdView(): AdViewHolder? = adView?.let { adView ->
+        val size = adView.size
+        AdViewHolder(
+            networkAdview = adView,
+            widthDp = size.width,
+            heightDp = size.height
+        )
+    }
+
     override fun destroy() {
         adView?.destroy()
         adView = null
-        adSize = null
     }
 }
 

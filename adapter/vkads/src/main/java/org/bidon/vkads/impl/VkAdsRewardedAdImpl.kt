@@ -1,7 +1,6 @@
 package org.bidon.vkads.impl
 
 import android.app.Activity
-import android.content.Context
 import com.my.target.ads.Reward
 import com.my.target.ads.RewardedAd
 import com.my.target.common.models.IAdLoadingError
@@ -27,37 +26,26 @@ internal class VkAdsRewardedAdImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var rewardedAd: MyTargetRewardedAd? = null
-    private var context: Context? = null
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
-        context = auctionParamsScope.activity
         return auctionParamsScope {
             VkAdsFullscreenAuctionParams(
+                activity = activity,
                 adUnit = adUnit,
             )
         }
     }
 
     override fun load(adParams: VkAdsFullscreenAuctionParams) {
-        adParams.slotId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")
-                )
-            )
-            return
-        }
-        val context: Context = context ?: run {
-            emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))
-            return
-        }
-        val rewardedAd = MyTargetRewardedAd(adParams.slotId, context).also {
-            it.customParams.setCustomParam("mediation", adParams.mediation)
-            rewardedAd = it
-        }
+        val slotId = adParams.slotId
+            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
+
+        val rewardedAd = MyTargetRewardedAd(slotId, adParams.activity)
+            .also { rewardedAd = it }
+        rewardedAd.customParams.setCustomParam("mediation", adParams.mediation)
         rewardedAd.listener = object : MyTargetRewardedAd.RewardedAdListener {
             override fun onLoad(rewarded: MyTargetRewardedAd) {
                 logInfo(TAG, "onLoad: $this")
@@ -65,7 +53,7 @@ internal class VkAdsRewardedAdImpl :
             }
 
             override fun onNoAd(error: IAdLoadingError, rewarded: MyTargetRewardedAd) {
-                logInfo(TAG, "Error while loading ad: ${error.code} ${error.message}. $this")
+                logInfo(TAG, "onNoAd: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
@@ -81,49 +69,49 @@ internal class VkAdsRewardedAdImpl :
 
             override fun onReward(reward: Reward, rewarded: RewardedAd) {
                 logInfo(TAG, "onAdRewarded: $reward, $this")
-                emitEvent(AdEvent.OnReward(getAd() ?: return, null))
+                getAd()?.let { ad ->
+                    emitEvent(AdEvent.OnReward(ad = ad, reward = null))
+                }
             }
 
             override fun onDisplay(rewarded: MyTargetRewardedAd) {
-                logInfo(TAG, "onVideoCompleted: $this")
-                val ad = getAd() ?: return
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = ad,
-                        adValue = AdValue(
-                            adRevenue = ad.ecpm / 1000.0,
-                            precision = Precision.Estimated,
-                            currency = AdValue.USD,
+                logInfo(TAG, "onDisplay: $this")
+                getAd()?.let {
+                    emitEvent(AdEvent.Shown(it))
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = it,
+                            adValue = AdValue(
+                                adRevenue = adParams.price,
+                                currency = AdValue.USD,
+                                precision = Precision.Precise
+                            )
                         )
                     )
-                )
-                logInfo(TAG, "onAdDisplayed: $this")
-                emitEvent(AdEvent.Shown(ad))
+                }
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.payload ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
-                    )
-                )
-                return
-            }
-            rewardedAd.loadFromBid(adParams.payload)
+            val payload = adParams.payload ?:
+            return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+            rewardedAd.loadFromBid(payload)
         } else {
             rewardedAd.load()
         }
     }
 
     override fun show(activity: Activity) {
-        rewardedAd?.show(activity)
+        val rewardedAd = rewardedAd
+        if (rewardedAd != null) {
+            rewardedAd.show()
+        } else {
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+        }
     }
 
     override fun destroy() {
         rewardedAd?.destroy()
         rewardedAd = null
-        context = null
     }
 }
 

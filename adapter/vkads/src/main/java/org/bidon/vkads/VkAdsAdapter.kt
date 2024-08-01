@@ -16,13 +16,13 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.vkads.ext.adapterVersion
 import org.bidon.vkads.ext.sdkVersion
-import org.bidon.vkads.impl.VkAdsFullscreenAuctionParams
-import org.bidon.vkads.impl.VkAdsViewAuctionParams
 import org.bidon.vkads.impl.VkAdsBannerImpl
+import org.bidon.vkads.impl.VkAdsFullscreenAuctionParams
 import org.bidon.vkads.impl.VkAdsInterstitialImpl
 import org.bidon.vkads.impl.VkAdsRewardedAdImpl
+import org.bidon.vkads.impl.VkAdsViewAuctionParams
 
-internal val VkAdsDemandId = DemandId("vk_ads")
+internal val VkAdsDemandId = DemandId("vkads")
 
 @Suppress("unused")
 internal class VkAdsAdapter :
@@ -45,9 +45,7 @@ internal class VkAdsAdapter :
         MyTargetManager.getBidderToken(context)
 
     override suspend fun init(context: Context, configParams: VkAdsParameters) {
-        if (isTestMode) {
-            MyTargetManager.setDebugMode(true)
-        }
+        MyTargetManager.setDebugMode(isTestMode)
         MyTargetManager.initSdk(context)
     }
 
@@ -60,19 +58,22 @@ internal class VkAdsAdapter :
             MyTargetPrivacy.setUserConsent(regulation.hasGdprConsent)
         }
         if (regulation.ccpaApplies) {
-            MyTargetPrivacy.setCcpaUserConsent(regulation.ccpaApplies)
+            MyTargetPrivacy.setCcpaUserConsent(regulation.hasCcpaConsent)
         }
         if (regulation.coppaApplies) {
-            MyTargetPrivacy.setUserAgeRestricted(regulation.coppaApplies)
+            MyTargetPrivacy.setUserAgeRestricted(true)
         }
     }
 
-    override fun interstitial(): AdSource.Interstitial<VkAdsFullscreenAuctionParams> =
-        VkAdsInterstitialImpl()
+    override fun interstitial(): AdSource.Interstitial<VkAdsFullscreenAuctionParams> {
+        return VkAdsInterstitialImpl()
+    }
 
-    override fun banner(): AdSource.Banner<VkAdsViewAuctionParams> =
-        VkAdsBannerImpl()
+    override fun banner(): AdSource.Banner<VkAdsViewAuctionParams> {
+        return VkAdsBannerImpl()
+    }
 
-    override fun rewarded(): AdSource.Rewarded<VkAdsFullscreenAuctionParams> =
-        VkAdsRewardedAdImpl()
+    override fun rewarded(): AdSource.Rewarded<VkAdsFullscreenAuctionParams> {
+        return VkAdsRewardedAdImpl()
+    }
 }

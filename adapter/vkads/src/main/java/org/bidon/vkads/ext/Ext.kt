@@ -13,6 +13,7 @@ import com.my.target.common.models.IAdLoadingError.LoadErrorType.UNDEFINED_DATA_
 import com.my.target.common.models.IAdLoadingError.LoadErrorType.UNDEFINED_PARSE_ERROR
 import org.bidon.sdk.BuildConfig
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.config.BidonError
 import org.bidon.vkads.VkAdsDemandId
 
@@ -23,7 +24,8 @@ internal fun BannerFormat.toAdSize() =
     when (this) {
         BannerFormat.LeaderBoard -> AdSize.ADSIZE_728x90
         BannerFormat.MRec -> AdSize.ADSIZE_300x250
-        else -> AdSize.ADSIZE_320x50
+        BannerFormat.Banner -> AdSize.ADSIZE_320x50
+        BannerFormat.Adaptive -> if (DeviceInfo.isTablet) AdSize.ADSIZE_728x90 else AdSize.ADSIZE_320x50
     }
 
 internal fun IAdLoadingError.asBidonError(bannerFormat: BannerFormat? = null): BidonError {
