@@ -18,14 +18,13 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.vkads.ext.asBidonError
-import com.my.target.ads.RewardedAd as MyTargetRewardedAd
 
 internal class VkAdsRewardedAdImpl :
     AdSource.Rewarded<VkAdsFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var rewardedAd: MyTargetRewardedAd? = null
+    private var rewardedAd: RewardedAd? = null
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd != null
@@ -43,26 +42,26 @@ internal class VkAdsRewardedAdImpl :
         val slotId = adParams.slotId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
 
-        val rewardedAd = MyTargetRewardedAd(slotId, adParams.activity)
+        val rewardedAd = RewardedAd(slotId, adParams.activity)
             .also { rewardedAd = it }
         rewardedAd.customParams.setCustomParam("mediation", adParams.mediation)
-        rewardedAd.listener = object : MyTargetRewardedAd.RewardedAdListener {
-            override fun onLoad(rewarded: MyTargetRewardedAd) {
+        rewardedAd.listener = object : RewardedAd.RewardedAdListener {
+            override fun onLoad(rewarded: RewardedAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))
             }
 
-            override fun onNoAd(error: IAdLoadingError, rewarded: MyTargetRewardedAd) {
+            override fun onNoAd(error: IAdLoadingError, rewarded: RewardedAd) {
                 logInfo(TAG, "onNoAd: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
-            override fun onClick(rewarded: MyTargetRewardedAd) {
+            override fun onClick(rewarded: RewardedAd) {
                 logInfo(TAG, "onClick: $this")
                 emitEvent(AdEvent.Clicked(getAd() ?: return))
             }
 
-            override fun onDismiss(rewarded: MyTargetRewardedAd) {
+            override fun onDismiss(rewarded: RewardedAd) {
                 logInfo(TAG, "onDismiss: $this")
                 emitEvent(AdEvent.Closed(getAd() ?: return))
             }
@@ -74,7 +73,7 @@ internal class VkAdsRewardedAdImpl :
                 }
             }
 
-            override fun onDisplay(rewarded: MyTargetRewardedAd) {
+            override fun onDisplay(rewarded: RewardedAd) {
                 logInfo(TAG, "onDisplay: $this")
                 getAd()?.let {
                     emitEvent(AdEvent.Shown(it))
@@ -115,4 +114,4 @@ internal class VkAdsRewardedAdImpl :
     }
 }
 
-private const val TAG = "MyTargetRewardedImpl"
+private const val TAG = "VkAdsRewardedImpl"

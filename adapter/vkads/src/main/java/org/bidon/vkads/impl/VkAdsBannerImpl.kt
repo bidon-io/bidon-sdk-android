@@ -105,4 +105,4 @@ internal class VkAdsBannerImpl :
     }
 }
 
-private const val TAG = "MyTargetBannerImpl"
+private const val TAG = "VkAdsBannerImpl"

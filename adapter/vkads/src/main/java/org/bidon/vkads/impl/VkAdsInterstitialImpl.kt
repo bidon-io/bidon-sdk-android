@@ -1,6 +1,7 @@
 package org.bidon.vkads.impl
 
 import android.app.Activity
+import com.my.target.ads.InterstitialAd
 import com.my.target.common.models.IAdLoadingError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -16,14 +17,13 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.vkads.ext.asBidonError
-import com.my.target.ads.InterstitialAd as MyTargetInterstitialAd
 
 internal class VkAdsInterstitialImpl :
     AdSource.Interstitial<VkAdsFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var interstitialAd: MyTargetInterstitialAd? = null
+    private var interstitialAd: InterstitialAd? = null
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd != null
@@ -41,35 +41,35 @@ internal class VkAdsInterstitialImpl :
         val slotId = adParams.slotId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "slotId")))
 
-        val interstitialAd = MyTargetInterstitialAd(slotId, adParams.activity)
+        val interstitialAd = InterstitialAd(slotId, adParams.activity)
             .also { interstitialAd = it }
         interstitialAd.customParams.setCustomParam("mediation", adParams.mediation)
-        interstitialAd.listener = object : MyTargetInterstitialAd.InterstitialAdListener {
-            override fun onLoad(interstitial: MyTargetInterstitialAd) {
+        interstitialAd.listener = object : InterstitialAd.InterstitialAdListener {
+            override fun onLoad(interstitial: InterstitialAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))
             }
 
-            override fun onNoAd(error: IAdLoadingError, interstitial: MyTargetInterstitialAd) {
+            override fun onNoAd(error: IAdLoadingError, interstitial: InterstitialAd) {
                 logInfo(TAG, "onNoAd: ${error.code} ${error.message}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
-            override fun onClick(interstitial: MyTargetInterstitialAd) {
+            override fun onClick(interstitial: InterstitialAd) {
                 logInfo(TAG, "onClick: $this")
                 emitEvent(AdEvent.Clicked(getAd() ?: return))
             }
 
-            override fun onDismiss(interstitial: MyTargetInterstitialAd) {
+            override fun onDismiss(interstitial: InterstitialAd) {
                 logInfo(TAG, "onDismiss: $this")
                 emitEvent(AdEvent.Closed(getAd() ?: return))
             }
 
-            override fun onVideoCompleted(interstitial: MyTargetInterstitialAd) {
+            override fun onVideoCompleted(interstitial: InterstitialAd) {
                 logInfo(TAG, "onVideoCompleted: $this")
             }
 
-            override fun onDisplay(interstitial: MyTargetInterstitialAd) {
+            override fun onDisplay(interstitial: InterstitialAd) {
                 logInfo(TAG, "onDisplay: $this")
                 getAd()?.let {
                     emitEvent(AdEvent.Shown(it))
@@ -110,4 +110,4 @@ internal class VkAdsInterstitialImpl :
     }
 }
 
-private const val TAG = "MyTargetInterstitialImpl"
+private const val TAG = "VkAdsInterstitialImpl"
