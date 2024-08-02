@@ -10,9 +10,9 @@ internal class VkAdsFullscreenAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String? = adUnit.extra?.optString("payload")
     val mediation = adUnit.extra?.optString("mediation")
     val slotId: Int? = adUnit.extra?.optInt("slot_id")
+    val bidId: String? = adUnit.extra?.optString("bid_id")
 }
 
 internal class VkAdsViewAuctionParams(
@@ -21,7 +21,7 @@ internal class VkAdsViewAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val payload: String? = adUnit.extra?.optString("payload")
     val mediation = adUnit.extra?.optString("mediation")
     val slotId: Int? = adUnit.extra?.optInt("slot_id")
+    val bidId: String? = adUnit.extra?.optString("bid_id")
 }

@@ -87,9 +87,9 @@ internal class VkAdsInterstitialImpl :
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            val payload = adParams.payload ?:
-                return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
-            interstitialAd.loadFromBid(payload)
+            val bidId = adParams.bidId
+                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "bidId")))
+            interstitialAd.loadFromBid(bidId)
         } else {
             interstitialAd.load()
         }

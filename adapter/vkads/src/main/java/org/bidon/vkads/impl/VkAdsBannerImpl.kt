@@ -82,9 +82,9 @@ internal class VkAdsBannerImpl :
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            val payload = adParams.payload
-                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
-            adView.loadFromBid(payload)
+            val bidId = adParams.bidId
+                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "bidId")))
+            adView.loadFromBid(bidId)
         } else {
             adView.load()
         }

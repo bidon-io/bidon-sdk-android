@@ -22,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.my.target:mytarget-sdk:5.21.0")
+    implementation("com.my.target:mytarget-sdk:5.22.1")
 }

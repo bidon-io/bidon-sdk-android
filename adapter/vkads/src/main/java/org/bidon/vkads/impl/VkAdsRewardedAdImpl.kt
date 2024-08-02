@@ -91,9 +91,9 @@ internal class VkAdsRewardedAdImpl :
             }
         }
         if (adParams.adUnit.bidType == BidType.RTB) {
-            val payload = adParams.payload ?:
-            return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
-            rewardedAd.loadFromBid(payload)
+            val bidId = adParams.bidId
+                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "bidId")))
+            rewardedAd.loadFromBid(bidId)
         } else {
             rewardedAd.load()
         }
