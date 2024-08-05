@@ -3,11 +3,11 @@ package org.bidon.bigoads
 import android.content.Context
 import org.bidon.bigoads.ext.adapterVersion
 import org.bidon.bigoads.ext.sdkVersion
+import org.bidon.bigoads.impl.BigoAdsBannerAuctionParams
 import org.bidon.bigoads.impl.BigoAdsBannerImpl
+import org.bidon.bigoads.impl.BigoAdsFullscreenAuctionParams
 import org.bidon.bigoads.impl.BigoAdsInterstitialImpl
 import org.bidon.bigoads.impl.BigoAdsRewardedAdImpl
-import org.bidon.bigoads.impl.BigoAdsBannerAuctionParams
-import org.bidon.bigoads.impl.BigoAdsFullscreenAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
