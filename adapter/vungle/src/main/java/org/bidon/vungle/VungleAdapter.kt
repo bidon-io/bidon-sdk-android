@@ -20,7 +20,9 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.vungle.ext.adapterVersion
 import org.bidon.vungle.ext.sdkVersion
+import org.bidon.vungle.impl.VungleBannerAuctionParams
 import org.bidon.vungle.impl.VungleBannerImpl
+import org.bidon.vungle.impl.VungleFullscreenAuctionParams
 import org.bidon.vungle.impl.VungleInterstitialImpl
 import org.bidon.vungle.impl.VungleRewardedImpl
 import org.json.JSONObject
@@ -36,7 +38,7 @@ internal val VungleDemandId = DemandId("vungle")
  * [Vungle Documentation](https://support.vungle.com/hc/en-us/articles/360002922871-Integrate-Vungle-SDK-for-Android-or-Amazon)
  */
 @Suppress("unused")
-class VungleAdapter :
+internal class VungleAdapter :
     Adapter.Bidding,
     Adapter.Network,
     Initializable<VungleParameters>,
