@@ -19,7 +19,8 @@ android {
 }
 
 dependencies {
-    compileOnly(project(":bidon"))
+    compileOnly(projects.bidon)
+    testImplementation(projects.bidon)
 
-    implementation("com.vungle:publisher-sdk-android:6.12.1")
+    implementation("com.vungle:vungle-ads:7.4.0")
 }

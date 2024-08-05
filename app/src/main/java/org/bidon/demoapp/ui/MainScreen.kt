@@ -45,13 +45,14 @@ import org.bidon.demoapp.navigation.Screen
 import org.bidon.demoapp.theme.AppColors
 import org.bidon.demoapp.ui.FullscreenModeExt.immersiveSystemUI
 import org.bidon.demoapp.ui.FullscreenModeExt.translucentSystemUI
-import org.bidon.demoapp.ui.settings.AppBaqendBaseUrl
 import org.bidon.demoapp.ui.settings.TestModeInfo
+import org.bidon.demoapp.ui.settings.data.Host
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Gdpr
+import org.bidon.sdk.utils.networking.NetworkSettings
 
 @Composable
 internal fun MainScreen(
@@ -63,7 +64,7 @@ internal fun MainScreen(
     val shared = LocalContext.current.getSharedPreferences("app_test", Context.MODE_PRIVATE)
 
     val adapters = remember {
-        mutableStateOf(DefaultAdapters.values().toList())
+        mutableStateOf(DefaultAdapters.values().sortedBy { it.name })
     }
     val isTestMode = TestModeInfo.isTesMode.collectAsState()
     val fullscreenModeState = remember {
@@ -97,7 +98,7 @@ internal fun MainScreen(
                 if (state == MainScreenState.NotInitialized) {
                     MultiSelector(
                         modifier = Modifier.padding(start = 60.dp, end = 60.dp, top = 16.dp),
-                        items = DefaultAdapters.values().toList(),
+                        items = DefaultAdapters.values().sortedBy { it.name },
                         selectedItems = adapters.value,
                         getItemTitle = {
                             it.name.substringBefore("Adapter")
@@ -137,18 +138,21 @@ internal fun MainScreen(
                         navController.navigate(Screen.ServerSettings.route)
                     }
                     AppButton(text = "Init") {
-                        val baseUrl =
-                            sharedPreferences.getString("host", AppBaqendBaseUrl) ?: AppBaqendBaseUrl
+                        val host = Host.fromString(sharedPreferences.getString("host", null))
+                        if (host is Host.Staging) {
+                            println("Using staging: ${host.baseUrl}")
+                            NetworkSettings.basicAuthHeader = host.getBasicAuth()
+                        }
                         BidonSdk.setTestMode(isTestMode.value)
                         BidonSdk.regulation.gdpr = sharedPreferences.getInt("gdpr", Gdpr.Default.code).let { code ->
-                            Gdpr.values().first { it.code == code }.also { gdpr ->
-                                BidonSdk.regulation.gdprConsentString = "Some Gdpr Consent String".takeIf { gdpr == Gdpr.Given }
+                            Gdpr.values().first { it.code == code }.also {
+                                if (it == Gdpr.DoesNotApply) {
+                                    BidonSdk.regulation.usPrivacyString = "1---"
+                                }
                             }
                         }
                         BidonSdk.regulation.coppa = sharedPreferences.getInt("coppa", Coppa.Default.code).let { code ->
-                            Coppa.values().first { it.code == code }.also { coppa ->
-                                BidonSdk.regulation.usPrivacyString = "Some US Privacy String".takeIf { coppa == Coppa.Yes }
-                            }
+                            Coppa.values().first { it.code == code }
                         }
 
                         initState.value = MainScreenState.Initializing
@@ -162,7 +166,7 @@ internal fun MainScreen(
 //                            .registerDefaultAdapters()
 //                            .registerAdapters(ApplovinAdapter())
 //                            .registerAdapter("org.bidon.admob.AdmobAdapter")
-                            .setBaseUrl(baseUrl)
+                            .setBaseUrl(host.baseUrl)
                             .setInitializationCallback {
                                 initState.value = MainScreenState.Initialized
                             }

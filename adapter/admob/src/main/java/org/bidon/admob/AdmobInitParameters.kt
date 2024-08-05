@@ -1,12 +1,12 @@
 package org.bidon.admob
 
-import android.content.Context
+import android.app.Activity
 import com.google.android.gms.ads.AdSize
 import org.bidon.admob.ext.toAdmobAdSize
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.AdUnit
 
 data class AdmobInitParameters(
     val requestAgent: String?,
@@ -14,66 +14,66 @@ data class AdmobInitParameters(
 ) : AdapterParameters
 
 sealed interface AdmobBannerAuctionParams : AdAuctionParams {
+    val activity: Activity
     val bannerFormat: BannerFormat
-    val context: Context
     val containerWidth: Float
-    val adSize: AdSize get() = bannerFormat.toAdmobAdSize(context, containerWidth)
+    val adSize: AdSize get() = bannerFormat.toAdmobAdSize(activity, containerWidth)
 
     class Network(
-        override val context: Context,
+        override val activity: Activity,
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
-        override val lineItem: LineItem,
+        override val adUnit: AdUnit,
     ) : AdmobBannerAuctionParams {
-        val adUnitId: String = requireNotNull(lineItem.adUnitId)
-        override val price: Double get() = lineItem.pricefloor
+        override val price: Double = adUnit.pricefloor
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
 
         override fun toString(): String {
-            return "AdmobBannerAuctionParams($lineItem)"
+            return "AdmobBannerAuctionParams($adUnit)"
         }
     }
 
     class Bidding(
-        override val context: Context,
+        override val activity: Activity,
         override val bannerFormat: BannerFormat,
         override val containerWidth: Float,
-        override val price: Double,
-        val adUnitId: String,
-        val payload: String,
+        override val adUnit: AdUnit
     ) : AdmobBannerAuctionParams {
-        override val lineItem: LineItem? = null
+        override val price: Double = adUnit.pricefloor
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val payload: String? = adUnit.extra?.getString("payload")
 
         override fun toString(): String {
-            return "AdmobBannerAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
+            return "AdmobBannerAuctionParams($adUnit, bidPrice=$price, payload=${payload?.take(20)})"
         }
     }
 }
 
 sealed interface AdmobFullscreenAdAuctionParams : AdAuctionParams {
-    val context: Context
+    val activity: Activity
 
     class Network(
-        override val context: Context,
-        override val lineItem: LineItem,
+        override val activity: Activity,
+        override val adUnit: AdUnit,
     ) : AdmobFullscreenAdAuctionParams {
-        val adUnitId: String = requireNotNull(lineItem.adUnitId)
-        override val price: Double get() = lineItem.pricefloor
+        override val price: Double = adUnit.pricefloor
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
 
         override fun toString(): String {
-            return "AdmobFullscreenAdAuctionParams($lineItem)"
+            return "AdmobFullscreenAdAuctionParams($adUnit)"
         }
     }
 
     class Bidding(
-        override val context: Context,
-        override val price: Double,
-        val adUnitId: String,
-        val payload: String,
+        override val activity: Activity,
+        override val adUnit: AdUnit
     ) : AdmobFullscreenAdAuctionParams {
-        override val lineItem: LineItem? = null
+        override val price: Double = adUnit.pricefloor
+        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val payload: String? = adUnit.extra?.getString("payload")
 
         override fun toString(): String {
-            return "AdmobFullscreenAdAuctionParams($adUnitId, bidPrice=$price, payload=${payload.take(20)})"
+            return "AdmobFullscreenAdAuctionParams($adUnit, bidPrice=$price, payload=${payload?.take(20)})"
         }
     }
 }

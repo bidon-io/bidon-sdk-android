@@ -1,4 +1,6 @@
 import ext.BIDON_API_KEY
+import ext.STAGING_BASIC_AUTH_PASSWORD
+import ext.STAGING_BASIC_AUTH_USERNAME
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -31,6 +33,8 @@ android {
 
         manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as? String ?: ""
         BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as? String ?: ""
+        STAGING_BASIC_AUTH_USERNAME = keystoreProperties["STAGING_BASIC_AUTH_USERNAME"] as? String ?: "username"
+        STAGING_BASIC_AUTH_PASSWORD = keystoreProperties["STAGING_BASIC_AUTH_PASSWORD"] as? String ?: "password"
     }
     signingConfigs {
         create("myConfig") {
@@ -78,6 +82,9 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = Dependencies.Kotlin.kotlinCompilerExtensionVersion
     }
+    lint {
+        checkReleaseBuilds = false
+    }
 }
 
 dependencies {
@@ -90,22 +97,27 @@ dependencies {
 //    implementation("org.bidon:bigoads-adapter:0.3.1.0")
 //    implementation("org.bidon:mintegral-adapter:0.3.1.0")
 //    implementation("org.bidon:meta-adapter:0.3.1.0")
+//    implementation("org.bidon:vkads-adapter:0.3.1.0")
 //    implementation("org.bidon:vungle-adapter:0.3.1.0")
 
     implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
-    implementation("com.google.android.gms:play-services-ads:22.1.0")
+    implementation("com.google.android.gms:play-services-ads:22.5.0")
 
-    implementation(project(":bidon"))
-    implementation(project(":adapter:bidmachine"))
-    implementation(project(":adapter:admob"))
-    implementation(project(":adapter:applovin"))
-    implementation(project(":adapter:dtexchange"))
-    implementation(project(":adapter:unityads"))
-    implementation(project(":adapter:bigoads"))
-    implementation(project(":adapter:mintegral"))
-    implementation(project(":adapter:meta"))
-    implementation(project(":adapter:vungle"))
-    implementation(project(":adapter:inmobi"))
+    implementation(projects.bidon)
+    implementation(projects.adapter.admob)
+    implementation(projects.adapter.amazon)
+    implementation(projects.adapter.applovin)
+    implementation(projects.adapter.bidmachine)
+    implementation(projects.adapter.bigoads)
+    implementation(projects.adapter.dtexchange)
+    implementation(projects.adapter.inmobi)
+    implementation(projects.adapter.gam)
+    implementation(projects.adapter.meta)
+    implementation(projects.adapter.mintegral)
+    implementation(projects.adapter.mobilefuse)
+    implementation(projects.adapter.unityads)
+    implementation(projects.adapter.vkads)
+    implementation(projects.adapter.vungle)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 
@@ -135,9 +147,9 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha07")
     implementation("androidx.navigation:navigation-compose:2.6.0")
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.33.1-alpha")
     implementation("com.google.accompanist:accompanist-flowlayout:0.23.1")
     // Tests
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

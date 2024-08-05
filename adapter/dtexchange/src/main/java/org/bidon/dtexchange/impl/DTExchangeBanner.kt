@@ -16,14 +16,11 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.impl.pxToDp
+import org.bidon.sdk.auction.ext.height
+import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
@@ -34,40 +31,49 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  */
 internal class DTExchangeBanner :
     AdSource.Banner<DTExchangeBannerAuctionParams>,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var param: DTExchangeBannerAuctionParams? = null
     private var adSpot: InneractiveAdSpot? = null
     private var adViewHolder: AdViewHolder? = null
+    private var demandSource: String? = null
 
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
+            val adUnit = adUnit
             DTExchangeBannerAuctionParams(
-                lineItem = lineItem,
+                adUnit = adUnit,
                 bannerFormat = bannerFormat,
-                context = activity.applicationContext,
+                activity = activity,
             )
         }
     }
 
     override fun load(adParams: DTExchangeBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams")
-        param = adParams
+        val spotId = adParams.spotId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, "spotId")
+                )
+            )
+            return
+        }
         val adSpot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveAdViewUnitController()
         adSpot.addUnitController(controller)
-        val adRequest = InneractiveAdRequest(adParams.spotId)
+        val adRequest = InneractiveAdRequest(spotId)
         adSpot.setRequestListener(object : InneractiveAdSpot.RequestListener {
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
                 logInfo(TAG, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                 this@DTExchangeBanner.adSpot = inneractiveAdSpot
-                inneractiveAdSpot?.let {
-                    emitEvent(AdEvent.Fill(it.asAd()))
+                adParams.activity.runOnUiThread {
+                    createViewHolder(inneractiveAdSpot, adParams)
+                    getAd()?.let {
+                        emitEvent(AdEvent.Fill(it))
+                    }
                 }
             }
 
@@ -76,16 +82,14 @@ internal class DTExchangeBanner :
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
                 logInfo(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
             }
         })
         adSpot.requestAd(adRequest)
     }
 
     override fun getAdView(): AdViewHolder? {
-        return adViewHolder ?: synchronized(this) {
-            adViewHolder ?: createViewHolder(adSpot)
-        }
+        return adViewHolder
     }
 
     override fun destroy() {
@@ -95,9 +99,9 @@ internal class DTExchangeBanner :
         adViewHolder = null
     }
 
-    private fun createViewHolder(adSpot: InneractiveAdSpot?): AdViewHolder? {
+    private fun createViewHolder(adSpot: InneractiveAdSpot?, adParams: DTExchangeBannerAuctionParams): AdViewHolder? {
         val controller = adSpot?.selectedUnitController as? InneractiveAdViewUnitController ?: return null
-        val context = param?.context ?: return null
+        val context = adParams.activity.applicationContext ?: return null
         val container = FrameLayout(context)
         controller.eventsListener = object : InneractiveAdViewEventsListenerWithImpressionData {
             override fun onAdImpression(
@@ -106,7 +110,9 @@ internal class DTExchangeBanner :
             ) {
                 logInfo(TAG, "onAdImpression: $adSpot, $impressionData")
                 val adValue = impressionData?.asAdValue() ?: return
-                val ad = adSpot?.asAd() ?: return
+                demandSource = impressionData.demandSource
+                setDsp(demandSource)
+                val ad = getAd() ?: return
                 emitEvent(AdEvent.PaidRevenue(ad, adValue))
                 // tracked impression/shown by [BannerView]
             }
@@ -116,7 +122,7 @@ internal class DTExchangeBanner :
 
             override fun onAdClicked(adSpot: InneractiveAdSpot?) {
                 logInfo(TAG, "onAdClicked: $adSpot")
-                adSpot?.asAd()?.let {
+                getAd()?.let {
                     emitEvent(AdEvent.Clicked(ad = it))
                 }
             }
@@ -139,36 +145,12 @@ internal class DTExchangeBanner :
         controller.bindView(container)
         return AdViewHolder(
             networkAdview = container,
-            widthDp = when (param?.bannerFormat) {
-                BannerFormat.Banner -> 320
-                BannerFormat.LeaderBoard -> 728
-                BannerFormat.MRec -> 300
-                BannerFormat.Adaptive,
-                null -> controller.adContentWidth.pxToDp
-            },
-            heightDp = when (param?.bannerFormat) {
-                BannerFormat.Banner -> 50
-                BannerFormat.LeaderBoard -> 90
-                BannerFormat.MRec -> 250
-                BannerFormat.Adaptive,
-                null -> controller.adContentHeight.pxToDp
-            }
+            widthDp = adParams.bannerFormat.width,
+            heightDp = adParams.bannerFormat.height
         ).also {
             this.adViewHolder = it
         }
     }
-
-    private fun InneractiveAdSpot.asAd() = Ad(
-        ecpm = param?.lineItem?.pricefloor ?: 0.0,
-        auctionId = auctionId,
-        adUnitId = param?.spotId,
-        networkName = demandId.demandId,
-        currencyCode = AdValue.USD,
-        demandAd = demandAd,
-        dsp = this.mediationNameString,
-        roundId = roundId,
-        demandAdObject = this
-    )
 }
 
 private const val TAG = "DTExchangeBanner"

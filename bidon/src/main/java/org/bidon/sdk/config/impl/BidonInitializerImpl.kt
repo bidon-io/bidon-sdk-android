@@ -27,7 +27,15 @@ import org.bidon.sdk.utils.networking.BidonEndpoints
  * Created by Aleksei Cherniaev on 06/02/2023.
  */
 internal class BidonInitializerImpl : BidonInitializer {
-    private val dispatcher by lazy { SdkDispatchers.Single }
+
+    init {
+        /**
+         * Should be invoked before using all.
+         */
+        DI.setFactories()
+    }
+
+    private val dispatcher by lazy { SdkDispatchers.Bidon }
     private val scope get() = CoroutineScope(dispatcher)
 
     private var useDefaultAdapters = false
@@ -43,13 +51,11 @@ internal class BidonInitializerImpl : BidonInitializer {
     private val bidOnEndpoints: BidonEndpoints get() = get()
     private val segmentSynchronizer: SegmentSynchronizer get() = get()
 
-    init {
-        DI.setFactories()
-    }
-
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
     override var isTestMode: Boolean = false
+    override val baseUrl: String
+        get() = bidOnEndpoints.activeEndpoint
 
     override fun registerDefaultAdapters() {
         useDefaultAdapters = true
@@ -90,7 +96,7 @@ internal class BidonInitializerImpl : BidonInitializer {
              */
             DI.init(context)
             scope.launch {
-                obtainSegmentId()
+                obtainSegmentUid()
                 runCatching {
                     init(context, appKey, timeStart)
                 }.onFailure {
@@ -105,10 +111,10 @@ internal class BidonInitializerImpl : BidonInitializer {
         }
     }
 
-    private suspend fun obtainSegmentId() {
+    private suspend fun obtainSegmentUid() {
         withContext(SdkDispatchers.IO) {
-            keyValueStorage.segmentId?.let {
-                segmentSynchronizer.setSegmentId(segmentId = it)
+            keyValueStorage.segmentUid?.let {
+                segmentSynchronizer.setSegmentUid(segmentUid = it)
             }
         }
     }

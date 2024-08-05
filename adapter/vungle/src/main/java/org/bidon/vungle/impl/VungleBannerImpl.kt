@@ -1,18 +1,14 @@
 package org.bidon.vungle.impl
 
-import android.content.Context
-import com.vungle.warren.Banners
-import com.vungle.warren.LoadAdCallback
-import com.vungle.warren.PlayAdCallback
-import com.vungle.warren.Vungle
-import com.vungle.warren.VungleBanner
-import com.vungle.warren.error.VungleException
+import com.vungle.ads.BannerAd
+import com.vungle.ads.BaseAd
+import com.vungle.ads.BaseAdListener
+import com.vungle.ads.VungleError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
@@ -22,7 +18,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
-import org.bidon.vungle.VungleBannerAuctionParams
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.vungle.ext.asBidonError
 
 /**
@@ -30,142 +26,113 @@ import org.bidon.vungle.ext.asBidonError
  */
 internal class VungleBannerImpl :
     AdSource.Banner<VungleBannerAuctionParams>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var adParams: VungleBannerAuctionParams? = null
-    private var banner: VungleBanner? = null
-
-    override suspend fun getToken(context: Context): String? = Vungle.getAvailableBidTokens(context)
+    private var banner: BannerAd? = null
 
     override val isAdReadyToShow: Boolean
-        get() = adParams?.let {
-            Banners.canPlayAd(
-                it.bannerId,
-                it.payload,
-                it.bannerSize
-            )
-        } ?: false
+        get() = banner?.getBannerView() != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             VungleBannerAuctionParams(
+                activity = activity,
                 bannerFormat = bannerFormat,
-                containerWidth = containerWidth,
-                bannerId = requireNotNull(json?.getString("placement_id")) {
-                    "Banner id is required"
-                },
-                price = pricefloor,
-                payload = requireNotNull(json?.getString("payload")) {
-                    "Payload is required"
-                }
+                adUnit = adUnit,
             )
         }
     }
 
     override fun load(adParams: VungleBannerAuctionParams) {
-        this.adParams = adParams
-        Banners.loadBanner(
-            adParams.bannerId, adParams.payload, adParams.config,
-            object : LoadAdCallback {
-                override fun onAdLoad(placementId: String?) {
-                    logInfo(TAG, "onAdLoad =$placementId. $this")
-                    fillAd(adParams)
+        logInfo(TAG, "Starting with $adParams: $this")
+        val placementId = adParams.placementId
+            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+
+        adParams.activity.runOnUiThread {
+            val banner = BannerAd(adParams.activity, placementId, adParams.bannerSize)
+                .also { banner = it }
+            banner.adListener = object : BaseAdListener {
+                override fun onAdLoaded(baseAd: BaseAd) {
+                    val ad = getAd()
+                    if (ad != null) {
+                        emitEvent(AdEvent.Fill(ad))
+                        logInfo(TAG, "onAdLoad =${baseAd.placementId}. $this")
+                    } else {
+                        emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+                    }
                 }
 
-                override fun onError(placementId: String?, exception: VungleException?) {
-                    logError(TAG, "onError placementId=$placementId. $this", exception)
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
+                    logError(TAG, "onError placementId=${baseAd.placementId}. $this", null)
+                    emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
                 }
-            }
-        )
-    }
 
-    private fun fillAd(adParam: VungleBannerAuctionParams) {
-        val bidonAd = getAd(this)
-        if (bidonAd != null) {
-            this.banner = Banners.getBanner(
-                /* placementId = */ adParam.bannerId,
-                /* markup = */ adParam.payload,
-                /* bannerAdConfig = */ adParam.config,
-                /* playAdCallback = */ object : PlayAdCallback {
-
-                    override fun onAdRewarded(placementId: String?) {}
-                    override fun onAdLeftApplication(placementId: String?) {}
-                    override fun creativeId(creativeId: String?) {}
-                    override fun onAdStart(placementId: String?) {}
-
-                    @Deprecated("Deprecated in Java")
-                    override fun onAdEnd(placementId: String?, completed: Boolean, isCTAClicked: Boolean) {
-                    }
-
-                    override fun onAdEnd(placementId: String?) {
-                        logInfo(TAG, "onAdEnd: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
-                        emitEvent(AdEvent.Closed(ad))
-                    }
-
-                    override fun onAdClick(placementId: String?) {
-                        logInfo(TAG, "onAdClick: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
-                        emitEvent(AdEvent.Clicked(ad))
-                    }
-
-                    override fun onError(placementId: String?, exception: VungleException?) {
-                        logError(TAG, "onAdError: $this", exception)
-                        emitEvent(AdEvent.ShowFailed(exception.asBidonError()))
-                    }
-
-                    override fun onAdViewed(placementId: String?) {
-                        logInfo(TAG, "onAdViewed: $this")
-                        val ad = getAd(this@VungleBannerImpl) ?: return
-                        emitEvent(
-                            AdEvent.PaidRevenue(
-                                ad = ad,
-                                adValue = AdValue(
-                                    adRevenue = adParam.price,
-                                    precision = Precision.Precise,
-                                    currency = AdValue.USD,
-                                )
+                override fun onAdImpression(baseAd: BaseAd) {
+                    logInfo(TAG, "onAdViewed: $this")
+                    val ad = getAd() ?: return
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = ad,
+                            adValue = AdValue(
+                                adRevenue = adParams.price / 1000.0,
+                                precision = Precision.Precise,
+                                currency = AdValue.USD,
                             )
                         )
-                    }
+                    )
                 }
-            ).also {
-                it?.disableLifeCycleManagement(true)
+
+                override fun onAdFailedToPlay(baseAd: BaseAd, adError: VungleError) {
+                    logError(TAG, "onAdError: $this", adError)
+                    emitEvent(AdEvent.ShowFailed(adError.asBidonError()))
+                }
+
+                override fun onAdClicked(baseAd: BaseAd) {
+                    logInfo(TAG, "onAdClick: $this")
+                    val ad = getAd() ?: return
+                    emitEvent(AdEvent.Clicked(ad))
+                }
+
+                override fun onAdEnd(baseAd: BaseAd) {
+                    logInfo(TAG, "onAdEnd: $this")
+                    val ad = getAd() ?: return
+                    emitEvent(AdEvent.Closed(ad))
+                }
+
+                override fun onAdLeftApplication(baseAd: BaseAd) {}
+
+                override fun onAdStart(baseAd: BaseAd) {}
             }
-            emitEvent(AdEvent.Fill(bidonAd))
-        } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.BannerAdNotReady))
+            if (adParams.adUnit.bidType == BidType.RTB) {
+                val payload = adParams.payload
+                    ?: return@runOnUiThread emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+                banner.load(payload)
+            } else {
+                banner.load()
+            }
         }
     }
 
     override fun getAdView(): AdViewHolder? {
-        val adParam = adParams ?: run {
-            AdEvent.ShowFailed(BidonError.BannerAdNotReady)
-            return null
-        }
         val banner = banner
-        if (!isAdReadyToShow || banner == null) {
-            AdEvent.ShowFailed(BidonError.BannerAdNotReady)
+        if (!isAdReadyToShow || banner == null || banner.getBannerView() == null) {
             return null
         }
-        return AdViewHolder(
-            networkAdview = banner.also {
-                it.renderAd()
-                it.setAdVisibility(true)
-            },
-            widthDp = adParam.bannerSize.width,
-            heightDp = adParam.bannerSize.height
-        )
+        return banner.getBannerView()?.let { bannerView ->
+            val bannerSize = banner.getAdViewSize()
+            AdViewHolder(
+                networkAdview = bannerView,
+                widthDp = bannerSize.width,
+                heightDp = bannerSize.height
+            )
+        }
     }
 
     override fun destroy() {
-        banner?.destroyAd()
-        banner?.setAdVisibility(false)
+        banner?.finishAd()
+        banner?.adListener = null
         banner = null
-        adParams = null
     }
 }
 

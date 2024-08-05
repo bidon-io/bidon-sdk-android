@@ -4,7 +4,6 @@ import android.content.Context
 import com.unity3d.ads.IUnityAdsInitializationListener
 import com.unity3d.ads.UnityAds
 import com.unity3d.ads.metadata.MetaData
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -27,6 +26,7 @@ import org.bidon.unityads.impl.UnityAdsRewarded
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Created by Aleksei Cherniaev on 01/03/2023.
@@ -38,7 +38,7 @@ internal val UnityAdsDemandId = DemandId("unityads")
  * [Documentation](https://docs.unity.com/ads/en/manual/InitializingTheAndroidSDK)
  */
 class UnityAdsAdapter :
-    Adapter,
+    Adapter.Network,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     Initializable<UnityAdsParameters>,
@@ -54,7 +54,7 @@ class UnityAdsAdapter :
     )
 
     override suspend fun init(context: Context, configParams: UnityAdsParameters) =
-        suspendCancellableCoroutine { continuation ->
+        suspendCoroutine { continuation ->
             this.context = context
             UnityAds.initialize(
                 context,
@@ -81,8 +81,15 @@ class UnityAdsAdapter :
 
     override fun updateRegulation(regulation: Regulation) {
         MetaData(context).also { data ->
-            data.set("gdpr.consent", regulation.gdprConsent)
-            data.set("user.nonbehavioral", regulation.coppaApplies)
+            if (regulation.gdprApplies) {
+                data.set("gdpr.consent", regulation.hasGdprConsent)
+            }
+            if (!regulation.ccpaApplies) {
+                data.set("privacy.consent", regulation.hasCcpaConsent)
+            }
+            if (regulation.coppaApplies) {
+                data.set("privacy.useroveragelimit", true)
+            }
         }.commit()
     }
 

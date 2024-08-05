@@ -1,12 +1,11 @@
 package org.bidon.admob.impl
 
 import org.bidon.admob.AdmobBannerAuctionParams
-import org.bidon.admob.AdmobDemandId
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.stats.models.BidType
 
 /**
  * Created by Aleksei Cherniaev on 18/08/2023.
@@ -14,44 +13,40 @@ import org.bidon.sdk.config.BidonError
 internal class GetAdAuctionParamsUseCase {
     operator fun invoke(
         auctionParamsScope: AdAuctionParamSource,
-        adType: AdType,
-        isBiddingMode: Boolean
+        adType: AdType
     ): Result<AdAuctionParams> {
         return auctionParamsScope {
+            val bidType = adUnit.bidType
             when (adType) {
                 AdType.Banner -> {
-                    if (isBiddingMode) {
+                    if (bidType == BidType.RTB) {
                         AdmobBannerAuctionParams.Bidding(
-                            context = activity.applicationContext,
+                            activity = activity,
                             bannerFormat = bannerFormat,
                             containerWidth = containerWidth,
-                            price = pricefloor,
-                            adUnitId = requireNotNull(json?.getString("ad_unit_id")),
-                            payload = requireNotNull(json?.getString("payload"))
+                            adUnit = adUnit,
                         )
                     } else {
                         AdmobBannerAuctionParams.Network(
-                            lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId),
+                            activity = activity,
                             bannerFormat = bannerFormat,
-                            context = activity.applicationContext,
                             containerWidth = containerWidth,
+                            adUnit = adUnit,
                         )
                     }
                 }
 
                 AdType.Interstitial,
                 AdType.Rewarded -> {
-                    if (isBiddingMode) {
+                    if (bidType == BidType.RTB) {
                         AdmobFullscreenAdAuctionParams.Bidding(
-                            context = activity.applicationContext,
-                            price = pricefloor,
-                            adUnitId = requireNotNull(json?.getString("ad_unit_id")),
-                            payload = requireNotNull(json?.getString("payload"))
+                            activity = activity,
+                            adUnit = adUnit,
                         )
                     } else {
                         AdmobFullscreenAdAuctionParams.Network(
-                            lineItem = popLineItem(AdmobDemandId) ?: error(BidonError.NoAppropriateAdUnitId),
-                            context = activity.applicationContext,
+                            activity = activity,
+                            adUnit = adUnit,
                         )
                     }
                 }

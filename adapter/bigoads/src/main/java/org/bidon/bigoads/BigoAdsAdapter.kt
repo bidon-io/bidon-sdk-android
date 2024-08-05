@@ -1,14 +1,13 @@
 package org.bidon.bigoads
 
 import android.content.Context
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.bigoads.ext.adapterVersion
 import org.bidon.bigoads.ext.sdkVersion
+import org.bidon.bigoads.impl.BigoAdsBannerAuctionParams
 import org.bidon.bigoads.impl.BigoAdsBannerImpl
+import org.bidon.bigoads.impl.BigoAdsFullscreenAuctionParams
 import org.bidon.bigoads.impl.BigoAdsInterstitialImpl
 import org.bidon.bigoads.impl.BigoAdsRewardedAdImpl
-import org.bidon.bigoads.impl.BigoBannerAuctionParams
-import org.bidon.bigoads.impl.BigoFullscreenAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -18,27 +17,33 @@ import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
-import org.bidon.sdk.regulation.Gdpr
+import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import sg.bigo.ads.BigoAdSdk
 import sg.bigo.ads.ConsentOptions
 import sg.bigo.ads.api.AdConfig
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Created by Aleksei Cherniaev on 25/07/2023.
  */
 internal val BigoAdsDemandId = DemandId("bigoads")
 
-class BigoAdsAdapter :
-    Adapter,
-    Initializable<BigoParameters>,
+/**
+ * [BigoAds](https://www.bigossp.com/guide/sdk/android/document)
+ */
+@Suppress("unused")
+internal class BigoAdsAdapter :
+    Adapter.Bidding,
+    Adapter.Network,
+    Initializable<BigoAdsParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
-    AdProvider.Banner<BigoBannerAuctionParams>,
+    AdProvider.Banner<BigoAdsBannerAuctionParams>,
     SupportsRegulation,
-    AdProvider.Interstitial<BigoFullscreenAuctionParams>,
-    AdProvider.Rewarded<BigoFullscreenAuctionParams> {
+    AdProvider.Interstitial<BigoAdsFullscreenAuctionParams>,
+    AdProvider.Rewarded<BigoAdsFullscreenAuctionParams> {
 
     private var context: Context? = null
 
@@ -48,7 +53,10 @@ class BigoAdsAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun init(context: Context, configParams: BigoParameters) = suspendCancellableCoroutine { continuation ->
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+        BigoAdSdk.getBidderToken()
+
+    override suspend fun init(context: Context, configParams: BigoAdsParameters) = suspendCoroutine { continuation ->
         this.context = context
         val config = AdConfig.Builder()
             .setAppId(configParams.appId)
@@ -62,37 +70,33 @@ class BigoAdsAdapter :
         }
     }
 
-    override fun parseConfigParam(json: String): BigoParameters {
-        return BigoParameters(
+    override fun parseConfigParam(json: String): BigoAdsParameters {
+        return BigoAdsParameters(
             appId = JSONObject(json).getString("app_id"),
             channel = JSONObject(json).optString("channel"),
         )
     }
 
-    override fun banner(): AdSource.Banner<BigoBannerAuctionParams> {
+    override fun banner(): AdSource.Banner<BigoAdsBannerAuctionParams> {
         return BigoAdsBannerImpl()
     }
 
-    override fun interstitial(): AdSource.Interstitial<BigoFullscreenAuctionParams> {
+    override fun interstitial(): AdSource.Interstitial<BigoAdsFullscreenAuctionParams> {
         return BigoAdsInterstitialImpl()
     }
 
-    override fun rewarded(): AdSource.Rewarded<BigoFullscreenAuctionParams> {
+    override fun rewarded(): AdSource.Rewarded<BigoAdsFullscreenAuctionParams> {
         return BigoAdsRewardedAdImpl()
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        val (consentOptions, given) = if (regulation.gdpr in arrayOf(Gdpr.Given, Gdpr.Denied)) {
-            ConsentOptions.GDPR to regulation.gdprConsent
-        } else {
-            return
-        }
         context?.let { context ->
-            BigoAdSdk.setUserConsent(
-                context,
-                consentOptions,
-                given
-            )
+            if (regulation.gdprApplies) {
+                BigoAdSdk.setUserConsent(context, ConsentOptions.GDPR, regulation.hasGdprConsent)
+            }
+            if (regulation.ccpaApplies) {
+                BigoAdSdk.setUserConsent(context, ConsentOptions.CCPA, regulation.hasCcpaConsent)
+            }
         }
     }
 }

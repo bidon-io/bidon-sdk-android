@@ -9,10 +9,9 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -27,44 +26,48 @@ import org.bidon.unityads.ext.asBidonError
  */
 internal class UnityAdsRewarded :
     AdSource.Rewarded<UnityAdsFullscreenAuctionParams>,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var lineItem: LineItem? = null
+    private var adUnit: AdUnit? = null
+    private var placementId: String? = null
 
     override var isAdReadyToShow: Boolean = false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
             UnityAdsFullscreenAuctionParams(
-                lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
+                adUnit = adUnit
             )
         }
     }
 
     override fun load(adParams: UnityAdsFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        lineItem = adParams.lineItem
+        placementId = adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
+        adUnit = adParams.adUnit
         val loadListener = object : IUnityAdsLoadListener {
             override fun onUnityAdsAdLoaded(placementId: String?) {
                 logInfo(TAG, "onUnityAdsAdLoaded: $this")
                 isAdReadyToShow = true
-                getAd(this@UnityAdsRewarded)?.let {
+                getAd()?.let {
                     emitEvent(AdEvent.Fill(it))
                 }
             }
 
             override fun onUnityAdsFailedToLoad(placementId: String?, error: UnityAds.UnityAdsLoadError?, message: String?) {
-                logError(
-                    tag = TAG,
-                    message = "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message",
-                    error = error?.asBidonError()
-                )
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                logInfo(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
+                emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
-        UnityAds.load(adParams.lineItem.adUnitId, loadListener)
+        UnityAds.load(adParams.placementId, loadListener)
     }
 
     override fun show(activity: Activity) {
@@ -80,13 +83,13 @@ internal class UnityAdsRewarded :
 
             override fun onUnityAdsShowStart(placementId: String?) {
                 logInfo(TAG, "onUnityAdsShowStart: placementId=$placementId")
-                getAd(this@UnityAdsRewarded)?.let {
+                getAd()?.let {
                     emitEvent(AdEvent.Shown(it))
                     emitEvent(
                         AdEvent.PaidRevenue(
                             ad = it,
                             adValue = AdValue(
-                                adRevenue = (lineItem?.pricefloor ?: 0.0) / 1000.0,
+                                adRevenue = (adUnit?.pricefloor ?: 0.0) / 1000.0,
                                 currency = AdValue.USD,
                                 precision = Precision.Estimated
                             )
@@ -97,12 +100,12 @@ internal class UnityAdsRewarded :
 
             override fun onUnityAdsShowClick(placementId: String?) {
                 logInfo(TAG, "onUnityAdsShowClick. placementId: $placementId")
-                getAd(this@UnityAdsRewarded)?.let { emitEvent(AdEvent.Clicked(it)) }
+                getAd()?.let { emitEvent(AdEvent.Clicked(it)) }
             }
 
             override fun onUnityAdsShowComplete(placementId: String?, state: UnityAds.UnityAdsShowCompletionState?) {
                 logInfo(TAG, "onUnityAdsShowComplete: placementId=$placementId, state=$state")
-                getAd(this@UnityAdsRewarded)?.let {
+                getAd()?.let {
                     when (state) {
                         UnityAds.UnityAdsShowCompletionState.COMPLETED -> {
                             emitEvent(AdEvent.OnReward(ad = it, reward = null))
@@ -117,7 +120,7 @@ internal class UnityAdsRewarded :
                 }
             }
         }
-        UnityAds.show(activity, lineItem?.adUnitId, UnityAdsShowOptions(), showListener)
+        UnityAds.show(activity, placementId, UnityAdsShowOptions(), showListener)
         isAdReadyToShow = false
     }
 

@@ -1,15 +1,15 @@
 package org.bidon.inmobi.impl
 
-import android.app.Activity
+import android.content.Context
 import org.bidon.sdk.adapter.AdAuctionParams
-import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.AdUnit
 
 class InmobiFullscreenAuctionParams(
-    val activity: Activity,
-    override val price: Double,
-    override val lineItem: LineItem
+    val context: Context,
+    override val adUnit: AdUnit
 ) : AdAuctionParams {
-    val placementId: Long = requireNotNull(lineItem.adUnitId).toLong()
+    override val price: Double = adUnit.pricefloor
+    val placementId: Long? = adUnit.extra?.optLong("placement_id")
 
     override fun toString(): String {
         return "InmobiFullscreenAuctionParams(placementId=$placementId, price=$price)"

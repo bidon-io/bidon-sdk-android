@@ -12,17 +12,15 @@ import com.applovin.sdk.AppLovinAdVideoPlaybackListener
 import com.applovin.sdk.AppLovinSdk
 import org.bidon.applovin.ApplovinFullscreenAdAuctionParams
 import org.bidon.applovin.ext.asBidonAdValue
+import org.bidon.applovin.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -30,12 +28,11 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 internal class ApplovinInterstitialImpl(
     private val applovinSdk: AppLovinSdk,
 ) : AdSource.Interstitial<ApplovinFullscreenAdAuctionParams>,
-    Mode.Network,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var applovinAd: AppLovinAd? = null
-    private var lineItem: LineItem? = null
+    private var adUnit: AdUnit? = null
 
     private val listener by lazy {
         object :
@@ -47,23 +44,25 @@ internal class ApplovinInterstitialImpl(
 
             override fun adDisplayed(ad: AppLovinAd) {
                 logInfo(TAG, "adDisplayed: $this")
-                emitEvent(AdEvent.Shown(ad.asAd()))
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = ad.asAd(),
-                        adValue = lineItem?.pricefloor.asBidonAdValue()
-                    )
-                )
+                getAd()?.let {
+                    emitEvent(AdEvent.Shown(it))
+                    emitEvent(AdEvent.PaidRevenue(it, adUnit?.pricefloor.asBidonAdValue()))
+                }
             }
 
             override fun adHidden(ad: AppLovinAd) {
                 logInfo(TAG, "adHidden: $this")
-                emitEvent(AdEvent.Closed(ad.asAd()))
+                getAd()?.let {
+                    emitEvent(AdEvent.Closed(it))
+                }
+                destroy()
             }
 
             override fun adClicked(ad: AppLovinAd) {
                 logInfo(TAG, "adClicked: $this")
-                emitEvent(AdEvent.Clicked(ad.asAd()))
+                getAd()?.let {
+                    emitEvent(AdEvent.Clicked(it))
+                }
             }
         }
     }
@@ -78,32 +77,31 @@ internal class ApplovinInterstitialImpl(
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            ApplovinFullscreenAdAuctionParams(
-                lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId),
-                timeoutMs = timeout,
-            )
+            ApplovinFullscreenAdAuctionParams(adUnit = adUnit)
         }
     }
 
     override fun load(adParams: ApplovinFullscreenAdAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        lineItem = adParams.lineItem
+        adUnit = adParams.adUnit
         val adService: AppLovinAdService = applovinSdk.adService
-        val zoneId = adParams.lineItem.adUnitId
+        val zoneId = adParams.zoneId
         val requestListener = object : AppLovinAdLoadListener {
             override fun adReceived(ad: AppLovinAd) {
                 logInfo(TAG, "adReceived: $this")
                 applovinAd = ad
-                emitEvent(AdEvent.Fill(ad.asAd()))
+                getAd()?.let {
+                    emitEvent(AdEvent.Fill(it))
+                }
             }
 
             override fun failedToReceiveAd(errorCode: Int) {
                 logInfo(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
-                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                emitEvent(AdEvent.LoadFailed(errorCode.asBidonError()))
             }
         }
         logInfo(TAG, "Starting fill: $this")
-        if (zoneId.isNullOrEmpty()) {
+        if (zoneId.isNullOrBlank()) {
             adService.loadNextAd(AppLovinAdSize.INTERSTITIAL, requestListener)
         } else {
             adService.loadNextAdForZoneId(zoneId, requestListener)
@@ -114,28 +112,15 @@ internal class ApplovinInterstitialImpl(
         logInfo(TAG, "Starting show: $this")
         val applovinAd = applovinAd
         if (applovinAd != null) {
-            val adDialog = AppLovinInterstitialAd.create(applovinSdk, activity).apply {
+            val adDialog = AppLovinInterstitialAd.create(applovinSdk, activity.applicationContext).apply {
                 setAdDisplayListener(listener)
                 setAdClickListener(listener)
             }
             adDialog.showAndRender(applovinAd)
+            this.applovinAd = null
         } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
-    }
-
-    private fun AppLovinAd?.asAd(): Ad {
-        return Ad(
-            demandAd = demandAd,
-            ecpm = lineItem?.pricefloor ?: 0.0,
-            demandAdObject = this ?: demandAd,
-            networkName = demandId.demandId,
-            dsp = null,
-            roundId = roundId,
-            currencyCode = AdValue.USD,
-            auctionId = auctionId,
-            adUnitId = lineItem?.adUnitId
-        )
     }
 }
 

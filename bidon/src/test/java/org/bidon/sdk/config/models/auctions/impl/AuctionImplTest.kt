@@ -14,18 +14,19 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.banner.helper.DeviceType
+import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
-import org.bidon.sdk.auction.models.LineItem
-import org.bidon.sdk.auction.models.RoundRequest
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
+import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.models.adapters.Process
 import org.bidon.sdk.config.models.adapters.TestAdapter
@@ -33,8 +34,8 @@ import org.bidon.sdk.config.models.adapters.TestAdapterParameters
 import org.bidon.sdk.config.models.adapters.TestBiddingAdapter
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
-import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
@@ -56,7 +57,9 @@ internal class AuctionImplTest : ConcurrentTest() {
     private val getAuctionRequestUseCase: GetAuctionRequestUseCase = mockk()
 
     private val adaptersSource: AdaptersSource by lazy { mockk(relaxed = true) }
-    private val executeRoundUseCase: ExecuteRoundUseCase by lazy { mockk(relaxed = true) }
+    private val executeAuctionUseCase: ExecuteAuctionUseCase by lazy { mockk(relaxed = true) }
+    private val tokenGetter: GetTokensUseCase by lazy { mockk(relaxed = true) }
+    private val biddingConfig: BiddingConfig by lazy { mockk(relaxed = true) }
     private val statRequestUseCase: StatsRequestUseCase by lazy { mockk(relaxed = true) }
 
     private val auctionStat: AuctionStat by lazy {
@@ -71,14 +74,16 @@ internal class AuctionImplTest : ConcurrentTest() {
             adaptersSource = adaptersSource,
             getAuctionRequest = getAuctionRequestUseCase,
             auctionStat = auctionStat,
-            executeRound = executeRoundUseCase
+            auctionExecutable = executeAuctionUseCase,
+            tokenGetter = tokenGetter,
+            biddingConfig = biddingConfig,
         )
     }
 
     @Before
     fun before() {
-        mockkObject(DeviceType)
-        every { DeviceType.init(any()) } returns Unit
+        mockkObject(DeviceInfo)
+        every { DeviceInfo.init(any()) } returns Unit
         DI.init(activity)
         mockkLog()
     }
@@ -116,70 +121,80 @@ internal class AuctionImplTest : ConcurrentTest() {
             ),
         )
         val auctionConfig = AuctionResponse(
-            rounds = listOf(
-                RoundRequest(
-                    id = "round_1",
-                    timeoutMs = 15,
-                    demandIds = listOf(Applovin, Admob),
-                    biddingIds = listOf(),
-                ),
-                RoundRequest(
-                    id = "ROUND_2",
-                    timeoutMs = 25,
-                    demandIds = listOf(Admob),
-                    biddingIds = listOf(),
-                ),
-            ),
-            auctionConfigurationId = 10,
-            auctionId = "auctionId_123",
-            lineItems = listOf(
-                LineItem(
-                    demandId = Applovin,
-                    pricefloor = 0.25,
-                    adUnitId = "AAAA2",
+            adUnits = listOf(
+                AdUnit(
+                    label = "admob2",
+                    pricefloor = 3.2235,
+                    ext = null,
+                    demandId = "admob",
+                    bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
-                LineItem(
-                    demandId = Admob,
+                AdUnit(
+                    label = "admob1",
                     pricefloor = 1.2235,
-                    adUnitId = "admob1",
+                    ext = null,
+                    demandId = "admob",
+                    bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
-                LineItem(
-                    demandId = Admob,
-                    pricefloor = 2.2235,
-                    adUnitId = "admob2",
+                AdUnit(
+                    label = "AAAA2",
+                    pricefloor = 2.25,
+                    ext = null,
+                    demandId = "applovin",
+                    bidType = BidType.CPM,
+                    timeout = 5000,
                     uid = "1",
                 ),
             ),
             pricefloor = 0.01,
-            token = null,
-            externalWinNotificationsEnabled = true,
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
             auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = true,
+            auctionTimeout = 10000L,
+            noBids = listOf(
+                AdUnit(
+                    bidType = BidType.RTB,
+                    demandId = "dem7",
+                    label = "dem7_label",
+                    pricefloor = 0.021,
+                    uid = "123567",
+                    timeout = 5000L,
+                    ext = ""
+                )
+            )
         )
         coEvery {
             getAuctionRequestUseCase.request(
-                additionalData = any(),
+                adTypeParam = any(),
                 auctionId = any(),
                 adapters = any(),
-                demandAd = any()
+                demandAd = any(),
+                tokens = any()
             )
         } returns auctionConfig.asSuccess()
 
         // WHEN 2 rounds are completed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
-            onSuccess = { auctionResults ->
+            adTypeParam = AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = 1.0,
+                auctionKey = null
+            ),
+            onSuccess = { auctionResults, auctionInfo ->
 
                 // THEN it should detect winner in round_2
                 assertThat(auctionResults).hasSize(3)
                 val winner = auctionResults.first()
                 val winnerAd = winner.adSource.ad
                 requireNotNull(winnerAd)
-                assertThat(winnerAd.adUnitId).isEqualTo("admob2")
+                assertThat(winnerAd.adUnit.label).isEqualTo("admob2")
                 assertThat(winnerAd.ecpm).isEqualTo(2.2235)
-                assertThat(winnerAd.roundId).isEqualTo("ROUND_2")
                 assertThat(winner.adSource.getStats().ecpm).isEqualTo(2.2235)
                 val roundStat = slot<List<RoundStat>>()
                 val demandAd = slot<DemandAd>()
@@ -188,27 +203,22 @@ internal class AuctionImplTest : ConcurrentTest() {
                 val actualRoundStat = roundStat.captured
                 // LOSERS
                 assertThat(actualRoundStat[0].auctionId).isEqualTo("auctionId_123")
-                assertThat(actualRoundStat[0].roundId).isEqualTo("round_1")
                 assertThat(actualRoundStat[0].demands).hasSize(2)
-                assertThat(actualRoundStat[0].demands[0].roundStatusCode).isEqualTo(RoundStatus.Lose.code)
-                assertThat(actualRoundStat[0].demands[0].ecpm).isEqualTo(1.2235)
-                assertThat(actualRoundStat[0].demands[0].fillStartTs).isNull()
-                assertThat(actualRoundStat[0].demands[1].roundStatusCode).isEqualTo(RoundStatus.Lose.code)
-                assertThat(actualRoundStat[0].demands[1].ecpm).isEqualTo(0.25)
-                assertThat(actualRoundStat[0].demands[1].fillStartTs).isNull()
+                assertThat(actualRoundStat[0].demands[0]?.price).isEqualTo(1.2235)
+                assertThat(actualRoundStat[0].demands[0]?.fillStartTs).isNull()
+                assertThat(actualRoundStat[0].demands[1]?.price).isEqualTo(0.25)
+                assertThat(actualRoundStat[0].demands[1]?.fillStartTs).isNull()
                 // WINNER
                 assertThat(actualRoundStat[1].auctionId).isEqualTo("auctionId_123")
-                assertThat(actualRoundStat[1].roundId).isEqualTo("ROUND_2")
                 assertThat(actualRoundStat[1].demands).hasSize(1)
-                assertThat(actualRoundStat[1].demands[0].roundStatusCode).isEqualTo(RoundStatus.Win.code)
-                assertThat(actualRoundStat[1].demands[0].ecpm).isEqualTo(2.2235)
-                assertThat(actualRoundStat[1].demands[0].adUnitId).isEqualTo("admob2")
-                assertThat(actualRoundStat[1].demands[0].fillStartTs).isNotNull()
-                assertThat(actualRoundStat[1].demands[0].fillFinishTs).isNotNull()
-                assertThat(actualRoundStat[1].demands[0].lineItemUid).isEqualTo("1")
+                assertThat(actualRoundStat[1].demands[0]?.price).isEqualTo(2.2235)
+                assertThat(actualRoundStat[1].demands[0]?.adUnitLabel).isEqualTo("admob2")
+                assertThat(actualRoundStat[1].demands[0]?.fillStartTs).isNotNull()
+                assertThat(actualRoundStat[1].demands[0]?.fillFinishTs).isNotNull()
+                assertThat(actualRoundStat[1].demands[0]?.adUnitUid).isEqualTo("1")
             },
-            onFailure = {
-                error("unexpected: $it")
+            onFailure = { auctionInfo, throwable ->
+                error("unexpected: $throwable")
             }
         )
     }
@@ -235,18 +245,23 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                additionalData = any(),
+                adTypeParam = any(),
                 auctionId = any(),
                 adapters = any(),
-                demandAd = any()
+                demandAd = any(),
+                tokens = any()
             )
         } returns auctionConfig.asSuccess()
 
         // WHEN 2 rounds are completed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
-            onSuccess = { auctionResults ->
+            adTypeParam = AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = 1.0,
+                auctionKey = null
+            ),
+            onSuccess = { auctionResults, auctionInfo ->
 
                 // THEN it should detect winner in round_1. "admob2" can not fill.
                 /**
@@ -258,13 +273,12 @@ internal class AuctionImplTest : ConcurrentTest() {
                 val winner = auctionResults.first()
                 val winnerAd = winner.adSource.ad
                 requireNotNull(winnerAd)
-                assertThat(winnerAd.adUnitId).isEqualTo("AAAA2")
+                assertThat(winnerAd.adUnit.label).isEqualTo("AAAA2")
                 assertThat(winnerAd.ecpm).isEqualTo(2.25)
-                assertThat(winnerAd.roundId).isEqualTo("round_1")
                 assertThat(winner.adSource.getStats().ecpm).isEqualTo(2.25)
             },
-            onFailure = {
-                error("unexpected: $it")
+            onFailure = { auctionInfo, throwable ->
+                error("unexpected: $throwable")
             }
         )
     }
@@ -291,23 +305,28 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                additionalData = any(),
+                adTypeParam = any(),
                 auctionId = any(),
                 adapters = any(),
-                demandAd = any()
+                demandAd = any(),
+                tokens = any()
             )
         } returns auctionConfig.asSuccess()
 
         // WHEN all bids failed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
-            onSuccess = {
+            adTypeParam = AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = 1.0,
+                auctionKey = null
+            ),
+            onSuccess = { auctionResults, auctionInfo ->
                 error("unexpected")
             },
-            onFailure = {
+            onFailure = { auctionInfo, throwable ->
                 // THEN it should expose NoAuctionResults
-                assertThat(it).isEqualTo(BidonError.NoAuctionResults)
+                assertThat(throwable).isEqualTo(BidonError.NoAuctionResults)
             }
         )
     }
@@ -334,67 +353,78 @@ internal class AuctionImplTest : ConcurrentTest() {
         val auctionConfig = getAuctionResponse()
         coEvery {
             getAuctionRequestUseCase.request(
-                additionalData = any(),
+                adTypeParam = any(),
                 auctionId = any(),
                 adapters = any(),
-                demandAd = any()
+                demandAd = any(),
+                tokens = any()
             )
         } returns auctionConfig.asSuccess()
 
         // WHEN all fills failed
         testee.start(
             demandAd = DemandAd(AdType.Interstitial),
-            adTypeParamData = AdTypeParam.Interstitial(activity, 1.0),
-            onSuccess = {
+            adTypeParam = AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = 1.0,
+                auctionKey = null
+            ),
+            onSuccess = { auctionResults, auctionInfo ->
                 error("unexpected")
             },
-            onFailure = {
+            onFailure = { auctionInfo, throwable ->
                 // THEN it should expose NoAuctionResults
-                assertThat(it).isEqualTo(BidonError.NoAuctionResults)
+                assertThat(throwable).isEqualTo(BidonError.NoAuctionResults)
             }
         )
     }
 
     private fun getAuctionResponse() = AuctionResponse(
-        rounds = listOf(
-            RoundRequest(
-                id = "round_1",
-                timeoutMs = 15,
-                demandIds = listOf(Applovin, Admob),
-                biddingIds = listOf(),
-            ),
-            RoundRequest(
-                id = "ROUND_2",
-                timeoutMs = 25,
-                demandIds = listOf(Admob),
-                biddingIds = listOf(),
-            ),
-        ),
-        auctionConfigurationId = 10,
-        auctionId = "auctionId_123",
-        lineItems = listOf(
-            LineItem(
-                demandId = Applovin,
-                pricefloor = 2.25,
-                adUnitId = "AAAA2",
-                uid = "1",
-            ),
-            LineItem(
-                demandId = Admob,
-                pricefloor = 1.2235,
-                adUnitId = "admob1",
-                uid = "1",
-            ),
-            LineItem(
-                demandId = Admob,
+        adUnits = listOf(
+            AdUnit(
+                label = "admob2",
                 pricefloor = 3.2235,
-                adUnitId = "admob2",
+                ext = null,
+                demandId = "admob",
+                bidType = BidType.CPM,
+                timeout = 5000,
+                uid = "1",
+            ),
+            AdUnit(
+                label = "admob1",
+                pricefloor = 1.2235,
+                ext = null,
+                demandId = "admob",
+                bidType = BidType.CPM,
+                timeout = 5000,
+                uid = "1",
+            ),
+            AdUnit(
+                label = "AAAA2",
+                pricefloor = 2.25,
+                ext = null,
+                demandId = "applovin",
+                bidType = BidType.CPM,
+                timeout = 5000,
                 uid = "1",
             ),
         ),
         pricefloor = 0.01,
-        token = null,
-        externalWinNotificationsEnabled = true,
+        auctionId = "auctionId_123",
+        auctionConfigurationId = 10,
         auctionConfigurationUid = "10",
+        externalWinNotificationsEnabled = true,
+        auctionTimeout = 10000L,
+        noBids = listOf(
+            AdUnit(
+                bidType = BidType.RTB,
+                demandId = "dem7",
+                label = "dem7_label",
+                pricefloor = 0.021,
+                uid = "123567",
+                timeout = 5000L,
+                ext = ""
+            )
+        )
     )
 }

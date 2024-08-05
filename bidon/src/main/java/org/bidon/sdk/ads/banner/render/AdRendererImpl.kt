@@ -9,14 +9,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.FrameLayout.LayoutParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.BannerPosition
 import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.ads.banner.render.AdRenderer.PositionState
-import org.bidon.sdk.ads.banner.render.ApplyInsetUseCase.applyWindowInsets
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.TAG
 import org.bidon.sdk.utils.ext.dp
@@ -37,9 +35,10 @@ internal class AdRendererImpl(
     private val tag get() = TAG
 
     /**
-     * RootContainer is the only one view for every [activity]
+     * RootContainer is the only one view for every [activity].
+     * Implements insets and contains [adContainer] and [BannerView].
      */
-    private var rootContainer: FrameLayout? = null
+    private var rootContainer: RootAdContainer? = null
 
     /**
      * AdContainer changes with [positionState]
@@ -55,9 +54,9 @@ internal class AdRendererImpl(
         animate: Boolean,
         handleConfigurationChanges: Boolean,
         renderListener: AdRenderer.RenderListener
-    ): Boolean {
+    ) {
         observeActivity(activity)
-        logInfo(tag, "Render banner $bannerView at $activity")
+        logInfo(tag, "Render banner $bannerView at $activity. ${Thread.currentThread()}")
         logInfo(
             tag = tag,
             message = "--> AdContainer($adContainer), AdView($bannerView), $positionState, " +
@@ -65,15 +64,15 @@ internal class AdRendererImpl(
         )
         logInfo(tag, "${bannerView.adSize}. Obtained size: ${bannerView.obtainWidth()} x ${bannerView.obtainHeight()}")
         if (!inspector.isActivityValid(activity)) {
-            hide()
+            hide(activity)
             renderListener.onRenderFailed()
-            return false
+            return
         }
         if (this.positionState != positionState) {
             logInfo(tag, "Position changed: ${this.positionState} -> $positionState")
-            hide()
+            hide(activity)
         }
-        return if (inspector.isRenderPermitted()) {
+        if (inspector.isRenderPermitted()) {
             this.positionState = positionState
             this.activity = WeakReference(activity)
             withRootContainer(activity) {
@@ -82,19 +81,36 @@ internal class AdRendererImpl(
                     renderListener.onVisibilityIssued()
                     return@withRootContainer
                 }
+                val params = calculateAdContainerParams(
+                    positionState = positionState,
+                    screenSize = safeAreaScreenSize,
+                    bannerWidth = bannerView.obtainWidth(),
+                    bannerHeight = bannerView.obtainHeight(),
+                )
                 if (!inspector.isViewVisibleOnScreen(view = adContainer)) {
-                    createAdContainer(activity, positionState, bannerView)
+                    createAdContainer(activity, params)
                 }
+                bannerView.rotation = params.baseParams.rotation.toFloat()
                 bannerView.showAd()
                 adContainer?.addAdView(bannerView)
                 setAdViewsVisible(bannerView)
                 renderListener.onRendered()
             }
-            true
         } else {
             renderListener.onRenderFailed()
-            false
         }
+    }
+
+    override fun hide(activity: Activity) {
+        adContainer?.removeAllViews()
+        adContainer = null
+    }
+
+    override fun destroy(activity: Activity) {
+        hide(activity)
+        rootContainer?.clearRootContainer()
+        rootContainer = null
+        this.activity = WeakReference(null)
     }
 
     private fun BannerView.fits(positionState: PositionState): Boolean {
@@ -118,11 +134,6 @@ internal class AdRendererImpl(
         }
     }
 
-    override fun hide() {
-        adContainer?.removeAllViews()
-        adContainer = null
-    }
-
     private fun setAdViewsVisible(adView: ViewGroup) {
         adView.visibility = View.VISIBLE
         adContainer?.visibility = View.VISIBLE
@@ -133,67 +144,58 @@ internal class AdRendererImpl(
 
     private fun createRootContainer(activity: Activity, onFinished: () -> Unit) {
         adContainer?.removeAllViews()
-        rootContainer?.removeAllViews()
+        rootContainer?.clearRootContainer()
         val layoutParam = LayoutParams(MATCH_PARENT, MATCH_PARENT)
-        rootContainer = FrameLayout(activity).applyWindowInsets()
+        rootContainer = RootAdContainer(activity)
         activity.addContentView(rootContainer, layoutParam)
-        rootContainer?.viewTreeObserver?.addOnGlobalLayoutListener(
-            object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    safeAreaScreenSize =
-                        Point(rootContainer?.width ?: safeAreaScreenSize.x, rootContainer?.height ?: safeAreaScreenSize.y)
-                    rootContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
-                    onFinished()
-                }
-            }
-        )
+        rootContainer?.obtainSize { safeAreaScreenSize ->
+            this.safeAreaScreenSize = safeAreaScreenSize
+            onFinished()
+        }
     }
 
     private fun createAdContainer(
         activity: Activity,
-        positionState: PositionState,
-        bannerView: BannerView
+        params: AdViewsParameters
     ) {
         adContainer?.removeAllViews()
         rootContainer?.removeAllViews()
         val adContainer = FrameLayout(activity).also {
             this.adContainer = it
         }
-        val (offset, rotation, anchor) = when (val state = positionState) {
-            is PositionState.Coordinate -> state.adContainerParams
-            is PositionState.Place -> calculateAdContainerParams(
-                position = state.position,
-                screenSize = safeAreaScreenSize,
-                bannerHeight = bannerView.obtainHeight(),
-            )
-        }
         adContainer.setParams(
-            offset = offset,
-            pivot = anchor,
-            rotation = rotation,
-            width = bannerView.obtainWidth(),
-            height = bannerView.obtainHeight()
+            offset = params.baseParams.offset,
+            pivot = params.baseParams.pivot,
+            width = params.adContainerWidth,
+            height = params.adContainerHeight
         )
-        rootContainer?.addView(adContainer, LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight()))
+        rootContainer?.addView(
+            adContainer,
+            LayoutParams(params.adContainerLayoutParamsWidth, params.adContainerLayoutParamsHeight)
+        )
     }
 
-    private fun FrameLayout.setParams(offset: Point, pivot: PointF, rotation: Int, width: Int, height: Int) {
+    private fun FrameLayout.setParams(offset: Point, pivot: PointF, width: Int, height: Int) {
         val translatedX = offset.x - pivot.x * width
         val translatedY = offset.y - pivot.y * height
         this.pivotX = width * pivot.x
         this.pivotY = height * pivot.y
-        this.rotation = rotation.toFloat()
         this.x = translatedX
         this.y = translatedY
     }
 
     private fun FrameLayout.addAdView(bannerView: BannerView) {
+        bannerView.clipChildren = false
+        bannerView.clipToPadding = false
         val adContainer: FrameLayout = this
         val oldAdView = adContainer.getChildAt(0)
         val isViewsTheSame = oldAdView == bannerView
         if (isViewsTheSame) {
             logInfo(this@AdRendererImpl.tag, "View and position does not changed")
             return
+        }
+        bannerView.parent?.let {
+            (it as ViewGroup).removeView(bannerView)
         }
         adContainer.setBackgroundColor(Color.TRANSPARENT)
         adContainer.addView(bannerView, LayoutParams(bannerView.obtainWidth(), bannerView.obtainHeight(), Gravity.CENTER))
@@ -212,7 +214,7 @@ internal class AdRendererImpl(
             onActivityDestroyed = { destroyedActivity ->
                 logInfo(tag, "Activity destroyed: $destroyedActivity")
                 if (this@AdRendererImpl.activity.get() == destroyedActivity) {
-                    hide()
+                    hide(activity)
                     rootContainer?.removeAllViews()
                     rootContainer = null
                     this@AdRendererImpl.activity = WeakReference(null)

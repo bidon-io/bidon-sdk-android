@@ -5,11 +5,11 @@ import com.inmobi.ads.AdMetaInfo
 import com.inmobi.ads.InMobiAdRequestStatus
 import com.inmobi.ads.InMobiInterstitial
 import com.inmobi.ads.listeners.InterstitialAdEventListener
+import org.bidon.inmobi.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
@@ -26,58 +26,60 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 internal class InmobiRewardedImpl :
     AdSource.Rewarded<InmobiFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl(),
-    Mode.Network {
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var rewardedAd: InMobiInterstitial? = null
 
     override val isAdReadyToShow: Boolean
-        get() = rewardedAd?.isReady == true
+        get() = rewardedAd?.isReady() == true
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
+            val adUnit = adUnit
             InmobiFullscreenAuctionParams(
-                activity = activity,
-                lineItem = lineItem,
-                price = lineItem.pricefloor,
+                context = activity.applicationContext,
+                adUnit = adUnit,
             )
         }
     }
 
     override fun load(adParams: InmobiFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
+        adParams.placementId ?: run {
+            emitEvent(
+                AdEvent.LoadFailed(
+                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
+                )
+            )
+            return
+        }
         val interstitialAd = InMobiInterstitial(
-            adParams.activity, adParams.placementId,
+            adParams.context, adParams.placementId,
             object : InterstitialAdEventListener() {
                 override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
-                    logInfo(TAG, "onAdLoadSucceeded: $this")
-                    emitEvent(AdEvent.Fill(getAd(interstitial) ?: return))
+                    logInfo(TAG, "onAdLoadSucceeded: $this, ${adMetaInfo.bid} USD")
+                    setPrice(adMetaInfo.bid)
+                    emitEvent(AdEvent.Fill(getAd() ?: return))
                 }
 
                 override fun onAdLoadFailed(interstitial: InMobiInterstitial, status: InMobiAdRequestStatus) {
-                    logError(
-                        tag = TAG,
-                        message = "Error while loading ad: ${status.statusCode} ${status.message}. $this",
-                        error = BidonError.Unspecified(demandId)
-                    )
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    logInfo(TAG, "Error while loading ad: ${status.statusCode} ${status.message}. $this")
+                    emitEvent(AdEvent.LoadFailed(status.asBidonError()))
                 }
 
                 override fun onAdClicked(interstitial: InMobiInterstitial, map: MutableMap<Any, Any>?) {
                     logInfo(TAG, "onAdClicked: $map, $this")
-                    emitEvent(AdEvent.Clicked(getAd(interstitial) ?: return))
+                    emitEvent(AdEvent.Clicked(getAd() ?: return))
                 }
 
                 override fun onAdDisplayed(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdImpression: $this")
-                    val bidPrice = adMetaInfo.bid
-                    val ad = getAd(interstitial) ?: return
+                    val ad = getAd() ?: return
                     emitEvent(
                         AdEvent.PaidRevenue(
                             ad = ad,
                             adValue = AdValue(
-                                adRevenue = bidPrice,
+                                adRevenue = adMetaInfo.bid / 1000.0,
                                 precision = Precision.Precise,
                                 currency = AdValue.USD,
                             )
@@ -94,12 +96,13 @@ internal class InmobiRewardedImpl :
 
                 override fun onAdDismissed(interstitial: InMobiInterstitial) {
                     logInfo(TAG, "onAdClosed: $this")
-                    emitEvent(AdEvent.Closed(getAd(interstitial) ?: return))
+                    emitEvent(AdEvent.Closed(getAd() ?: return))
+                    this@InmobiRewardedImpl.rewardedAd = null
                 }
 
                 override fun onRewardsUnlocked(interstitial: InMobiInterstitial, rewards: MutableMap<Any, Any>?) {
                     logInfo(TAG, "onAdRewarded: $rewards, $this")
-                    emitEvent(AdEvent.OnReward(getAd(interstitial) ?: return, null))
+                    emitEvent(AdEvent.OnReward(getAd() ?: return, null))
                 }
             }
         )
@@ -112,7 +115,7 @@ internal class InmobiRewardedImpl :
         if (isAdReadyToShow) {
             rewardedAd?.show()
         } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.FullscreenAdNotReady))
+            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
     }
 

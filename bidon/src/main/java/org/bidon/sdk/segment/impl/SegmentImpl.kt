@@ -7,40 +7,70 @@ import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.segment.models.Gender
 import org.bidon.sdk.segment.models.SegmentAttributes
-import org.bidon.sdk.utils.di.get
+import org.bidon.sdk.utils.di.getOrNull
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.json.JSONObject
+import kotlin.collections.set
 
 /**
  * Created by Aleksei Cherniaev on 15/06/2023.
  */
 internal class SegmentImpl : Segment, SegmentSynchronizer {
-    private val keyValueStorage: KeyValueStorage get() = get()
+    private val keyValueStorage: KeyValueStorage?
+        get() = getOrNull()
 
     private var attributesFlow = MutableStateFlow(SegmentAttributes.Empty)
 
     override val attributes: SegmentAttributes
         get() = attributesFlow.value
 
-    override var segmentId: String? = null
-        private set
-
     override var segmentUid: String? = null
         private set
 
-    override fun setAge(age: Int?) {
-        attributesFlow.value = attributesFlow.value.copy(
-            age = age
-        )
-        logInfo(TAG, "Updated age=$age")
-    }
+    override var age: Int?
+        get() = attributesFlow.value.age
+        set(value) {
+            attributesFlow.value = attributesFlow.value.copy(
+                age = value
+            )
+            logInfo(TAG, "Updated age=$value")
+        }
 
-    override fun setGender(gender: Gender?) {
-        attributesFlow.value = attributesFlow.value.copy(
-            gender = gender
-        )
-        logInfo(TAG, "Updated gender=$gender")
-    }
+    override var gender: Gender?
+        get() = attributesFlow.value.gender
+        set(value) {
+            attributesFlow.value = attributesFlow.value.copy(
+                gender = value
+            )
+            logInfo(TAG, "Updated gender=$value")
+        }
+
+    override var level: Int?
+        get() = attributesFlow.value.gameLevel
+        set(value) {
+            attributesFlow.value = attributesFlow.value.copy(
+                gameLevel = value
+            )
+            logInfo(TAG, "Updated level=$value")
+        }
+
+    override var totalInAppAmount: Double?
+        get() = attributesFlow.value.inAppAmount
+        set(value) {
+            attributesFlow.value = attributesFlow.value.copy(
+                inAppAmount = value
+            )
+            logInfo(TAG, "Updated inAppAmount=$value")
+        }
+
+    override var isPaying: Boolean
+        get() = attributesFlow.value.isPaying ?: false
+        set(value) {
+            attributesFlow.value = attributesFlow.value.copy(
+                isPaying = value
+            )
+            logInfo(TAG, "Updated isPaying=$value")
+        }
 
     override fun putCustomAttribute(attribute: String, value: Any?) {
         this.attributesFlow.update { current ->
@@ -66,48 +96,15 @@ internal class SegmentImpl : Segment, SegmentSynchronizer {
         logInfo(TAG, "Updated attributes=$attributes")
     }
 
-    override fun setLevel(level: Int) {
-        attributesFlow.value = attributesFlow.value.copy(
-            gameLevel = level
-        )
-        logInfo(TAG, "Updated level=$level")
-    }
-
-    override fun setTotalInAppAmount(inAppAmount: Double) {
-        attributesFlow.value = attributesFlow.value.copy(
-            inAppAmount = inAppAmount
-        )
-        logInfo(TAG, "Updated inAppAmount=$inAppAmount")
-    }
-
-    override fun setPaying(isPaying: Boolean) {
-        attributesFlow.value = attributesFlow.value.copy(
-            isPaying = isPaying
-        )
-        logInfo(TAG, "Updated isPaying=$isPaying")
-    }
-
-    override fun parseSegmentId(rootJsonResponse: String) {
+    override fun parseSegmentUid(rootJsonResponse: String) {
         runCatching {
-            val newSegmentId = JSONObject(rootJsonResponse)
-                .optJSONObject("segment")
-                ?.optString("id", "")
-                ?.takeIf { it.isNotEmpty() }
-            keyValueStorage.segmentId = newSegmentId
-            setSegmentId(newSegmentId)
             val newSegmentUid = JSONObject(rootJsonResponse)
                 .optJSONObject("segment")
                 ?.optString("uid", "")
                 ?.takeIf { it.isNotEmpty() }
-            keyValueStorage.segmentUid = newSegmentUid
+            keyValueStorage?.segmentUid = newSegmentUid
             setSegmentUid(newSegmentUid)
         }
-    }
-
-    @Deprecated("Use segmentUid instead")
-    override fun setSegmentId(segmentId: String?) {
-        logInfo(TAG, "Updated SegmentId($segmentId)")
-        this.segmentId = segmentId
     }
 
     override fun setSegmentUid(segmentUid: String?) {

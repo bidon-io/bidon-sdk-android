@@ -18,10 +18,8 @@ android {
 }
 
 dependencies {
-    compileOnly(project(":bidon"))
-    testImplementation(project(":bidon"))
+    compileOnly(projects.bidon)
+    testImplementation(projects.bidon)
 
-    implementation("io.bidmachine:ads:2.3.2")
-    implementation("io.bidmachine:ads.adapters.admanager:1.9.10.7")
-    implementation(Dependencies.Google.PlayServicesAds)
+    implementation("io.bidmachine:ads:2.7.0")
 }

@@ -1,7 +1,6 @@
 package org.bidon.sdk.config.models.adapters
 
 import android.app.Activity
-import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -11,8 +10,6 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.DemandId
-import org.bidon.sdk.adapter.Mode
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
@@ -21,10 +18,8 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 internal class TestBiddingInterstitialImpl(
-    override val demandId: DemandId,
     private val testParameters: TestAdapterParameters,
 ) : AdSource.Interstitial<TestInterstitialParameters>,
-    Mode.Bidding,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -48,10 +43,6 @@ internal class TestBiddingInterstitialImpl(
     override val isAdReadyToShow: Boolean
         get() = testParameters.fill == Process.Succeed
 
-    override suspend fun getToken(context: Context): String {
-        return "token123"
-    }
-
     override fun load(adParams: TestInterstitialParameters) {
         when (testParameters.fill) {
             Process.Succeed -> emitEvent(AdEvent.Fill(ad!!))
@@ -71,8 +62,7 @@ internal class TestBiddingInterstitialImpl(
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
-            val lineItem = popLineItem(demandId) ?: error(BidonError.NoAppropriateAdUnitId)
-            TestInterstitialParameters(lineItem)
+            TestInterstitialParameters(auctionParamsScope.adUnit)
         }
     }
 }

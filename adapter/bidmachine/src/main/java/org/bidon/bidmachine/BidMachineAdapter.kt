@@ -2,7 +2,6 @@ package org.bidon.bidmachine
 
 import android.content.Context
 import io.bidmachine.BidMachine
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.bidmachine.ext.adapterVersion
 import org.bidon.bidmachine.ext.sdkVersion
 import org.bidon.bidmachine.impl.BMBannerAdImpl
@@ -11,10 +10,12 @@ import org.bidon.bidmachine.impl.BMRewardedAdImpl
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
+import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 val BidMachineDemandId = DemandId("bidmachine")
 
@@ -23,7 +24,8 @@ internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 
 @Suppress("unused")
 class BidMachineAdapter :
-    Adapter,
+    Adapter.Bidding,
+    Adapter.Network,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     Initializable<BidMachineParameters>,
@@ -39,8 +41,11 @@ class BidMachineAdapter :
         sdkVersion = sdkVersion
     )
 
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+        BidMachine.getBidToken(context)
+
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
-        suspendCancellableCoroutine { continuation ->
+        suspendCoroutine { continuation ->
             this.context = context
             val sourceId = configParams.sellerId
             BidMachine.setTestMode(isTestMode)
@@ -66,13 +71,23 @@ class BidMachineAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        BidMachine.setUSPrivacyString(regulation.usPrivacyString)
-        BidMachine.setCoppa(regulation.coppaApplies)
-        BidMachine.setSubjectToGDPR(regulation.gdprConsent)
-        BidMachine.setConsentConfig(
-            /* hasConsent = */ !regulation.gdprConsentString.isNullOrBlank(),
-            /* consentString = */ regulation.gdprConsentString
-        )
+        regulation.usPrivacyString?.let {
+            BidMachine.setUSPrivacyString(it)
+        }
+        if (regulation.coppaApplies) {
+            BidMachine.setCoppa(true)
+        }
+        if (regulation.gdprApplies) {
+            BidMachine.setSubjectToGDPR(true)
+            regulation.gdprConsentString
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    BidMachine.setConsentConfig(
+                        /* hasConsent = */ regulation.hasGdprConsent,
+                        /* consentString = */ it
+                    )
+                }
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<BMFullscreenAuctionParams> {

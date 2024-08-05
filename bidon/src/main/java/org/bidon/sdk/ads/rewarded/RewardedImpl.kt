@@ -15,8 +15,9 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
@@ -27,12 +28,13 @@ import org.bidon.sdk.utils.di.get
 
 internal class RewardedImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
+    private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
 ) : Rewarded, Extras by demandAd {
 
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
-    private val auctionHolder: AuctionHolder by lazy {
+    private val adCache: AdCache by lazy {
         get { params(demandAd) }
     }
     private val listener by lazy {
@@ -43,53 +45,39 @@ internal class RewardedImpl(
     }
 
     override fun isReady(): Boolean {
-        return auctionHolder.isAdReady()
+        if (!BidonSdk.isInitialized()) {
+            logInfo(TAG, "Sdk is not initialized")
+            return false
+        }
+        return adCache.peek()?.adSource?.isAdReadyToShow == true
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
-            listener.onAdLoadFailed(BidonError.SdkNotInitialized)
-            return
-        }
-        if (auctionHolder.isAdReady()) {
-            logInfo(TAG, "Ad is loaded and available to show.")
+            listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
             return
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        observeCallbacksJob?.cancel()
-        observeCallbacksJob = null
-
-        if (!auctionHolder.isAuctionActive) {
-            auctionHolder.startAuction(
-                adTypeParam = AdTypeParam.Rewarded(
-                    activity = activity,
-                    pricefloor = pricefloor,
-                ),
-                onResult = { result ->
-                    result
-                        .onSuccess { auctionResults ->
-                            /**
-                             * Winner found
-                             */
-                            val winner = auctionResults.first()
-                            subscribeToWinner(winner.adSource)
-                            listener.onAdLoaded(
-                                requireNotNull(winner.adSource.ad) {
-                                    "[Ad] should exist when the Action succeeds"
-                                }
-                            )
-                        }.onFailure {
-                            /**
-                             * Auction failed
-                             */
-                            listener.onAdLoadFailed(cause = it.asBidonErrorOrUnspecified())
-                        }
-                }
-            )
-        } else {
-            logInfo(TAG, "Auction already in progress")
-        }
+        adCache.cache(
+            adTypeParam = AdTypeParam.Rewarded(
+                activity = activity,
+                pricefloor = pricefloor,
+                auctionKey = auctionKey,
+            ),
+            onSuccess = { auctionResult, auctionInfo ->
+                subscribeToWinner(auctionInfo, auctionResult.adSource)
+                listener.onAdLoaded(
+                    ad = requireNotNull(auctionResult.adSource.ad) {
+                        "[Ad] should exist when action succeeds"
+                    },
+                    auctionInfo = auctionInfo
+                )
+            },
+            onFailure = { auctionResult, cause ->
+                listener.onAdLoadFailed(auctionInfo = auctionResult, cause = cause.asBidonErrorOrUnspecified())
+            }
+        )
     }
 
     override fun showAd(activity: Activity) {
@@ -99,21 +87,13 @@ internal class RewardedImpl(
             return
         }
         logInfo(TAG, "Show")
-        if (auctionHolder.isAuctionActive) {
-            logInfo(TAG, "Show failed. Auction in progress.")
-            listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
-            return
-        }
-        when (val adSource = auctionHolder.popWinnerForShow()) {
-            null -> {
+        activity.runOnUiThread {
+            val adSource = adCache.pop()?.adSource as? AdSource.Rewarded
+            if (adSource == null) {
                 logInfo(TAG, "Show failed. No Auction results.")
-                listener.onAdShowFailed(BidonError.FullscreenAdNotReady)
-            }
-
-            else -> {
-                scope.launch(Dispatchers.Main.immediate) {
-                    (adSource as AdSource.Rewarded).show(activity)
-                }
+                listener.onAdShowFailed(BidonError.AdNotReady)
+            } else {
+                adSource.show(activity)
             }
         }
     }
@@ -124,25 +104,34 @@ internal class RewardedImpl(
     }
 
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
-        auctionHolder.notifyLoss(
-            winnerDemandId = winnerDemandId,
-            winnerEcpm = winnerEcpm,
-            onAuctionCancelled = {
-                userListener?.onAdLoadFailed(BidonError.AuctionCancelled)
-            },
-            onNotified = {
-                destroyAd()
-            }
-        )
+        if (!BidonSdk.isInitialized()) {
+            logInfo(TAG, "Sdk is not initialized")
+            return
+        }
+        adCache.pop()?.adSource?.sendLoss(winnerDemandId, winnerEcpm)
+        destroyAd()
     }
 
     override fun notifyWin() {
-        auctionHolder.notifyWin()
+        if (!BidonSdk.isInitialized()) {
+            logInfo(TAG, "Sdk is not initialized")
+            return
+        }
+        adCache.peek()?.adSource?.sendWin()
     }
 
     override fun destroyAd() {
+        if (!BidonSdk.isInitialized()) {
+            logInfo(TAG, "Sdk is not initialized")
+            return
+        }
         scope.launch(Dispatchers.Main.immediate) {
-            auctionHolder.destroy()
+            adCache.clear { auctionResult, cause ->
+                listener.onAdLoadFailed(
+                    auctionInfo = auctionResult,
+                    cause = cause.asBidonErrorOrUnspecified()
+                )
+            }
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
         }
@@ -152,7 +141,7 @@ internal class RewardedImpl(
      * Private
      */
 
-    private fun subscribeToWinner(adSource: AdSource<*>) {
+    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
         require(adSource is AdSource.Rewarded<*>)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
@@ -170,7 +159,12 @@ internal class RewardedImpl(
                     adSource.sendClickImpression()
                 }
 
-                is AdEvent.Closed -> listener.onAdClosed(adEvent.ad)
+                is AdEvent.Closed -> {
+                    listener.onAdClosed(adEvent.ad)
+                    observeCallbacksJob?.cancel()
+                    observeCallbacksJob = null
+                }
+
                 is AdEvent.Shown -> {
                     listener.onAdShown(adEvent.ad)
                     adSource.sendShowImpression()
@@ -178,19 +172,19 @@ internal class RewardedImpl(
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(adEvent.cause)
+                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
     }
 
     private fun getRewardedListener() = object : RewardedListener {
-        override fun onAdLoaded(ad: Ad) {
-            userListener?.onAdLoaded(ad)
+        override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
+            userListener?.onAdLoaded(ad, auctionInfo)
         }
 
-        override fun onAdLoadFailed(cause: BidonError) {
-            userListener?.onAdLoadFailed(cause)
+        override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
+            userListener?.onAdLoadFailed(auctionInfo, cause)
         }
 
         override fun onAdShowFailed(cause: BidonError) {

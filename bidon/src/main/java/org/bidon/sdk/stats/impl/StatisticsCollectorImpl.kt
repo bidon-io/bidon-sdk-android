@@ -6,11 +6,13 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.InterstitialRequest
-import org.bidon.sdk.auction.models.LineItem
 import org.bidon.sdk.auction.models.RewardedRequest
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidStat
@@ -23,7 +25,6 @@ import org.bidon.sdk.stats.usecases.WinLossRequestData
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -31,14 +32,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class StatisticsCollectorImpl : StatisticsCollector {
 
-    private var auctionConfigurationId: Int = 0
+    private var auctionConfigurationId: Long = 0L
     private var auctionConfigurationUid: String = ""
     private var externalWinNotificationsEnabled: Boolean = true
     private lateinit var adType: StatisticsCollector.AdType
-
-    private val impressionId: String by lazy {
-        UUID.randomUUID().toString()
-    }
 
     private val sendImpression by lazy {
         get<SendImpressionRequestUseCase>()
@@ -58,16 +55,15 @@ class StatisticsCollectorImpl : StatisticsCollector {
     private var _demandAd: DemandAd? = null
     private var stat: BidStat = BidStat(
         auctionId = null,
-        roundId = null,
-        roundIndex = null,
         demandId = DemandId(""),
-        adUnitId = null,
-        lineItemUid = null,
+        adUnit = null,
         fillStartTs = null,
         fillFinishTs = null,
         roundStatus = null,
         ecpm = 0.0,
-        bidType = null,
+        dspSource = null,
+        auctionPricefloor = 0.0,
+        tokenInfo = null,
     )
 
     override val demandAd: DemandAd
@@ -76,25 +72,22 @@ class StatisticsCollectorImpl : StatisticsCollector {
         get() = requireNotNull(stat.demandId) { "DemandId is not set" }
     override val auctionId: String
         get() = requireNotNull(stat.auctionId) { "AuctionId is not set" }
-    override val roundId: String
-        get() = requireNotNull(stat.roundId) { "RoundId is not set" }
-    override val roundIndex: Int
-        get() = requireNotNull(stat.roundIndex) { "RoundId is not set" }
 
-    override fun getAd(demandAdObject: Any): Ad? {
-        val demandId = stat.demandId
-        val roundId = stat.roundId ?: return null
-        val auctionId = stat.auctionId ?: return null
+    override fun getAd(): Ad? {
+        val auctionId = stat.auctionId
+        val bidType = stat.bidType
+        val adUnit = stat.adUnit
+        if (adUnit == null || auctionId == null || bidType == null) {
+            logError(TAG, "Ad is null", NullPointerException())
+            return null
+        }
         return Ad(
             demandAd = demandAd,
             ecpm = stat.ecpm,
-            networkName = demandId.demandId,
-            adUnitId = stat.adUnitId,
             currencyCode = AdValue.USD,
-            roundId = roundId,
             auctionId = auctionId,
-            dsp = null,
-            demandAdObject = demandAdObject,
+            dsp = stat.dspSource,
+            adUnit = adUnit
         )
     }
 
@@ -106,17 +99,13 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun addRoundInfo(
         auctionId: String,
-        roundId: String,
-        roundIndex: Int,
         demandAd: DemandAd,
-        bidType: BidType
+        auctionPricefloor: Double
     ) {
         this._demandAd = demandAd
         stat = stat.copy(
             auctionId = auctionId,
-            roundId = roundId,
-            roundIndex = roundIndex,
-            bidType = bidType
+            auctionPricefloor = auctionPricefloor
         )
     }
 
@@ -205,8 +194,11 @@ class StatisticsCollectorImpl : StatisticsCollector {
         this.adType = adType
     }
 
-    override fun addAuctionConfigurationId(auctionConfigurationId: Int, auctionConfigurationUid: String) {
+    override fun addAuctionConfigurationId(auctionConfigurationId: Long) {
         this.auctionConfigurationId = auctionConfigurationId
+    }
+
+    override fun addAuctionConfigurationUid(auctionConfigurationUid: String) {
         this.auctionConfigurationUid = auctionConfigurationUid
     }
 
@@ -214,12 +206,11 @@ class StatisticsCollectorImpl : StatisticsCollector {
         externalWinNotificationsEnabled = enabled
     }
 
-    override fun markFillStarted(lineItem: LineItem?, pricefloor: Double?) {
+    override fun markFillStarted(adUnit: AdUnit, pricefloor: Double?) {
         stat = stat.copy(
             fillStartTs = SystemTimeNow,
-            adUnitId = lineItem?.adUnitId,
+            adUnit = adUnit,
             ecpm = pricefloor ?: stat.ecpm,
-            lineItemUid = lineItem?.uid
         )
     }
 
@@ -228,6 +219,24 @@ class StatisticsCollectorImpl : StatisticsCollector {
             fillFinishTs = SystemTimeNow,
             roundStatus = roundStatus,
             ecpm = ecpm ?: 0.0
+        )
+    }
+
+    override fun setPrice(price: Double) {
+        stat = stat.copy(
+            ecpm = price
+        )
+    }
+
+    override fun setDsp(dspSource: String?) {
+        stat = stat.copy(
+            dspSource = dspSource
+        )
+    }
+
+    override fun setTokenInfo(tokenInfo: TokenInfo) {
+        stat = stat.copy(
+            tokenInfo = tokenInfo
         )
     }
 
@@ -245,7 +254,8 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun markBelowPricefloor() {
         stat = stat.copy(
-            roundStatus = RoundStatus.BelowPricefloor
+            roundStatus = if (stat.adUnit?.bidType == BidType.RTB) RoundStatus.Lose
+            else RoundStatus.BelowPricefloor
         )
     }
 
@@ -255,19 +265,17 @@ class StatisticsCollectorImpl : StatisticsCollector {
         val (banner, interstitial, rewarded) = getData(adType)
         return ImpressionRequestBody(
             auctionId = auctionId,
-            roundId = roundId,
             auctionConfigurationId = auctionConfigurationId,
             auctionConfigurationUid = auctionConfigurationUid,
-            impressionId = impressionId,
             demandId = demandId.demandId,
-            adUnitId = stat.adUnitId,
-            lineItemUid = stat.lineItemUid,
-            ecpm = stat.ecpm,
+            price = stat.ecpm,
             banner = banner,
             interstitial = interstitial,
             rewarded = rewarded,
-            roundIndex = roundIndex,
             bidType = stat.bidType?.code,
+            adUnitLabel = stat.adUnit?.label,
+            adUnitUid = stat.adUnit?.uid,
+            auctionPricefloor = stat.auctionPricefloor,
         )
     }
 
@@ -278,11 +286,11 @@ class StatisticsCollectorImpl : StatisticsCollector {
             }
 
             StatisticsCollector.AdType.Interstitial -> {
-                Triple(null, InterstitialRequest(), null)
+                Triple(null, InterstitialRequest, null)
             }
 
             StatisticsCollector.AdType.Rewarded -> {
-                Triple(null, null, RewardedRequest())
+                Triple(null, null, RewardedRequest)
             }
         }
     }

@@ -2,40 +2,40 @@ package org.bidon.sdk.utils.di
 
 import android.app.Application
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
 import org.bidon.sdk.ads.banner.helper.CountDownTimer
-import org.bidon.sdk.ads.banner.helper.DeviceType
+import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
 import org.bidon.sdk.ads.banner.helper.impl.ActivityLifecycleObserver
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
-import org.bidon.sdk.ads.banner.refresh.BannersCache
-import org.bidon.sdk.ads.banner.refresh.BannersCacheImpl
 import org.bidon.sdk.ads.banner.render.AdRenderer
 import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
+import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.impl.AdCacheImpl
 import org.bidon.sdk.auction.Auction
-import org.bidon.sdk.auction.AuctionHolder
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.impl.AuctionHolderImpl
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.BidRequestUseCase
-import org.bidon.sdk.auction.usecases.ConductBiddingRoundUseCase
-import org.bidon.sdk.auction.usecases.ConductNetworkRoundUseCase
-import org.bidon.sdk.auction.usecases.ExecuteRoundUseCase
+import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
-import org.bidon.sdk.auction.usecases.impl.BidRequestUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductBiddingRoundUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ConductNetworkRoundUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.ExecuteRoundUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
+import org.bidon.sdk.bidding.BiddingConfig
+import org.bidon.sdk.bidding.BiddingConfigImpl
+import org.bidon.sdk.bidding.BiddingConfigSynchronizer
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -49,8 +49,6 @@ import org.bidon.sdk.databinders.app.AppDataSourceImpl
 import org.bidon.sdk.databinders.device.DeviceBinder
 import org.bidon.sdk.databinders.device.DeviceDataSource
 import org.bidon.sdk.databinders.device.DeviceDataSourceImpl
-import org.bidon.sdk.databinders.extras.Extras
-import org.bidon.sdk.databinders.extras.ExtrasImpl
 import org.bidon.sdk.databinders.location.LocationDataSource
 import org.bidon.sdk.databinders.location.LocationDataSourceImpl
 import org.bidon.sdk.databinders.placement.PlacementBinder
@@ -87,6 +85,7 @@ import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
+import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -108,7 +107,7 @@ internal object DI {
         module {
             singleton<Context> { context.applicationContext }
         }
-        DeviceType.init(context)
+        DeviceInfo.init(context)
         FlavoredDI.init()
     }
 
@@ -154,16 +153,25 @@ internal object DI {
 
             // [SegmentDataSource] should be singleton per session
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
-            singleton<Regulation> { RegulationImpl() }
+            singleton<Regulation> {
+                RegulationImpl(
+                    iabConsent = get()
+                )
+            }
             /**
              * [SegmentSynchronizer] depends on it
              */
             singleton<Segment> { SegmentImpl() }
 
+            singleton<BiddingConfig> { BiddingConfigImpl() }
+            singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
+
             /**
              * Factories
              */
             factory { get<Segment>() as SegmentSynchronizer }
+            factory { get<BiddingConfig>() as BiddingConfigSynchronizer }
+
             factory<InitAndRegisterAdaptersUseCase> {
                 InitAndRegisterAdaptersUseCaseImpl(
                     adaptersSource = get()
@@ -175,8 +183,10 @@ internal object DI {
                 AuctionImpl(
                     adaptersSource = get(),
                     getAuctionRequest = get(),
-                    executeRound = get(),
+                    auctionExecutable = get(),
                     auctionStat = get(),
+                    tokenGetter = get(),
+                    biddingConfig = get()
                 )
             }
             factory<AuctionStat> {
@@ -190,33 +200,16 @@ internal object DI {
                     activityLifecycleObserver = param as ActivityLifecycleObserver
                 )
             }
-            factoryWithParams<AuctionHolder> { (demandAd) ->
-                AuctionHolderImpl(
-                    demandAd = demandAd as DemandAd,
-                )
-            }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
-            factory<ConductBiddingRoundUseCase> {
-                ConductBiddingRoundUseCaseImpl(
-                    bidRequestUseCase = get()
-                )
+            factory<RequestAdUnitUseCase> {
+                RequestAdUnitUseCaseImpl()
             }
-            factory<ConductNetworkRoundUseCase> {
-                ConductNetworkRoundUseCaseImpl()
-            }
-            factory<BidRequestUseCase> {
-                BidRequestUseCaseImpl(
-                    createRequestBody = get(),
-                    getOrientation = get(),
-                )
-            }
-            factory<ExecuteRoundUseCase> {
-                ExecuteRoundUseCaseImpl(
-                    conductNetworkAuction = get(),
-                    conductBiddingAuction = get(),
+            factory<ExecuteAuctionUseCase> {
+                ExecuteAuctionUseCaseImpl(
+                    requestAdUnit = get(),
                     adaptersSource = get(),
-                    regulation = get()
+                    regulation = get(),
                 )
             }
 
@@ -266,8 +259,7 @@ internal object DI {
                     segmentBinder = SegmentBinder(segmentSynchronizer = get()),
                 )
             }
-            factory<Extras> { ExtrasImpl() }
-            factory<IabConsent> { IabConsentImpl(context = get()) }
+            factory<IabConsent> { IabConsentImpl() }
             factory { VisibilityTracker() }
             factory<RegulationDataSource> {
                 RegulationDataSourceImpl(
@@ -293,8 +285,14 @@ internal object DI {
             factory<AdRenderer.RenderInspector> {
                 RenderInspectorImpl()
             }
-            factory<BannersCache> { BannersCacheImpl() }
             factory { CalculateAdContainerParamsUseCase() }
+            factoryWithParams<AdCache> { (demandAd) ->
+                AdCacheImpl(
+                    demandAd = demandAd as DemandAd,
+                    scope = CoroutineScope(SdkDispatchers.Main),
+                    resolver = get()
+                )
+            }
         }
     }
 }

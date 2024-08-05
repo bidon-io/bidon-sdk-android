@@ -1,34 +1,35 @@
 package org.bidon.applovin
 
-import android.content.Context
+import android.app.Activity
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.auction.models.LineItem
+import org.bidon.sdk.auction.models.AdUnit
 
 data class ApplovinParameters(
     val key: String,
 ) : AdapterParameters
 
 class ApplovinBannerAuctionParams(
-    val context: Context,
+    val activity: Activity,
     val bannerFormat: BannerFormat,
-    override val lineItem: LineItem,
+    override val adUnit: AdUnit,
 ) : AdAuctionParams {
-    override val price: Double get() = lineItem.pricefloor
+    override val price: Double = adUnit.pricefloor
+    val zoneId: String? = adUnit.extra?.getString("zone_id")
 
     override fun toString(): String {
-        return "ApplovinBannerAuctionParams(bannerFormat=$bannerFormat, lineItem=$lineItem)"
+        return "ApplovinBannerAuctionParams(bannerFormat=$bannerFormat, adUnit=$adUnit)"
     }
 }
 
 class ApplovinFullscreenAdAuctionParams(
-    override val lineItem: LineItem,
-    val timeoutMs: Long
+    override val adUnit: AdUnit,
 ) : AdAuctionParams {
-    override val price: Double get() = lineItem.pricefloor
+    override val price: Double = adUnit.pricefloor
+    val zoneId: String? = adUnit.extra?.getString("zone_id")
 
     override fun toString(): String {
-        return "ApplovinFullscreenAdAuctionParams(timeoutMs=$timeoutMs, lineItem=$lineItem)"
+        return "ApplovinFullscreenAdAuctionParams(adUnit=$adUnit)"
     }
 }

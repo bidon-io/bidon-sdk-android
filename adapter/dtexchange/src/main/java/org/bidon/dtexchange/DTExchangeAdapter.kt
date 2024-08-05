@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.fyber.inneractive.sdk.external.InneractiveAdManager
 import com.fyber.inneractive.sdk.external.OnFyberMarketplaceInitializedListener.FyberInitStatus
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.dtexchange.ext.adapterVersion
 import org.bidon.dtexchange.ext.sdkVersion
 import org.bidon.dtexchange.impl.DTExchangeAdAuctionParams
@@ -26,6 +25,7 @@ import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Created by Aleksei Cherniaev on 28/02/2023.
@@ -36,7 +36,7 @@ val DTExchangeDemandId = DemandId("dtexchange")
  * [Documentation](https://developer.digitalturbine.com/hc/en-us/articles/360019744297-Android-Ad-Formats)
  */
 class DTExchangeAdapter :
-    Adapter,
+    Adapter.Network,
     SupportsRegulation,
     Initializable<DTExchangeParameters>,
     AdProvider.Rewarded<DTExchangeAdAuctionParams>,
@@ -49,17 +49,18 @@ class DTExchangeAdapter :
     )
 
     override suspend fun init(context: Context, configParams: DTExchangeParameters) =
-        suspendCancellableCoroutine { continuation ->
-            if (BuildConfig.DEBUG) {
-                when (BidonSdk.loggerLevel) {
-                    Logger.Level.Verbose -> InneractiveAdManager.setLogLevel(Log.VERBOSE)
-                    Logger.Level.Error -> InneractiveAdManager.setLogLevel(Log.ERROR)
-                    Logger.Level.Off -> {
-                        // do nothing
-                    }
+        suspendCoroutine { continuation ->
+            if (configParams.appId.isNullOrEmpty()) {
+                val cause = Throwable("Adapter(${DTExchangeDemandId.demandId}) appId is null or empty")
+                continuation.resumeWithException(cause)
+            }
+            when (BidonSdk.loggerLevel) {
+                Logger.Level.Verbose -> InneractiveAdManager.setLogLevel(Log.VERBOSE)
+                Logger.Level.Error -> InneractiveAdManager.setLogLevel(Log.ERROR)
+                Logger.Level.Off -> {
+                    // do nothing
                 }
             }
-
             InneractiveAdManager.initialize(context, configParams.appId) { initStatus ->
                 when (initStatus) {
                     FyberInitStatus.SUCCESSFULLY -> {
@@ -78,17 +79,25 @@ class DTExchangeAdapter :
         }
 
     override fun parseConfigParam(json: String): DTExchangeParameters {
-        return JSONObject(json).let {
-            DTExchangeParameters(
-                appId = requireNotNull(it.optString("app_id")),
-            )
-        }
+        return DTExchangeParameters(
+            appId = JSONObject(json).optString("app_id"),
+        )
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        InneractiveAdManager.setUSPrivacyString(regulation.usPrivacyString)
-        InneractiveAdManager.setGdprConsent(regulation.gdprConsent)
-        InneractiveAdManager.setGdprConsentString(regulation.gdprConsentString)
+        if (regulation.ccpaApplies) {
+            InneractiveAdManager.setUSPrivacyString(regulation.usPrivacyString)
+        } else {
+            InneractiveAdManager.clearUSPrivacyString()
+        }
+        if (regulation.gdprApplies) {
+            InneractiveAdManager.setGdprConsent(regulation.hasGdprConsent)
+            if (!regulation.gdprConsentString.isNullOrBlank()) {
+                InneractiveAdManager.setGdprConsentString(regulation.gdprConsentString)
+            }
+        } else {
+            InneractiveAdManager.clearGdprConsentData()
+        }
         if (regulation.coppaApplies) {
             InneractiveAdManager.currentAudienceAppliesToCoppa()
         }

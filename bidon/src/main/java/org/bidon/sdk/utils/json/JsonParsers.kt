@@ -1,8 +1,7 @@
 package org.bidon.sdk.utils.json
 
+import org.bidon.sdk.auction.models.AdUnitParser
 import org.bidon.sdk.auction.models.AuctionResponseParser
-import org.bidon.sdk.auction.models.BidResponseParser
-import org.bidon.sdk.auction.models.LineItemParser
 import org.bidon.sdk.auction.models.RoundParser
 import org.bidon.sdk.config.models.ConfigResponseParser
 import org.bidon.sdk.utils.networking.BaseResponseErrorParser
@@ -24,8 +23,7 @@ internal object JsonParsers {
         addParser { ConfigResponseParser() }
         addParser { AuctionResponseParser() }
         addParser { RoundParser() }
-        addParser { LineItemParser() }
-        addParser { BidResponseParser() }
+        addParser { AdUnitParser() }
     }
 
     inline fun <reified T : Any> parseOrNull(jsonString: String): T? {
