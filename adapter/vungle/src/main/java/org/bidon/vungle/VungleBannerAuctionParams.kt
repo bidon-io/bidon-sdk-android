@@ -1,7 +1,7 @@
 package org.bidon.vungle
 
 import android.app.Activity
-import com.vungle.ads.BannerAdSize
+import com.vungle.ads.VungleAdSize
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
@@ -18,10 +18,10 @@ class VungleBannerAuctionParams(
 
     val bannerSize
         get() = when (bannerFormat) {
-            BannerFormat.MRec -> BannerAdSize.VUNGLE_MREC
-            BannerFormat.LeaderBoard -> BannerAdSize.BANNER_LEADERBOARD
-            BannerFormat.Banner -> BannerAdSize.BANNER
-            BannerFormat.Adaptive -> if (isTablet) BannerAdSize.BANNER_LEADERBOARD else BannerAdSize.BANNER
+            BannerFormat.MRec -> VungleAdSize.MREC
+            BannerFormat.LeaderBoard -> VungleAdSize.BANNER_LEADERBOARD
+            BannerFormat.Banner -> VungleAdSize.BANNER
+            BannerFormat.Adaptive -> if (isTablet) VungleAdSize.BANNER_LEADERBOARD else VungleAdSize.BANNER
         }
 }
 

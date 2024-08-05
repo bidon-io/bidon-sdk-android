@@ -35,14 +35,17 @@ internal val VungleDemandId = DemandId("vungle")
 /**
  * [Vungle Documentation](https://support.vungle.com/hc/en-us/articles/360002922871-Integrate-Vungle-SDK-for-Android-or-Amazon)
  */
+@Suppress("unused")
 class VungleAdapter :
     Adapter.Bidding,
+    Adapter.Network,
     Initializable<VungleParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<VungleBannerAuctionParams>,
     SupportsRegulation,
     AdProvider.Interstitial<VungleFullscreenAuctionParams>,
     AdProvider.Rewarded<VungleFullscreenAuctionParams> {
+
     override val demandId: DemandId = VungleDemandId
     override val adapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
@@ -52,22 +55,23 @@ class VungleAdapter :
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
         VungleAds.getBiddingToken(context)
 
-    override suspend fun init(context: Context, configParams: VungleParameters) = suspendCancellableCoroutine { continuation ->
-        VungleAds.init(
-            context,
-            configParams.appId,
-            object : InitializationListener {
-                override fun onSuccess() {
-                    continuation.resume(Unit)
-                }
+    override suspend fun init(context: Context, configParams: VungleParameters) =
+        suspendCancellableCoroutine { continuation ->
+            VungleAds.init(
+                context,
+                configParams.appId,
+                object : InitializationListener {
+                    override fun onSuccess() {
+                        continuation.resume(Unit)
+                    }
 
-                override fun onError(vungleError: VungleError) {
-                    logError(TAG, "Error while initialization", vungleError)
-                    continuation.resumeWithException(vungleError)
+                    override fun onError(vungleError: VungleError) {
+                        logError(TAG, "Error while initialization", vungleError)
+                        continuation.resumeWithException(vungleError)
+                    }
                 }
-            }
-        )
-    }
+            )
+        }
 
     override fun parseConfigParam(json: String): VungleParameters {
         return VungleParameters(
