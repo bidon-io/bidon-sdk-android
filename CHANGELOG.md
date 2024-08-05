@@ -1,6 +1,8 @@
 # Next 0.7.0-next.2
 ## Features:
 - [BDN-626](https://appodeal.atlassian.net/browse/BDN-626) Integrated VkAds (myTarget) as Ad Adapter
+- [BDN-483](https://appodeal.atlassian.net/browse/BDN-483) Integrated CPM mode for Vungle adapter;
+- [BDN-716](https://appodeal.atlassian.net/browse/BDN-716) Integrated CPM mode for BigoAds adapter;
 
 # Next 0.7.0-next.1
 ## Features:
