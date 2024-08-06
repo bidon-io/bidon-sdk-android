@@ -19,7 +19,8 @@ android {
 }
 
 dependencies {
-    compileOnly(project(":bidon"))
+    compileOnly(projects.bidon)
+    testImplementation(projects.bidon)
 
-    implementation("com.yandex.android:mobileads:5.10.0")
+    implementation("com.yandex.android:mobileads:7.3.0")
 }

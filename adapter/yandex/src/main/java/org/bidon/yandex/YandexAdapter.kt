@@ -26,32 +26,37 @@ import kotlin.coroutines.resume
  */
 internal val YandexDemandId = DemandId("yandex")
 
-class YandexAdapter :
-    Adapter,
+@Suppress("unused")
+internal class YandexAdapter :
+    Adapter.Network,
     Initializable<YandexParameters>,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<YandexBannerAuctionParam>,
     AdProvider.Interstitial<YandexFullscreenAuctionParam>,
     AdProvider.Rewarded<YandexFullscreenAuctionParam> {
+
     override val demandId: DemandId get() = YandexDemandId
     override val adapterInfo: AdapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
     )
 
-    override suspend fun init(context: Context, configParams: YandexParameters) = suspendCancellableCoroutine {
-        MobileAds.enableLogging(isTestMode)
-        MobileAds.initialize(context) {
-            it.resume(Unit)
+    override suspend fun init(context: Context, configParams: YandexParameters) =
+        suspendCancellableCoroutine {
+            MobileAds.enableLogging(isTestMode)
+            MobileAds.initialize(context) { it.resume(Unit) }
         }
-    }
 
-    override fun parseConfigParam(json: String): YandexParameters = YandexParameters
+    override fun parseConfigParam(json: String): YandexParameters = YandexParameters()
 
     override fun updateRegulation(regulation: Regulation) {
-        MobileAds.setUserConsent(regulation.gdprConsent)
-        MobileAds.setAgeRestrictedUser(regulation.coppaApplies)
+        if (regulation.gdprApplies) {
+            MobileAds.setUserConsent(regulation.hasGdprConsent)
+        }
+        if (regulation.coppaApplies) {
+            MobileAds.setAgeRestrictedUser(true)
+        }
     }
 
     override fun banner(): AdSource.Banner<YandexBannerAuctionParam> {
