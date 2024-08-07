@@ -5,9 +5,10 @@ import com.yandex.mobile.ads.common.AdError
 import com.yandex.mobile.ads.common.AdRequestConfiguration
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
-import com.yandex.mobile.ads.interstitial.InterstitialAd
-import com.yandex.mobile.ads.interstitial.InterstitialAdEventListener
-import com.yandex.mobile.ads.interstitial.InterstitialAdLoadListener
+import com.yandex.mobile.ads.rewarded.Reward
+import com.yandex.mobile.ads.rewarded.RewardedAd
+import com.yandex.mobile.ads.rewarded.RewardedAdEventListener
+import com.yandex.mobile.ads.rewarded.RewardedAdLoadListener
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -21,19 +22,16 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.yandex.ext.asBidonAdValue
 import org.bidon.yandex.ext.asBidonError
 
-/**
- * Created by Aleksei Cherniaev on 17/09/2023.
- */
-internal class YandexInterstitialImpl :
-    AdSource.Interstitial<YandexFullscreenAuctionParam>,
+internal class YandexRewardedImpl :
+    AdSource.Rewarded<YandexFullscreenAuctionParam>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl(),
     YandexLoader by singleLoader {
 
-    private var interstitialAd: InterstitialAd? = null
+    private var rewardedAd: RewardedAd? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd != null
+        get() = rewardedAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -49,9 +47,9 @@ internal class YandexInterstitialImpl :
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
 
         val adRequestConfiguration = AdRequestConfiguration.Builder(adUnitId).build()
-        val adLoadListener = object : InterstitialAdLoadListener {
-            override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                this@YandexInterstitialImpl.interstitialAd = interstitialAd
+        val adLoadListener = object : RewardedAdLoadListener {
+            override fun onAdLoaded(rewarded: RewardedAd) {
+                this@YandexRewardedImpl.rewardedAd = rewarded
                 logInfo(TAG, "onAdLoaded: $this")
                 val ad = getAd() ?: return
                 emitEvent(AdEvent.Fill(ad))
@@ -62,12 +60,12 @@ internal class YandexInterstitialImpl :
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
-        requestInterstitialAd(adParams.context, adRequestConfiguration, adLoadListener)
+        requestRewardedAd(adParams.context, adRequestConfiguration, adLoadListener)
     }
 
     override fun show(activity: Activity) {
         if (isAdReadyToShow) {
-            interstitialAd?.setAdEventListener(object : InterstitialAdEventListener {
+            rewardedAd?.setAdEventListener(object : RewardedAdEventListener {
                 override fun onAdShown() {
                     logInfo(TAG, "onAdShown: $this")
                     val ad = getAd() ?: return
@@ -94,24 +92,23 @@ internal class YandexInterstitialImpl :
                 override fun onAdImpression(impressionData: ImpressionData?) {
                     logInfo(TAG, "onAdImpression: $this")
                     val ad = getAd() ?: return
-                    emitEvent(
-                        AdEvent.PaidRevenue(
-                            ad = ad,
-                            adValue = impressionData.asBidonAdValue()
-                        )
-                    )
+                    emitEvent(AdEvent.PaidRevenue(ad = ad, adValue = impressionData.asBidonAdValue()))
+                }
+
+                override fun onRewarded(reward: Reward) {
+                    logInfo(TAG, "onRewarded: $this")
+                    val ad = getAd() ?: return
+                    emitEvent(AdEvent.OnReward(ad = ad, reward = null))
                 }
             })
-            interstitialAd?.show(activity)
-        } else {
-            emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+            rewardedAd?.show(activity)
         }
     }
 
     override fun destroy() {
-        interstitialAd?.setAdEventListener(null)
-        interstitialAd = null
+        rewardedAd?.setAdEventListener(null)
+        rewardedAd = null
     }
 }
 
-private const val TAG = "YandexInterstitialImpl"
+private const val TAG = "YandexRewardedImpl"

@@ -19,6 +19,7 @@ import org.bidon.yandex.impl.YandexBannerAuctionParam
 import org.bidon.yandex.impl.YandexBannerImpl
 import org.bidon.yandex.impl.YandexFullscreenAuctionParam
 import org.bidon.yandex.impl.YandexInterstitialImpl
+import org.bidon.yandex.impl.YandexRewardedImpl
 import kotlin.coroutines.resume
 
 /**
@@ -68,6 +69,6 @@ internal class YandexAdapter :
     }
 
     override fun rewarded(): AdSource.Rewarded<YandexFullscreenAuctionParam> {
-        TODO("Not yet implemented")
+        return YandexRewardedImpl()
     }
 }
