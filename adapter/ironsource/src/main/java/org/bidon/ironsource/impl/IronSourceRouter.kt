@@ -133,5 +133,4 @@ internal sealed interface IronSourceEvent {
     class AdRevenuePaid(override val instanceId: String?, val adValue: AdValue) : IronSourceEvent
 }
 
-
 private const val TAG = "IronSourceRouterImpl"
