@@ -12,7 +12,7 @@ import com.chartboost.sdk.events.ImpressionEvent
 import com.chartboost.sdk.events.RewardEvent
 import com.chartboost.sdk.events.ShowError
 import com.chartboost.sdk.events.ShowEvent
-import org.bidon.chartboost.ext.asBidonCacheError
+import org.bidon.chartboost.ext.asBidonLoadError
 import org.bidon.chartboost.ext.asBidonShowError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -52,16 +52,16 @@ internal class ChartboostRewardedAdImpl :
                     emitEvent(AdEvent.Fill(ad))
                 } else {
                     logInfo(TAG, "onAdFailed $event $error")
-                    emitEvent(AdEvent.LoadFailed(error.asBidonCacheError()))
+                    emitEvent(AdEvent.LoadFailed(error.asBidonLoadError()))
                 }
             }
 
             override fun onAdRequestedToShow(event: ShowEvent) {
-                logInfo(TAG, "Ad requested to show $event")
+                logInfo(TAG, "onAdRequestedToShow $event")
             }
 
             override fun onAdShown(event: ShowEvent, error: ShowError?) {
-                logInfo(TAG, "Ad shown $event")
+                logInfo(TAG, "onAdShown $event")
                 if (error == null) {
                     val ad = getAd() ?: return
                     emitEvent(AdEvent.Shown(ad))
@@ -71,19 +71,19 @@ internal class ChartboostRewardedAdImpl :
             }
 
             override fun onAdClicked(event: ClickEvent, error: ClickError?) {
-                logInfo(TAG, "Ad clicked $event")
+                logInfo(TAG, "onAdClicked $event")
                 val ad = getAd() ?: return
                 emitEvent(AdEvent.Clicked(ad))
             }
 
             override fun onAdDismiss(event: DismissEvent) {
-                logInfo(TAG, "Ad dismissed $event")
+                logInfo(TAG, "onAdDismiss $event")
                 val ad = getAd() ?: return
                 emitEvent(AdEvent.Closed(ad))
             }
 
             override fun onImpressionRecorded(event: ImpressionEvent) {
-                logInfo(TAG, "Impression recorded $event")
+                logInfo(TAG, "onImpressionRecorded $event")
                 val ad = getAd() ?: return
                 emitEvent(
                     AdEvent.PaidRevenue(
@@ -98,7 +98,7 @@ internal class ChartboostRewardedAdImpl :
             }
 
             override fun onRewardEarned(event: RewardEvent) {
-                logInfo(TAG, "Reward earned $event")
+                logInfo(TAG, "onRewardEarned $event")
                 val ad = getAd() ?: return
                 emitEvent(AdEvent.OnReward(ad = ad, reward = null))
             }
