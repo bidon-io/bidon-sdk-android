@@ -20,7 +20,6 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.vungle.VungleFullscreenAuctionParams
 import org.bidon.vungle.ext.asBidonError
 
 /**
@@ -47,44 +46,25 @@ internal class VungleRewardedImpl :
 
     override fun load(adParams: VungleFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        adParams.placementId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
-                )
-            )
-            return
-        }
-        if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.payload ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
-                    )
-                )
-                return
-            }
-        }
-        val rewardedAd = RewardedAd(adParams.activity, adParams.placementId, AdConfig()).also {
-            this.rewardedAd = it
-        }
+        val placementId = adParams.placementId
+            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
+
+        val rewardedAd = RewardedAd(adParams.activity, placementId, AdConfig())
+            .also { rewardedAd = it }
         rewardedAd.adListener = object : RewardedAdListener {
             override fun onAdLoaded(baseAd: BaseAd) {
-                val ad = getAd()
-                if (ad != null) {
-                    emitEvent(AdEvent.Fill(ad))
-                } else {
-                    emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
-                }
+                logInfo(TAG, "onAdLoaded placementId=${baseAd.placementId}. $this")
+                val ad = getAd() ?: return
+                emitEvent(AdEvent.Fill(ad))
             }
 
             override fun onAdFailedToLoad(baseAd: BaseAd, adError: VungleError) {
-                logError(TAG, "onError placementId=${baseAd.placementId}. $this", null)
+                logError(TAG, "onAdFailedToLoad placementId=${baseAd.placementId}. $this", adError)
                 emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
             }
 
             override fun onAdClicked(baseAd: BaseAd) {
-                logInfo(TAG, "onAdClick: $this")
+                logInfo(TAG, "onAdClicked: $this")
                 val ad = getAd() ?: return
                 emitEvent(AdEvent.Clicked(ad))
             }
@@ -96,7 +76,7 @@ internal class VungleRewardedImpl :
             }
 
             override fun onAdFailedToPlay(baseAd: BaseAd, adError: VungleError) {
-                logError(TAG, "onAdError: $this", adError)
+                logError(TAG, "onAdFailedToPlay: $this", adError)
                 emitEvent(AdEvent.ShowFailed(adError.asBidonError()))
             }
 
@@ -113,7 +93,11 @@ internal class VungleRewardedImpl :
             }
 
             override fun onAdLeftApplication(baseAd: BaseAd) {
-                logInfo(TAG, "onAdViewed: $this")
+                logInfo(TAG, "onAdLeftApplication: $this")
+            }
+
+            override fun onAdImpression(baseAd: BaseAd) {
+                logInfo(TAG, "onAdImpression: $this")
                 val ad = getAd() ?: return
                 emitEvent(
                     AdEvent.PaidRevenue(
@@ -126,10 +110,14 @@ internal class VungleRewardedImpl :
                     )
                 )
             }
-
-            override fun onAdImpression(baseAd: BaseAd) {}
         }
-        rewardedAd.load(adParams.payload)
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            val payload = adParams.payload
+                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+            rewardedAd.load(payload)
+        } else {
+            rewardedAd.load(adParams.payload)
+        }
     }
 
     override fun show(activity: Activity) {
