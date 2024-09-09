@@ -13,7 +13,6 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
@@ -21,12 +20,14 @@ import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.models.BiddingResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
+import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.asRoundStatus
 import java.util.LinkedList
 
 internal class ExecuteAuctionUseCaseImpl(
@@ -37,7 +38,7 @@ internal class ExecuteAuctionUseCaseImpl(
 
     private var adUnitQueue: LinkedList<AdUnit> = LinkedList()
 
-    override suspend fun execute(
+    override suspend fun invoke(
         auctionId: String,
         auctionConfigurationId: Long,
         auctionConfigurationUid: String,
@@ -73,12 +74,12 @@ internal class ExecuteAuctionUseCaseImpl(
                             "Request was skipped since the priceFloor: $pricefloor is less than " +
                                 "the next requested adUnit: ${adUnit.pricefloor}"
                         )
-                        addResult(
-                            resultsCollector = resultsCollector,
-                            auctionResult = getBelowPriceFloorResult(
+                        adUnitQueue.remove()
+                        resultsCollector.add(
+                            getBelowPriceFloorResult(
                                 adUnit = adUnit,
-                                tokenInfo = tokenInfo,
-                            ),
+                                tokenInfo = tokenInfo
+                            )
                         )
                         continue
                     }
@@ -115,28 +116,18 @@ internal class ExecuteAuctionUseCaseImpl(
                             adTypeParam = adTypeParam,
                             adUnit = adUnit,
                             priceFloor = pricefloor,
-                        )
-
-                        addResult(
-                            resultsCollector = resultsCollector,
-                            auctionResult = auctionResult
-                        )
+                        ).also {
+                            resultsCollector.add(it)
+                        }
 
                         val nextRequested = adUnitQueue.poll()
                         if (auctionResult.roundStatus == RoundStatus.Successful &&
-                            !shouldRequestNext(
-                                    auctionResult = auctionResult,
-                                    next = nextRequested
-                                )
+                            !shouldRequestNext(auctionResult = auctionResult, next = nextRequested)
                         ) {
-                            logInfo(
-                                TAG,
-                                "Request was skipped since the filled eCPM larger than the next one"
-                            )
+                            logInfo(TAG, "Request was skipped since the filled eCPM larger than the next one")
                             adUnitQueue.forEach {
-                                addResult(
-                                    resultsCollector = resultsCollector,
-                                    auctionResult = getBelowPriceFloorResult(
+                                resultsCollector.add(
+                                    getBelowPriceFloorResult(
                                         adUnit = it,
                                         tokenInfo = tokens[it.demandId]
                                     )
@@ -146,9 +137,8 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                     } else {
                         adUnitQueue.remove()
-                        addResult(
-                            resultsCollector = resultsCollector,
-                            auctionResult = AuctionResult.AuctionFailed(
+                        resultsCollector.add(
+                            AuctionResult.AuctionFailed(
                                 adUnit = adUnit,
                                 roundStatus = RoundStatus.UnknownAdapter,
                                 tokenInfo = tokens[adUnit.demandId]
@@ -176,16 +166,11 @@ internal class ExecuteAuctionUseCaseImpl(
                 )
                 logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
             }
-        }.getOrElse {
-            val status = if (it is AuctionCancellation) {
-                RoundStatus.AuctionCancelled
-            } else {
-                RoundStatus.UnspecifiedException(it.message)
-            }
+        }.onFailure {
             finishWithStatus(
                 tokens = tokens,
                 resultsCollector = resultsCollector,
-                status = status
+                status = it.asBidonErrorOrUnspecified().asRoundStatus()
             )
             logError(TAG, "Failed to execute auction", it)
         }
@@ -197,27 +182,14 @@ internal class ExecuteAuctionUseCaseImpl(
         status: RoundStatus
     ) {
         adUnitQueue.forEach {
-            addResult(
-                resultsCollector = resultsCollector,
-                auctionResult = AuctionResult.AuctionFailed(
+            resultsCollector.add(
+                AuctionResult.AuctionFailed(
                     adUnit = it,
                     roundStatus = status,
                     tokenInfo = tokens?.get(it.demandId)
                 )
             )
         }
-    }
-
-    private fun addResult(
-        resultsCollector: ResultsCollector,
-        auctionResult: AuctionResult
-    ) {
-        resultsCollector.add(auctionResult)
-    }
-
-    // TODO solution to receive tokens
-    override fun cancel(resultsCollector: ResultsCollector) {
-        finishWithStatus(null, resultsCollector, RoundStatus.AuctionCancelled)
     }
 
     private fun getBelowPriceFloorResult(adUnit: AdUnit, tokenInfo: TokenInfo?): AuctionResult {

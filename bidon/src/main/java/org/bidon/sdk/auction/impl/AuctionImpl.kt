@@ -42,7 +42,7 @@ import java.util.UUID
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val auctionExecutable: ExecuteAuctionUseCase,
+    private val executeAuction: ExecuteAuctionUseCase,
     private val auctionStat: AuctionStat,
     private val tokenGetter: GetTokensUseCase,
     private val biddingConfig: BiddingConfig,
@@ -112,42 +112,43 @@ internal class AuctionImpl(
                             tokens = tokens,
                         )
                         if (results.isEmpty()) {
-                            onFailure(auctionInfo, BidonError.NoAuctionResults)
+                            adTypeParam.activity.runOnUiThread {
+                                onFailure(auctionInfo, BidonError.NoAuctionResults)
+                            }
                         } else {
                             adTypeParam.activity.runOnUiThread {
                                 onSuccess(results, auctionInfo)
                             }
                         }
                     }.onFailure { cause ->
-                        logError(TAG, "Auction failed during AuctionRequest", cause)
-                        auctionResultAfterFailed(adTypeParam, onFailure, cause)
+                        logError(TAG, "Auction failed during execution", cause)
+                        processAuctionFailed(adTypeParam, onFailure, cause)
                     }
                 }.onFailure { cause ->
-                    auctionResultAfterFailed(adTypeParam, onFailure, cause)
                     logError(TAG, "Auction failed", cause)
+                    processAuctionFailed(adTypeParam, onFailure, cause)
                 }
             }
         }
     }
 
-    private suspend fun auctionResultAfterFailed(
+    private suspend fun processAuctionFailed(
         adTypeParam: AdTypeParam,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
         cause: Throwable
     ) {
-        _auctionDataResponse?.let {
-            val statResult = proceedRoundResults()
-            val auctionInfo = getAuctionInfo(
-                auctionData = it,
-                statResult = statResult
-            )
-            printStatsData(it, statResult, auctionInfo)
-            adTypeParam.activity.runOnUiThread {
-                onFailure(auctionInfo, cause)
-            }
-        } ?: {
+        val statResult = proceedRoundResults()
+        val auctionData = _auctionDataResponse
+        if (auctionData == null) {
+            logInfo(TAG, "No auction data response info.")
             adTypeParam.activity.runOnUiThread {
                 onFailure(null, cause)
+            }
+        } else {
+            val auctionInfo = getAuctionInfo(auctionData, statResult)
+            printStatsData(auctionData, statResult, auctionInfo)
+            adTypeParam.activity.runOnUiThread {
+                onFailure(auctionInfo, cause)
             }
         }
         // Finish auction
@@ -159,22 +160,23 @@ internal class AuctionImpl(
         logInfo(TAG, "Trying to cancel auction. Is active: ${job?.isActive}")
         if (job?.isActive == true) {
             job?.cancel(AuctionCancellation())
+            auctionStat.markAuctionCanceled()
+            logInfo(TAG, "Auction canceled")
         }
         job = null
     }
 
-    private fun getAuctionInfo(
-        auctionData: AuctionResponse,
-        statResult: RoundStat?
-    ) = AuctionInfo(
-        auctionId = auctionData.auctionId,
-        auctionConfigurationId = auctionData.auctionConfigurationId,
-        auctionConfigurationUid = auctionData.auctionConfigurationUid,
-        auctionPricefloor = auctionData.pricefloor,
-        auctionTimeout = auctionData.auctionTimeout,
-        noBids = statResult?.noBids?.map { it.toAuctionNoBidInfo() },
-        adUnits = statResult?.demands?.map { it.toAuctionInfo() },
-    )
+    private fun getAuctionInfo(auctionData: AuctionResponse, statResult: RoundStat?): AuctionInfo {
+        return AuctionInfo(
+            auctionId = auctionData.auctionId,
+            auctionConfigurationId = auctionData.auctionConfigurationId,
+            auctionConfigurationUid = auctionData.auctionConfigurationUid,
+            auctionPricefloor = auctionData.pricefloor,
+            auctionTimeout = auctionData.auctionTimeout,
+            noBids = statResult?.noBids?.map { it.toAuctionNoBidInfo() },
+            adUnits = statResult?.demands?.map { it.toAuctionInfo() },
+        )
+    }
 
     private suspend fun conductAuction(
         auctionData: AuctionResponse,
@@ -186,7 +188,7 @@ internal class AuctionImpl(
         _demandAd = demandAd
         val auctionPriceFloor = auctionData.pricefloor
         // Start auction
-        auctionExecutable.execute(
+        executeAuction(
             auctionId = auctionData.auctionId,
             auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
             auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
@@ -258,7 +260,7 @@ internal class AuctionImpl(
     }
 
     private fun clearData() {
-        resultsCollector.clearRoundResults()
+        logInfo(TAG, "Clearing data")
         resultsCollector.clear()
         _auctionDataResponse = null
     }

@@ -7,12 +7,9 @@ import org.bidon.sdk.config.BidonError
  * Created by Bidon Team on 16/02/2023.
  */
 internal fun Throwable.asBidonErrorOrUnspecified(): BidonError {
-    return when {
-        this is BidonError -> this
-        this is AuctionCancellation -> BidonError.AuctionCancelled
-        else -> BidonError.Unspecified(
-            demandId = null,
-            sourceError = this
-        )
+    return when (this) {
+        is BidonError -> this
+        is AuctionCancellation -> BidonError.AuctionCancelled
+        else -> BidonError.Unspecified(demandId = null, sourceError = this)
     }
 }
