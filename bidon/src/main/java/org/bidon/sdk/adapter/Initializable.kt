@@ -6,6 +6,7 @@ import android.content.Context
  * Created by Bidon Team on 07/09/2023.
  */
 interface Initializable<T : AdapterParameters> {
+    fun isInitialized(context: Context): Boolean
     suspend fun init(context: Context, configParams: T)
     fun parseConfigParam(json: String): T
 }

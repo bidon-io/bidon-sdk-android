@@ -23,6 +23,8 @@ internal class TestBiddingAdapter(
 
     override val adapterInfo = AdapterInfo(adapterVersion = "adapterVersion1", sdkVersion = "sdkVersion1")
 
+    override fun isInitialized(context: Context) = true
+
     override suspend fun init(context: Context, configParams: TestAdapterParameters) {
         // do nothing, init emulation
     }

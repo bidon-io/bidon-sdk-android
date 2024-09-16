@@ -25,6 +25,8 @@ internal class TestInitAdapter(
     override val adapterInfo: AdapterInfo =
         AdapterInfo(adapterVersion = "${name}AdapterVersion1", sdkVersion = "${name}SdkVersion1")
 
+    override fun isInitialized(context: Context): Boolean = true
+
     override suspend fun init(context: Context, configParams: TestInitAdapterParameters) = coroutineScope {
         delay(initializationTime)
         suspendCoroutine {

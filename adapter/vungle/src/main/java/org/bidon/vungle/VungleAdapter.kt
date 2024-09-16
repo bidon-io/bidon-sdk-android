@@ -57,6 +57,8 @@ internal class VungleAdapter :
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
         VungleAds.getBiddingToken(context)
 
+    override fun isInitialized(context: Context) = VungleAds.isInitialized()
+
     override suspend fun init(context: Context, configParams: VungleParameters) =
         suspendCancellableCoroutine { continuation ->
             VungleAds.init(

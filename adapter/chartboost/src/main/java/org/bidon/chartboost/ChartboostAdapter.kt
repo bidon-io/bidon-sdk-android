@@ -59,6 +59,8 @@ internal class ChartboostAdapter :
         )
     }
 
+    override fun isInitialized(context: Context): Boolean = Chartboost.isSdkStarted()
+
     override suspend fun init(context: Context, configParams: ChartboostParams) =
         suspendCancellableCoroutine { continuation ->
             this.context = context.applicationContext

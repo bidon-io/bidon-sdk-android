@@ -25,6 +25,7 @@ import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.regulation.Regulation
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -37,7 +38,8 @@ val MobileFuseDemandId = DemandId("mobilefuse")
 /**
  * [MobileFuse Documentation](https://docs.mobilefuse.com/docs/android-interstitial-ads)
  */
-class MobileFuseAdapter :
+@Suppress("unused")
+internal class MobileFuseAdapter :
     Adapter.Bidding,
     Initializable<MobileFuseParams>,
     SupportsRegulation,
@@ -54,11 +56,14 @@ class MobileFuseAdapter :
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
         GetMobileFuseTokenUseCase(context, isTestMode)
 
+    override fun isInitialized(context: Context): Boolean = isInitialized.get()
+
     override suspend fun init(context: Context, configParams: MobileFuseParams) = suspendCoroutine { continuation ->
         MobileFuseSettings.setTestMode(isTestMode)
         MobileFuse.init(
             object : SdkInitListener {
                 override fun onInitSuccess() {
+                    isInitialized.set(true)
                     return continuation.resume(Unit)
                 }
 
@@ -89,3 +94,5 @@ class MobileFuseAdapter :
         return MobileFuseRewardedAdImpl()
     }
 }
+
+private val isInitialized: AtomicBoolean = AtomicBoolean(false)

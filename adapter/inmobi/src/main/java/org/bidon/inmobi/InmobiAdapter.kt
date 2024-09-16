@@ -38,7 +38,8 @@ import kotlin.coroutines.suspendCoroutine
  */
 internal val InmobiDemandId = DemandId("inmobi")
 
-class InmobiAdapter :
+@Suppress("unused")
+internal class InmobiAdapter :
     Adapter.Network,
     Initializable<InmobiParams>,
     SupportsRegulation,
@@ -53,6 +54,8 @@ class InmobiAdapter :
             adapterVersion = adapterVersion,
             sdkVersion = sdkVersion
         )
+
+    override fun isInitialized(context: Context): Boolean = InMobiSdk.isSDKInitialized()
 
     override suspend fun init(context: Context, configParams: InmobiParams) = withContext(Dispatchers.Main.immediate) {
         suspendCoroutine {

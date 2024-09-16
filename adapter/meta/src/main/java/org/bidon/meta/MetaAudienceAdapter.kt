@@ -35,7 +35,8 @@ import kotlin.coroutines.suspendCoroutine
  */
 val MetaDemandId = DemandId("meta")
 
-class MetaAudienceAdapter :
+@Suppress("unused")
+internal class MetaAudienceAdapter :
     Adapter.Bidding,
     SupportsRegulation,
     SupportsTestMode by SupportsTestModeImpl(),
@@ -49,8 +50,10 @@ class MetaAudienceAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String =
         BidderTokenProvider.getBidderToken(context)
+
+    override fun isInitialized(context: Context): Boolean = AudienceNetworkAds.isInitialized(context)
 
     override suspend fun init(context: Context, configParams: MetaParams) = suspendCoroutine {
         if (isTestMode) {

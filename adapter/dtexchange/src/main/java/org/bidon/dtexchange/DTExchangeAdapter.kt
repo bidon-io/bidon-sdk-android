@@ -35,7 +35,8 @@ val DTExchangeDemandId = DemandId("dtexchange")
 /**
  * [Documentation](https://developer.digitalturbine.com/hc/en-us/articles/360019744297-Android-Ad-Formats)
  */
-class DTExchangeAdapter :
+@Suppress("unused")
+internal class DTExchangeAdapter :
     Adapter.Network,
     SupportsRegulation,
     Initializable<DTExchangeParameters>,
@@ -47,6 +48,8 @@ class DTExchangeAdapter :
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
     )
+
+    override fun isInitialized(context: Context): Boolean = InneractiveAdManager.wasInitialized()
 
     override suspend fun init(context: Context, configParams: DTExchangeParameters) =
         suspendCoroutine { continuation ->

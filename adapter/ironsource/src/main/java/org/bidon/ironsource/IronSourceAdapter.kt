@@ -29,6 +29,7 @@ import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal val IronSourceDemandId = DemandId("ironsource")
 
@@ -53,6 +54,8 @@ internal class IronSourceAdapter :
             appKey = JSONObject(json).getString("app_key")
         )
     }
+
+    override fun isInitialized(context: Context): Boolean = isInitialized.get()
 
     override suspend fun init(context: Context, configParams: IronSourceParameters) =
         suspendCancellableCoroutine { continuation ->
@@ -83,6 +86,7 @@ internal class IronSourceAdapter :
                 object : InitListener {
                     override fun onInitSuccess() {
                         logInfo(TAG, "IronSource SDK initialized successfully")
+                        isInitialized.set(true)
                         continuation.resumeWith(Result.success(Unit))
                     }
 
@@ -129,3 +133,4 @@ internal class IronSourceAdapter :
 }
 
 private const val TAG = "IronSourceAdapter"
+private val isInitialized: AtomicBoolean = AtomicBoolean(false)

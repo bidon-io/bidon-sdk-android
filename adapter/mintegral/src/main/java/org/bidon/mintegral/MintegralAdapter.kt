@@ -3,6 +3,7 @@ package org.bidon.mintegral
 import android.app.Application
 import android.content.Context
 import com.mbridge.msdk.MBridgeConstans
+import com.mbridge.msdk.MBridgeSDK.PLUGIN_LOAD_STATUS
 import com.mbridge.msdk.mbbid.out.BidManager
 import com.mbridge.msdk.out.MBridgeSDKFactory
 import com.mbridge.msdk.out.SDKInitStatusListener
@@ -55,6 +56,8 @@ internal class MintegralAdapter :
 
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String =
         BidManager.getBuyerUid(context)
+
+    override fun isInitialized(context: Context): Boolean = MBridgeSDKFactory.getMBridgeSDK().status == PLUGIN_LOAD_STATUS.COMPLETED
 
     override suspend fun init(context: Context, configParams: MintegralInitParam) {
         withContext(SdkDispatchers.Main) {

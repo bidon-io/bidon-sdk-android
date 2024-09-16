@@ -11,6 +11,7 @@ import org.bidon.gam.impl.GetTokenUseCase
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.auction.AdTypeParam
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -20,7 +21,7 @@ val GamDemandId = DemandId("gam")
  * [Google Ad Manager](https://developers.google.com/ad-manager/mobile-ads-sdk/android/quick-start)
  */
 @Suppress("unused")
-class GamAdapter :
+internal class GamAdapter :
     Adapter.Bidding,
     Initializable<GamInitParameters>,
     AdProvider.Banner<GamBannerAuctionParams>,
@@ -36,8 +37,10 @@ class GamAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
         obtainToken(context, adTypeParam)
+
+    override fun isInitialized(context: Context): Boolean = isInitialized.get()
 
     override suspend fun init(context: Context, configParams: GamInitParameters): Unit = suspendCoroutine { continuation ->
         // Since Bidon is the mediator, no need to initialize Google Bidding's partner SDKs.
@@ -49,6 +52,7 @@ class GamAdapter :
          * Manage refresh rate with [BannerView.startAutoRefresh].
          */
         MobileAds.initialize(context) {
+            isInitialized.set(true)
             continuation.resume(Unit)
         }
     }
@@ -73,3 +77,5 @@ class GamAdapter :
         )
     }
 }
+
+private val isInitialized: AtomicBoolean = AtomicBoolean(false)

@@ -38,7 +38,8 @@ import kotlin.coroutines.suspendCoroutine
  */
 internal val AmazonDemandId = DemandId("amazon")
 
-class AmazonAdapter :
+@Suppress("unused")
+internal class AmazonAdapter :
     Adapter.Bidding,
     Initializable<AmazonParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
@@ -83,12 +84,16 @@ class AmazonAdapter :
         )
     }
 
+    override fun isInitialized(context: Context): Boolean = AdRegistration.isInitialized()
+
     override suspend fun init(context: Context, configParams: AmazonParameters) = suspendCoroutine { continuation ->
         if (isTestMode) {
             AdRegistration.enableTesting(true)
         }
         AdRegistration.enableLogging(BidonSdk.loggerLevel in arrayOf(Logger.Level.Verbose, Logger.Level.Error))
 
+        // TODO: 16/09/2024 [glavatskikh] we need to pass activity to AdRegistration.getInstance
+        //  for correct initialization com.amazon.device.ads.ActivityMonitor
         AdRegistration.getInstance(configParams.appKey, context)
         slots = configParams.slots
         AdRegistration.setMRAIDSupportedVersions(arrayOf("1.0", "2.0", "3.0"))

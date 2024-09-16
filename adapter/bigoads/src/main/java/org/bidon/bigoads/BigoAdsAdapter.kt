@@ -53,8 +53,10 @@ internal class BigoAdsAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
         BigoAdSdk.getBidderToken()
+
+    override fun isInitialized(context: Context): Boolean = BigoAdSdk.isInitialized()
 
     override suspend fun init(context: Context, configParams: BigoAdsParameters) = suspendCoroutine { continuation ->
         this.context = context

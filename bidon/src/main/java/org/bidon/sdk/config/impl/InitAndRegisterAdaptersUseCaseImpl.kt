@@ -131,12 +131,16 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                     if (initializable == null) {
                         adapter
                     } else {
-                        val measuredTime = measureTimeMillis {
-                            val adapterParameters =
-                                parseAdapterParameters(configResponse, adapter).getOrThrow()
-                            adapter.init(context, adapterParameters)
+                        if (adapter.isInitialized(context)) {
+                            logInfo(TAG, "Adapter $demandId already initialized.")
+                        } else {
+                            val measuredTime = measureTimeMillis {
+                                val adapterParameters =
+                                    parseAdapterParameters(configResponse, adapter).getOrThrow()
+                                adapter.init(context, adapterParameters)
+                            }
+                            logInfo(TAG, "Adapter $demandId initialized in $measuredTime ms.")
                         }
-                        logInfo(TAG, "Adapter ${demandId.demandId} initialized in $measuredTime ms.")
                     }
                 }.onSuccess {
                     /**

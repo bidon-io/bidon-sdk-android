@@ -23,7 +23,7 @@ internal typealias BidMachineBannerSize = io.bidmachine.banner.BannerSize
 internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 
 @Suppress("unused")
-class BidMachineAdapter :
+internal class BidMachineAdapter :
     Adapter.Bidding,
     Adapter.Network,
     SupportsRegulation,
@@ -41,8 +41,10 @@ class BidMachineAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String =
         BidMachine.getBidToken(context)
+
+    override fun isInitialized(context: Context): Boolean = BidMachine.isInitialized()
 
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
         suspendCoroutine { continuation ->

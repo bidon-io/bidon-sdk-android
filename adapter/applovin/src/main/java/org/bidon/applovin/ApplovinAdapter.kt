@@ -20,7 +20,7 @@ import kotlin.coroutines.suspendCoroutine
 val ApplovinDemandId = DemandId("applovin")
 
 @Suppress("unused")
-class ApplovinAdapter :
+internal class ApplovinAdapter :
     Adapter.Network,
     SupportsRegulation,
     Initializable<ApplovinParameters>,
@@ -37,14 +37,13 @@ class ApplovinAdapter :
         sdkVersion = sdkVersion
     )
 
+    override fun isInitialized(context: Context): Boolean = applovinSdk != null && applovinSdk?.isInitialized == true
+
     override suspend fun init(context: Context, configParams: ApplovinParameters): Unit =
         suspendCoroutine { continuation ->
             this.context = context
-            val instance =
-                AppLovinSdk.getInstance(configParams.key, AppLovinSdkSettings(context), context)
-                    .also {
-                        applovinSdk = it
-                    }
+            val instance = AppLovinSdk.getInstance(configParams.key, AppLovinSdkSettings(context), context)
+                .also { applovinSdk = it }
             instance.settings.setVerboseLogging(BidonSdk.loggerLevel != Logger.Level.Off)
             if (!instance.isInitialized) {
                 instance.initializeSdk {

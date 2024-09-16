@@ -44,6 +44,8 @@ internal class VkAdsAdapter :
     override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
         MyTargetManager.getBidderToken(context)
 
+    override fun isInitialized(context: Context) = MyTargetManager.isSdkInitialized()
+
     override suspend fun init(context: Context, configParams: VkAdsParameters) {
         MyTargetManager.setDebugMode(isTestMode)
         MyTargetManager.initSdk(context)

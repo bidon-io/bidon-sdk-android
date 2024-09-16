@@ -20,6 +20,7 @@ import org.bidon.yandex.impl.YandexBannerImpl
 import org.bidon.yandex.impl.YandexFullscreenAuctionParam
 import org.bidon.yandex.impl.YandexInterstitialImpl
 import org.bidon.yandex.impl.YandexRewardedImpl
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 /**
@@ -43,10 +44,15 @@ internal class YandexAdapter :
         sdkVersion = sdkVersion
     )
 
+    override fun isInitialized(context: Context) = isInitialized.get()
+
     override suspend fun init(context: Context, configParams: YandexParameters) =
         suspendCancellableCoroutine {
             MobileAds.enableLogging(isTestMode)
-            MobileAds.initialize(context) { it.resume(Unit) }
+            MobileAds.initialize(context) {
+                isInitialized.set(true)
+                it.resume(Unit)
+            }
         }
 
     override fun parseConfigParam(json: String): YandexParameters = YandexParameters()
@@ -72,3 +78,5 @@ internal class YandexAdapter :
         return YandexRewardedImpl()
     }
 }
+
+private val isInitialized: AtomicBoolean = AtomicBoolean(false)

@@ -11,13 +11,14 @@ import org.bidon.admob.impl.GetTokenUseCase
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.auction.AdTypeParam
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 val AdmobDemandId = DemandId("admob")
 
 @Suppress("unused")
-class AdmobAdapter :
+internal class AdmobAdapter :
     Adapter.Bidding,
     Initializable<AdmobInitParameters>,
     AdProvider.Banner<AdmobBannerAuctionParams>,
@@ -33,8 +34,10 @@ class AdmobAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam) =
+    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? =
         obtainToken?.let { it(context, adTypeParam) }
+
+    override fun isInitialized(context: Context): Boolean = isInitialized.get()
 
     override suspend fun init(context: Context, configParams: AdmobInitParameters): Unit = suspendCoroutine { continuation ->
         // Since Bidon is the mediator, no need to initialize Google Bidding's partner SDKs.
@@ -46,6 +49,7 @@ class AdmobAdapter :
          * Don't forget to disable automatic refresh for each AdUnit on the AdMob website.
          */
         MobileAds.initialize(context) {
+            isInitialized.set(true)
             continuation.resume(Unit)
         }
     }
@@ -70,3 +74,5 @@ class AdmobAdapter :
         )
     }
 }
+
+private val isInitialized: AtomicBoolean = AtomicBoolean(false)
