@@ -38,7 +38,8 @@ import kotlin.coroutines.suspendCoroutine
  */
 internal val AmazonDemandId = DemandId("amazon")
 
-class AmazonAdapter :
+@Suppress("unused")
+internal class AmazonAdapter :
     Adapter.Bidding,
     Initializable<AmazonParameters>,
     SupportsTestMode by SupportsTestModeImpl(),
@@ -78,23 +79,33 @@ class AmazonAdapter :
         return AmazonParameters(
             appKey = jsonObject.getString("app_key"),
             slots = ParseSlotsUseCase()(jsonObject).also {
-                logInfo("AmazonAdapter", "Parsed slots: $it")
+                logInfo(TAG, "Parsed slots: $it")
             }
         )
     }
 
-    override suspend fun init(context: Context, configParams: AmazonParameters) = suspendCoroutine { continuation ->
-        if (isTestMode) {
-            AdRegistration.enableTesting(true)
-        }
-        AdRegistration.enableLogging(BidonSdk.loggerLevel in arrayOf(Logger.Level.Verbose, Logger.Level.Error))
+    override suspend fun init(context: Context, configParams: AmazonParameters) =
+        suspendCoroutine { continuation ->
+            this.slots = configParams.slots
 
-        AdRegistration.getInstance(configParams.appKey, context)
-        slots = configParams.slots
-        AdRegistration.setMRAIDSupportedVersions(arrayOf("1.0", "2.0", "3.0"))
-        AdRegistration.setMRAIDPolicy(MRAIDPolicy.CUSTOM)
-        continuation.resume(Unit)
-    }
+            AdRegistration.enableTesting(isTestMode)
+            AdRegistration.enableLogging(BidonSdk.loggerLevel in arrayOf(Logger.Level.Verbose, Logger.Level.Error))
+
+            if (AdRegistration.isInitialized()) {
+                logInfo(TAG, "Amazon SDK is already initialized")
+                continuation.resume(Unit)
+            } else {
+                logInfo(TAG, "Initializing Amazon SDK")
+                // TODO: 16/09/2024 [glavatskikh] we need to pass activity to AdRegistration.getInstance
+                //  for correct initialization com.amazon.device.ads.ActivityMonitor
+                // Initialize Amazon SDK
+                AdRegistration.getInstance(configParams.appKey, context)
+
+                AdRegistration.setMRAIDSupportedVersions(arrayOf("1.0", "2.0", "3.0"))
+                AdRegistration.setMRAIDPolicy(MRAIDPolicy.CUSTOM)
+                continuation.resume(Unit)
+            }
+        }
 
     override fun banner(): AdSource.Banner<BannerAuctionParams> {
         return AmazonBannerImpl(amazonInfos)
@@ -108,3 +119,5 @@ class AmazonAdapter :
         return AmazonRewardedImpl(amazonInfos)
     }
 }
+
+private const val TAG = "AmazonAdapter"
