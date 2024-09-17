@@ -56,7 +56,7 @@ internal class AmazonAdapter :
         sdkVersion = sdkVersion
     )
 
-    override suspend fun getToken(context: Context, adTypeParam: AdTypeParam): String? {
+    override suspend fun getToken(adTypeParam: AdTypeParam): String? {
         val amazonInfo = obtainToken(slots, adTypeParam).takeIf { it.isNotEmpty() }?.also {
             this.amazonInfos.addAll(it)
         } ?: return null
