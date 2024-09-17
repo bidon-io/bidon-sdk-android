@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-val GamDemandId = DemandId("gam")
+internal val GamDemandId = DemandId("gam")
 
 /**
  * [Google Ad Manager](https://developers.google.com/ad-manager/mobile-ads-sdk/android/quick-start)

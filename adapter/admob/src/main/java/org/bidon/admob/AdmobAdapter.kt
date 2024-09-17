@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-val AdmobDemandId = DemandId("admob")
+internal val AdmobDemandId = DemandId("admob")
 
 @Suppress("unused")
 internal class AdmobAdapter :

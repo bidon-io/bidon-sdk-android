@@ -61,10 +61,6 @@ internal class IronSourceAdapter :
         suspendCancellableCoroutine { continuation ->
             IronSource.setAdaptersDebug(isTestMode)
 
-            // Verify the integration
-            // TODO: 08/08/2024 [glavatskikh] remove this check in production
-            IntegrationHelper.validateIntegration(context)
-
             // Set the IronSource callbacks router
             IronSource.setISDemandOnlyInterstitialListener(ironSourceRouter)
             IronSource.setISDemandOnlyRewardedVideoListener(ironSourceRouter)

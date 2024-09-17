@@ -17,7 +17,7 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-val ApplovinDemandId = DemandId("applovin")
+internal val ApplovinDemandId = DemandId("applovin")
 
 @Suppress("unused")
 internal class ApplovinAdapter :
@@ -37,7 +37,7 @@ internal class ApplovinAdapter :
         sdkVersion = sdkVersion
     )
 
-    override fun isInitialized(context: Context): Boolean = applovinSdk != null && applovinSdk?.isInitialized == true
+    override fun isInitialized(context: Context): Boolean = applovinSdk?.isInitialized == true
 
     override suspend fun init(context: Context, configParams: ApplovinParameters): Unit =
         suspendCoroutine { continuation ->
@@ -62,32 +62,28 @@ internal class ApplovinAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        if (regulation.gdprApplies) {
-            AppLovinPrivacySettings.setHasUserConsent(regulation.hasGdprConsent, context)
-        }
-        if (regulation.ccpaApplies) {
-            AppLovinPrivacySettings.setDoNotSell(!regulation.hasCcpaConsent, context)
-        }
-        if (regulation.coppaApplies) {
-            AppLovinPrivacySettings.setIsAgeRestrictedUser(true, context)
+        context?.let { context ->
+            if (regulation.gdprApplies) {
+                AppLovinPrivacySettings.setHasUserConsent(regulation.hasGdprConsent, context)
+            }
+            if (regulation.ccpaApplies) {
+                AppLovinPrivacySettings.setDoNotSell(!regulation.hasCcpaConsent, context)
+            }
+            if (regulation.coppaApplies) {
+                AppLovinPrivacySettings.setIsAgeRestrictedUser(true, context)
+            }
         }
     }
 
     override fun interstitial(): AdSource.Interstitial<ApplovinFullscreenAdAuctionParams> {
-        return ApplovinInterstitialImpl(
-            applovinSdk = requireNotNull(applovinSdk),
-        )
+        return ApplovinInterstitialImpl(applovinSdk = requireNotNull(applovinSdk))
     }
 
     override fun rewarded(): AdSource.Rewarded<ApplovinFullscreenAdAuctionParams> {
-        return ApplovinRewardedImpl(
-            applovinSdk = requireNotNull(applovinSdk),
-        )
+        return ApplovinRewardedImpl(applovinSdk = requireNotNull(applovinSdk))
     }
 
     override fun banner(): AdSource.Banner<ApplovinBannerAuctionParams> {
-        return ApplovinBannerImpl(
-            applovinSdk = requireNotNull(applovinSdk),
-        )
+        return ApplovinBannerImpl(applovinSdk = requireNotNull(applovinSdk))
     }
 }

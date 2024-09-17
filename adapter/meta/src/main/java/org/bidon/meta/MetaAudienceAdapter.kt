@@ -33,7 +33,7 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * Created by Aleksei Cherniaev on 08/08/2023.
  */
-val MetaDemandId = DemandId("meta")
+internal val MetaDemandId = DemandId("meta")
 
 @Suppress("unused")
 internal class MetaAudienceAdapter :

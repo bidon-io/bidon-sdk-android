@@ -33,7 +33,7 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * Created by Aleksei Cherniaev on 06/07/2023.
  */
-val MobileFuseDemandId = DemandId("mobilefuse")
+internal val MobileFuseDemandId = DemandId("mobilefuse")
 
 /**
  * [MobileFuse Documentation](https://docs.mobilefuse.com/docs/android-interstitial-ads)
