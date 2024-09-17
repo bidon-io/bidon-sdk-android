@@ -96,8 +96,9 @@ internal class AmazonAdapter :
                 continuation.resume(Unit)
             } else {
                 logInfo(TAG, "Initializing Amazon SDK")
-                // TODO: 16/09/2024 [glavatskikh] we need to pass activity to AdRegistration.getInstance
-                //  for correct initialization com.amazon.device.ads.ActivityMonitor
+                // TODO: 16/09/2024 [glavatskikh] Pass activity to AdRegistration.getInstance
+                //  for correct initialization of com.amazon.device.ads.ActivityMonitor.
+                //  Currently, we pass activity through DTBActivityMonitor.setActivity(activity) as a workaround.
                 // Initialize Amazon SDK
                 AdRegistration.getInstance(configParams.appKey, context)
 
