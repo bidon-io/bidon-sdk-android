@@ -1,6 +1,7 @@
 # Next 0.7.0-next.4
 ## Features:
 - [BDN-755](https://appodeal.atlassian.net/browse/BDN-755) Changed Amazon Ads initialize logic
+- [BDN-761](https://appodeal.atlassian.net/browse/BDN-761) Improved `GetTokensUseCase` logic
 
 # Next 0.7.0-next.3
 ## Features:
