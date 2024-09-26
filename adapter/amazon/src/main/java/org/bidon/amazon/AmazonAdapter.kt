@@ -44,7 +44,7 @@ internal class AmazonAdapter :
     AdProvider.Rewarded<FullscreenAuctionParams> {
 
     private var slots: Map<SlotType, List<String>> = emptyMap()
-    private val tokenManager: AmazonTokenManager get() = amazonTokenManager
+    private val bidManager: AmazonBidManager get() = amazonBidManager
 
     override val demandId: DemandId = AmazonDemandId
     override val adapterInfo = AdapterInfo(
@@ -53,7 +53,7 @@ internal class AmazonAdapter :
     )
 
     override suspend fun getToken(adTypeParam: AdTypeParam): String? =
-        amazonTokenManager.obtainToken(slots, adTypeParam)
+        bidManager.obtainToken(slots, adTypeParam)
 
     override fun parseConfigParam(json: String): AmazonParameters {
         val jsonObject = JSONObject(json)
@@ -90,15 +90,15 @@ internal class AmazonAdapter :
         }
 
     override fun banner(): AdSource.Banner<BannerAuctionParams> {
-        return AmazonBannerImpl(tokenManager)
+        return AmazonBannerImpl(bidManager)
     }
 
     override fun interstitial(): AdSource.Interstitial<FullscreenAuctionParams> {
-        return AmazonInterstitialImpl(tokenManager)
+        return AmazonInterstitialImpl(bidManager)
     }
 
     override fun rewarded(): AdSource.Rewarded<FullscreenAuctionParams> {
-        return AmazonRewardedImpl(tokenManager)
+        return AmazonRewardedImpl(bidManager)
     }
 }
 

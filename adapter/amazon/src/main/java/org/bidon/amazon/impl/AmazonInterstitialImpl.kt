@@ -6,7 +6,7 @@ import com.amazon.device.ads.DTBActivityMonitor
 import com.amazon.device.ads.DTBAdInterstitial
 import com.amazon.device.ads.DTBAdInterstitialListener
 import com.amazon.device.ads.SDKUtilities
-import org.bidon.amazon.AmazonTokenManager
+import org.bidon.amazon.AmazonBidManager
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -21,7 +21,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
-internal class AmazonInterstitialImpl(private val tokenManager: AmazonTokenManager) :
+internal class AmazonInterstitialImpl(private val bidManager: AmazonBidManager) :
     AdSource.Interstitial<FullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
@@ -47,7 +47,7 @@ internal class AmazonInterstitialImpl(private val tokenManager: AmazonTokenManag
             return
         }
 
-        val dtbAdResponse = tokenManager.getAdResponse(slotUuid)
+        val dtbAdResponse = bidManager.getResponse(slotUuid)
         if (dtbAdResponse == null) {
             logError(TAG, "DTBAdResponse is null", BidonError.NoBid)
             emitEvent(AdEvent.LoadFailed(BidonError.NoBid))

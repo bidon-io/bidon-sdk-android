@@ -27,14 +27,14 @@ import java.util.Queue
 import kotlin.coroutines.resume
 
 /**
- * Singleton instance of AmazonTokenManager.
+ * Singleton instance of AmazonBidManager.
  */
-internal val amazonTokenManager: AmazonTokenManager by lazy { AmazonTokenManager() }
+internal val amazonBidManager: AmazonBidManager by lazy { AmazonBidManager() }
 
 /**
  * Manages Amazon ad tokens and responses.
  */
-internal class AmazonTokenManager {
+internal class AmazonBidManager {
 
     /**
      * Stores slotUUIDs as keys and their corresponding queues (Queue<DTBAdResponse>) as values.
@@ -84,7 +84,7 @@ internal class AmazonTokenManager {
      * @param slotUuid The UUID of the slot.
      * @return The next DTBAdResponse for the slot, or null if no response is available.
      */
-    fun getAdResponse(slotUuid: String): DTBAdResponse? {
+    fun getResponse(slotUuid: String): DTBAdResponse? {
         return dtbAdResponses[slotUuid]?.poll()
     }
 
@@ -118,7 +118,7 @@ internal class AmazonTokenManager {
         loader.setSizes(adSize)
         loader.loadAd(object : DTBAdCallback {
             override fun onFailure(adError: AdError) {
-                logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}", BidonError.NoBid)
+                logError(TAG, "Error while loading ad: $adSize ${adError.code} ${adError.message}", BidonError.NoBid)
                 continuation.resume(null)
             }
 
@@ -208,4 +208,4 @@ internal class AmazonTokenManager {
     }
 }
 
-private const val TAG = "AmazonTokenManager"
+private const val TAG = "AmazonBidManager"
