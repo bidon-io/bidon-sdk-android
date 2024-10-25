@@ -156,7 +156,7 @@ internal class BMRewardedAdImpl(
                     logInfo(TAG, "onAdLoaded: $this")
                     setDsp(rewardedAd.auctionResult?.demandSource)
                     if (bidType == BidType.CPM) {
-                        setPrice(rewardedAd.auctionResult?.price ?: 0.0)
+                        setEcpm(rewardedAd.auctionResult?.price ?: 0.0)
                     }
                     getAd()?.let {
                         emitEvent(AdEvent.Fill(it))

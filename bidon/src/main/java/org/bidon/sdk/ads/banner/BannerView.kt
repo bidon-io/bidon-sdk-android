@@ -29,7 +29,7 @@ import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
-import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
@@ -41,7 +41,7 @@ import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 06/02/2023.
  */
 class BannerView @JvmOverloads constructor(
     context: Context,
@@ -65,7 +65,7 @@ class BannerView @JvmOverloads constructor(
     private val auction: Auction by lazy { get() }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
-    private var winner: AuctionResult? = null
+    private var winner: DemandResult? = null
         set(value) {
             wasNotified.set(false)
             field = value

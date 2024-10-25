@@ -29,7 +29,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 01/03/2023.
+ * Created by Bidon Team on 01/03/2023.
  */
 
 internal val UnityAdsDemandId = DemandId("unityads")

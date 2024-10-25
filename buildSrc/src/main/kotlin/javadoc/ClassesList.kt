@@ -1,7 +1,7 @@
 package javadoc
 
 /**
- * Created by Aleksei Cherniaev on 25/05/2023.
+ * Created by Bidon Team on 25/05/2023.
  */
 object ClassesList {
     /**

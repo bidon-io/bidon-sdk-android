@@ -21,7 +21,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 11/09/2023.
  */
 internal class InmobiInterstitialImpl :
     AdSource.Interstitial<InmobiFullscreenAuctionParams>,
@@ -58,7 +58,7 @@ internal class InmobiInterstitialImpl :
             object : InterstitialAdEventListener() {
                 override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdLoadSucceeded: $this")
-                    setPrice(adMetaInfo.bid)
+                    setEcpm(adMetaInfo.bid)
                     emitEvent(AdEvent.Fill(getAd() ?: return))
                 }
 

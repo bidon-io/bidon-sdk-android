@@ -30,7 +30,7 @@ import org.junit.Before
 import org.junit.Ignore
 
 /**
- * Created by Aleksei Cherniaev on 26/06/2023.
+ * Created by Bidon Team on 26/06/2023.
  */
 @Ignore
 internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
@@ -83,7 +83,6 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
     private val testee: ExecuteAuctionUseCase by lazy {
         ExecuteAuctionUseCaseImpl(
             adaptersSource = adaptersSource,
-            regulation = regulation,
             requestAdUnit = requestAdUnit,
         )
     }
@@ -157,7 +156,7 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
 //                                )
 //                            )
 //                        },
-//                        roundStatus = RoundStatus.Successful
+//                        demandStatus = DemandStatus.Successful
 //                    )
 //                }
 //            ),
@@ -194,8 +193,8 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
 //            }
 //            .onSuccess {
 //                assertThat(it).hasSize(4)
-//                assertThat(it.filter { it.roundStatus == RoundStatus.UnknownAdapter }).hasSize(2)
-//                assertThat(it.filter { it.roundStatus == RoundStatus.Successful }).hasSize(2)
+//                assertThat(it.filter { it.demandStatus == DemandStatus.UnknownAdapter }).hasSize(2)
+//                assertThat(it.filter { it.demandStatus == DemandStatus.Successful }).hasSize(2)
 //            }
 //    }
 }

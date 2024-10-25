@@ -8,7 +8,7 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.stats.models.BidStat
-import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.DemandStatus
 
 /**
  * Created by Bidon Team on 06/02/2023.
@@ -30,30 +30,32 @@ interface StatisticsCollector {
      * Some adapters don't use [AdUnit]s (BidMachine), so we need to set price manually after ad is loaded.
      * Need to be used before [AdEvent.Fill] is exposed
      */
-    fun setPrice(price: Double)
+    fun setEcpm(ecpm: Double)
 
     /**
      * Set DSP source name (actually for BidMachine, DTExchange) if it's possible.
      * Need to be used before [AdEvent.Fill] is exposed
      */
-    fun setDsp(dspSource: String?)
-    fun setTokenInfo(tokenInfo: TokenInfo)
+    fun setDsp(dsp: String?)
     fun markFillStarted(adUnit: AdUnit, pricefloor: Double?)
-    fun markFillFinished(roundStatus: RoundStatus, ecpm: Double?)
+    fun markFillFinished(demandStatus: DemandStatus, ecpm: Double?)
     fun markWin()
     fun markLoss()
     fun markBelowPricefloor()
 
-    fun setStatisticAdType(adType: AdType)
-    fun addAuctionConfigurationId(auctionConfigurationId: Long)
-    fun addAuctionConfigurationUid(auctionConfigurationUid: String)
-    fun addExternalWinNotificationsEnabled(enabled: Boolean)
     fun addDemandId(demandId: DemandId)
-    fun addRoundInfo(
+    fun addAuctionInfo(
         auctionId: String,
-        demandAd: DemandAd,
         auctionPricefloor: Double,
+        auctionConfigurationId: Long,
+        auctionConfigurationUid: String,
     )
+
+    fun setDemandAd(demandAd: DemandAd)
+    fun setStatisticAdType(adType: AdType)
+    fun setAuctionConfigurationId(auctionConfigurationId: Long)
+    fun setAuctionConfigurationUid(auctionConfigurationUid: String)
+    fun setExternalWinNotificationsEnabled(enabled: Boolean)
 
     fun getStats(): BidStat
 

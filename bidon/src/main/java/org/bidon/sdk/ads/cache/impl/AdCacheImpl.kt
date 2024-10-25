@@ -16,14 +16,14 @@ import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 
 /**
- * Created by Aleksei Cherniaev on 28/09/2023.
+ * Created by Bidon Team on 28/09/2023.
  */
 internal class AdCacheImpl(
     override val demandAd: DemandAd,
@@ -33,7 +33,7 @@ internal class AdCacheImpl(
 
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
-    private val results = MutableStateFlow(emptyList<AuctionResult>())
+    private val results = MutableStateFlow(emptyList<DemandResult>())
     private var previousBidStat: BidStat? = null
     private var previousDemandId: String? = null
     private var settings: Cacheable.Settings = Cacheable.DefaultSettings
@@ -45,21 +45,21 @@ internal class AdCacheImpl(
 
     override fun cache(
         adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onSuccess: (DemandResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         load(adTypeParam, onSuccess, onFailure)
     }
 
-    override fun peek(): AuctionResult? = results.value.firstOrNull()
+    override fun peek(): DemandResult? = results.value.firstOrNull()
 
-    override fun pop(): AuctionResult? {
+    override fun pop(): DemandResult? {
         return results.getAndUpdate {
             it.drop(1)
         }.firstOrNull()
     }
 
-    override suspend fun poll(): AuctionResult {
+    override suspend fun poll(): DemandResult {
         val next = results.first { it.isNotEmpty() }.first()
         previousDemandId = next.adSource.getStats().demandId.demandId
         previousBidStat = next.adSource.getStats()
@@ -78,7 +78,7 @@ internal class AdCacheImpl(
 
     private fun load(
         adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onSuccess: (DemandResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         logInfo(tag, "Cache started: ${results.value.asString()}")
@@ -106,9 +106,11 @@ internal class AdCacheImpl(
                     }
                 },
                 onFailure = { auctionInfo, cause ->
-                    logInfo(tag, "Auction failed: ${results.value.asString()}")
-                    onFailure.invoke(auctionInfo, cause)
-                    isLoading.value = false
+                    scope.launch {
+                        logInfo(tag, "Auction failed: ${results.value.asString()}")
+                        onFailure.invoke(auctionInfo, cause)
+                        isLoading.value = false
+                    }
                 },
             )
         } else {
@@ -140,7 +142,7 @@ internal class AdCacheImpl(
         }
     }
 
-    private fun trackExpired(actionResult: AuctionResult) {
+    private fun trackExpired(actionResult: DemandResult) {
         actionResult.adSource.adEvent.onEach { event ->
             if (event is AdEvent.Expired) {
                 results.update { it - actionResult }
@@ -148,7 +150,7 @@ internal class AdCacheImpl(
         }.launchIn(scope)
     }
 
-    private fun List<AuctionResult>.asString(): String {
+    private fun List<DemandResult>.asString(): String {
         return "(${this.size}) " + this.joinToString { auctionResult ->
             auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }

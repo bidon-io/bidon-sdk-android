@@ -24,7 +24,7 @@ import sg.bigo.ads.api.RewardVideoAdLoader
 import sg.bigo.ads.api.RewardVideoAdRequest
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 25/07/2023.
  */
 internal class BigoAdsRewardedAdImpl :
     AdSource.Rewarded<BigoAdsFullscreenAuctionParams>,

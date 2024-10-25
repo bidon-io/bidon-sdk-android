@@ -6,7 +6,7 @@ import org.json.JSONObject
 import org.junit.Test
 
 /**
- * Created by Aleksei Cherniaev on 27/09/2023.
+ * Created by Bidon Team on 27/09/2023.
  */
 internal class ParseSlotsUseCaseTest {
 

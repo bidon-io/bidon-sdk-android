@@ -7,7 +7,7 @@ import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Created by Aleksei Cherniaev on 10/11/2023.
+ * Created by Bidon Team on 10/11/2023.
  */
 val BannerFormat.width
     get() = when (this) {

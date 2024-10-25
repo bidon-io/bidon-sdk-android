@@ -9,7 +9,7 @@ import org.bidon.admob.ext.asBundle
 import org.bidon.sdk.BidonSdk
 
 /**
- * Created by Aleksei Cherniaev on 18/08/2023.
+ * Created by Bidon Team on 18/08/2023.
  */
 internal class GetAdRequestUseCase(private val configParams: AdmobInitParameters?) {
     operator fun invoke(adParams: AdmobFullscreenAdAuctionParams): AdRequest? {

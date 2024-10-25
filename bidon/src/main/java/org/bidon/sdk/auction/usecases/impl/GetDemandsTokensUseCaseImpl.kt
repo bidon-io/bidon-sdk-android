@@ -10,13 +10,13 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.TokenInfo
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.GetDemandsTokensUseCase
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import org.bidon.sdk.utils.ext.TAG
 
-internal class GetTokensUseCaseImpl : GetTokensUseCase {
+internal class GetDemandsTokensUseCaseImpl : GetDemandsTokensUseCase {
 
     override suspend fun invoke(
         adTypeParam: AdTypeParam,

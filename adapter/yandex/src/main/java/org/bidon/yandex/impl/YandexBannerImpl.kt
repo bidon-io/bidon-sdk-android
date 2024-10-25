@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.yandex.ext.asBidonAdValue
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 17/09/2023.
  */
 internal class YandexBannerImpl :
     AdSource.Banner<YandexBannerAuctionParam>,

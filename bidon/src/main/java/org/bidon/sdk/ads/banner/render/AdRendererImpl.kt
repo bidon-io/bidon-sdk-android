@@ -21,7 +21,7 @@ import org.bidon.sdk.utils.ext.dp
 import java.lang.ref.WeakReference
 
 /**
- * Created by Aleksei Cherniaev on 05/09/2023.
+ * Created by Bidon Team on 05/09/2023.
  *
  * Hierarchy: (Network) AdView -> AdContainer -> RootContainer
  */

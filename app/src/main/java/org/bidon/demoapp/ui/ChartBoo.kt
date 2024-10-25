@@ -17,7 +17,7 @@ import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Created by Aleksei Cherniaev on 18/08/2023.
+ * Created by Bidon Team on 18/08/2023.
  */
 object ChartBoo {
     fun st(adFormat: AdFormat, activity: Activity) {

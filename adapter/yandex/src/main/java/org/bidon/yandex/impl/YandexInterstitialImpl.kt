@@ -22,7 +22,7 @@ import org.bidon.yandex.ext.asBidonAdValue
 import org.bidon.yandex.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 17/09/2023.
  */
 internal class YandexInterstitialImpl :
     AdSource.Interstitial<YandexFullscreenAuctionParam>,

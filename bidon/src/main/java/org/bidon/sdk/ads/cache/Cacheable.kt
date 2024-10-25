@@ -3,7 +3,7 @@ package org.bidon.sdk.ads.cache
 import androidx.annotation.Keep
 
 /**
- * Created by Aleksei Cherniaev on 28/09/2023.
+ * Created by Bidon Team on 28/09/2023.
  */
 @Keep
 interface Cacheable {

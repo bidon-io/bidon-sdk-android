@@ -11,7 +11,7 @@ import org.json.JSONObject
 import org.junit.Test
 
 /**
- * Created by Aleksei Cherniaev on 15/06/2023.
+ * Created by Bidon Team on 15/06/2023.
  */
 internal class SegmentBinderTest {
 

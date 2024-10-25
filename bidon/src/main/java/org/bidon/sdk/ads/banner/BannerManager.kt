@@ -22,7 +22,7 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 05/09/2023.
+ * Created by Bidon Team on 05/09/2023.
  */
 class BannerManager private constructor(
     private val bannersCache: BannersCache,

@@ -8,7 +8,7 @@ import org.bidon.sdk.ads.banner.helper.DeviceInfo.isTablet
 import org.bidon.sdk.auction.models.AdUnit
 
 /**
- * Created by Aleksei Cherniaev on 20/06/2023.
+ * Created by Bidon Team on 20/06/2023.
  */
 internal class MintegralAuctionParam(
     val activity: Activity,

@@ -8,7 +8,7 @@ import org.bidon.inmobi.InmobiDemandId
 import org.bidon.sdk.config.BidonError
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 11/09/2023.
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = InMobiSdk.getVersion()

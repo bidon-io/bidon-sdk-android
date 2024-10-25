@@ -8,7 +8,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.utils.ext.mapFailure
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 06/02/2023.
  */
 interface AdAuctionParams {
     val adUnit: AdUnit

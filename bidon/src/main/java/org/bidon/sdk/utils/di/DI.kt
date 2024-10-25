@@ -27,11 +27,11 @@ import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.GetDemandsTokensUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
-import org.bidon.sdk.auction.usecases.impl.GetTokensUseCaseImpl
+import org.bidon.sdk.auction.usecases.impl.GetDemandsTokensUseCaseImpl
 import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.bidding.BiddingConfigImpl
@@ -98,7 +98,7 @@ import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCaseImpl
 import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 06/02/2023.
  *
  * Dependency Injection
  */
@@ -164,7 +164,7 @@ internal object DI {
             singleton<Segment> { SegmentImpl() }
 
             singleton<BiddingConfig> { BiddingConfigImpl() }
-            singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
+            singleton<GetDemandsTokensUseCase> { GetDemandsTokensUseCaseImpl() }
 
             /**
              * Factories
@@ -182,7 +182,7 @@ internal object DI {
             factory<Auction> {
                 AuctionImpl(
                     adaptersSource = get(),
-                    getTokens = get(),
+                    getDemandsTokens = get(),
                     getAuctionRequest = get(),
                     executeAuction = get(),
                     auctionStat = get(),
@@ -207,9 +207,8 @@ internal object DI {
             }
             factory<ExecuteAuctionUseCase> {
                 ExecuteAuctionUseCaseImpl(
-                    requestAdUnit = get(),
                     adaptersSource = get(),
-                    regulation = get(),
+                    requestAdUnit = get(),
                 )
             }
 

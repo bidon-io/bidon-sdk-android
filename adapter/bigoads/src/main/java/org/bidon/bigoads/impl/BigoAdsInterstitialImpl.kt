@@ -24,7 +24,7 @@ import sg.bigo.ads.api.InterstitialAdLoader
 import sg.bigo.ads.api.InterstitialAdRequest
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 25/07/2023.
  */
 internal class BigoAdsInterstitialImpl :
     AdSource.Interstitial<BigoAdsFullscreenAuctionParams>,

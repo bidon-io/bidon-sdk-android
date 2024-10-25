@@ -146,7 +146,7 @@ internal class BMInterstitialAdImpl(
                     logInfo(TAG, "onAdLoaded: $this")
                     setDsp(interstitialAd.auctionResult?.demandSource)
                     if (bidType == BidType.CPM) {
-                        setPrice(interstitialAd.auctionResult?.price ?: 0.0)
+                        setEcpm(interstitialAd.auctionResult?.price ?: 0.0)
                     }
                     getAd()?.let {
                         emitEvent(AdEvent.Fill(it))

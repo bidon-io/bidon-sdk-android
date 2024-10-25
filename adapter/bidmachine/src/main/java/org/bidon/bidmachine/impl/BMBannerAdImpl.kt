@@ -148,7 +148,7 @@ internal class BMBannerAdImpl(
                         logInfo(TAG, "onAdLoaded: $this")
                         setDsp(bannerView.auctionResult?.demandSource)
                         if (bidType == BidType.CPM) {
-                            setPrice(bannerView.auctionResult?.price ?: 0.0)
+                            setEcpm(bannerView.auctionResult?.price ?: 0.0)
                         }
                         getAd()?.let {
                             emitEvent(AdEvent.Fill(it))

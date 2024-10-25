@@ -27,6 +27,5 @@ internal data class StatsAdUnit(
     val adUnitLabel: String?,
     @field:JsonName("error_message")
     val errorMessage: String? = null,
-    val timeout: Long?,
-    val ext: JSONObject?
+    val ext: JSONObject? // TODO: 28/10/2024 [glavatskikh] Think about ext
 ) : Serializable

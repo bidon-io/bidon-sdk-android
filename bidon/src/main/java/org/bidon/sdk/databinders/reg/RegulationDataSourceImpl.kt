@@ -8,7 +8,7 @@ import org.bidon.sdk.regulation.IabConsent
 import org.bidon.sdk.regulation.Regulation
 
 /**
- * Created by Aleksei Cherniaev on 31/05/2023.
+ * Created by Bidon Team on 31/05/2023.
  */
 internal class RegulationDataSourceImpl(
     private val publisherRegulations: Regulation,

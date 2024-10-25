@@ -36,7 +36,7 @@ import org.bidon.sdk.regulation.Gdpr
 import org.json.JSONObject
 
 /**
- * Created by Aleksei Cherniaev on 21/06/2023.
+ * Created by Bidon Team on 21/06/2023.
  */
 @Composable
 fun SdkSettings() {

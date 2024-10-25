@@ -6,7 +6,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 
 /**
- * Created by Aleksei Cherniaev on 22/06/2023.
+ * Created by Bidon Team on 22/06/2023.
  */
 internal fun Regulation.asBundle() = Bundle().apply {
     logInfo("AdmobAdapter", "Applying regulation to ${AdmobDemandId.demandId}")

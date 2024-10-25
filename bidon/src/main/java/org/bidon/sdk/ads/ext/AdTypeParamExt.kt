@@ -7,7 +7,7 @@ import org.bidon.sdk.auction.models.InterstitialRequest
 import org.bidon.sdk.auction.models.RewardedRequest
 
 /**
- * Created by Aleksei Cherniaev on 31/05/2023.
+ * Created by Bidon Team on 31/05/2023.
  */
 internal fun AdTypeParam.asAdRequestBody(): Triple<BannerRequest?, InterstitialRequest?, RewardedRequest?> {
     return when (this) {

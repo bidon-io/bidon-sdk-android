@@ -3,10 +3,10 @@ package org.bidon.sdk.ads.cache
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.DemandResult
 
 /**
- * Created by Aleksei Cherniaev on 28/09/2023.
+ * Created by Bidon Team on 28/09/2023.
  */
 internal interface AdCache : Cacheable {
     val demandAd: DemandAd
@@ -16,24 +16,24 @@ internal interface AdCache : Cacheable {
      */
     fun cache(
         adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onSuccess: (DemandResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     )
 
     /**
      * Exposes only, if exists
      */
-    fun peek(): AuctionResult?
+    fun peek(): DemandResult?
 
     /**
      * Removes from cache if exists and exposes
      */
-    fun pop(): AuctionResult?
+    fun pop(): DemandResult?
 
     /**
      * Waits for the first loaded, then removes from cache and exposes
      */
-    suspend fun poll(): AuctionResult
+    suspend fun poll(): DemandResult
 
     fun clear()
 }

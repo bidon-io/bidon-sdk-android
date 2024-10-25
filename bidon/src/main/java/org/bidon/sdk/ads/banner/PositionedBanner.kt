@@ -6,7 +6,7 @@ import android.graphics.PointF
 import org.bidon.sdk.BidonSdk
 
 /**
- * Created by Aleksei Cherniaev on 04/09/2023.
+ * Created by Bidon Team on 04/09/2023.
  *
  * [showAd], [hideAd], [destroyAd], [notifyLoss] need activity to be passed as parameter, mainly for Unity UI thread.
  */

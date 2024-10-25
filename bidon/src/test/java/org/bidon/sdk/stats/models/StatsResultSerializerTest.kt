@@ -11,10 +11,10 @@ import org.junit.Test
 /**
  * Created by Bidon Team on 03/03/2023.
  */
-internal class ResultBodySerializerTest {
+internal class StatsResultSerializerTest {
     @Test
     fun `it should serialize FAILURE`() {
-        val actual = ResultBody(
+        val actual = StatsResult(
             status = "FAIL",
             auctionFinishTs = 1020,
             auctionStartTs = 1000,

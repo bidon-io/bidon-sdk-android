@@ -18,5 +18,5 @@ internal data class StatsRequestBody(
     @field:JsonName("ad_units")
     val adUnits: List<StatsAdUnit?>,
     @field:JsonName("result")
-    val result: ResultBody,
+    val result: StatsResult,
 ) : Serializable
