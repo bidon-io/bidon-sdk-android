@@ -9,12 +9,11 @@ import org.bidon.sdk.auction.models.DemandResult
  * Created by Bidon Team on 28/09/2023.
  */
 internal interface AdCache : Cacheable {
-    val demandAd: DemandAd
-
     /**
      * Caches ads.
      */
     fun cache(
+        demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         onSuccess: (DemandResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
@@ -35,5 +34,8 @@ internal interface AdCache : Cacheable {
      */
     suspend fun poll(): DemandResult
 
+    /**
+     * Clears the cache.
+     */
     fun clear()
 }

@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
 import org.bidon.sdk.ads.banner.helper.CountDownTimer
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
@@ -285,9 +284,8 @@ internal object DI {
                 RenderInspectorImpl()
             }
             factory { CalculateAdContainerParamsUseCase() }
-            factoryWithParams<AdCache> { (demandAd) ->
+            factory<AdCache> {
                 AdCacheImpl(
-                    demandAd = demandAd as DemandAd,
                     scope = CoroutineScope(SdkDispatchers.Main),
                     resolver = get()
                 )

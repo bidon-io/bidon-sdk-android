@@ -34,14 +34,9 @@ internal class InterstitialImpl(
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
 
-    private val adCache: AdCache by lazy {
-        get {
-            params(demandAd)
-        }
-    }
-    private val listener by lazy {
-        getInterstitialListener()
-    }
+    private val adCache: AdCache by lazy(::get)
+    private val listener: InterstitialListener by lazy(::getInterstitialListener)
+
     private val scope by lazy {
         CoroutineScope(dispatcher)
     }
@@ -62,6 +57,7 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
         adCache.cache(
+            demandAd = demandAd,
             adTypeParam = AdTypeParam.Interstitial(
                 activity = activity,
                 pricefloor = pricefloor,
@@ -94,11 +90,11 @@ internal class InterstitialImpl(
         logInfo(TAG, "Show")
         activity.runOnUiThread {
             val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
-            if (adSource == null) {
+            if (adSource?.isAdReadyToShow == true) {
+                adSource.show(activity)
+            } else {
                 logInfo(TAG, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
-            } else {
-                adSource.show(activity)
             }
         }
     }

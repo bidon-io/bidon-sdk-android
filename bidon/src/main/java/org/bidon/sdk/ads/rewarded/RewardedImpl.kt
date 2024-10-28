@@ -31,15 +31,12 @@ internal class RewardedImpl(
     private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
 ) : Rewarded, Extras by demandAd {
-
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
-    private val adCache: AdCache by lazy {
-        get { params(demandAd) }
-    }
-    private val listener by lazy {
-        getRewardedListener()
-    }
+
+    private val adCache: AdCache by lazy { get() }
+    private val listener: RewardedListener by lazy(::getRewardedListener)
+
     private val scope by lazy {
         CoroutineScope(dispatcher)
     }
@@ -60,6 +57,7 @@ internal class RewardedImpl(
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
         adCache.cache(
+            demandAd = demandAd,
             adTypeParam = AdTypeParam.Rewarded(
                 activity = activity,
                 pricefloor = pricefloor,
@@ -75,7 +73,10 @@ internal class RewardedImpl(
                 )
             },
             onFailure = { auctionResult, cause ->
-                listener.onAdLoadFailed(auctionInfo = auctionResult, cause = cause.asBidonErrorOrUnspecified())
+                listener.onAdLoadFailed(
+                    auctionInfo = auctionResult,
+                    cause = cause.asBidonErrorOrUnspecified()
+                )
             }
         )
     }
@@ -89,11 +90,11 @@ internal class RewardedImpl(
         logInfo(TAG, "Show")
         activity.runOnUiThread {
             val adSource = adCache.pop()?.adSource as? AdSource.Rewarded
-            if (adSource == null) {
+            if (adSource?.isAdReadyToShow == true) {
+                adSource.show(activity)
+            } else {
                 logInfo(TAG, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
-            } else {
-                adSource.show(activity)
             }
         }
     }

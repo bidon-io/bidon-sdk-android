@@ -1,27 +1,29 @@
 package org.bidon.sdk.ads.cache
 
-import androidx.annotation.Keep
-
 /**
  * Created by Bidon Team on 28/09/2023.
  */
-@Keep
-interface Cacheable {
+internal interface Cacheable {
+    /**
+     * Configures the cache.
+     */
     fun withSettings(settings: Settings)
 
-    @Keep
+    /**
+     * Settings for the cache.
+     */
     data class Settings(
-        val minCacheSize: Int,
         val cacheCapacity: Int,
     )
 
+    /**
+     * Default settings for the cache.
+     */
     companion object {
-        private const val MIN_CACHE_SIZE = 1
-        private const val CACHE_CAPACITY = 1
+        private const val CACHE_CAPACITY = 2
 
         val DefaultSettings
             get() = Settings(
-                minCacheSize = MIN_CACHE_SIZE,
                 cacheCapacity = CACHE_CAPACITY,
             )
     }
