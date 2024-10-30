@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdLoader
@@ -22,12 +21,13 @@ import org.bidon.sdk.utils.ext.TAG
  * Created by Bidon Team on 28/10/2024.
  */
 internal class AdLoaderImpl(
+    override val demandAd: DemandAd,
     private val scope: CoroutineScope,
 ) : AdLoader {
 
-    override val results = MutableStateFlow(emptyList<DemandResult>())
+    override val results = MutableStateFlow(emptySet<DemandResult>())
 
-    private val tag = "${TAG}_TODO"
+    private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
     private var settings: Cacheable.Settings = Cacheable.DefaultSettings
     private var auction: Auction? = null
@@ -36,42 +36,33 @@ internal class AdLoaderImpl(
         this.settings = settings
     }
 
-    override fun load(
-        demandAd: DemandAd,
-        adTypeParam: AdTypeParam,
-        onReady: () -> Unit
-    ) {
-        logInfo(tag, "Cache started: ${results.value.asString()}")
+    override fun load(adTypeParam: AdTypeParam) {
+        logInfo(tag, "AdLoader ad(s): ${results.value.asString()}")
         if (results.value.size >= settings.cacheCapacity) {
-            logInfo(tag, "Cache has enough ads")
+            logInfo(tag, "AdLoader has enough ads")
             return
         }
         if (!isLoading.getAndUpdate { true }) {
-            logInfo(tag, "Cache ad: $adTypeParam")
+            logInfo(tag, "AdLoader start: $adTypeParam")
             auction = get()
             auction?.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
                 onSuccess = { winners, auctionInfo ->
-                    scope.launch {
-                        results.update { it + winners }
-                        winners.intersect(results.value.toSet()).forEach { trackExpired(it) }
-                        logInfo(tag, "Auction completed: ${results.value.asString()}")
-                        isLoading.value = false
-                        onReady.invoke()
-                        load(demandAd, adTypeParam, onReady)
-                    }
+                    results.update { it + winners }
+                    winners.forEach { trackExpired(it) }
+                    logInfo(tag, "AdLoader auction completed: ${results.value.asString()}")
+                    isLoading.value = false
+                    load(adTypeParam)
                 },
                 onFailure = { _, _ ->
-                    scope.launch {
-                        logInfo(tag, "Auction failed: ${results.value.asString()}")
-                        isLoading.value = false
-                        load(demandAd, adTypeParam, onReady)
-                    }
+                    logInfo(tag, "AdLoader auction failed: ${results.value.asString()}")
+                    isLoading.value = false
+                    load(adTypeParam)
                 },
             )
         } else {
-            logInfo(tag, "Ad is already loading")
+            logInfo(tag, "AdLoader is already loading")
         }
     }
 
@@ -81,9 +72,9 @@ internal class AdLoaderImpl(
     }
 
     override fun clear() {
-        results.value = emptyList()
+        results.value = emptySet()
         if (isLoading.getAndUpdate { false }) {
-            logInfo(tag, "Ad is loading, cancel auction")
+            logInfo(tag, "AdLoader is loading, cancel auction")
             auction?.cancel()
             auction = null
         }
@@ -97,7 +88,7 @@ internal class AdLoaderImpl(
         }.launchIn(scope)
     }
 
-    private fun List<DemandResult>.asString(): String {
+    private fun Set<DemandResult>.asString(): String {
         return "(${this.size}) " + this.joinToString { auctionResult ->
             auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }

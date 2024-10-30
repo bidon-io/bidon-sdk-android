@@ -30,11 +30,6 @@ internal interface AdCache : Cacheable {
     fun pop(): DemandResult?
 
     /**
-     * Waits for the first loaded, then removes from cache and exposes
-     */
-    suspend fun poll(): DemandResult
-
-    /**
      * Clears the cache.
      */
     fun clear()

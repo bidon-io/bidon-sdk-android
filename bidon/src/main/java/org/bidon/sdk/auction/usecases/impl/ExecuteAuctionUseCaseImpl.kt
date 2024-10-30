@@ -230,6 +230,9 @@ internal class ExecuteAuctionUseCaseImpl(
         }
     }
 
+    @Deprecated("It's work incorrectly")
+    // TODO: 30/10/2024 [glavatskikh] change logic, because it's work incorrectly
+    // [ExecuteAuctionUseCase] Loaded eCPM: 1.35932224, next requested eCPM: 1.35932224 - it's use same adUnit for compare
     private fun shouldRequestNext(
         demandResult: DemandResult,
         next: AdUnit?

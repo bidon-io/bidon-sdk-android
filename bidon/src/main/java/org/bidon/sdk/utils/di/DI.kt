@@ -4,12 +4,11 @@ import android.app.Application
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
+import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
-import org.bidon.sdk.ads.banner.helper.CountDownTimer
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
-import org.bidon.sdk.ads.banner.helper.impl.ActivityLifecycleObserver
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
 import org.bidon.sdk.ads.banner.render.AdRenderer
@@ -17,7 +16,9 @@ import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.impl.AdCacheImpl
+import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -194,11 +195,6 @@ internal object DI {
                     resolver = get()
                 )
             }
-            factoryWithParams { (param) ->
-                CountDownTimer(
-                    activityLifecycleObserver = param as ActivityLifecycleObserver
-                )
-            }
             factory<GetOrientationUseCase> { GetOrientationUseCaseImpl(context = get()) }
             factory { JsonHttpRequest(tokenDataSource = get()) }
             factory<RequestAdUnitUseCase> {
@@ -288,6 +284,12 @@ internal object DI {
                 AdCacheImpl(
                     scope = CoroutineScope(SdkDispatchers.Main),
                     resolver = get()
+                )
+            }
+            factoryWithParams<AdLoader> { (demandAd) ->
+                AdLoaderImpl(
+                    demandAd = demandAd as DemandAd,
+                    scope = CoroutineScope(SdkDispatchers.Default),
                 )
             }
         }
