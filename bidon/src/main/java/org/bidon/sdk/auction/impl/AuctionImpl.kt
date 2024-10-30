@@ -15,11 +15,11 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.Auction.AuctionState
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.auction.models.logAuctionWaterfall
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -97,7 +97,9 @@ internal class AuctionImpl(
                             logError(TAG, "Auction ID has been changed", IllegalStateException())
                         }
                         resultsCollector.serverBiddingFinished(demandsTokens, auctionData.noBids)
-                        auctionData.printWaterfall(demandAd.adType)
+
+                        auctionData.logAuctionWaterfall(demandAd)
+
                         val (results, auctionInfo) = conductAuction(
                             auctionData = auctionData,
                             demandAd = demandAd,
@@ -139,7 +141,6 @@ internal class AuctionImpl(
             }
         } else {
             val auctionInfo = getAuctionInfo(auctionData, statResult)
-            printStatsData(auctionData, statResult, auctionInfo)
             adTypeParam.activity.runOnUiThread {
                 onFailure(auctionInfo, cause)
             }
@@ -200,9 +201,6 @@ internal class AuctionImpl(
         val statResult = proceedRoundResults()
 
         val auctionInfo = getAuctionInfo(auctionData = auctionData, statResult = statResult)
-        printStatsData(auctionData, statResult, auctionInfo)
-
-        logInfo(TAG, "Rounds completed")
 
         // Finding winner / notifying losers
         val finalResults = resultsCollector.getAll()
@@ -211,7 +209,7 @@ internal class AuctionImpl(
             "Action finished with ${finalResults.size} results (keeps maximum: ${ResultsCollector.MaxAuctionResultsAmount})"
         )
         finalResults.forEachIndexed { index, auctionResult ->
-            logInfo(TAG, "Action result #$index: $auctionResult")
+            logInfo(TAG, "Action result #$index: ${auctionResult.adSource.demandId.demandId} -> ${auctionResult.demandStatus.code}")
         }
 
         // Sending auction statistics
@@ -230,19 +228,6 @@ internal class AuctionImpl(
         val results = resultsCollector.getAll()
         clearData()
         return Pair(results, auctionInfo)
-    }
-
-    private fun printStatsData(
-        auctionData: AuctionResponse,
-        statResult: RoundStat?,
-        auctionInfo: AuctionInfo
-    ) {
-        logInfo(
-            TAG,
-            "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
-                    "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
-                    "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
-        )
     }
 
     private suspend fun proceedRoundResults(): RoundStat? {

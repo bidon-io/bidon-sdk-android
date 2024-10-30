@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -82,7 +83,6 @@ internal class ApplovinInterstitialImpl(
     }
 
     override fun load(adParams: ApplovinFullscreenAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adUnit = adParams.adUnit
         val adService: AppLovinAdService = applovinSdk.adService
         val zoneId = adParams.zoneId
@@ -96,11 +96,10 @@ internal class ApplovinInterstitialImpl(
             }
 
             override fun failedToReceiveAd(errorCode: Int) {
-                logInfo(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
+                logError(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
                 emitEvent(AdEvent.LoadFailed(errorCode.asBidonError()))
             }
         }
-        logInfo(TAG, "Starting fill: $this")
         if (zoneId.isNullOrBlank()) {
             adService.loadNextAd(AppLovinAdSize.INTERSTITIAL, requestListener)
         } else {

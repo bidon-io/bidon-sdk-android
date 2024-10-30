@@ -43,7 +43,6 @@ internal class UnityAdsRewarded :
     }
 
     override fun load(adParams: UnityAdsFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         placementId = adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -63,7 +62,7 @@ internal class UnityAdsRewarded :
             }
 
             override fun onUnityAdsFailedToLoad(placementId: String?, error: UnityAds.UnityAdsLoadError?, message: String?) {
-                logInfo(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
+                logError(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }

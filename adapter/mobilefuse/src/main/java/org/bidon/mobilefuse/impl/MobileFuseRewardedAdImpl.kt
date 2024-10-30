@@ -38,7 +38,6 @@ internal class MobileFuseRewardedAdImpl :
     }
 
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

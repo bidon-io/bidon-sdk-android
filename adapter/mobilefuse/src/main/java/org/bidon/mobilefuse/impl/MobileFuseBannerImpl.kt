@@ -43,7 +43,6 @@ internal class MobileFuseBannerImpl :
     }
 
     override fun load(adParams: MobileFuseBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

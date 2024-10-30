@@ -23,6 +23,7 @@ import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -85,7 +86,6 @@ internal class ApplovinBannerImpl(
     }
 
     override fun load(adParams: ApplovinBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adUnit = adParams.adUnit
         bannerFormat = adParams.bannerFormat
         val zoneId = adParams.zoneId ?: run {
@@ -110,7 +110,7 @@ internal class ApplovinBannerImpl(
             }
 
             override fun failedToReceiveAd(errorCode: Int) {
-                logInfo(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
+                logError(TAG, "failedToReceiveAd: errorCode=$errorCode. $this")
                 emitEvent(AdEvent.LoadFailed(errorCode.asBidonError()))
             }
         }

@@ -51,26 +51,28 @@ internal class ExecuteAuctionUseCaseImpl(
     ) {
         runCatching {
             val result = withTimeoutOrNull(auctionTimeout) {
+                logInfo(
+                    TAG,
+                    "Starting auction | ID: $auctionId, Timeout: ${auctionTimeout}ms, Pricefloor: $pricefloor"
+                )
+
                 adUnitQueue = LinkedList(adUnits)
-                logInfo(TAG, "AdUnits for request: ${adUnitQueue.size}")
-
+                var index = 1 // Счетчик для отслеживания индекса adUnit
                 while (adUnitQueue.isNotEmpty()) {
-
                     val adUnit = adUnitQueue.peek()
                     if (adUnit == null) {
-                        logInfo(TAG, "All adUnits were requested")
+                        logInfo(TAG, "Auction ID: $auctionId | All adUnits processed")
                         break
                     }
 
-                    logInfo(TAG, "Perform load next: \n$adUnit")
+                    logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index request -> $adUnit")
 
                     val tokenInfo: TokenInfo? = tokens[adUnit.demandId]
 
                     if (adUnit.pricefloor < pricefloor) {
                         logInfo(
                             TAG,
-                            "Request was skipped since the priceFloor: $pricefloor is less than " +
-                                    "the next requested adUnit: ${adUnit.pricefloor}"
+                            "Auction ID: $auctionId | Skipping AdUnit #$index due to pricefloor: Required: $pricefloor, Actual: ${adUnit.pricefloor}"
                         )
                         adUnitQueue.remove()
                         resultsCollector.add(
@@ -79,12 +81,17 @@ internal class ExecuteAuctionUseCaseImpl(
                                 tokenInfo = tokenInfo
                             )
                         )
+                        index++
                         continue
                     }
 
                     val adapter =
                         adaptersSource.adapters.find { it.demandId.demandId == adUnit.demandId }
                     if (adapter == null) {
+                        logInfo(
+                            TAG,
+                            "Auction ID: $auctionId | Adapter for Demand ID '${adUnit.demandId}' not found, skipping AdUnit #$index"
+                        )
                         adUnitQueue.remove()
                         resultsCollector.add(
                             DemandResult.DemandFailed(
@@ -93,7 +100,7 @@ internal class ExecuteAuctionUseCaseImpl(
                                 tokenInfo = tokenInfo
                             )
                         )
-                        logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
+                        index++
                         continue
                     }
 
@@ -102,6 +109,10 @@ internal class ExecuteAuctionUseCaseImpl(
 
                     val adSource: AdSource<AdAuctionParams>? = adapter.getAdSources(demandAd.adType)
                     if (adSource == null) {
+                        logInfo(
+                            TAG,
+                            "Auction ID: $auctionId | AdSource for Demand ID '${adUnit.demandId}' not found, skipping AdUnit #$index"
+                        )
                         adUnitQueue.remove()
                         resultsCollector.add(
                             DemandResult.DemandFailed(
@@ -110,7 +121,7 @@ internal class ExecuteAuctionUseCaseImpl(
                                 tokenInfo = tokenInfo
                             )
                         )
-                        logInfo(TAG, "AdSource ${adUnit.demandId} not found")
+                        index++
                         continue
                     }
 
@@ -125,7 +136,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                     )
 
-                    val auctionResult = requestAdUnit.invoke(
+                    val requestAdUnitResult = requestAdUnit.invoke(
                         adSource = adSource,
                         adTypeParam = adTypeParam,
                         adUnit = adUnit,
@@ -135,13 +146,18 @@ internal class ExecuteAuctionUseCaseImpl(
                         resultsCollector.add(it)
                     }
 
+                    logInfo(
+                        TAG,
+                        "Auction ID: $auctionId | AdUnit #$index request result -> ${requestAdUnitResult.demandStatus.code}"
+                    )
+
                     val nextRequested = adUnitQueue.poll()
-                    if (auctionResult.demandStatus == DemandStatus.Successful &&
-                        !shouldRequestNext(demandResult = auctionResult, next = nextRequested)
+                    if (requestAdUnitResult.demandStatus == DemandStatus.Successful &&
+                        !shouldRequestNext(demandResult = requestAdUnitResult, next = nextRequested)
                     ) {
                         logInfo(
                             TAG,
-                            "Request was skipped since the filled eCPM larger than the next one"
+                            "Auction ID: $auctionId | Stopping requests after AdUnit #$index as filled eCPM is larger than the next adUnit"
                         )
                         adUnitQueue.forEach {
                             resultsCollector.add(
@@ -153,12 +169,10 @@ internal class ExecuteAuctionUseCaseImpl(
                         }
                         break
                     }
+                    index++
                 }
 
-                logInfo(TAG, "Auction was finished")
-                /**
-                 * Collecting results
-                 */
+                logInfo(TAG, "Auction ID: $auctionId | Auction process finished")
                 resultsCollector.getRoundResults().let { roundResult ->
                     (roundResult as? AuctionResult.Results)?.demandResults.orEmpty()
                 }
@@ -169,7 +183,10 @@ internal class ExecuteAuctionUseCaseImpl(
                     resultsCollector = resultsCollector,
                     status = DemandStatus.FillTimeoutReached
                 )
-                logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
+                logInfo(
+                    TAG,
+                    "Auction ID: $auctionId | Auction ended by timeout: ${auctionTimeout}ms"
+                )
             }
         }.onFailure {
             finishWithStatus(
@@ -177,7 +194,7 @@ internal class ExecuteAuctionUseCaseImpl(
                 resultsCollector = resultsCollector,
                 status = it.asBidonErrorOrUnspecified().asDemandStatus()
             )
-            logError(TAG, "Failed to execute auction", it)
+            logError(TAG, "Auction ID: $auctionId | Error occurred during auction", it)
         }
     }
 
@@ -237,7 +254,6 @@ internal class ExecuteAuctionUseCaseImpl(
         externalWinNotificationsEnabled: Boolean,
     ) {
         val adSource = this
-        // Auction info adding
         adSource.addDemandId(demandId)
         adSource.addAuctionInfo(
             auctionId = auctionId,
@@ -245,7 +261,6 @@ internal class ExecuteAuctionUseCaseImpl(
             auctionConfigurationId = auctionConfigurationId,
             auctionConfigurationUid = auctionConfigurationUid,
         )
-        // Setters
         adSource.setAuctionConfigurationId(auctionConfigurationId)
         adSource.setAuctionConfigurationUid(auctionConfigurationUid)
         adSource.setDemandAd(demandAd)

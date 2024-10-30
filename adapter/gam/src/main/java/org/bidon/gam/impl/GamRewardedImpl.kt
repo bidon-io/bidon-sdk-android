@@ -42,7 +42,6 @@ internal class GamRewardedImpl(
     }
 
     override fun load(adParams: GamFullscreenAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adUnitId = when (adParams) {
             is GamFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is GamFullscreenAdAuctionParams.Network -> adParams.adUnitId

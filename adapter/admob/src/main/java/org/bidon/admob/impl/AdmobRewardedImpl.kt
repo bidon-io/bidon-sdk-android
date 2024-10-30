@@ -41,7 +41,6 @@ internal class AdmobRewardedImpl(
     }
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adRequest = getAdRequest(adParams) ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

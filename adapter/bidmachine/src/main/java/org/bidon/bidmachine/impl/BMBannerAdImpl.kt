@@ -46,7 +46,6 @@ internal class BMBannerAdImpl(
         get() = bannerView?.canShow() == true
 
     override fun load(adParams: BMBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.activity.runOnUiThread {
             bannerView = BannerView(adParams.activity.applicationContext)
             bannerFormat = adParams.bannerFormat
@@ -136,7 +135,6 @@ internal class BMBannerAdImpl(
     }
 
     private fun fillRequest(adRequest: BannerRequest?, bidType: BidType) {
-        logInfo(TAG, "Starting fill: $this")
         val bannerView = bannerView
         if (bannerView == null) {
             emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))

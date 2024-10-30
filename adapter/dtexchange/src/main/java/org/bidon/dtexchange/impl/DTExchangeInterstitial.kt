@@ -47,7 +47,6 @@ internal class DTExchangeInterstitial :
     }
 
     override fun load(adParams: DTExchangeAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val spotId = adParams.spotId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -121,7 +120,7 @@ internal class DTExchangeInterstitial :
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
                     val error = inneractiveErrorCode.asBidonError()
-                    logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode", error)
+                    logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode")
                     emitEvent(AdEvent.LoadFailed(error))
                 }
             }
