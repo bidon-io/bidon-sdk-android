@@ -45,7 +45,6 @@ internal class VungleRewardedImpl :
     }
 
     override fun load(adParams: VungleFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val placementId = adParams.placementId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
 

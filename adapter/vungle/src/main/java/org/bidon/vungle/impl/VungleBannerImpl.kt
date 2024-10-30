@@ -45,7 +45,6 @@ internal class VungleBannerImpl :
     }
 
     override fun load(adParams: VungleBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val placementId = adParams.placementId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
 

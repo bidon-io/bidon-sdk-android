@@ -43,7 +43,6 @@ internal class GamBannerImpl(
 
     @SuppressLint("MissingPermission")
     override fun load(adParams: GamBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adUnitId = when (adParams) {
             is GamBannerAuctionParams.Bidding -> adParams.adUnitId
             is GamBannerAuctionParams.Network -> adParams.adUnitId

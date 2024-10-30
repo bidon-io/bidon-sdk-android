@@ -31,7 +31,6 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
     ): DemandResult {
         val result: DemandResult? = withTimeoutOrNull(adUnit.timeout) {
             adSource.markFillStarted(adUnit, adUnit.pricefloor)
-            logInfo(TAG, "FillStarted: \n$adUnit")
 
             val adParam = adSource.getAuctionParam(
                 AdAuctionParamSource(
@@ -73,14 +72,11 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
                 tokenInfo = tokenInfo
             )
 
-            logInfo(TAG, "FillFinished: $adUnit. \nResult: ${auctionResult.demandStatus}")
-
             adSource.markFillFinished(requestStatus, adSource.ad?.ecpm)
 
             auctionResult
         }
         return if (result == null) {
-            logInfo(TAG, "FillFinished: $adUnit. \nResult: FillTimeoutReached. Timeout: ${adUnit.timeout} ")
             getAuctionResult(
                 bidType = adUnit.bidType,
                 adSource = adSource,

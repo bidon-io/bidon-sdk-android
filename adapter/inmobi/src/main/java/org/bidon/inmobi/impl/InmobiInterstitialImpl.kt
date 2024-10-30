@@ -44,7 +44,6 @@ internal class InmobiInterstitialImpl :
     }
 
     override fun load(adParams: InmobiFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

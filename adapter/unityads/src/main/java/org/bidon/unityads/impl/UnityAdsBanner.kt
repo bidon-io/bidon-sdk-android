@@ -42,7 +42,6 @@ internal class UnityAdsBanner :
     }
 
     override fun load(adParams: UnityAdsBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val placementId = adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(

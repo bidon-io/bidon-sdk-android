@@ -48,7 +48,6 @@ internal class BMRewardedAdImpl(
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
         val requestBuilder = RewardedRequest.Builder()
@@ -133,7 +132,6 @@ internal class BMRewardedAdImpl(
     }
 
     private fun fillAd(adRequest: RewardedRequest?, bidType: BidType) {
-        logInfo(TAG, "Starting fill: $this")
         val context = context
         if (context == null) {
             emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))

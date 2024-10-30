@@ -49,7 +49,6 @@ internal class AdmobBannerImpl(
 
     @SuppressLint("MissingPermission")
     override fun load(adParams: AdmobBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adUnitId: String = when (adParams) {
             is AdmobBannerAuctionParams.Bidding -> adParams.adUnitId
             is AdmobBannerAuctionParams.Network -> adParams.adUnitId

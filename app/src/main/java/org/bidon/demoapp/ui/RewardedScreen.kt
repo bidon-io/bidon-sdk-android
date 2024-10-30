@@ -3,7 +3,12 @@ package org.bidon.demoapp.ui
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -11,7 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -20,10 +29,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
-import org.bidon.demoapp.component.*
+import org.bidon.demoapp.component.AppButton
+import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
-import org.bidon.demoapp.ui.ext.getImpressionInfo
-import org.bidon.demoapp.ui.ext.toJson
+import org.bidon.demoapp.component.Body1Text
+import org.bidon.demoapp.component.Body2Text
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -54,12 +64,11 @@ fun RewardedScreen(
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
-                        logFlow.log("onAdLoaded ImpressionInfo: \n${ad.getImpressionInfo()}")
+                        logFlow.log("onAdLoaded ad:$ad. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: \n${auctionInfo?.toJson()}")
+                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {
@@ -68,7 +77,6 @@ fun RewardedScreen(
 
                     override fun onAdShown(ad: Ad) {
                         logFlow.log("onAdShown: $ad")
-                        logFlow.log("onAdShown ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
@@ -89,7 +97,6 @@ fun RewardedScreen(
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
-                        logFlow.log("onRevenuePaid ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
                 }
             )
@@ -138,7 +145,10 @@ fun RewardedScreen(
                     rewardedAd.addExtra("some_extra_data", "rewarded+some_value")
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
                 AppButton(text = "Load") {
                     val minPrice = pricefloor.value.toDoubleOrNull()
                     if (minPrice == null) {
@@ -159,7 +169,10 @@ fun RewardedScreen(
                     rewardedAd.destroyAd()
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
                 AppTextButton(
                     modifier = Modifier.padding(start = 0.dp),
                     text = "Notify Loss"
@@ -186,7 +199,10 @@ fun RewardedScreen(
                     Column(
                         modifier = Modifier
                             .padding(bottom = 2.dp)
-                            .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                            .background(
+                                MaterialTheme.colorScheme.secondary,
+                                MaterialTheme.shapes.medium
+                            )
                             .padding(4.dp)
                     ) {
                         Body2Text(text = logLine)
@@ -202,7 +218,7 @@ fun RewardedScreen(
 
 private fun MutableState<List<String>>.log(string: String) {
     synchronized(this) {
-        this.value = this.value + string
+        this.value += string
     }
     logInfo(TAG, string)
 }

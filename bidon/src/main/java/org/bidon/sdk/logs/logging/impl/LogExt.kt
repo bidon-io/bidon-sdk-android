@@ -16,7 +16,7 @@ fun logInfo(tag: String, message: String) {
     }
 }
 
-fun logError(tag: String, message: String, error: Throwable?) {
+fun logError(tag: String, message: String, error: Throwable? = null) {
     if (BidonSdk.loggerLevel in arrayOf(Level.Error, Level.Verbose)) {
         Log.e(DefaultTag, "[$tag] $message", error)
     }

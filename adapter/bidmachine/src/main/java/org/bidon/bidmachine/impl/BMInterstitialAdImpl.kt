@@ -49,7 +49,6 @@ internal class BMInterstitialAdImpl(
     }
 
     override fun load(adParams: BMFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
         val requestBuilder = InterstitialRequest.Builder()
@@ -135,7 +134,6 @@ internal class BMInterstitialAdImpl(
     }
 
     private fun fillRequest(adRequest: InterstitialRequest?, bidType: BidType) {
-        logInfo(TAG, "Starting fill: $this")
         val context = context
         if (context == null) {
             emitEvent(AdEvent.LoadFailed(BidonError.NoContextFound))

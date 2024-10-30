@@ -2,14 +2,25 @@ package org.bidon.demoapp.ui
 
 import android.app.Activity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -24,9 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
-import org.bidon.demoapp.component.*
-import org.bidon.demoapp.ui.ext.getImpressionInfo
-import org.bidon.demoapp.ui.ext.toJson
+import org.bidon.demoapp.component.AppButton
+import org.bidon.demoapp.component.AppTextButton
+import org.bidon.demoapp.component.AppToolbar
+import org.bidon.demoapp.component.Body2Text
+import org.bidon.demoapp.component.ItemSelector
+import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -109,20 +123,21 @@ fun BannerScreen(navController: NavHostController) {
                             setBannerListener(
                                 object : BannerListener {
                                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
+                                        logFlow.log("onAdLoaded ad:$ad. auctionInfo: $auctionInfo")
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
                                         }
-                                        logFlow.log("onAdLoaded ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
-                                    override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: \n${auctionInfo?.toJson()}")
+                                    override fun onAdLoadFailed(
+                                        auctionInfo: AuctionInfo?,
+                                        cause: BidonError
+                                    ) {
+                                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                                     }
 
                                     override fun onAdShown(ad: Ad) {
                                         logFlow.log("onAdShown: $ad")
-                                        logFlow.log("onAdShown ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
                                     override fun onAdClicked(ad: Ad) {
@@ -135,7 +150,6 @@ fun BannerScreen(navController: NavHostController) {
 
                                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
                                         logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
-                                        logFlow.log("onRevenuePaid ImpressionInfo: \n${ad.getImpressionInfo()}")
                                     }
 
                                     override fun onAdShowFailed(cause: BidonError) {
@@ -174,7 +188,10 @@ fun BannerScreen(navController: NavHostController) {
             )
             Spacer(modifier = Modifier.padding(top = 2.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 AppButton(text = "Create") {
                     bannerExists.value = true
                 }
@@ -233,7 +250,10 @@ fun BannerScreen(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .padding(bottom = 2.dp)
-                        .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                        .background(
+                            MaterialTheme.colorScheme.secondary,
+                            MaterialTheme.shapes.medium
+                        )
                         .padding(4.dp)
                 ) {
                     Body2Text(text = logLine)
@@ -270,7 +290,7 @@ fun Modifier.dashedBorder(width: Dp, radius: Dp, color: Color) =
 
 private fun MutableState<List<String>>.log(string: String) {
     synchronized(this) {
-        this.value = this.value + string
+        this.value += string
     }
     logInfo(TAG, string)
 }
