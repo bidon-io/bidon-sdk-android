@@ -29,8 +29,8 @@ import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.DemandStatus
+import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import java.util.UUID
@@ -107,13 +107,9 @@ internal class AuctionImpl(
                             tokens = demandsTokens,
                         )
                         if (results.isEmpty()) {
-                            adTypeParam.activity.runOnUiThread {
-                                onFailure(auctionInfo, BidonError.NoAuctionResults)
-                            }
+                            onFailure(auctionInfo, BidonError.NoAuctionResults)
                         } else {
-                            adTypeParam.activity.runOnUiThread {
-                                onSuccess(results, auctionInfo)
-                            }
+                            onSuccess(results, auctionInfo)
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed during execution", cause)
@@ -136,14 +132,10 @@ internal class AuctionImpl(
         val auctionData = _auctionDataResponse
         if (auctionData == null) {
             logInfo(TAG, "No auction data response info.")
-            adTypeParam.activity.runOnUiThread {
-                onFailure(null, cause)
-            }
+            onFailure(null, cause)
         } else {
             val auctionInfo = getAuctionInfo(auctionData, statResult)
-            adTypeParam.activity.runOnUiThread {
-                onFailure(auctionInfo, cause)
-            }
+            onFailure(auctionInfo, cause)
         }
         // Finish auction
         state.value = AuctionState.Finished

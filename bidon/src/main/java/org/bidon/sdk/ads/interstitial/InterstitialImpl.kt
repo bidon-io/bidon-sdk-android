@@ -34,8 +34,8 @@ internal class InterstitialImpl(
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
 
-    private val adCache: AdCache by lazy(::get)
-    private val listener: InterstitialListener by lazy(::getInterstitialListener)
+    private val adCache: AdCache by lazy { get() }
+    private val listener: InterstitialListener by lazy { getInterstitialListener() }
 
     private val scope by lazy {
         CoroutineScope(dispatcher)
@@ -72,9 +72,9 @@ internal class InterstitialImpl(
                     auctionInfo = auctionInfo
                 )
             },
-            onFailure = { auctionResult, cause ->
+            onFailure = { auctionInfo, cause ->
                 listener.onAdLoadFailed(
-                    auctionInfo = auctionResult,
+                    auctionInfo = auctionInfo,
                     cause = cause.asBidonErrorOrUnspecified()
                 )
             }

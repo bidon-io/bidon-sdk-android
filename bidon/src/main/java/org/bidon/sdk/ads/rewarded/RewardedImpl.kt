@@ -35,7 +35,7 @@ internal class RewardedImpl(
     private var observeCallbacksJob: Job? = null
 
     private val adCache: AdCache by lazy { get() }
-    private val listener: RewardedListener by lazy(::getRewardedListener)
+    private val listener: RewardedListener by lazy { getRewardedListener() }
 
     private val scope by lazy {
         CoroutineScope(dispatcher)
@@ -72,9 +72,9 @@ internal class RewardedImpl(
                     auctionInfo = auctionInfo
                 )
             },
-            onFailure = { auctionResult, cause ->
+            onFailure = { auctionInfo, cause ->
                 listener.onAdLoadFailed(
-                    auctionInfo = auctionResult,
+                    auctionInfo = auctionInfo,
                     cause = cause.asBidonErrorOrUnspecified()
                 )
             }

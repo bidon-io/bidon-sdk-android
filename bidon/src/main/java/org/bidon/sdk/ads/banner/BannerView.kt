@@ -27,8 +27,8 @@ import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.LogLifecycleAdStateUseCase
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
+import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -62,7 +62,7 @@ class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private var loadingError: BidonError? = null
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
-    private val auction: Auction by lazy { get() }
+    private val adCache: AdCache by lazy { get() }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
     private var winner: DemandResult? = null
@@ -245,7 +245,7 @@ class BannerView @JvmOverloads constructor(
         scope.launch(Dispatchers.Main.immediate) {
             adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
-            auction.cancel()
+            adCache.clear()
             winner?.adSource?.destroy()
             winner = null
             winnerSubscriberJob?.cancel()
@@ -279,7 +279,7 @@ class BannerView @JvmOverloads constructor(
     private fun conductAuction(activity: Activity, pricefloor: Double) {
         this.pricefloor = pricefloor
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        auction.start(
+        adCache.cache(
             demandAd = demandAd,
             adTypeParam = AdTypeParam.Banner(
                 activity = activity,
@@ -288,27 +288,18 @@ class BannerView @JvmOverloads constructor(
                 bannerFormat = format,
                 containerWidth = width.toFloat()
             ),
-            onSuccess = { winners, auctionInfo ->
-                /**
-                 * Winner found
-                 */
-                val winner = winners.first().also {
-                    winner = it
-                }
+            onSuccess = { adSource, auctionInfo ->
                 this.auctionInfo = auctionInfo
-                subscribeToWinner(winner.adSource)
+                subscribeToWinner(adSource)
                 adLifecycleFlow.value = AdLifecycle.Loaded
                 listener.onAdLoaded(
-                    ad = requireNotNull(winner.adSource.ad) {
+                    ad = requireNotNull(adSource.ad) {
                         "[Ad] should exist when action succeeds"
                     },
                     auctionInfo = auctionInfo
                 )
             },
             onFailure = { auctionInfo, cause ->
-                /**
-                 * Auction failed
-                 */
                 adLifecycleFlow.value = AdLifecycle.LoadingFailed
                 loadingError = cause.asBidonErrorOrUnspecified()
                 listener.onAdLoadFailed(
