@@ -6,9 +6,11 @@ import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
+import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.banner.helper.PauseResumeObserver
+import org.bidon.sdk.ads.banner.helper.impl.ActivityProviderImpl
 import org.bidon.sdk.ads.banner.helper.impl.GetOrientationUseCaseImpl
 import org.bidon.sdk.ads.banner.helper.impl.PauseResumeObserverImpl
 import org.bidon.sdk.ads.banner.render.AdRenderer
@@ -130,6 +132,11 @@ internal object DI {
             }
             singleton<PauseResumeObserver> {
                 PauseResumeObserverImpl(
+                    application = get<Context>() as Application
+                )
+            }
+            singleton<ActivityProvider> {
+                ActivityProviderImpl(
                     application = get<Context>() as Application
                 )
             }
