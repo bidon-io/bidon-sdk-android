@@ -89,7 +89,7 @@ internal class InmobiRewardedImpl :
                 }
 
                 override fun onAdDisplayFailed(interstitial: InMobiInterstitial) {
-                    logError(TAG, "onAdDisplayFailed. $this", BidonError.Unspecified(demandId))
+                    logError(TAG, "onAdDisplayFailed. $this")
                     emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
                 }
 

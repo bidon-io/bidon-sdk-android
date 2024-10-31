@@ -69,9 +69,8 @@ internal class MobileFuseInterstitialImpl :
             }
 
             override fun onAdNotFilled() {
-                val cause = BidonError.NoFill(demandId)
-                logError(TAG, "onAdNotFilled", cause)
-                emitEvent(AdEvent.LoadFailed(cause))
+                logError(TAG, "onAdNotFilled")
+                emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
             }
 
             override fun onAdRendered() {
@@ -104,7 +103,7 @@ internal class MobileFuseInterstitialImpl :
             }
 
             override fun onAdError(adError: AdError?) {
-                logError(TAG, "onAdError $adError", Throwable(adError?.errorMessage))
+                logError(TAG, "onAdError $adError")
                 when (adError) {
                     AdError.AD_ALREADY_RENDERED -> {
                         emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))

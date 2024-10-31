@@ -114,7 +114,7 @@ internal class MintegralRewardedImpl :
             }
 
             override fun onShowFail(mBridgeIds: MBridgeIds?, message: String?) {
-                logError(TAG, "onShowFail $mBridgeIds", Throwable(message))
+                logError(TAG, "onShowFail $mBridgeIds message $message")
                 emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId, Throwable(message))))
             }
 

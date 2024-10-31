@@ -71,7 +71,7 @@ internal class MintegralAdapter :
                         }
 
                         override fun onInitFail(message: String?) {
-                            logError(TAG, "Error while initialization: $message", BidonError.Unspecified(demandId))
+                            logError(TAG, "Error while initialization: $message")
                             continuation.resumeWithException(BidonError.Unspecified(demandId))
                         }
                     }

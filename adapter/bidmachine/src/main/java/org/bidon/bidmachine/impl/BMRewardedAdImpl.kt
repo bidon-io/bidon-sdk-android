@@ -75,7 +75,7 @@ internal class BMRewardedAdImpl(
                         } else {
                             bmError.asBidonErrorOnFill(demandId)
                         }
-                        logError(TAG, "onRequestFailed $bmError. $this", error)
+                        logError(TAG, "onRequestFailed $bmError. $this")
                         emitEvent(AdEvent.LoadFailed(error))
                     }
 
@@ -162,17 +162,16 @@ internal class BMRewardedAdImpl(
                 }
 
                 override fun onAdLoadFailed(rewardedAd: RewardedAd, bmError: BMError) {
-                    val error = bmError.asBidonErrorOnFill(demandId)
-                    logError(TAG, "onAdLoadFailed: $this", error)
+                    logError(TAG, "onAdLoadFailed: $bmError. $this")
                     getAd()?.let {
+                        val error = bmError.asBidonErrorOnFill(demandId)
                         emitEvent(AdEvent.LoadFailed(error))
                     }
                 }
 
                 override fun onAdShowFailed(rewardedAd: RewardedAd, bmError: BMError) {
-                    val error = bmError.asBidonErrorOnFill(demandId)
-                    logError(TAG, "onAdShowFailed: $this", error)
-                    emitEvent(AdEvent.ShowFailed(error))
+                    logError(TAG, "onAdShowFailed: $bmError. $this")
+                    emitEvent(AdEvent.ShowFailed(bmError.asBidonErrorOnFill(demandId)))
                 }
 
                 override fun onAdImpression(rewardedAd: RewardedAd) {

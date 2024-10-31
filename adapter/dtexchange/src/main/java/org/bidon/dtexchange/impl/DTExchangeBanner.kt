@@ -130,9 +130,8 @@ internal class DTExchangeBanner :
                 adSpot: InneractiveAdSpot?,
                 adDisplayError: InneractiveUnitController.AdDisplayError?
             ) {
-                val cause = adDisplayError.asBidonError()
-                logError(TAG, "onAdEnteredErrorState: $adSpot, $adDisplayError", cause)
-                emitEvent(AdEvent.ShowFailed(cause))
+                logError(TAG, "onAdEnteredErrorState: $adSpot, $adDisplayError")
+                emitEvent(AdEvent.ShowFailed(adDisplayError.asBidonError()))
             }
 
             override fun onAdExpanded(adSpot: InneractiveAdSpot?) {}

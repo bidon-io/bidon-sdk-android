@@ -28,7 +28,7 @@ internal class GetFullScreenContentCallbackUseCase {
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                logError(TAG, "onAdFailedToShowFullScreenContent: $this", error.asBidonError())
+                logError(TAG, "onAdFailedToShowFullScreenContent: $this")
                 adEventFlow.emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 
