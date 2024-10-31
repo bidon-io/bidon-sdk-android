@@ -16,9 +16,11 @@ import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheResolver
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.impl.AdCacheImpl
 import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
+import org.bidon.sdk.ads.cache.impl.MaxEcpmAdCacheResolver
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -179,6 +181,7 @@ internal object DI {
             }
             factory<AdapterInstanceCreator> { AdapterInstanceCreatorImpl() }
             factory<AuctionResolver> { MaxEcpmAuctionResolver }
+            factory<AdCacheResolver> { MaxEcpmAdCacheResolver }
             factory<Auction> {
                 AuctionImpl(
                     adaptersSource = get(),

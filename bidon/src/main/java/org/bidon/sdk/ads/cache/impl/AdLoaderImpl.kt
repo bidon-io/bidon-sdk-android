@@ -12,7 +12,6 @@ import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
-import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
@@ -25,7 +24,7 @@ internal class AdLoaderImpl(
     private val scope: CoroutineScope,
 ) : AdLoader {
 
-    override val results = MutableStateFlow(emptySet<DemandResult>())
+    override val results = MutableStateFlow(emptySet<AdInstance>())
 
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
@@ -49,8 +48,12 @@ internal class AdLoaderImpl(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
                 onSuccess = { winners, auctionInfo ->
-                    results.update { it + winners }
-                    winners.forEach { trackExpired(it) }
+                    // TODO: 31/10/2024 [glavatskikh] In the future we will have several winners,
+                    //  but for now we are taking only the first
+                    val winner = winners.first()
+                    val adInstance = AdInstance(winner.adSource, auctionInfo)
+                    results.update { it + adInstance }
+                    trackExpired(adInstance)
                     logInfo(tag, "AdLoader auction completed: ${results.value.asString()}")
                     isLoading.value = false
                     load(adTypeParam)
@@ -66,8 +69,8 @@ internal class AdLoaderImpl(
         }
     }
 
-    override fun consumeResult(result: DemandResult) {
-        results.update { it - result }
+    override fun consumeAdInstance(adInstance: AdInstance) {
+        results.update { it - adInstance }
         // TODO: 28/10/2024 [glavatskikh] need to load new ads
     }
 
@@ -80,15 +83,15 @@ internal class AdLoaderImpl(
         }
     }
 
-    private fun trackExpired(actionResult: DemandResult) {
-        actionResult.adSource.adEvent.onEach { event ->
+    private fun trackExpired(adInstance: AdInstance) {
+        adInstance.adSource.adEvent.onEach { event ->
             if (event is AdEvent.Expired) {
-                results.update { it - actionResult }
+                results.update { it - adInstance }
             }
         }.launchIn(scope)
     }
 
-    private fun Set<DemandResult>.asString(): String {
+    private fun Set<AdInstance>.asString(): String {
         return "(${this.size}) " + this.joinToString { auctionResult ->
             auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }

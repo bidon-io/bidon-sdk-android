@@ -46,7 +46,7 @@ internal class InterstitialImpl(
             logInfo(TAG, "Sdk is not initialized")
             return false
         }
-        return adCache.peek()?.adSource?.isAdReadyToShow == true
+        return adCache.peek()?.isAdReadyToShow == true
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
@@ -63,10 +63,10 @@ internal class InterstitialImpl(
                 pricefloor = pricefloor,
                 auctionKey = auctionKey,
             ),
-            onSuccess = { auctionResult, auctionInfo ->
-                subscribeToWinner(auctionInfo, auctionResult.adSource)
+            onSuccess = { adSource, auctionInfo ->
+                subscribeToWinner(auctionInfo, adSource)
                 listener.onAdLoaded(
-                    ad = requireNotNull(auctionResult.adSource.ad) {
+                    ad = requireNotNull(adSource.ad) {
                         "[Ad] should exist when action succeeds"
                     },
                     auctionInfo = auctionInfo
@@ -89,7 +89,7 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Show")
         activity.runOnUiThread {
-            val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
+            val adSource = adCache.pop() as? AdSource.Interstitial
             if (adSource?.isAdReadyToShow == true) {
                 adSource.show(activity)
             } else {
@@ -109,7 +109,7 @@ internal class InterstitialImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.pop()?.adSource?.sendLoss(winnerDemandId, winnerEcpm)
+        adCache.pop()?.sendLoss(winnerDemandId, winnerEcpm)
         destroyAd()
     }
 
@@ -118,7 +118,7 @@ internal class InterstitialImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.adSource?.sendWin()
+        adCache.peek()?.sendWin()
     }
 
     override fun destroyAd() {

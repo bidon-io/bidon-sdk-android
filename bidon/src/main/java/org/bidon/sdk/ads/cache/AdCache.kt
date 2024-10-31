@@ -1,9 +1,9 @@
 package org.bidon.sdk.ads.cache
 
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.DemandResult
 
 /**
  * Created by Bidon Team on 28/09/2023.
@@ -15,19 +15,19 @@ internal interface AdCache : Cacheable {
     fun cache(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
-        onSuccess: (DemandResult, AuctionInfo) -> Unit,
+        onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     )
 
     /**
      * Exposes only, if exists
      */
-    fun peek(): DemandResult?
+    fun peek(): AdSource<*>?
 
     /**
      * Removes from cache if exists and exposes
      */
-    fun pop(): DemandResult?
+    fun pop(): AdSource<*>?
 
     /**
      * Clears the cache.

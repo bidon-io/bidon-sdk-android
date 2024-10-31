@@ -12,14 +12,14 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheResolver
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
@@ -29,7 +29,7 @@ import org.bidon.sdk.utils.ext.TAG
  */
 internal class AdCacheImpl(
     private val scope: CoroutineScope,
-    private val resolver: AuctionResolver,
+    private val resolver: AdCacheResolver,
 ) : AdCache {
 
     private val tag = "${TAG}_TODO"
@@ -37,7 +37,7 @@ internal class AdCacheImpl(
     private val adLoaders = MutableStateFlow<Map<String, AdLoader>>(emptyMap())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val results: StateFlow<List<DemandResult>> = adLoaders
+    private val results: StateFlow<List<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
             combine(loaders.values.map { it.results }) { allResults ->
                 resolver.sortWinners(allResults.flatMap { it })
@@ -47,7 +47,7 @@ internal class AdCacheImpl(
             logInfo(tag, "Cache results updated: ${sortedResults.size} ads: ${sortedResults.asString()}")
         }
         .stateIn(
-            scope = scope, // TODO: 31/10/2024 [glavatskikh] Do we need use Dispatchers.Default here?
+            scope = scope,
             started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
@@ -59,31 +59,25 @@ internal class AdCacheImpl(
     override fun cache(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
-        onSuccess: (DemandResult, AuctionInfo) -> Unit,
+        onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit, // ignore
     ) {
         scope.launch {
             logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
-            val key = adTypeParam.auctionKey ?: "default"
+            val key = adTypeParam.auctionKey ?: AdTypeParam.DEFAULT_KEY
             getOrCreateAdLoader(key, demandAd, settings)?.load(adTypeParam)
-            val result = results.first { it.isNotEmpty() }.first()
-            onSuccess(
-                result, AuctionInfo(
-                    auctionId = "auctionId",
-                    auctionConfigurationId = 0L,
-                    auctionConfigurationUid = "auctionConfigurationUid",
-                    auctionTimeout = 0,
-                    auctionPricefloor = 0.0,
-                    noBids = emptyList(),
-                    adUnits = emptyList(),
-                )
-            )
+            val (winners, auctionInfo) = results.first { it.isNotEmpty() }.first()
+            onSuccess(winners, auctionInfo)
         }
     }
 
-    override fun peek(): DemandResult? = results.value.firstOrNull()
+    override fun peek(): AdSource<*>? = results.value.firstOrNull()?.adSource
 
-    override fun pop(): DemandResult? = peek()?.also { consumeResult(it) }
+    override fun pop(): AdSource<*>? {
+        val adInstance = results.value.firstOrNull()
+        adInstance?.let { consumeAdInstance(it) }
+        return adInstance?.adSource
+    }
 
     override fun clear() = Unit // Do nothing
 
@@ -108,15 +102,15 @@ internal class AdCacheImpl(
         }
     }
 
-    private fun consumeResult(result: DemandResult) {
+    private fun consumeAdInstance(adInstance: AdInstance) {
         adLoaders.value.values.forEach { loader ->
-            if (loader.results.value.contains(result)) {
-                loader.consumeResult(result)
+            if (loader.results.value.contains(adInstance)) {
+                loader.consumeAdInstance(adInstance)
             }
         }
     }
 
-    private fun List<DemandResult>.asString(): String {
+    private fun List<AdInstance>.asString(): String {
         return "(${this.size}) " + this.joinToString { auctionResult ->
             auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }

@@ -2,9 +2,8 @@ package org.bidon.sdk.ads.cache
 
 import kotlinx.coroutines.flow.StateFlow
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.impl.AdInstance
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.DemandResult
 
 /**
  * Created by Bidon Team on 28/10/2024.
@@ -16,7 +15,7 @@ internal interface AdLoader : Cacheable {
     /**
      * Results of the loaded ads.
      */
-    val results: StateFlow<Set<DemandResult>>
+    val results: StateFlow<Set<AdInstance>>
 
     /**
      * Loads ads.
@@ -26,7 +25,7 @@ internal interface AdLoader : Cacheable {
     /**
      * Consumes the result.
      */
-    fun consumeResult(result: DemandResult)
+    fun consumeAdInstance(adInstance: AdInstance)
 
     /**
      * Clears the loader.
