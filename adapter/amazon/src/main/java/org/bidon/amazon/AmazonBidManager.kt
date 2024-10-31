@@ -119,7 +119,7 @@ internal class AmazonBidManager {
         loader.setSizes(adSize)
         loader.loadAd(object : DTBAdCallback {
             override fun onFailure(adError: AdError) {
-                logError(TAG, "AmazonInfo request fail -> ${adSize.dtbAdType}: ${adSize.slotUUID}, cause: ${adError.code} ${adError.message}", null)
+                logError(TAG, "AmazonInfo request fail -> ${adSize.dtbAdType}: ${adSize.slotUUID}, cause: ${adError.code} ${adError.message}")
                 continuation.resume(null)
             }
 

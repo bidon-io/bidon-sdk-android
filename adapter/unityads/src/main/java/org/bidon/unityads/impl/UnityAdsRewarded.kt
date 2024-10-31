@@ -72,11 +72,7 @@ internal class UnityAdsRewarded :
     override fun show(activity: Activity) {
         val showListener = object : IUnityAdsShowListener {
             override fun onUnityAdsShowFailure(placementId: String?, error: UnityAds.UnityAdsShowError?, message: String?) {
-                logError(
-                    tag = TAG,
-                    message = "onUnityAdsShowFailure: placementId=$placementId, error=$error, message=$message",
-                    error = error.asBidonError()
-                )
+                logError(TAG, "onUnityAdsShowFailure: placementId=$placementId, error=$error, message=$message")
                 emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 

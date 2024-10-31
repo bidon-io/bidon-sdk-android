@@ -67,7 +67,7 @@ internal class UnityAdsAdapter :
                     }
 
                     override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
-                        logError(TAG, "Error while initialization: $message, $error", error.asBidonError())
+                        logError(TAG, "Error while initialization: $message, $error")
                         continuation.resumeWithException(error.asBidonError())
                     }
                 }

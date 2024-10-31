@@ -73,7 +73,7 @@ internal class BMBannerAdImpl(
                             } else {
                                 bmError.asBidonErrorOnFill(demandId)
                             }
-                            logError(TAG, "onRequestFailed $bmError. $this", error)
+                            logError(TAG, "onRequestFailed $bmError. $this")
                             emitEvent(AdEvent.LoadFailed(error))
                         }
 

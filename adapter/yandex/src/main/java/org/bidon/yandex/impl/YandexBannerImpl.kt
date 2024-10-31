@@ -63,7 +63,7 @@ internal class YandexBannerImpl :
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
-                    logError(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this", BidonError.NoFill(demandId))
+                    logError(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 

@@ -55,7 +55,7 @@ internal class AmazonBannerImpl(private val bidManager: AmazonBidManager) :
 
         val dtbAdResponse = bidManager.getResponse(slotUuid)
         if (dtbAdResponse == null) {
-            logError(TAG, "DTBAdResponse is null", BidonError.NoBid)
+            logError(TAG, "DTBAdResponse is null")
             emitEvent(AdEvent.LoadFailed(BidonError.NoBid))
             return
         }
@@ -108,7 +108,7 @@ internal class AmazonBannerImpl(private val bidManager: AmazonBidManager) :
         val adView = adView
         val adParams = adParams
         return if (adView == null || adParams == null) {
-            logError(TAG, "AdView is null", BidonError.AdNotReady)
+            logError(TAG, "AdView is null")
             emitEvent(AdEvent.LoadFailed(BidonError.AdNotReady))
             null
         } else {
