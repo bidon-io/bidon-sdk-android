@@ -29,7 +29,6 @@ import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
@@ -65,7 +64,7 @@ class BannerView @JvmOverloads constructor(
     private val adCache: AdCache by lazy { get() }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
-    private var winner: DemandResult? = null
+    private var winner: AdSource<*>? = null
         set(value) {
             wasNotified.set(false)
             field = value
@@ -93,7 +92,7 @@ class BannerView @JvmOverloads constructor(
     private var internalAdSize: AdSize? = null
 
     override val adSize: AdSize?
-        get() = internalAdSize ?: (winner?.adSource as? AdSource.Banner)?.getAdView()?.let { holder ->
+        get() = internalAdSize ?: (winner as? AdSource.Banner)?.getAdView()?.let { holder ->
             AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp).also {
                 internalAdSize = it
             }
@@ -124,7 +123,7 @@ class BannerView @JvmOverloads constructor(
                 }
 
                 AdLifecycle.Loaded -> {
-                    winner?.adSource?.ad?.let {
+                    winner?.ad?.let {
                         logInfo(TAG, "Banner loaded")
                         userListener?.onAdLoaded(
                             ad = it,
@@ -143,7 +142,7 @@ class BannerView @JvmOverloads constructor(
     }
 
     override fun isReady(): Boolean {
-        return winner?.adSource?.isAdReadyToShow == true
+        return winner?.isAdReadyToShow == true
     }
 
     override fun showAd() {
@@ -172,8 +171,8 @@ class BannerView @JvmOverloads constructor(
                     userListener?.onAdShowFailed(loadingError ?: BidonError.AdNotReady)
                     return
                 }
-                val bannerSource = (winner?.adSource as? AdSource.Banner) ?: run {
-                    logInfo(TAG, "AdSource(${winner?.adSource}: no ad view.")
+                val bannerSource = (winner as? AdSource.Banner) ?: run {
+                    logInfo(TAG, "AdSource($winner: no ad view.")
                     LogLifecycleAdStateUseCase.invoke(adLifecycle = adLifecycleFlow.value)
                     userListener?.onAdShowFailed(loadingError ?: BidonError.AdNotReady)
                     return
@@ -212,7 +211,7 @@ class BannerView @JvmOverloads constructor(
 
             AdLifecycle.Loaded -> {
                 if (!wasNotified.getAndSet(true)) {
-                    winner?.adSource?.sendLoss(
+                    winner?.sendLoss(
                         winnerDemandId = winnerDemandId,
                         winnerEcpm = winnerEcpm,
                     )
@@ -233,7 +232,7 @@ class BannerView @JvmOverloads constructor(
             return
         }
         if (adLifecycleFlow.value == AdLifecycle.Loaded && !wasNotified.getAndSet(true)) {
-            winner?.adSource?.sendWin()
+            winner?.sendWin()
         }
     }
 
@@ -246,7 +245,7 @@ class BannerView @JvmOverloads constructor(
             adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
             adCache.clear()
-            winner?.adSource?.destroy()
+            winner?.destroy()
             winner = null
             winnerSubscriberJob?.cancel()
             winnerSubscriberJob = null
@@ -261,7 +260,8 @@ class BannerView @JvmOverloads constructor(
             logError(TAG, "No AdView found.", NullPointerException())
             return
         }
-        val layoutParams = LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
+        val layoutParams =
+            LayoutParams(adViewHolder.widthDp.dpToPx, adViewHolder.heightDp.dpToPx, Gravity.CENTER)
         addView(adViewHolder.networkAdview, layoutParams)
         this.visibility = VISIBLE
         adViewHolder.networkAdview.visibility = VISIBLE
@@ -289,6 +289,7 @@ class BannerView @JvmOverloads constructor(
                 containerWidth = width.toFloat()
             ),
             onSuccess = { adSource, auctionInfo ->
+                this.winner = adSource
                 this.auctionInfo = auctionInfo
                 subscribeToWinner(adSource)
                 adLifecycleFlow.value = AdLifecycle.Loaded
