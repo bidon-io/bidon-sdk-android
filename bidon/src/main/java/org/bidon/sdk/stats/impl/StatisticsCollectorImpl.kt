@@ -160,10 +160,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun sendLoss(winnerDemandId: String, winnerEcpm: Double) {
         if (!externalWinNotificationsEnabled) {
-            logInfo(
-                TAG,
-                "External WinLoss Notifications disabled: external_win_notifications=false"
-            )
+            logInfo(TAG, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
         if (!isShowSent.getAndSet(true) && !isWinLossSent.getAndSet(true)) {
@@ -182,10 +179,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun sendWin() {
         if (!externalWinNotificationsEnabled) {
-            logInfo(
-                TAG,
-                "External WinLoss Notifications disabled: external_win_notifications=false"
-            )
+            logInfo(TAG, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
         if (!isShowSent.get() && !isWinLossSent.getAndSet(true)) {

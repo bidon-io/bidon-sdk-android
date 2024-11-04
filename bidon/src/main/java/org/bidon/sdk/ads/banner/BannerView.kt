@@ -61,7 +61,6 @@ class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private var loadingError: BidonError? = null
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
-    private val adCache: AdCache by lazy { get() }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
     private var winner: AdSource<*>? = null
@@ -347,7 +346,9 @@ class BannerView @JvmOverloads constructor(
             onBannerShown.invoke()
         }
     }
-}
 
-private const val TAG = "BannerView"
-const val DefaultAutoRefreshTimeoutMs = 10_000L
+    private companion object {
+        private const val TAG = "BannerView"
+        private val adCache: AdCache by lazy { get<AdCache> { AdType.Banner } }
+    }
+}

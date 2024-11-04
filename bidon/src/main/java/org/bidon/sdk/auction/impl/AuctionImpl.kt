@@ -113,18 +113,17 @@ internal class AuctionImpl(
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed during execution", cause)
-                        processAuctionFailed(adTypeParam, onFailure, cause)
+                        processAuctionFailed(onFailure, cause)
                     }
                 }.onFailure { cause ->
                     logError(TAG, "Auction failed", cause)
-                    processAuctionFailed(adTypeParam, onFailure, cause)
+                    processAuctionFailed(onFailure, cause)
                 }
             }
         }
     }
 
     private suspend fun processAuctionFailed(
-        adTypeParam: AdTypeParam,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
         cause: Throwable
     ) {

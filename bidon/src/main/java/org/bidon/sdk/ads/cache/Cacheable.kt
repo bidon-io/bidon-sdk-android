@@ -14,6 +14,7 @@ internal interface Cacheable {
      */
     data class Settings(
         val cacheCapacity: Int,
+        val noFillRetryDelayMs: Long,
     )
 
     /**
@@ -21,10 +22,12 @@ internal interface Cacheable {
      */
     companion object {
         private const val CACHE_CAPACITY = 2
+        private const val NOFILL_RETRY_DELAY_MS = 10_000L
 
         val DefaultSettings
             get() = Settings(
                 cacheCapacity = CACHE_CAPACITY,
+                noFillRetryDelayMs = NOFILL_RETRY_DELAY_MS
             )
     }
 }

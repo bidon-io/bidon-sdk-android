@@ -31,15 +31,12 @@ internal class RewardedImpl(
     private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
 ) : Rewarded, Extras by demandAd {
-    private var userListener: RewardedListener? = null
-    private var observeCallbacksJob: Job? = null
 
-    private val adCache: AdCache by lazy { get() }
+    private val scope: CoroutineScope by lazy { CoroutineScope(dispatcher) }
     private val listener: RewardedListener by lazy { getRewardedListener() }
 
-    private val scope by lazy {
-        CoroutineScope(dispatcher)
-    }
+    private var userListener: RewardedListener? = null
+    private var observeCallbacksJob: Job? = null
 
     override fun isReady(): Boolean {
         if (!BidonSdk.isInitialized()) {
@@ -66,9 +63,7 @@ internal class RewardedImpl(
             onSuccess = { adSource, auctionInfo ->
                 subscribeToWinner(auctionInfo, adSource)
                 listener.onAdLoaded(
-                    ad = requireNotNull(adSource.ad) {
-                        "[Ad] should exist when action succeeds"
-                    },
+                    ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
                     auctionInfo = auctionInfo
                 )
             },
@@ -211,6 +206,9 @@ internal class RewardedImpl(
             userListener?.onRevenuePaid(ad, adValue)
         }
     }
-}
 
-private const val TAG = "Rewarded"
+    private companion object {
+        private const val TAG = "Rewarded"
+        private val adCache: AdCache by lazy { get<AdCache> { AdType.Rewarded } }
+    }
+}

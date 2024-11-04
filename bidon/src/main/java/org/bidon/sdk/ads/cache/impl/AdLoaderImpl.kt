@@ -1,11 +1,13 @@
 package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdLoader
@@ -28,7 +30,9 @@ internal class AdLoaderImpl(
 
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
+
     private var settings: Cacheable.Settings = Cacheable.DefaultSettings
+    private var adTypeParam: AdTypeParam? = null // TODO: 04/11/2024 [glavatskikh] can leak
     private var auction: Auction? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
@@ -37,6 +41,7 @@ internal class AdLoaderImpl(
 
     override fun load(adTypeParam: AdTypeParam) {
         logInfo(tag, "AdLoader ad(s): ${results.value.asString()}")
+        this.adTypeParam = adTypeParam
         if (results.value.size >= settings.cacheCapacity) {
             logInfo(tag, "AdLoader has enough ads")
             return
@@ -56,12 +61,17 @@ internal class AdLoaderImpl(
                     trackExpired(adInstance)
                     logInfo(tag, "AdLoader auction completed: ${results.value.asString()}")
                     isLoading.value = false
-                    load(adTypeParam)
+                    scope.launch {
+                        load(adTypeParam)
+                    }
                 },
                 onFailure = { _, _ ->
                     logInfo(tag, "AdLoader auction failed: ${results.value.asString()}")
                     isLoading.value = false
-                    load(adTypeParam)
+                    scope.launch {
+                        delay(settings.noFillRetryDelayMs)
+                        load(adTypeParam)
+                    }
                 },
             )
         } else {
@@ -70,12 +80,15 @@ internal class AdLoaderImpl(
     }
 
     override fun consumeAdInstance(adInstance: AdInstance) {
-        results.update { it - adInstance }
-        // TODO: 28/10/2024 [glavatskikh] need to load new ads
+        scope.launch {
+            results.update { it - adInstance }
+            load(adTypeParam ?: return@launch)
+        }
     }
 
     override fun clear() {
         results.value = emptySet()
+        adTypeParam = null
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "AdLoader is loading, cancel auction")
             auction?.cancel()

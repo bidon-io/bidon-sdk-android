@@ -42,8 +42,4 @@ sealed interface AdTypeParam {
             return "Rewarded(activity=$activity, pricefloor=$pricefloor, auctionKey=$auctionKey)"
         }
     }
-
-    companion object {
-        const val DEFAULT_KEY = "default"
-    }
 }

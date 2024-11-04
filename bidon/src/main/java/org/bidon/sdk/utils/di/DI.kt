@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
@@ -290,8 +291,9 @@ internal object DI {
                 RenderInspectorImpl()
             }
             factory { CalculateAdContainerParamsUseCase() }
-            factory<AdCache> {
+            factoryWithParams<AdCache> { (adType) ->
                 AdCacheImpl(
+                    adType = adType as AdType,
                     scope = CoroutineScope(SdkDispatchers.Main),
                     resolver = get()
                 )
@@ -299,7 +301,7 @@ internal object DI {
             factoryWithParams<AdLoader> { (demandAd) ->
                 AdLoaderImpl(
                     demandAd = demandAd as DemandAd,
-                    scope = CoroutineScope(SdkDispatchers.Default),
+                    scope = CoroutineScope(SdkDispatchers.Main),
                 )
             }
         }

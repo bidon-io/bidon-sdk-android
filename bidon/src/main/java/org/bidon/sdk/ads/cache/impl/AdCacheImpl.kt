@@ -2,18 +2,21 @@ package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheResolver
@@ -28,13 +31,17 @@ import org.bidon.sdk.utils.ext.TAG
  * Created by Bidon Team on 28/09/2023.
  */
 internal class AdCacheImpl(
+    adType: AdType,
     private val scope: CoroutineScope,
     private val resolver: AdCacheResolver,
 ) : AdCache {
 
-    private val tag = "${TAG}_TODO"
-    private var settings: Cacheable.Settings = Cacheable.DefaultSettings
+    private val tag = "${TAG}_${adType.code}"
+    private val isLoading = MutableStateFlow(false)
     private val adLoaders = MutableStateFlow<Map<String, AdLoader>>(emptyMap())
+
+    private var settings: Cacheable.Settings = Cacheable.DefaultSettings
+    private var cacheJob: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val results: StateFlow<List<AdInstance>> = adLoaders
@@ -62,12 +69,17 @@ internal class AdCacheImpl(
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit, // ignore
     ) {
-        scope.launch {
-            logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
-            val key = adTypeParam.auctionKey ?: AdTypeParam.DEFAULT_KEY
-            getOrCreateAdLoader(key, demandAd, settings)?.load(adTypeParam)
-            val (winners, auctionInfo) = results.first { it.isNotEmpty() }.first()
-            onSuccess(winners, auctionInfo)
+        if (!isLoading.getAndUpdate { true }) {
+            cacheJob = scope.launch {
+                logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
+                val key = adTypeParam.auctionKey ?: DEFAULT_AUCTION_KEY
+                getOrCreateAdLoader(key, demandAd, settings)?.load(adTypeParam)
+                val (winners, auctionInfo) = results.first { it.isNotEmpty() }.first()
+                isLoading.value = false
+                onSuccess(winners, auctionInfo)
+            }
+        } else {
+            logInfo(tag, "Cache is already started")
         }
     }
 
@@ -79,7 +91,11 @@ internal class AdCacheImpl(
         return adInstance?.adSource
     }
 
-    override fun clear() = Unit // Do nothing
+    override fun clear() {
+        // we don't need to clear adLoaders and results
+        cacheJob?.cancel()
+        cacheJob = null
+    }
 
     private fun getOrCreateAdLoader(
         key: String,
@@ -103,6 +119,7 @@ internal class AdCacheImpl(
     }
 
     private fun consumeAdInstance(adInstance: AdInstance) {
+        logInfo(tag, "Cache consume: $adInstance")
         adLoaders.value.values.forEach { loader ->
             if (loader.results.value.contains(adInstance)) {
                 loader.consumeAdInstance(adInstance)
@@ -114,5 +131,9 @@ internal class AdCacheImpl(
         return "(${this.size}) " + this.joinToString { auctionResult ->
             auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }
+    }
+
+    companion object {
+        const val DEFAULT_AUCTION_KEY = "default"
     }
 }
