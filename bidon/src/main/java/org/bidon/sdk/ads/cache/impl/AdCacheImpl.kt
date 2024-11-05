@@ -44,10 +44,10 @@ internal class AdCacheImpl(
     private var cacheJob: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val results: StateFlow<List<AdInstance>> = adLoaders
+    private val results: StateFlow<Set<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
             combine(loaders.values.map { it.results }) { allResults ->
-                resolver.sortWinners(allResults.flatMap { it })
+                resolver.sortWinners(allResults.flatMap { it }).toSet()
             }
         }
         .onEach { sortedResults ->
@@ -56,7 +56,7 @@ internal class AdCacheImpl(
         .stateIn(
             scope = scope,
             started = SharingStarted.Eagerly,
-            initialValue = emptyList()
+            initialValue = emptySet()
         )
 
     override fun withSettings(settings: Cacheable.Settings) {
@@ -95,6 +95,7 @@ internal class AdCacheImpl(
         // we don't need to clear adLoaders and results
         cacheJob?.cancel()
         cacheJob = null
+        isLoading.value = false
     }
 
     private fun getOrCreateAdLoader(
@@ -124,12 +125,6 @@ internal class AdCacheImpl(
             if (loader.results.value.contains(adInstance)) {
                 loader.consumeAdInstance(adInstance)
             }
-        }
-    }
-
-    private fun List<AdInstance>.asString(): String {
-        return "(${this.size}) " + this.joinToString { auctionResult ->
-            auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
         }
     }
 

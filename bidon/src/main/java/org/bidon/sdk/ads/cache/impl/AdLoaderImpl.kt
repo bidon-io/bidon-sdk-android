@@ -103,10 +103,4 @@ internal class AdLoaderImpl(
             }
         }.launchIn(scope)
     }
-
-    private fun Set<AdInstance>.asString(): String {
-        return "(${this.size}) " + this.joinToString { auctionResult ->
-            auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
-        }
-    }
 }

@@ -11,3 +11,9 @@ internal data class AdInstance(
     val ecpm: Double get() = adSource.getStats().ecpm
     val timestamp: Long = SystemTimeNow
 }
+
+internal fun Set<AdInstance>.asString(): String {
+    return "(${this.size}) " + this.joinToString { auctionResult ->
+        auctionResult.adSource.getStats().let { "${it.demandId.demandId}:${it.ecpm}" }
+    }
+}
