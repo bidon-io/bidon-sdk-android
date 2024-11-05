@@ -1,5 +1,7 @@
 package org.bidon.sdk.config.impl
 
+import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.impl.AdCacheSettingsProviderImpl
 import org.bidon.sdk.config.BidonInitializer
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.databinders.extras.ExtrasImpl
@@ -18,4 +20,5 @@ internal class Bidon :
     Logger by LoggerImpl(),
     Extras by ExtrasImpl(),
     Segmentation by SegmentationImpl(),
-    Consent by ConsentImpl()
+    Consent by ConsentImpl(),
+    AdCacheSettingsProvider by AdCacheSettingsProviderImpl()
