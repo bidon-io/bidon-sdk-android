@@ -201,6 +201,6 @@ internal class InterstitialImpl(
 
     private companion object {
         private const val TAG = "Interstitial"
-        private val adCache: AdCache by lazy { get<AdCache> { AdType.Interstitial } }
+        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Interstitial) } }
     }
 }

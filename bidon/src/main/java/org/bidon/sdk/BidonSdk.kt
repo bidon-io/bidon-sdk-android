@@ -2,7 +2,7 @@ package org.bidon.sdk
 
 import android.content.Context
 import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.AdCacheSettings
 import org.bidon.sdk.config.DefaultAdapters
 import org.bidon.sdk.config.InitializationCallback
 import org.bidon.sdk.config.impl.Bidon
@@ -141,7 +141,7 @@ object BidonSdk {
      * @param settings The ad cache settings to apply.
      */
     @JvmStatic
-    fun setAdCacheSettings(settings: AdCacheSettingsProvider.AdCacheSettings): BidonSdk {
+    fun setAdCacheSettings(settings: AdCacheSettings): BidonSdk {
         bidon.setAdCacheSettings(settings)
         return this
     }

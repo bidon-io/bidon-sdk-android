@@ -19,10 +19,10 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.AdCacheResolver
+import org.bidon.sdk.ads.cache.AdCacheSettingsResolver
 import org.bidon.sdk.ads.cache.AdLoader
-import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
@@ -33,21 +33,21 @@ import org.bidon.sdk.utils.ext.TAG
 internal class AdCacheImpl(
     adType: AdType,
     private val scope: CoroutineScope,
-    private val resolver: AdCacheResolver,
+    private val resolver: AdCacheSettingsResolver,
 ) : AdCache {
 
     private val tag = "${TAG}_${adType.code}"
+    private val sorter = resolver.resolveSorter(adType)
     private val isLoading = MutableStateFlow(false)
-    private val adLoaders = MutableStateFlow<Map<String, AdLoader>>(emptyMap())
+    private val adLoaders = MutableStateFlow<Map<Any, AdLoader>>(emptyMap())
 
-    private var settings: Cacheable.Settings = Cacheable.DefaultSettings
     private var cacheJob: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val results: StateFlow<Set<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
             combine(loaders.values.map { it.results }) { allResults ->
-                resolver.sortWinners(allResults.flatMap { it }).toSet()
+                sorter.invoke(allResults.flatMap { it }).toSet()
             }
         }
         .onEach { sortedResults ->
@@ -59,10 +59,6 @@ internal class AdCacheImpl(
             initialValue = emptySet()
         )
 
-    override fun withSettings(settings: Cacheable.Settings) {
-        this.settings = settings
-    }
-
     override fun cache(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
@@ -72,8 +68,7 @@ internal class AdCacheImpl(
         if (!isLoading.getAndUpdate { true }) {
             cacheJob = scope.launch {
                 logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
-                val key = adTypeParam.auctionKey ?: DEFAULT_AUCTION_KEY
-                getOrCreateAdLoader(key, demandAd, settings)?.load(adTypeParam)
+                getOrCreateAdLoader(demandAd, adTypeParam)?.load(adTypeParam)
                 val (winners, auctionInfo) = results.first { it.isNotEmpty() }.first()
                 isLoading.value = false
                 onSuccess(winners, auctionInfo)
@@ -93,28 +88,30 @@ internal class AdCacheImpl(
 
     override fun clear() {
         // we don't need to clear adLoaders and results
-        cacheJob?.cancel()
-        cacheJob = null
-        isLoading.value = false
+        if (isLoading.getAndUpdate { false }) {
+            logInfo(tag, "Cache canceled")
+            cacheJob?.cancel()
+            cacheJob = null
+        }
     }
 
-    private fun getOrCreateAdLoader(
-        key: String,
-        demandAd: DemandAd,
-        settings: Cacheable.Settings
-    ): AdLoader? {
+    private fun getOrCreateAdLoader(demandAd: DemandAd, adTypeParam: AdTypeParam): AdLoader? {
+        val key = resolver.resolveAuctionKey(adTypeParam)
         return adLoaders.updateAndGet { currentLoaders ->
             if (key in currentLoaders) {
                 currentLoaders
             } else {
+                val settings = resolver.resolveSettings(adTypeParam)
                 currentLoaders + (key to createAdLoader(demandAd, settings))
             }
         }[key]
     }
 
-    private fun createAdLoader(demandAd: DemandAd, settings: Cacheable.Settings): AdLoader {
-        return get<AdLoader> { params(demandAd) }.apply {
-            withSettings(settings)
+    private fun createAdLoader(
+        demandAd: DemandAd,
+        settings: AdCacheSettingsProvider.AdSettings
+    ): AdLoader {
+        return get<AdLoader> { params(demandAd, settings) }.apply {
             logInfo(tag, "AdLoader created with settings: $settings")
         }
     }
@@ -126,9 +123,5 @@ internal class AdCacheImpl(
                 loader.consumeAdInstance(adInstance)
             }
         }
-    }
-
-    companion object {
-        const val DEFAULT_AUCTION_KEY = "default"
     }
 }

@@ -11,9 +11,9 @@ import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdLoader
-import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
+import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
@@ -23,6 +23,7 @@ import org.bidon.sdk.utils.ext.TAG
  */
 internal class AdLoaderImpl(
     override val demandAd: DemandAd,
+    private val settings: AdCacheSettingsProvider.AdSettings,
     private val scope: CoroutineScope,
 ) : AdLoader {
 
@@ -31,18 +32,13 @@ internal class AdLoaderImpl(
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
 
-    private var settings: Cacheable.Settings = Cacheable.DefaultSettings
     private var adTypeParam: AdTypeParam? = null // TODO: 04/11/2024 [glavatskikh] can leak
     private var auction: Auction? = null
-
-    override fun withSettings(settings: Cacheable.Settings) {
-        this.settings = settings
-    }
 
     override fun load(adTypeParam: AdTypeParam) {
         logInfo(tag, "AdLoader ad(s): ${results.value.asString()}")
         this.adTypeParam = adTypeParam
-        if (results.value.size >= settings.cacheCapacity) {
+        if (results.value.size >= settings.cacheSize) {
             logInfo(tag, "AdLoader has enough ads")
             return
         }
@@ -69,7 +65,7 @@ internal class AdLoaderImpl(
                     logInfo(tag, "AdLoader auction failed: ${results.value.asString()}")
                     isLoading.value = false
                     scope.launch {
-                        delay(settings.noFillRetryDelayMs)
+                        delay(settings.retryDelayMs)
                         load(adTypeParam)
                     }
                 },

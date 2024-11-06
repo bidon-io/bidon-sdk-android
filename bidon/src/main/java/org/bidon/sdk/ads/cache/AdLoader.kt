@@ -8,7 +8,7 @@ import org.bidon.sdk.auction.AdTypeParam
 /**
  * Created by Bidon Team on 28/10/2024.
  */
-internal interface AdLoader : Cacheable {
+internal interface AdLoader {
 
     val demandAd: DemandAd
 

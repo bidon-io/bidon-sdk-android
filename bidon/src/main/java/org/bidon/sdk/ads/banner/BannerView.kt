@@ -349,6 +349,6 @@ class BannerView @JvmOverloads constructor(
 
     private companion object {
         private const val TAG = "BannerView"
-        private val adCache: AdCache by lazy { get<AdCache> { AdType.Banner } }
+        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Banner) } }
     }
 }

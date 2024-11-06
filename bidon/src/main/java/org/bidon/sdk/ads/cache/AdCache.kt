@@ -8,7 +8,7 @@ import org.bidon.sdk.auction.AdTypeParam
 /**
  * Created by Bidon Team on 28/09/2023.
  */
-internal interface AdCache : Cacheable {
+internal interface AdCache {
     /**
      * Caches ads.
      */

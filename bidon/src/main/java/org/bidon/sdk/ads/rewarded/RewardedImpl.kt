@@ -209,6 +209,6 @@ internal class RewardedImpl(
 
     private companion object {
         private const val TAG = "Rewarded"
-        private val adCache: AdCache by lazy { get<AdCache> { AdType.Rewarded } }
+        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Rewarded) } }
     }
 }

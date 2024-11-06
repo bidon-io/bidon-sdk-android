@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,6 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.AppTextButton
@@ -104,9 +109,10 @@ private fun AdTypeSettingsView(
     adSettings: AdSettings,
     onSettingsChange: (AdSettings) -> Unit
 ) {
-    var sortStrategy by remember { mutableStateOf(adSettings.sortStrategy) }
-    var adunitCacheSize by remember { mutableStateOf(adSettings.cacheSize) }
-    var noFillDelayMs by remember { mutableStateOf(adSettings.retryDelayMs) }
+    val focusManager = LocalFocusManager.current
+    var sortStrategy by remember(adSettings) { mutableStateOf(adSettings.sortStrategy) }
+    var adunitCacheSize by remember(adSettings) { mutableStateOf(adSettings.cacheSize.toString()) }
+    var noFillDelayMs by remember(adSettings) { mutableStateOf(adSettings.retryDelayMs.toString()) }
 
     Column(
         modifier = Modifier
@@ -131,22 +137,44 @@ private fun AdTypeSettingsView(
 
         // Ad Unit Cache Size
         OutlinedTextField(
-            value = adunitCacheSize.toString(),
-            onValueChange = { adunitCacheSize = it.toIntOrNull() ?: 0 },
+            value = adunitCacheSize,
+            onValueChange = { newValue ->
+                adunitCacheSize = newValue.filter { it.isDigit() }
+            },
             label = { Text("Ad Unit Cache Size") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 4.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                }
+            )
         )
 
         // No Fill Delay (ms)
         OutlinedTextField(
-            value = noFillDelayMs.toString(),
-            onValueChange = { noFillDelayMs = it.toLongOrNull() ?: 0L },
+            value = noFillDelayMs,
+            onValueChange = { newValue ->
+                noFillDelayMs = newValue.filter { it.isDigit() }
+            },
             label = { Text("No Fill Delay (ms)") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 4.dp),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                }
+            )
         )
 
         AppOutlinedButton(
@@ -158,8 +186,8 @@ private fun AdTypeSettingsView(
             onSettingsChange(
                 AdSettings(
                     sortStrategy = sortStrategy,
-                    cacheSize = adunitCacheSize,
-                    retryDelayMs = noFillDelayMs
+                    cacheSize = adunitCacheSize.toIntOrNull() ?: adSettings.cacheSize,
+                    retryDelayMs = noFillDelayMs.toLongOrNull() ?: adSettings.retryDelayMs
                 )
             )
         }

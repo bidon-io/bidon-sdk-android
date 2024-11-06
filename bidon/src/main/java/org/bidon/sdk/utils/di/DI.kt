@@ -19,11 +19,11 @@ import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.AdCacheResolver
+import org.bidon.sdk.ads.cache.AdCacheSettingsResolver
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.impl.AdCacheImpl
+import org.bidon.sdk.ads.cache.impl.AdCacheSettingsResolverImpl
 import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
-import org.bidon.sdk.ads.cache.impl.MaxEcpmAdCacheResolver
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -41,6 +41,9 @@ import org.bidon.sdk.auction.usecases.impl.RequestAdUnitUseCaseImpl
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.bidding.BiddingConfigImpl
 import org.bidon.sdk.bidding.BiddingConfigSynchronizer
+import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
+import org.bidon.sdk.cache.impl.AdCacheSettingsProviderImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
 import org.bidon.sdk.config.impl.InitAndRegisterAdaptersUseCaseImpl
@@ -176,6 +179,8 @@ internal object DI {
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetDemandsTokensUseCase> { GetDemandsTokensUseCaseImpl() }
 
+            singleton<AdCacheSettingsProvider> { AdCacheSettingsProviderImpl() }
+
             /**
              * Factories
              */
@@ -189,7 +194,6 @@ internal object DI {
             }
             factory<AdapterInstanceCreator> { AdapterInstanceCreatorImpl() }
             factory<AuctionResolver> { MaxEcpmAuctionResolver }
-            factory<AdCacheResolver> { MaxEcpmAdCacheResolver }
             factory<Auction> {
                 AuctionImpl(
                     adaptersSource = get(),
@@ -291,6 +295,11 @@ internal object DI {
                 RenderInspectorImpl()
             }
             factory { CalculateAdContainerParamsUseCase() }
+            factory<AdCacheSettingsResolver> {
+                AdCacheSettingsResolverImpl(
+                    settingsProvider = get()
+                )
+            }
             factoryWithParams<AdCache> { (adType) ->
                 AdCacheImpl(
                     adType = adType as AdType,
@@ -298,9 +307,10 @@ internal object DI {
                     resolver = get()
                 )
             }
-            factoryWithParams<AdLoader> { (demandAd) ->
+            factoryWithParams<AdLoader> { (demandAd, settings) ->
                 AdLoaderImpl(
                     demandAd = demandAd as DemandAd,
+                    settings = settings as AdSettings,
                     scope = CoroutineScope(SdkDispatchers.Main),
                 )
             }
