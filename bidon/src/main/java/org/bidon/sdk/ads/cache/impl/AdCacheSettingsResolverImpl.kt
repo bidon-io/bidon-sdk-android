@@ -8,6 +8,11 @@ import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
 import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy
 
+/**
+ * Created by Bidon Team on 06/11/2024.
+ *
+ * Implementation of [AdCacheSettingsResolver].
+ */
 internal class AdCacheSettingsResolverImpl(
     private val settingsProvider: AdCacheSettingsProvider
 ) : AdCacheSettingsResolver {

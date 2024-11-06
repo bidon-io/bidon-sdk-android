@@ -7,6 +7,8 @@ import org.bidon.sdk.auction.AdTypeParam
 
 /**
  * Created by Bidon Team on 28/10/2024.
+ *
+ * Interface for ad loader.
  */
 internal interface AdLoader {
 

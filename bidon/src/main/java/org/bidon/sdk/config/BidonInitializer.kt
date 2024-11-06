@@ -2,7 +2,6 @@ package org.bidon.sdk.config
 
 import android.content.Context
 import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.cache.AdCacheSettingsProvider.*
 import org.bidon.sdk.utils.networking.NetworkSettings
 

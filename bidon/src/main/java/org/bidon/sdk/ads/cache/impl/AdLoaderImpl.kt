@@ -16,10 +16,11 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
-import org.bidon.sdk.utils.ext.TAG
 
 /**
  * Created by Bidon Team on 28/10/2024.
+ *
+ * Implementation of [AdLoader].
  */
 internal class AdLoaderImpl(
     override val demandAd: DemandAd,
@@ -31,47 +32,54 @@ internal class AdLoaderImpl(
 
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
+    private val currentRetryDelayMs = MutableStateFlow(settings.retryDelayMs)
 
-    private var adTypeParam: AdTypeParam? = null // TODO: 04/11/2024 [glavatskikh] can leak
+    private var adTypeParam: AdTypeParam? = null // TODO: 04/11/2024 [glavatskikh] Potential memory leak
     private var auction: Auction? = null
 
     override fun load(adTypeParam: AdTypeParam) {
-        logInfo(tag, "AdLoader ad(s): ${results.value.asString()}")
+        logInfo(tag, "Loading ad(s): ${results.value.asString()}")
         this.adTypeParam = adTypeParam
+
         if (results.value.size >= settings.cacheSize) {
-            logInfo(tag, "AdLoader has enough ads")
+            logInfo(tag, "Ad cache size reached. Skipping load.")
             return
         }
+
         if (!isLoading.getAndUpdate { true }) {
-            logInfo(tag, "AdLoader start: $adTypeParam")
+            logInfo(tag, "Starting auction for ad type: $adTypeParam")
             auction = get()
             auction?.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
                 onSuccess = { winners, auctionInfo ->
-                    // TODO: 31/10/2024 [glavatskikh] In the future we will have several winners,
-                    //  but for now we are taking only the first
+                    // For now, we are taking only the first winner; support for multiple winners is planned
                     val winner = winners.first()
                     val adInstance = AdInstance(winner.adSource, auctionInfo)
                     results.update { it + adInstance }
                     trackExpired(adInstance)
-                    logInfo(tag, "AdLoader auction completed: ${results.value.asString()}")
+
+                    logInfo(tag, "Auction successful. Current ad cache: ${results.value.asString()}")
                     isLoading.value = false
                     scope.launch {
-                        load(adTypeParam)
+                        logInfo(tag, "Resetting retry delay to: ${settings.retryDelayMs} ms")
+                        currentRetryDelayMs.value = settings.retryDelayMs
+                        load(adTypeParam) // Attempt to load more ads if cache isn't full
                     }
                 },
                 onFailure = { _, _ ->
-                    logInfo(tag, "AdLoader auction failed: ${results.value.asString()}")
+                    logInfo(tag, "Auction failed. Current ad cache: ${results.value.asString()}")
                     isLoading.value = false
                     scope.launch {
-                        delay(settings.retryDelayMs)
+                        val nextRetryDelay = currentRetryDelayMs.value * 2
+                        logInfo(tag, "Retrying after delay: $nextRetryDelay ms")
+                        delay(currentRetryDelayMs.getAndUpdate { nextRetryDelay })
                         load(adTypeParam)
                     }
-                },
+                }
             )
         } else {
-            logInfo(tag, "AdLoader is already loading")
+            logInfo(tag, "Load operation is already in progress.")
         }
     }
 
@@ -85,8 +93,10 @@ internal class AdLoaderImpl(
     override fun clear() {
         results.value = emptySet()
         adTypeParam = null
+        currentRetryDelayMs.value = settings.retryDelayMs
+
         if (isLoading.getAndUpdate { false }) {
-            logInfo(tag, "AdLoader is loading, cancel auction")
+            logInfo(tag, "Clearing ad cache and cancelling ongoing auction.")
             auction?.cancel()
             auction = null
         }
@@ -96,7 +106,10 @@ internal class AdLoaderImpl(
         adInstance.adSource.adEvent.onEach { event ->
             if (event is AdEvent.Expired) {
                 results.update { it - adInstance }
+                logInfo(tag, "Ad expired and removed from cache: ${adInstance.adSource}")
             }
         }.launchIn(scope)
     }
 }
+
+private const val TAG = "AdLoader"

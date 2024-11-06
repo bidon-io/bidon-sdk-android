@@ -29,6 +29,8 @@ import org.bidon.sdk.utils.ext.TAG
 
 /**
  * Created by Bidon Team on 28/09/2023.
+ *
+ * Implementation of [AdCache].
  */
 internal class AdCacheImpl(
     adType: AdType,

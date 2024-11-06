@@ -4,6 +4,11 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
+/**
+ * Created by Bidon Team on 06/11/2024.'
+ *
+ * Represents an ad instance.
+ */
 internal data class AdInstance(
     val adSource: AdSource<*>,
     val auctionInfo: AuctionInfo,
