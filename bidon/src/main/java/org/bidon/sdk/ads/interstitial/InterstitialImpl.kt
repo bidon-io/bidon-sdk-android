@@ -46,6 +46,11 @@ internal class InterstitialImpl(
         return adCache.peek()?.isAdReadyToShow == true
     }
 
+    override fun setInterstitialListener(listener: InterstitialListener) {
+        logInfo(TAG, "Set interstitial listener")
+        this.userListener = listener
+    }
+
     override fun loadAd(activity: Activity, pricefloor: Double) {
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
@@ -94,12 +99,9 @@ internal class InterstitialImpl(
         }
     }
 
-    override fun setInterstitialListener(listener: InterstitialListener) {
-        logInfo(TAG, "Set interstitial listener")
-        this.userListener = listener
-    }
-
+    @Deprecated("With ad caching logic, it works incorrectly")
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        logInfo(TAG, "Notify loss ($winnerDemandId, $winnerEcpm)")
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
             return
@@ -108,7 +110,9 @@ internal class InterstitialImpl(
         destroyAd()
     }
 
+    @Deprecated("With ad caching logic, it works incorrectly")
     override fun notifyWin() {
+        logInfo(TAG, "Notify win")
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
             return

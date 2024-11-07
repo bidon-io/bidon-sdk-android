@@ -13,9 +13,9 @@ class RewardedAd @JvmOverloads constructor(
 ) : Rewarded by RewardedImpl(auctionKey = auctionKey)
 
 interface Rewarded : Extras, WinLossNotifier {
-    fun isReady(): Boolean // for show
-    fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
-    fun destroyAd()
-    fun showAd(activity: Activity)
+    fun isReady(): Boolean
     fun setRewardedListener(listener: RewardedListener)
+    fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
+    fun showAd(activity: Activity)
+    fun destroyAd()
 }

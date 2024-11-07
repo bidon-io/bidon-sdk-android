@@ -3,6 +3,11 @@ package org.bidon.sdk.cache
 import androidx.annotation.IntRange
 import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy.TIMESTAMP
 
+/**
+ * Created by Bidon Team on 07/11/2024.
+ *
+ * Interface for providing ad cache settings.
+ */
 interface AdCacheSettingsProvider {
 
     val settings: AdCacheSettings

@@ -8,6 +8,11 @@ import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MAX_RETRY_DELAY_MS
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_CACHE_SIZE
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_RETRY_DELAY_MS
 
+/**
+ * Created by Bidon Team on 07/11/2024.
+ *
+ * Implementation of [AdCacheSettingsProvider].
+ */
 internal class AdCacheSettingsProviderImpl : AdCacheSettingsProvider {
 
     override var settings: AdCacheSettings = AdCacheSettings()
