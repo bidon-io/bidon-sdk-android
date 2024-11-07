@@ -13,10 +13,10 @@ internal fun Regulation.asBundle() = Bundle().apply {
     logInfo(
         "AdmobAdapter",
         "Applying regulation to ${AdmobDemandId.demandId} <- " +
-                "GDPR=${regulation.gdpr}, " +
-                "COPPA=${regulation.coppa}, " +
-                "usPrivacyString=${regulation.usPrivacyString}, " +
-                "gdprConsentString=${regulation.gdprConsentString}"
+            "GDPR=${regulation.gdpr}, " +
+            "COPPA=${regulation.coppa}, " +
+            "usPrivacyString=${regulation.usPrivacyString}, " +
+            "gdprConsentString=${regulation.gdprConsentString}"
     )
 
     regulation.usPrivacyString?.let {
