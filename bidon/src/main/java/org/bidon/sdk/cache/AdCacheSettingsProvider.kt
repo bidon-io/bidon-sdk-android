@@ -1,5 +1,8 @@
 package org.bidon.sdk.cache
 
+import androidx.annotation.IntRange
+import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy.TIMESTAMP
+
 interface AdCacheSettingsProvider {
 
     val settings: AdCacheSettings
@@ -26,13 +29,15 @@ interface AdCacheSettingsProvider {
      * Class representing the settings for a specific ad type.
      *
      * @property sortStrategy The strategy used for sorting ads.
-     * @property cacheSize The size of the cache for auction keys.
-     * @property retryDelayMs The delay before retrying to load an ad after a no-fill response.
+     * @property cacheSize The size of the cache for auction keys,
+     * automatically constrained between 1 and 10.
+     * @property retryDelayMs The delay before retrying to load an ad after a no-fill response,
+     * automatically constrained between 2000 ms and 64000 ms.
      */
     data class AdSettings(
         val sortStrategy: SortStrategy,
-        val cacheSize: Int,
-        val retryDelayMs: Long
+        @IntRange(from = 1, to = 10) val cacheSize: Int,
+        @IntRange(from = 2_000, to = 64_000) val retryDelayMs: Int
     )
 
     /**
@@ -51,15 +56,17 @@ interface AdCacheSettingsProvider {
     }
 
     companion object {
-        private val DEFAULT_SORT_STRATEGY = SortStrategy.TIMESTAMP
-        private const val DEFAULT_CACHE_SIZE = 1
-        private const val DEFAULT_RETRY_DELAY_MS = 10_000L
+        const val MIN_CACHE_SIZE: Int = 1
+        const val MAX_CACHE_SIZE: Int = 10
+        const val MIN_RETRY_DELAY_MS: Int = 2_000
+        const val MAX_RETRY_DELAY_MS: Int = 64_000
+        private val DEFAULT_SORT_STRATEGY: SortStrategy = TIMESTAMP
 
         val DefaultAdSettings
             get() = AdSettings(
                 sortStrategy = DEFAULT_SORT_STRATEGY,
-                cacheSize = DEFAULT_CACHE_SIZE,
-                retryDelayMs = DEFAULT_RETRY_DELAY_MS
+                cacheSize = MIN_CACHE_SIZE,
+                retryDelayMs = MIN_RETRY_DELAY_MS
             )
     }
 }

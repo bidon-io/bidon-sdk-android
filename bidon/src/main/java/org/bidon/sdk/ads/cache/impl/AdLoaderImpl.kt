@@ -16,6 +16,7 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
+import kotlin.math.min
 
 /**
  * Created by Bidon Team on 28/10/2024.
@@ -71,9 +72,9 @@ internal class AdLoaderImpl(
                     logInfo(tag, "Auction failed. Current ad cache: ${results.value.asString()}")
                     isLoading.value = false
                     scope.launch {
-                        val nextRetryDelay = currentRetryDelayMs.value * 2
+                        val nextRetryDelay = min(currentRetryDelayMs.value * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
                         logInfo(tag, "Retrying after delay: $nextRetryDelay ms")
-                        delay(currentRetryDelayMs.getAndUpdate { nextRetryDelay })
+                        delay(currentRetryDelayMs.getAndUpdate { nextRetryDelay }.toLong())
                         load(adTypeParam)
                     }
                 }

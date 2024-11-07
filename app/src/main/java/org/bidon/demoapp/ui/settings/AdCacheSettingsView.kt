@@ -32,6 +32,8 @@ import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdCacheSettings
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
+import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_CACHE_SIZE
+import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_RETRY_DELAY_MS
 import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy
 
 @Composable
@@ -42,9 +44,9 @@ internal fun AdCacheSettingsView(
     val adCacheSettings = remember {
         mutableStateOf(
             AdCacheSettings(
-                banner = AdSettings(SortStrategy.TIMESTAMP, 1, 10_000L),
-                interstitial = AdSettings(SortStrategy.TIMESTAMP, 1, 10_000L),
-                rewardedVideo = AdSettings(SortStrategy.TIMESTAMP, 1, 10_000L)
+                banner = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                interstitial = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                rewardedVideo = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
             )
         )
     }
@@ -187,7 +189,7 @@ private fun AdTypeSettingsView(
                 AdSettings(
                     sortStrategy = sortStrategy,
                     cacheSize = adunitCacheSize.toIntOrNull() ?: adSettings.cacheSize,
-                    retryDelayMs = noFillDelayMs.toLongOrNull() ?: adSettings.retryDelayMs
+                    retryDelayMs = noFillDelayMs.toIntOrNull() ?: adSettings.retryDelayMs
                 )
             )
         }
