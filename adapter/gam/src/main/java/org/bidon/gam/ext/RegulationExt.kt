@@ -10,10 +10,10 @@ internal fun Regulation.asBundle() = Bundle().apply {
     logInfo(
         "GamAdapter",
         "Applying regulation to ${GamDemandId.demandId} <- " +
-                "GDPR=${regulation.gdpr}, " +
-                "COPPA=${regulation.coppa}, " +
-                "usPrivacyString=${regulation.usPrivacyString}, " +
-                "gdprConsentString=${regulation.gdprConsentString}"
+            "GDPR=${regulation.gdpr}, " +
+            "COPPA=${regulation.coppa}, " +
+            "usPrivacyString=${regulation.usPrivacyString}, " +
+            "gdprConsentString=${regulation.gdprConsentString}"
     )
 
     regulation.usPrivacyString?.let {

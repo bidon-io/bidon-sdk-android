@@ -15,7 +15,6 @@ import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.DemandStatus
 import org.bidon.sdk.stats.models.asDemandStatus

@@ -6,7 +6,6 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.DemandStatus
 

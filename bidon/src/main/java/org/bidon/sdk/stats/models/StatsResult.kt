@@ -41,4 +41,3 @@ internal data class StatsResult(
         FAIL("FAIL"),
     }
 }
-
