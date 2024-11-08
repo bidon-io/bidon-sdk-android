@@ -21,5 +21,8 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("io.bidmachine:ads:3.0.0")
+    implementation("io.bidmachine:ads:3.1.0") {
+        exclude(group = "io.bidmachine", module = "ads.networks.gam")
+        exclude(group = "io.bidmachine", module = "ads.networks.gam_dynamic")
+    }
 }

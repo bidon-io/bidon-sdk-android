@@ -6,6 +6,6 @@ object GradleDependencies {
     }
 
     object Android {
-        const val gradlePlugin = "com.android.tools.build:gradle:7.4.2"
+        const val gradlePlugin = "com.android.tools.build:gradle:8.0.2"
     }
 }

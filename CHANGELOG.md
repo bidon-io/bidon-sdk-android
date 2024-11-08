@@ -1,3 +1,8 @@
+# Develop
+## Features:
+- [BDN-778](https://appodeal.atlassian.net/browse/BDN-778) Updated Bidmachine to 3.1.0. 
+Updated Gradle version to 8.0/Android Gradle Plugin to 8.0.2
+
 # 0.7.0-beta.1
 ## Features:
 - [BDN-769](https://appodeal.atlassian.net/browse/BDN-769) Fixed MobileFuse SDK ad revenue calculation
