@@ -16,6 +16,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -62,7 +63,7 @@ internal class AdmobInterstitialImpl(
         price = adParams.price
         val requestListener = object : InterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
+                logError(TAG, "onAdFailedToLoad: $loadAdError. $this")
                 emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
 

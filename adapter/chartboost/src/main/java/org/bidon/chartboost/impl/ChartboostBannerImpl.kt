@@ -21,6 +21,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -53,7 +54,7 @@ internal class ChartboostBannerImpl :
                     val ad = getAd() ?: return
                     emitEvent(AdEvent.Fill(ad))
                 } else {
-                    logInfo(TAG, "onAdFailed $event $error")
+                    logError(TAG, "onAdFailed $event $error")
                     emitEvent(AdEvent.LoadFailed(error.asBidonLoadError()))
                 }
             }

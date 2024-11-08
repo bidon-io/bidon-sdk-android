@@ -15,6 +15,7 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -58,7 +59,7 @@ internal class YandexInterstitialImpl :
             }
 
             override fun onAdFailedToLoad(error: AdRequestError) {
-                logInfo(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this")
+                logError(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
@@ -87,7 +88,7 @@ internal class YandexInterstitialImpl :
                 }
 
                 override fun onAdFailedToShow(adError: AdError) {
-                    logInfo(TAG, "onAdFailedToShow: ${adError.description}. $this")
+                    logError(TAG, "onAdFailedToShow: ${adError.description}. $this")
                     emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
                 }
 
