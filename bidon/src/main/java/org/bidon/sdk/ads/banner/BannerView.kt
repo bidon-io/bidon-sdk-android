@@ -112,33 +112,62 @@ class BannerView @JvmOverloads constructor(
             listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
             return
         }
-        logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        adLifecycleFlow.value = AdLifecycle.Loading
-        adCache.cache(
-            demandAd = demandAd,
-            adTypeParam = AdTypeParam.Banner(
-                activity = activity,
-                pricefloor = pricefloor,
-                auctionKey = auctionKey,
-                bannerFormat = format,
-                containerWidth = width.toFloat()
-            ),
-            onSuccess = { adSource, auctionInfo ->
-                adLifecycleFlow.value = AdLifecycle.Loaded
-                subscribeToWinner(adSource)
-                listener.onAdLoaded(
-                    ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
-                    auctionInfo = auctionInfo
-                )
-            },
-            onFailure = { auctionInfo, cause ->
-                adLifecycleFlow.value = AdLifecycle.LoadingFailed
-                listener.onAdLoadFailed(
-                    auctionInfo = auctionInfo,
-                    cause = cause.asBidonErrorOrUnspecified()
+        when (adLifecycleFlow.value) {
+            AdLifecycle.Created,
+            AdLifecycle.Loading,
+            AdLifecycle.Loaded -> {
+                adLifecycleFlow.value = AdLifecycle.Loading
+                logInfo(TAG, "Load (pricefloor=$pricefloor)")
+                adCache.cache(
+                    demandAd = demandAd,
+                    adTypeParam = AdTypeParam.Banner(
+                        activity = activity,
+                        pricefloor = pricefloor,
+                        auctionKey = auctionKey,
+                        bannerFormat = format,
+                        containerWidth = width.toFloat()
+                    ),
+                    onSuccess = { adSource, auctionInfo ->
+                        adLifecycleFlow.value = AdLifecycle.Loaded
+                        subscribeToWinner(adSource)
+                        listener.onAdLoaded(
+                            ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
+                            auctionInfo = auctionInfo
+                        )
+                    },
+                    onFailure = { auctionInfo, cause ->
+                        adLifecycleFlow.value = AdLifecycle.LoadingFailed
+                        listener.onAdLoadFailed(
+                            auctionInfo = auctionInfo,
+                            cause = cause.asBidonErrorOrUnspecified()
+                        )
+                    }
                 )
             }
-        )
+
+            AdLifecycle.LoadingFailed -> {
+                logInfo(TAG, "Load failed. Ad not ready.")
+                listener.onAdLoadFailed(null, BidonError.AdNotReady)
+            }
+
+            AdLifecycle.Displaying -> {
+                logInfo(TAG, "Load failed. Ad displaying.")
+            }
+
+            AdLifecycle.Displayed -> {
+                logInfo(TAG, "Load failed. Ad displayed.")
+            }
+
+            AdLifecycle.DisplayingFailed -> {
+                logInfo(TAG, "Load failed. Ad displaying failed.")
+                listener.onAdLoadFailed(null, BidonError.AdNotReady)
+            }
+
+            AdLifecycle.Destroyed -> {
+                logInfo(TAG, "Load failed. Ad destroyed.")
+                listener.onAdLoadFailed(null, BidonError.AdNotReady)
+            }
+        }
     }
 
     override fun showAd() {
