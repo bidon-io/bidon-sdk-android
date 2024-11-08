@@ -63,7 +63,7 @@ internal class AmazonRewardedImpl(private val bidManager: AmazonBidManager) :
                 }
 
                 override fun onAdFailed(view: View?) {
-                    logInfo(TAG, "onAdFailed")
+                    logError(TAG, "onAdFailed")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 
