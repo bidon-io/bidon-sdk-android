@@ -37,6 +37,7 @@ internal class InterstitialImpl(
 
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
+    private var winner: AdSource.Interstitial<*>? = null
 
     override fun isReady(): Boolean {
         if (!BidonSdk.isInitialized()) {
@@ -89,7 +90,7 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Show")
         activity.runOnUiThread {
-            val adSource = adCache.pop() as? AdSource.Interstitial
+            val adSource = (adCache.pop() as? AdSource.Interstitial).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
                 adSource.show(activity)
             } else {
@@ -127,6 +128,8 @@ internal class InterstitialImpl(
         }
         scope.launch(Dispatchers.Main.immediate) {
             adCache.clear()
+            winner?.destroy()
+            winner = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
         }

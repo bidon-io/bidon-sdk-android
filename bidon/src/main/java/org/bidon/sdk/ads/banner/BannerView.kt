@@ -54,6 +54,7 @@ class BannerView @JvmOverloads constructor(
 
     private var userListener: BannerListener? = null
     private var observeCallbacksJob: Job? = null
+    private var winner: AdSource.Banner<*>? = null
 
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.BannerView, 0, 0).apply {
@@ -142,7 +143,7 @@ class BannerView @JvmOverloads constructor(
             return
         }
         scope.launch(Dispatchers.Main.immediate) {
-            val adSource = adCache.pop() as? AdSource.Banner<*>
+            val adSource = (adCache.pop() as? AdSource.Banner<*>).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
                 addViewOnScreen(adSource)
             } else {
@@ -181,6 +182,8 @@ class BannerView @JvmOverloads constructor(
         scope.launch(Dispatchers.Main.immediate) {
             visibilityTracker.stop()
             adCache.clear()
+            winner?.destroy()
+            winner = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
             removeAllViews()
@@ -205,7 +208,7 @@ class BannerView @JvmOverloads constructor(
         frameLayout.addView(networkAdview, layoutParams)
         frameLayout.visibility = VISIBLE
         networkAdview.visibility = VISIBLE
-        logInfo(TAG, "View added(${adSource.demandId.demandId}): ${networkAdview}. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})")
+        logInfo(TAG, "View added(${adSource.demandId.demandId}): $networkAdview. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})")
         checkBannerShown(networkAdview) {
             adSource.ad?.let { listener.onAdShown(ad = it) }
             adSource.sendShowImpression()

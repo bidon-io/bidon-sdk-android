@@ -37,6 +37,7 @@ internal class RewardedImpl(
 
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
+    private var winner: AdSource.Rewarded<*>? = null
 
     override fun isReady(): Boolean {
         if (!BidonSdk.isInitialized()) {
@@ -89,7 +90,7 @@ internal class RewardedImpl(
         }
         logInfo(TAG, "Show")
         activity.runOnUiThread {
-            val adSource = adCache.pop() as? AdSource.Rewarded
+            val adSource = (adCache.pop() as? AdSource.Rewarded).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
                 adSource.show(activity)
             } else {
@@ -127,6 +128,8 @@ internal class RewardedImpl(
         }
         scope.launch(Dispatchers.Main.immediate) {
             adCache.clear()
+            winner?.destroy()
+            winner = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
         }
