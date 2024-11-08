@@ -10,6 +10,7 @@ import androidx.annotation.AttrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.ads.cache.AdCache
@@ -51,6 +53,7 @@ class BannerView @JvmOverloads constructor(
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val listener: BannerListener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
+    private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
 
     private var userListener: BannerListener? = null
     private var observeCallbacksJob: Job? = null
@@ -110,6 +113,7 @@ class BannerView @JvmOverloads constructor(
             return
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
+        adLifecycleFlow.value = AdLifecycle.Loading
         adCache.cache(
             demandAd = demandAd,
             adTypeParam = AdTypeParam.Banner(
@@ -120,6 +124,7 @@ class BannerView @JvmOverloads constructor(
                 containerWidth = width.toFloat()
             ),
             onSuccess = { adSource, auctionInfo ->
+                adLifecycleFlow.value = AdLifecycle.Loaded
                 subscribeToWinner(adSource)
                 listener.onAdLoaded(
                     ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
@@ -127,6 +132,7 @@ class BannerView @JvmOverloads constructor(
                 )
             },
             onFailure = { auctionInfo, cause ->
+                adLifecycleFlow.value = AdLifecycle.LoadingFailed
                 listener.onAdLoadFailed(
                     auctionInfo = auctionInfo,
                     cause = cause.asBidonErrorOrUnspecified()
@@ -142,12 +148,46 @@ class BannerView @JvmOverloads constructor(
             listener.onAdShowFailed(BidonError.SdkNotInitialized)
             return
         }
-        scope.launch(Dispatchers.Main.immediate) {
-            val adSource = (adCache.pop() as? AdSource.Banner<*>).also { winner = it }
-            if (adSource?.isAdReadyToShow == true) {
-                addViewOnScreen(adSource)
-            } else {
+        when (adLifecycleFlow.value) {
+            AdLifecycle.Created,
+            AdLifecycle.Loading -> {
+                // do nothing
+            }
+
+            AdLifecycle.Loaded -> {
+                scope.launch(Dispatchers.Main.immediate) {
+                    adLifecycleFlow.value = AdLifecycle.Displaying
+                    val adSource = (adCache.pop() as? AdSource.Banner<*>).also { winner = it }
+                    if (adSource?.isAdReadyToShow == true) {
+                        addViewOnScreen(adSource)
+                    } else {
+                        logInfo(TAG, "Show failed. Ad not ready.")
+                        adLifecycleFlow.value = AdLifecycle.DisplayingFailed
+                        listener.onAdShowFailed(BidonError.AdNotReady)
+                    }
+                }
+            }
+
+            AdLifecycle.LoadingFailed -> {
                 logInfo(TAG, "Show failed. Ad not ready.")
+                listener.onAdShowFailed(BidonError.AdNotReady)
+            }
+
+            AdLifecycle.Displaying -> {
+                logInfo(TAG, "Show failed. Ad already displaying.")
+            }
+
+            AdLifecycle.Displayed -> {
+                logInfo(TAG, "Show failed. Ad already displayed.")
+            }
+
+            AdLifecycle.DisplayingFailed -> {
+                logInfo(TAG, "Show failed. Ad displaying failed.")
+                listener.onAdShowFailed(BidonError.AdNotReady)
+            }
+
+            AdLifecycle.Destroyed -> {
+                logInfo(TAG, "Show failed. Ad destroyed.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
             }
         }
@@ -180,6 +220,7 @@ class BannerView @JvmOverloads constructor(
             return
         }
         scope.launch(Dispatchers.Main.immediate) {
+            adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
             adCache.clear()
             winner?.destroy()
@@ -210,6 +251,7 @@ class BannerView @JvmOverloads constructor(
         networkAdview.visibility = VISIBLE
         logInfo(TAG, "View added(${adSource.demandId.demandId}): $networkAdview. Size(${adViewHolder.widthDp}, ${adViewHolder.heightDp})")
         checkBannerShown(networkAdview) {
+            adLifecycleFlow.value = AdLifecycle.Displayed
             adSource.ad?.let { listener.onAdShown(ad = it) }
             adSource.sendShowImpression()
         }
@@ -231,6 +273,7 @@ class BannerView @JvmOverloads constructor(
                 }
 
                 is AdEvent.ShowFailed -> {
+                    adLifecycleFlow.value = AdLifecycle.DisplayingFailed
                     listener.onAdShowFailed(adEvent.cause)
                 }
 
