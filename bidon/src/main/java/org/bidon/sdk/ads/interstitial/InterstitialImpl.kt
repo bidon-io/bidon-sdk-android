@@ -66,7 +66,7 @@ internal class InterstitialImpl(
                 auctionKey = auctionKey,
             ),
             onSuccess = { adSource, auctionInfo ->
-                subscribeToWinner(auctionInfo, adSource)
+                subscribeToWinner(adSource)
                 listener.onAdLoaded(
                     ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
                     auctionInfo = auctionInfo
@@ -93,7 +93,7 @@ internal class InterstitialImpl(
             if (adSource?.isAdReadyToShow == true) {
                 adSource.show(activity)
             } else {
-                logInfo(TAG, "Show failed. No Auction results.")
+                logInfo(TAG, "Show failed. Ad not ready.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
             }
         }
@@ -136,13 +136,27 @@ internal class InterstitialImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
-        require(adSource is AdSource.Interstitial<*>)
+    private fun subscribeToWinner(adSource: AdSource<*>) {
+        require(adSource is AdSource.Interstitial)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
-                is AdEvent.OnReward,
-                is AdEvent.Fill -> {
+                is AdEvent.Fill,
+                is AdEvent.LoadFailed,
+                is AdEvent.OnReward -> {
                     // do nothing
+                }
+
+                is AdEvent.Shown -> {
+                    listener.onAdShown(adEvent.ad)
+                    adSource.sendShowImpression()
+                }
+
+                is AdEvent.PaidRevenue -> {
+                    listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
+                }
+
+                is AdEvent.ShowFailed -> {
+                    listener.onAdShowFailed(adEvent.cause)
                 }
 
                 is AdEvent.Clicked -> {
@@ -156,15 +170,10 @@ internal class InterstitialImpl(
                     observeCallbacksJob = null
                 }
 
-                is AdEvent.Shown -> {
-                    listener.onAdShown(adEvent.ad)
-                    adSource.sendShowImpression()
+                is AdEvent.Expired -> {
+                    listener.onAdExpired(adEvent.ad)
+                    destroyAd()
                 }
-
-                is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
-                is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
-                is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
     }

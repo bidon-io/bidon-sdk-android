@@ -66,7 +66,7 @@ internal class RewardedImpl(
                 auctionKey = auctionKey,
             ),
             onSuccess = { adSource, auctionInfo ->
-                subscribeToWinner(auctionInfo, adSource)
+                subscribeToWinner(adSource)
                 listener.onAdLoaded(
                     ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
                     auctionInfo = auctionInfo
@@ -93,7 +93,7 @@ internal class RewardedImpl(
             if (adSource?.isAdReadyToShow == true) {
                 adSource.show(activity)
             } else {
-                logInfo(TAG, "Show failed. No Auction results.")
+                logInfo(TAG, "Show failed. Ad not ready.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
             }
         }
@@ -136,22 +136,36 @@ internal class RewardedImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
-        require(adSource is AdSource.Rewarded<*>)
+    private fun subscribeToWinner(adSource: AdSource<*>) {
+        require(adSource is AdSource.Rewarded)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
-                is AdEvent.Fill -> {
+                is AdEvent.Fill,
+                is AdEvent.LoadFailed -> {
                     // do nothing
                 }
 
-                is AdEvent.OnReward -> {
-                    listener.onUserRewarded(adEvent.ad, adEvent.reward)
-                    adSource.sendRewardImpression()
+                is AdEvent.Shown -> {
+                    listener.onAdShown(adEvent.ad)
+                    adSource.sendShowImpression()
+                }
+
+                is AdEvent.ShowFailed -> {
+                    listener.onAdShowFailed(adEvent.cause)
+                }
+
+                is AdEvent.PaidRevenue -> {
+                    listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 }
 
                 is AdEvent.Clicked -> {
                     listener.onAdClicked(adEvent.ad)
                     adSource.sendClickImpression()
+                }
+
+                is AdEvent.OnReward -> {
+                    listener.onUserRewarded(adEvent.ad, adEvent.reward)
+                    adSource.sendRewardImpression()
                 }
 
                 is AdEvent.Closed -> {
@@ -160,15 +174,10 @@ internal class RewardedImpl(
                     observeCallbacksJob = null
                 }
 
-                is AdEvent.Shown -> {
-                    listener.onAdShown(adEvent.ad)
-                    adSource.sendShowImpression()
+                is AdEvent.Expired -> {
+                    listener.onAdExpired(adEvent.ad)
+                    destroyAd()
                 }
-
-                is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
-                is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
-                is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
     }
