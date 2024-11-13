@@ -312,6 +312,7 @@ internal object DI {
                     demandAd = demandAd as DemandAd,
                     settings = settings as AdSettings,
                     scope = CoroutineScope(SdkDispatchers.Main),
+                    activityProvider = get()
                 )
             }
         }

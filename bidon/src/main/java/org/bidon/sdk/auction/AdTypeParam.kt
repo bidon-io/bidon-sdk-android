@@ -11,35 +11,23 @@ sealed interface AdTypeParam {
     val pricefloor: Double
     val auctionKey: String?
 
-    class Banner(
+    data class Banner(
         override val activity: Activity,
         override val pricefloor: Double,
         override val auctionKey: String?,
         val bannerFormat: BannerFormat,
         val containerWidth: Float,
-    ) : AdTypeParam {
-        override fun toString(): String {
-            return "Banner(activity=$activity, pricefloor=$pricefloor, auctionKey=$auctionKey, bannerFormat=$bannerFormat, containerWidth=$containerWidth)"
-        }
-    }
+    ) : AdTypeParam
 
-    class Interstitial(
+    data class Interstitial(
         override val activity: Activity,
         override val pricefloor: Double,
         override val auctionKey: String?,
-    ) : AdTypeParam {
-        override fun toString(): String {
-            return "Interstitial(activity=$activity, pricefloor=$pricefloor, auctionKey=$auctionKey)"
-        }
-    }
+    ) : AdTypeParam
 
-    class Rewarded(
+    data class Rewarded(
         override val activity: Activity,
         override val pricefloor: Double,
         override val auctionKey: String?,
-    ) : AdTypeParam {
-        override fun toString(): String {
-            return "Rewarded(activity=$activity, pricefloor=$pricefloor, auctionKey=$auctionKey)"
-        }
-    }
+    ) : AdTypeParam
 }

@@ -2,6 +2,7 @@ package org.bidon.demoapp
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -70,7 +71,17 @@ class MainActivity : FragmentActivity() {
                     sheetState = modalSheetState,
                     sheetShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                     sheetContent = {
-                        SdkSettings()
+                        SdkSettings {
+                            startActivity(
+                                Intent(
+                                    this@MainActivity,
+                                    MainActivity::class.java
+                                ).apply {
+                                    flags =
+                                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                            )
+                        }
                     }
                 ) {
                     Box(

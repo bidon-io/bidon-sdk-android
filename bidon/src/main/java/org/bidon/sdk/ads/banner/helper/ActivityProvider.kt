@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import java.lang.ref.WeakReference
 
 internal interface ActivityProvider {
-    val resumedActivityFlow: Flow<WeakReference<Activity>>
+    val resumedActivityFlow: Flow<WeakReference<Activity?>>
     fun emitActivity(activity: Activity?)
-    suspend fun awaitResumedActivity(): Activity
 }
