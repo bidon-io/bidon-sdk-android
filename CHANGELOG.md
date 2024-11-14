@@ -11,6 +11,8 @@
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Meta to 6.18.0
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Mintegral to 16.8.81
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Mobilefuse to 1.8.0
+- [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated VkAds to 5.24.0
+- [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated UnityAds to 4.12.4
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Vungle to 7.4.1
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Yandex to 7.6.0
 
