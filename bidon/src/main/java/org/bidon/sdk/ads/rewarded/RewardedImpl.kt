@@ -17,6 +17,7 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -34,6 +35,7 @@ internal class RewardedImpl(
 
     private val scope: CoroutineScope by lazy { CoroutineScope(dispatcher) }
     private val listener: RewardedListener by lazy { getRewardedListener() }
+    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd)
 
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
@@ -222,9 +224,6 @@ internal class RewardedImpl(
             userListener?.onRevenuePaid(ad, adValue)
         }
     }
-
-    private companion object {
-        private const val TAG = "Rewarded"
-        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Rewarded) } }
-    }
 }
+
+private const val TAG = "Rewarded"

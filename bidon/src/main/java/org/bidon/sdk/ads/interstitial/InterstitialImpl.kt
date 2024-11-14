@@ -17,6 +17,7 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -34,6 +35,7 @@ internal class InterstitialImpl(
 
     private val scope: CoroutineScope by lazy { CoroutineScope(dispatcher) }
     private val listener: InterstitialListener by lazy { getInterstitialListener() }
+    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd)
 
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
@@ -214,9 +216,6 @@ internal class InterstitialImpl(
             userListener?.onRevenuePaid(ad, adValue)
         }
     }
-
-    private companion object {
-        private const val TAG = "Interstitial"
-        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Interstitial) } }
-    }
 }
+
+private const val TAG = "Interstitial"

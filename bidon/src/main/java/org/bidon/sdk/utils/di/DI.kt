@@ -19,9 +19,11 @@ import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.ads.cache.AdCacheSettingsResolver
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.cache.impl.AdCacheImpl
+import org.bidon.sdk.ads.cache.impl.AdCacheProviderImpl
 import org.bidon.sdk.ads.cache.impl.AdCacheSettingsResolverImpl
 import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
 import org.bidon.sdk.auction.Auction
@@ -179,6 +181,7 @@ internal object DI {
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetDemandsTokensUseCase> { GetDemandsTokensUseCaseImpl() }
 
+            singleton<AdCacheProvider> { AdCacheProviderImpl() }
             singleton<AdCacheSettingsProvider> { AdCacheSettingsProviderImpl() }
 
             /**

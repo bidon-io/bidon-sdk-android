@@ -26,6 +26,7 @@ import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.impl.dpToPx
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -53,6 +54,7 @@ class BannerView @JvmOverloads constructor(
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val listener: BannerListener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
+    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd, format)
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
 
     private var userListener: BannerListener? = null
@@ -328,9 +330,6 @@ class BannerView @JvmOverloads constructor(
             onBannerShown.invoke()
         }
     }
-
-    private companion object {
-        private const val TAG = "BannerView"
-        private val adCache: AdCache by lazy { get<AdCache> { params(AdType.Banner) } }
-    }
 }
+
+private const val TAG = "BannerView"
