@@ -14,5 +14,8 @@ internal interface AdCacheProvider {
      *
      * @return The ad cache.
      */
-    fun provide(demandAd: DemandAd, bannerFormat: BannerFormat? = null): AdCache
+    fun provide(
+        demandAd: DemandAd,
+        bannerFormat: BannerFormat = BannerFormat.Banner // only for banner ad cache
+    ): AdCache
 }

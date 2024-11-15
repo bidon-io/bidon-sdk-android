@@ -126,12 +126,12 @@ private fun AdTypeSettingsView(
             modifier = Modifier.padding(vertical = 4.dp),
             horizontalAlignment = Alignment.Start,
             title = "Sort Strategy",
-            items = listOf(SortStrategy.TIMESTAMP, SortStrategy.ECPM),
+            items = listOf(SortStrategy.TIMESTAMP, SortStrategy.MAX_ECPM),
             selectedItem = sortStrategy,
             getItemTitle = { itemSortStrategy ->
                 when (itemSortStrategy) {
                     SortStrategy.TIMESTAMP -> "Timestamp"
-                    SortStrategy.ECPM -> "ECPM"
+                    SortStrategy.MAX_ECPM -> "Max eCPM"
                 }
             },
             onItemClicked = { itemSortStrategy -> sortStrategy = itemSortStrategy }

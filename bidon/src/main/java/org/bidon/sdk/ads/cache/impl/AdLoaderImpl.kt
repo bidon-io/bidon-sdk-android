@@ -17,6 +17,7 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import kotlin.math.min
@@ -28,7 +29,7 @@ import kotlin.math.min
  */
 internal class AdLoaderImpl(
     override val demandAd: DemandAd,
-    private val settings: AdCacheSettingsProvider.AdSettings,
+    private val adSettings: AdSettings,
     private val scope: CoroutineScope,
     activityProvider: ActivityProvider,
 ) : AdLoader {
@@ -37,7 +38,7 @@ internal class AdLoaderImpl(
 
     private val tag = "${TAG}_${demandAd.adType.code}"
     private val isLoading = MutableStateFlow(false)
-    private val currentRetryDelayMs = MutableStateFlow(settings.retryDelayMs)
+    private val currentRetryDelayMs = MutableStateFlow(adSettings.retryDelayMs)
 
     private var adTypeParam: AdTypeParam? = null
     private var auction: Auction? = null
@@ -61,7 +62,7 @@ internal class AdLoaderImpl(
         logInfo(tag, "Loading ad(s): ${results.value.asString()}")
         this.adTypeParam = adTypeParam
 
-        if (results.value.size >= settings.cacheSize) {
+        if (results.value.size >= adSettings.cacheSize) {
             logInfo(tag, "Ad cache size reached. Skipping load.")
             return
         }
@@ -90,7 +91,7 @@ internal class AdLoaderImpl(
     override fun clear() {
         results.value = emptySet()
         adTypeParam = null
-        currentRetryDelayMs.value = settings.retryDelayMs
+        currentRetryDelayMs.value = adSettings.retryDelayMs
 
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "Clearing ad cache and cancelling ongoing auction.")
@@ -109,8 +110,8 @@ internal class AdLoaderImpl(
         logInfo(tag, "Auction successful. Current ad cache: ${results.value.asString()}")
         isLoading.value = false
         scope.launch {
-            logInfo(tag, "Resetting retry delay to: ${settings.retryDelayMs} ms")
-            currentRetryDelayMs.value = settings.retryDelayMs
+            logInfo(tag, "Resetting retry delay to: ${adSettings.retryDelayMs} ms")
+            currentRetryDelayMs.value = adSettings.retryDelayMs
             load(adTypeParam ?: return@launch) // Attempt to load more ads if cache isn't full
         }
     }

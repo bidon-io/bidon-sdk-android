@@ -62,7 +62,6 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
         adCache.cache(
-            demandAd = demandAd,
             adTypeParam = AdTypeParam.Interstitial(
                 activity = activity,
                 pricefloor = pricefloor,

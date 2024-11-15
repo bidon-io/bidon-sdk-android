@@ -121,7 +121,6 @@ class BannerView @JvmOverloads constructor(
                 adLifecycleFlow.value = AdLifecycle.Loading
                 logInfo(TAG, "Load (pricefloor=$pricefloor)")
                 adCache.cache(
-                    demandAd = demandAd,
                     adTypeParam = AdTypeParam.Banner(
                         activity = activity,
                         pricefloor = pricefloor,

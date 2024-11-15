@@ -52,7 +52,7 @@ interface AdCacheSettingsProvider {
         /**
          * Sort by the eCPM of the ad.
          */
-        object ECPM : SortStrategy()
+        object MAX_ECPM : SortStrategy()
 
         /**
          * Sort by the timestamp of loading the ad.

@@ -62,7 +62,6 @@ internal class RewardedImpl(
         }
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
         adCache.cache(
-            demandAd = demandAd,
             adTypeParam = AdTypeParam.Rewarded(
                 activity = activity,
                 pricefloor = pricefloor,
