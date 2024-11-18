@@ -117,7 +117,7 @@ internal class AuctionStatImpl(
             pricefloor = result.pricefloor,
             winnerDemandId = roundWinner?.adSource?.demandId,
             winnerEcpm = roundWinner?.adSource?.getStats()?.ecpm,
-            noBids = (result.serverBiddingResult as? ServerBiddingResult.BiddingFinished)?.noBids, // TODO: 24/09/2024 [glavatskikh]
+            noBids = (result.serverBiddingResult as? ServerBiddingResult.BiddingFinished)?.noBids,
             demands = results,
         )
     }
