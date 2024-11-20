@@ -78,14 +78,14 @@ class BannerView @JvmOverloads constructor(
         }
     }
 
+    @Volatile
     private var internalAdSize: AdSize? = null
+    private val internalAdSizeLock = Any()
 
     override val adSize: AdSize?
-        get() {
-            val adSource = adCache.peek() as AdSource.Banner<*>?
-            return internalAdSize ?: adSource?.getAdView()?.let { holder ->
-                AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp)
-                    .also { internalAdSize = it }
+        get() = internalAdSize ?: synchronized(internalAdSizeLock) {
+            internalAdSize ?: (adCache.peek() as? AdSource.Banner<*>)?.getAdView()?.let { holder ->
+                AdSize(widthDp = holder.widthDp, heightDp = holder.heightDp).also { internalAdSize = it }
             }
         }
 
@@ -130,7 +130,6 @@ class BannerView @JvmOverloads constructor(
                     ),
                     onSuccess = { adSource, auctionInfo ->
                         adLifecycleFlow.value = AdLifecycle.Loaded
-                        subscribeToWinner(adSource)
                         listener.onAdLoaded(
                             ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
                             auctionInfo = auctionInfo
@@ -189,6 +188,7 @@ class BannerView @JvmOverloads constructor(
                     adLifecycleFlow.value = AdLifecycle.Displaying
                     val adSource = (adCache.pop() as? AdSource.Banner<*>).also { winner = it }
                     if (adSource?.isAdReadyToShow == true) {
+                        subscribeToWinner(adSource)
                         addViewOnScreen(adSource)
                     } else {
                         logInfo(TAG, "Show failed. Ad not ready.")
@@ -230,8 +230,8 @@ class BannerView @JvmOverloads constructor(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.pop()?.sendLoss(winnerDemandId, winnerEcpm)
-        destroyAd()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
     @Deprecated("With ad caching logic, it works incorrectly")
@@ -241,7 +241,8 @@ class BannerView @JvmOverloads constructor(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.sendWin()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
     override fun destroyAd() {

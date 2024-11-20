@@ -68,7 +68,6 @@ internal class RewardedImpl(
                 auctionKey = auctionKey,
             ),
             onSuccess = { adSource, auctionInfo ->
-                subscribeToWinner(adSource)
                 listener.onAdLoaded(
                     ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
                     auctionInfo = auctionInfo
@@ -93,6 +92,7 @@ internal class RewardedImpl(
         activity.runOnUiThread {
             val adSource = (adCache.pop() as? AdSource.Rewarded).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
+                subscribeToWinner(adSource)
                 adSource.show(activity)
             } else {
                 logInfo(TAG, "Show failed. Ad not ready.")
@@ -108,8 +108,8 @@ internal class RewardedImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.pop()?.sendLoss(winnerDemandId, winnerEcpm)
-        destroyAd()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
     @Deprecated("With ad caching logic, it works incorrectly")
@@ -119,7 +119,8 @@ internal class RewardedImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.sendWin()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
     override fun destroyAd() {

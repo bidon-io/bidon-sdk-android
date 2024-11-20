@@ -1,6 +1,8 @@
 package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.updateAndGet
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -21,7 +23,7 @@ internal class AdCacheProviderImpl(
     private val settings: AdCacheSettingsProvider
 ) : AdCacheProvider {
 
-    private val adCacheInstances = mutableMapOf<AdCacheKey, AdCache>()
+    private val adCacheInstances = MutableStateFlow<Map<AdCacheKey, AdCache>>(emptyMap())
 
     override fun provide(
         demandAd: DemandAd,
@@ -35,21 +37,32 @@ internal class AdCacheProviderImpl(
     }
 
     private fun provideInterstitialCache(demandAd: DemandAd): AdCache {
-        return adCacheInstances.getOrPut(AdCacheKey(demandAd.adType)) {
+        return getOrCreateCache(AdCacheKey(demandAd.adType)) {
             createAdCache(demandAd)
         }
     }
 
     private fun provideRewardedCache(demandAd: DemandAd): AdCache {
-        return adCacheInstances.getOrPut(AdCacheKey(demandAd.adType)) {
+        return getOrCreateCache(AdCacheKey(demandAd.adType)) {
             createAdCache(demandAd)
         }
     }
 
     private fun provideBannerCache(demandAd: DemandAd, bannerFormat: BannerFormat): AdCache {
-        return adCacheInstances.getOrPut(AdCacheKey(demandAd.adType, bannerFormat)) {
+        return getOrCreateCache(AdCacheKey(demandAd.adType, bannerFormat)) {
             createAdCache(demandAd, bannerFormat)
         }
+    }
+
+    private fun getOrCreateCache(key: AdCacheKey, createCache: () -> AdCache): AdCache {
+        return adCacheInstances.updateAndGet { currentCaches ->
+            if (key in currentCaches) {
+                currentCaches
+            } else {
+                val newCache = createCache()
+                currentCaches + (key to newCache)
+            }
+        }[key] ?: error("Cache should exist after updateAndGet")
     }
 
     private fun createAdCache(demandAd: DemandAd, bannerFormat: BannerFormat? = null): AdCache {
@@ -66,7 +79,6 @@ internal class AdCacheProviderImpl(
             TIMESTAMP -> AdCacheSorter.Timestamp
         }
 
-        // TODO: 15/11/2024 [glavatskikh] DI needed?
         return AdCacheImpl(
             demandAd = demandAd,
             adCacheSorter = adCacheSorter,

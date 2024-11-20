@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.impl
 
+import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,13 +47,9 @@ internal class AdLoaderImpl(
     init {
         activityProvider.resumedActivityFlow.onEach { weakActivity ->
             val activity = weakActivity.get()
-            if (activity != null && adTypeParam != null) {
-                adTypeParam = when (val currentParam = adTypeParam) {
-                    is AdTypeParam.Banner -> currentParam.copy(activity = activity)
-                    is AdTypeParam.Interstitial -> currentParam.copy(activity = activity)
-                    is AdTypeParam.Rewarded -> currentParam.copy(activity = activity)
-                    else -> currentParam
-                }
+            val currentParam = adTypeParam
+            if (activity != null && currentParam != null) {
+                adTypeParam = currentParam.applyActivity(activity)
                 logInfo(tag, "Updated adTypeParam with new Activity: $activity")
             }
         }.launchIn(scope)
@@ -135,6 +132,36 @@ internal class AdLoaderImpl(
                 logInfo(tag, "Ad expired and removed from cache: ${adInstance.adSource}")
             }
         }.launchIn(scope)
+    }
+}
+
+private fun AdTypeParam.applyActivity(activity: Activity): AdTypeParam {
+    return when (val adTypeParam = this) {
+        is AdTypeParam.Banner -> {
+            AdTypeParam.Banner(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey,
+                bannerFormat = adTypeParam.bannerFormat,
+                containerWidth = adTypeParam.containerWidth
+            )
+        }
+
+        is AdTypeParam.Interstitial -> {
+            AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey
+            )
+        }
+
+        is AdTypeParam.Rewarded -> {
+            AdTypeParam.Rewarded(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey
+            )
+        }
     }
 }
 

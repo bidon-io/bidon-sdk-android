@@ -1,7 +1,6 @@
 package org.bidon.sdk.cache
 
 import androidx.annotation.IntRange
-import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy.TIMESTAMP
 
 /**
  * Created by Bidon Team on 07/11/2024.
@@ -48,16 +47,16 @@ interface AdCacheSettingsProvider {
     /**
      * Sealed class representing the sorting strategy for ads.
      */
-    sealed class SortStrategy {
+    enum class SortStrategy {
         /**
          * Sort by the eCPM of the ad.
          */
-        object MAX_ECPM : SortStrategy()
+        MAX_ECPM,
 
         /**
          * Sort by the timestamp of loading the ad.
          */
-        object TIMESTAMP : SortStrategy()
+        TIMESTAMP
     }
 
     companion object {
@@ -65,7 +64,7 @@ interface AdCacheSettingsProvider {
         const val MAX_CACHE_SIZE: Int = 10
         const val MIN_RETRY_DELAY_MS: Int = 2_000
         const val MAX_RETRY_DELAY_MS: Int = 64_000
-        private val DEFAULT_SORT_STRATEGY: SortStrategy = TIMESTAMP
+        private val DEFAULT_SORT_STRATEGY: SortStrategy = SortStrategy.TIMESTAMP
 
         val DefaultAdSettings
             get() = AdSettings(

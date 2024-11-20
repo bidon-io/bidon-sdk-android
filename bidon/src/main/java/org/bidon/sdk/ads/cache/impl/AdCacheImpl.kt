@@ -68,7 +68,10 @@ internal class AdCacheImpl(
         if (!isLoading.getAndUpdate { true }) {
             cacheJob = scope.launch {
                 logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
-                getOrCreateAdLoader(demandAd, adTypeParam)?.load(adTypeParam)
+                val adLoader = getOrCreateAdLoader(adTypeParam) {
+                    createAdLoader(demandAd, adCacheSettings)
+                }
+                adLoader.load(adTypeParam)
                 val (winner, auctionInfo) = results.first { it.isNotEmpty() }.first()
                 isLoading.value = false
                 onSuccess(winner, auctionInfo)
@@ -95,15 +98,18 @@ internal class AdCacheImpl(
         }
     }
 
-    private fun getOrCreateAdLoader(demandAd: DemandAd, adTypeParam: AdTypeParam): AdLoader? {
+    private fun getOrCreateAdLoader(
+        adTypeParam: AdTypeParam,
+        createAdLoader: () -> AdLoader
+    ): AdLoader {
         val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
         return adLoaders.updateAndGet { currentLoaders ->
             if (key in currentLoaders) {
                 currentLoaders
             } else {
-                currentLoaders + (key to createAdLoader(demandAd, adCacheSettings))
+                currentLoaders + (key to createAdLoader())
             }
-        }[key]
+        }[key] ?: error("AdLoader should exist after updateAndGet")
     }
 
     private fun createAdLoader(
