@@ -41,6 +41,7 @@ import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body2Text
 import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
+import org.bidon.demoapp.ui.ext.demo
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -123,7 +124,7 @@ fun BannerScreen(navController: NavHostController) {
                             setBannerListener(
                                 object : BannerListener {
                                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                                        logFlow.log("onAdLoaded ad:$ad. auctionInfo: $auctionInfo")
+                                        logFlow.log("onAdLoaded ad: ${ad.demo()}. auctionInfo: ${auctionInfo.demo()}")
                                         if (showOnLoad.value) {
                                             bannerView?.showAd()
                                         }
@@ -133,23 +134,23 @@ fun BannerScreen(navController: NavHostController) {
                                         auctionInfo: AuctionInfo?,
                                         cause: BidonError
                                     ) {
-                                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
+                                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: ${auctionInfo?.demo()}")
                                     }
 
                                     override fun onAdShown(ad: Ad) {
-                                        logFlow.log("onAdShown: $ad")
+                                        logFlow.log("onAdShown: ${ad.demo()}")
                                     }
 
                                     override fun onAdClicked(ad: Ad) {
-                                        logFlow.log("onAdClicked: $ad")
+                                        logFlow.log("onAdClicked: ${ad.demo()}")
                                     }
 
                                     override fun onAdExpired(ad: Ad) {
-                                        logFlow.log("onAdExpired: $ad")
+                                        logFlow.log("onAdExpired: ${ad.demo()}")
                                     }
 
                                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                                        logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                                        logFlow.log("onRevenuePaid: ad: ${ad.demo()}, adValue: $adValue")
                                     }
 
                                     override fun onAdShowFailed(cause: BidonError) {
@@ -236,6 +237,13 @@ fun BannerScreen(navController: NavHostController) {
                         it.notifyWin()
                         logFlow.log("NotifyWin")
                     }
+                }
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                AppTextButton(
+                    modifier = Modifier.padding(start = 0.dp),
+                    text = "Clear logs"
+                ) {
+                    logFlow.value = listOf("Log")
                 }
             }
         }

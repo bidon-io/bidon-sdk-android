@@ -34,6 +34,7 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
+import org.bidon.demoapp.ui.ext.demo
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -64,11 +65,11 @@ fun RewardedScreen(
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded ad:$ad. auctionInfo: $auctionInfo")
+                        logFlow.log("onAdLoaded ad: ${ad.demo()}. auctionInfo: ${auctionInfo.demo()}")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
+                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: ${auctionInfo?.demo()}")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {
@@ -76,19 +77,19 @@ fun RewardedScreen(
                     }
 
                     override fun onAdShown(ad: Ad) {
-                        logFlow.log("onAdShown: $ad")
+                        logFlow.log("onAdShown: ${ad.demo()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
-                        logFlow.log("onAdClicked: $ad")
+                        logFlow.log("onAdClicked: ${ad.demo()}")
                     }
 
                     override fun onAdClosed(ad: Ad) {
-                        logFlow.log("onAdClosed: $ad")
+                        logFlow.log("onAdClosed: ${ad.demo()}")
                     }
 
                     override fun onAdExpired(ad: Ad) {
-                        logFlow.log("onAdExpired: $ad")
+                        logFlow.log("onAdExpired: ${ad.demo()}")
                     }
 
                     override fun onUserRewarded(ad: Ad, reward: Reward?) {
@@ -96,7 +97,7 @@ fun RewardedScreen(
                     }
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                        logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                        logFlow.log("onRevenuePaid: ad: ${ad.demo()}, adValue: $adValue")
                     }
                 }
             )
@@ -187,6 +188,13 @@ fun RewardedScreen(
                 AppTextButton(text = "Notify Win") {
                     rewardedAd.notifyWin()
                     logFlow.log("NotifyWin")
+                }
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                AppTextButton(
+                    modifier = Modifier.padding(start = 0.dp),
+                    text = "Clear logs"
+                ) {
+                    logFlow.value = listOf("Log")
                 }
             }
             LazyColumn(
