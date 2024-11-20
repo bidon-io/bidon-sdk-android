@@ -18,7 +18,6 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AuctionCancellation
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.DemandResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.models.logAuctionWaterfall
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
@@ -104,7 +103,6 @@ internal class AuctionImpl(
                             auctionData = auctionData,
                             demandAd = demandAd,
                             adTypeParamData = adTypeParam,
-                            tokens = demandsTokens,
                         )
                         if (results.isEmpty()) {
                             adTypeParam.activity.runOnUiThread {
@@ -176,7 +174,6 @@ internal class AuctionImpl(
         auctionData: AuctionResponse,
         demandAd: DemandAd,
         adTypeParamData: AdTypeParam,
-        tokens: Map<String, TokenInfo>,
     ): Pair<List<DemandResult>, AuctionInfo> {
         _auctionDataResponse = auctionData
         _demandAd = demandAd
@@ -193,7 +190,6 @@ internal class AuctionImpl(
             adTypeParam = adTypeParamData,
             adUnits = auctionData.adUnits ?: emptyList(),
             resultsCollector = resultsCollector,
-            tokens = tokens,
         )
 
         resultsCollector.finishAuction(auctionPriceFloor)

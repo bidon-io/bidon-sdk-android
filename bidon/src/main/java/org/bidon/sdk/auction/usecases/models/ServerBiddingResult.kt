@@ -13,7 +13,7 @@ internal sealed interface ServerBiddingResult {
     object BiddingStarted : ServerBiddingResult
 
     class BiddingFinished(
-        val tokens: Map<String, TokenInfo>, // TODO: 19/11/2024 [glavatskikh] try to use this tokens instead of tokens inside RequestAdUnitUseCaseImpl
+        val tokens: Map<String, TokenInfo>,
         val noBids: List<AdUnit>,
     ) : ServerBiddingResult
 }

@@ -16,7 +16,6 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.DemandResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.models.AuctionResult
@@ -47,7 +46,6 @@ internal class ExecuteAuctionUseCaseImpl(
         auctionTimeout: Long,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
-        tokens: Map<String, TokenInfo>
     ) {
         runCatching {
             val result = withTimeoutOrNull(auctionTimeout) {
@@ -64,15 +62,12 @@ internal class ExecuteAuctionUseCaseImpl(
 
                     logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index request -> $adUnit")
 
-                    val tokenInfo: TokenInfo? = tokens[adUnit.demandId]
-
                     if (adUnit.pricefloor < pricefloor) {
                         logInfo(TAG, "Auction ID: $auctionId | Skipping AdUnit #$index due to pricefloor: Required: $pricefloor, Actual: ${adUnit.pricefloor}")
                         adUnitQueue.remove()
                         resultsCollector.add(
                             getBelowPriceFloorResult(
-                                adUnit = adUnit,
-                                tokenInfo = tokenInfo
+                                adUnit = adUnit
                             )
                         )
                         index++
@@ -88,7 +83,6 @@ internal class ExecuteAuctionUseCaseImpl(
                             DemandResult.DemandFailed(
                                 adUnit = adUnit,
                                 demandStatus = DemandStatus.UnknownAdapter,
-                                tokenInfo = tokenInfo
                             )
                         )
                         index++
@@ -106,7 +100,6 @@ internal class ExecuteAuctionUseCaseImpl(
                             DemandResult.DemandFailed(
                                 adUnit = adUnit,
                                 demandStatus = DemandStatus.UnknownAdapter,
-                                tokenInfo = tokenInfo
                             )
                         )
                         index++
@@ -129,7 +122,6 @@ internal class ExecuteAuctionUseCaseImpl(
                         adTypeParam = adTypeParam,
                         adUnit = adUnit,
                         priceFloor = pricefloor,
-                        tokenInfo = tokenInfo
                     ).also {
                         resultsCollector.add(it)
                     }
@@ -144,8 +136,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         adUnitQueue.forEach {
                             resultsCollector.add(
                                 getBelowPriceFloorResult(
-                                    adUnit = it,
-                                    tokenInfo = tokenInfo
+                                    adUnit = it
                                 )
                             )
                         }
@@ -161,7 +152,6 @@ internal class ExecuteAuctionUseCaseImpl(
             }
             if (result.isNullOrEmpty()) {
                 finishWithStatus(
-                    tokens = tokens,
                     resultsCollector = resultsCollector,
                     status = DemandStatus.FillTimeoutReached
                 )
@@ -169,7 +159,6 @@ internal class ExecuteAuctionUseCaseImpl(
             }
         }.onFailure {
             finishWithStatus(
-                tokens = tokens,
                 resultsCollector = resultsCollector,
                 status = it.asBidonErrorOrUnspecified().asDemandStatus()
             )
@@ -178,7 +167,6 @@ internal class ExecuteAuctionUseCaseImpl(
     }
 
     private fun finishWithStatus(
-        tokens: Map<String, TokenInfo>?,
         resultsCollector: ResultsCollector,
         status: DemandStatus
     ) {
@@ -187,24 +175,21 @@ internal class ExecuteAuctionUseCaseImpl(
                 DemandResult.DemandFailed(
                     adUnit = it,
                     demandStatus = status,
-                    tokenInfo = tokens?.get(it.demandId)
                 )
             )
         }
     }
 
-    private fun getBelowPriceFloorResult(adUnit: AdUnit, tokenInfo: TokenInfo?): DemandResult {
+    private fun getBelowPriceFloorResult(adUnit: AdUnit): DemandResult {
         return when (adUnit.bidType) {
             BidType.RTB -> DemandResult.DemandFailed(
                 adUnit = adUnit,
                 demandStatus = DemandStatus.Lose,
-                tokenInfo = tokenInfo,
             )
 
             BidType.CPM -> DemandResult.DemandFailed(
                 adUnit = adUnit,
                 demandStatus = DemandStatus.BelowPricefloor,
-                tokenInfo = null
             )
         }
     }

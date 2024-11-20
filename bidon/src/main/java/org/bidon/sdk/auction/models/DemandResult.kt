@@ -22,8 +22,7 @@ sealed interface DemandResult {
 
     class Bidding(
         override val adSource: AdSource<*>,
-        override val demandStatus: DemandStatus,
-        val tokenInfo: TokenInfo?
+        override val demandStatus: DemandStatus
     ) : DemandResult {
         override fun toString(): String {
             return "Bidding(adSource=$adSource, demandStatus=$demandStatus)"
@@ -32,7 +31,6 @@ sealed interface DemandResult {
 
     class DemandFailed(
         val adUnit: AdUnit,
-        val tokenInfo: TokenInfo?,
         override val demandStatus: DemandStatus,
     ) : DemandResult {
         override val adSource: AdSource<*> get() = error("unexpected")
