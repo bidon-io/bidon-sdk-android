@@ -11,6 +11,7 @@ import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.DemandResult
 import org.bidon.sdk.auction.models.InterstitialRequest
 import org.bidon.sdk.auction.models.RewardedRequest
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.models.AuctionResult
 import org.bidon.sdk.auction.usecases.models.ServerBiddingResult
@@ -61,10 +62,11 @@ internal class AuctionStatImpl(
     override suspend fun addRoundResults(result: AuctionResult.Results): RoundStat {
         // get, sort results + update winner
         // save stats
-        val roundResults = resolver.sortWinners(result.demandResults)
+        val demandResults = resolver.sortWinners(result.demandResults)
+        val biddingResults = result.serverBiddingResult as? ServerBiddingResult.BiddingFinished
 
         val roundWinner = updateWinnerIfNeed(
-            roundResults
+            demandResults
                 .firstOrNull { it.demandStatus == DemandStatus.Successful }
                 .takeIf { !isAuctionCanceled }
         )
@@ -73,8 +75,8 @@ internal class AuctionStatImpl(
 
         val winnerUuid = roundWinner?.adSource?.getStats()?.adUnit?.uid
 
-        val results: List<StatsAdUnit> = roundResults
-            .map { it.asStatsAdUnit() }
+        val results: List<StatsAdUnit> = demandResults
+            .map { it.asStatsAdUnit(biddingResults?.tokens) }
             // TODO try to find more useful solution, cause after auction ends, for filled ad we
             // receive Successful("INTERNAL_STATUS")
             .map { statsAdUnit ->
@@ -117,12 +119,12 @@ internal class AuctionStatImpl(
             pricefloor = result.pricefloor,
             winnerDemandId = roundWinner?.adSource?.demandId,
             winnerEcpm = roundWinner?.adSource?.getStats()?.ecpm,
-            noBids = (result.serverBiddingResult as? ServerBiddingResult.BiddingFinished)?.noBids, // TODO: 24/09/2024 [glavatskikh]
+            noBids = (result.serverBiddingResult as? ServerBiddingResult.BiddingFinished)?.noBids,
             demands = results,
         )
     }
 
-    private fun DemandResult.asStatsAdUnit(): StatsAdUnit {
+    private fun DemandResult.asStatsAdUnit(tokens: Map<String, TokenInfo>?): StatsAdUnit {
         return when (this) {
             is DemandResult.Network -> {
                 val stat = adSource.getStats()
@@ -144,6 +146,7 @@ internal class AuctionStatImpl(
 
             is DemandResult.Bidding -> {
                 val stat = this.adSource.getStats()
+                val tokenInfo = tokens?.get(stat.demandId.demandId)
                 StatsAdUnit(
                     demandId = stat.demandId.demandId,
                     status = demandStatus.code,
@@ -160,7 +163,8 @@ internal class AuctionStatImpl(
                 )
             }
 
-            is DemandResult.DemandFailed ->
+            is DemandResult.DemandFailed -> {
+                val tokenInfo = tokens?.get(adUnit.demandId)
                 StatsAdUnit(
                     demandId = adUnit.demandId,
                     status = demandStatus.code,
@@ -175,6 +179,7 @@ internal class AuctionStatImpl(
                     errorMessage = demandStatus.getStatusMessage(),
                     ext = adUnit.extra
                 )
+            }
         }
     }
 

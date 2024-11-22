@@ -16,7 +16,6 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.DemandResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.models.AuctionResult
@@ -47,80 +46,41 @@ internal class ExecuteAuctionUseCaseImpl(
         auctionTimeout: Long,
         adUnits: List<AdUnit>,
         resultsCollector: ResultsCollector,
-        tokens: Map<String, TokenInfo>
     ) {
         runCatching {
             val result = withTimeoutOrNull(auctionTimeout) {
-                logInfo(
-                    TAG,
-                    "Starting auction | ID: $auctionId, Timeout: ${auctionTimeout}ms, Pricefloor: $pricefloor"
-                )
+                logInfo(TAG, "Starting auction | ID: $auctionId, Timeout: ${auctionTimeout}ms, Pricefloor: $pricefloor")
 
                 adUnitQueue = LinkedList(adUnits)
-                var index = 1 // Счетчик для отслеживания индекса adUnit
-                while (adUnitQueue.isNotEmpty()) {
-                    val adUnit = adUnitQueue.peek()
-                    if (adUnit == null) {
-                        logInfo(TAG, "Auction ID: $auctionId | All adUnits processed")
-                        break
-                    }
+                var index = 1
 
+                while (adUnitQueue.isNotEmpty()) {
+                    val adUnit = adUnitQueue.peek() ?: break
                     logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index request -> $adUnit")
 
-                    val tokenInfo: TokenInfo? = tokens[adUnit.demandId]
-
                     if (adUnit.pricefloor < pricefloor) {
-                        logInfo(
-                            TAG,
-                            "Auction ID: $auctionId | Skipping AdUnit #$index due to pricefloor: Required: $pricefloor, Actual: ${adUnit.pricefloor}"
-                        )
-                        adUnitQueue.remove()
-                        resultsCollector.add(
-                            getBelowPriceFloorResult(
-                                adUnit = adUnit,
-                                tokenInfo = tokenInfo
-                            )
-                        )
+                        logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index pricefloor is below auction pricefloor")
+                        collectResult(adUnit, getBelowPriceFloorResult(adUnit), resultsCollector)
+                        adUnitQueue.poll()
                         index++
                         continue
                     }
 
-                    val adapter =
-                        adaptersSource.adapters.find { it.demandId.demandId == adUnit.demandId }
+                    val adapter = findAdapter(adUnit.demandId)
                     if (adapter == null) {
-                        logInfo(
-                            TAG,
-                            "Auction ID: $auctionId | Adapter for Demand ID '${adUnit.demandId}' not found, skipping AdUnit #$index"
-                        )
-                        adUnitQueue.remove()
-                        resultsCollector.add(
-                            DemandResult.DemandFailed(
-                                adUnit = adUnit,
-                                demandStatus = DemandStatus.UnknownAdapter,
-                                tokenInfo = tokenInfo
-                            )
-                        )
+                        logInfo(TAG, "Auction ID: $auctionId | Adapter not found for Demand ID '${adUnit.demandId}'")
+                        collectResult(adUnit, DemandStatus.UnknownAdapter, resultsCollector)
+                        adUnitQueue.poll()
                         index++
                         continue
                     }
 
-                    // Apply regulation
                     adapter.applyRegulation()
-
-                    val adSource: AdSource<AdAuctionParams>? = adapter.getAdSources(demandAd.adType)
+                    val adSource = adapter.getAdSources(demandAd.adType)
                     if (adSource == null) {
-                        logInfo(
-                            TAG,
-                            "Auction ID: $auctionId | AdSource for Demand ID '${adUnit.demandId}' not found, skipping AdUnit #$index"
-                        )
-                        adUnitQueue.remove()
-                        resultsCollector.add(
-                            DemandResult.DemandFailed(
-                                adUnit = adUnit,
-                                demandStatus = DemandStatus.UnknownAdapter,
-                                tokenInfo = tokenInfo
-                            )
-                        )
+                        logInfo(TAG, "Auction ID: $auctionId | AdSource not found for Demand ID '${adUnit.demandId}'")
+                        collectResult(adUnit, DemandStatus.UnknownAdapter, resultsCollector)
+                        adUnitQueue.poll()
                         index++
                         continue
                     }
@@ -136,39 +96,24 @@ internal class ExecuteAuctionUseCaseImpl(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                     )
 
-                    val requestAdUnitResult = requestAdUnit.invoke(
-                        adSource = adSource,
-                        adTypeParam = adTypeParam,
-                        adUnit = adUnit,
-                        priceFloor = pricefloor,
-                        tokenInfo = tokenInfo
-                    ).also {
-                        resultsCollector.add(it)
-                    }
+                    val startTime = System.currentTimeMillis()
+                    logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index request -> ${adUnit.demandId}")
+                    val requestAdUnitResult =
+                        requestAdUnit.invoke(adSource, adUnit, adTypeParam, pricefloor)
+                    resultsCollector.add(requestAdUnitResult)
+                    val endTime = System.currentTimeMillis()
+                    logInfo(TAG, "Auction ID: $auctionId | AdUnit #$index request result -> ${requestAdUnitResult.demandStatus.code}, time taken -> ${endTime - startTime}ms")
 
-                    logInfo(
-                        TAG,
-                        "Auction ID: $auctionId | AdUnit #$index request result -> ${requestAdUnitResult.demandStatus.code}"
-                    )
-
-                    val nextRequested = adUnitQueue.poll()
-                    if (requestAdUnitResult.demandStatus == DemandStatus.Successful &&
-                        !shouldRequestNext(demandResult = requestAdUnitResult, next = nextRequested)
-                    ) {
-                        logInfo(
-                            TAG,
-                            "Auction ID: $auctionId | Stopping requests after AdUnit #$index as filled eCPM is larger than the next adUnit"
-                        )
-                        adUnitQueue.forEach {
-                            resultsCollector.add(
-                                getBelowPriceFloorResult(
-                                    adUnit = it,
-                                    tokenInfo = tokenInfo
-                                )
-                            )
+                    val currentAdUnit = adUnitQueue.poll()
+                    val nextAdUnit = adUnitQueue.peek()
+                    if (nextAdUnit != null && shouldStopRequests(requestAdUnitResult, nextAdUnit)) {
+                        logInfo(TAG, "Auction ID: $auctionId | Stopping requests after AdUnit #$index due to eCPM")
+                        finishAuction(resultsCollector) { statusAdUnit ->
+                            getBelowPriceFloorResult(statusAdUnit)
                         }
                         break
                     }
+
                     index++
                 }
 
@@ -177,73 +122,44 @@ internal class ExecuteAuctionUseCaseImpl(
                     (roundResult as? AuctionResult.Results)?.demandResults.orEmpty()
                 }
             }
+
             if (result.isNullOrEmpty()) {
-                finishWithStatus(
-                    tokens = tokens,
-                    resultsCollector = resultsCollector,
-                    status = DemandStatus.FillTimeoutReached
-                )
-                logInfo(
-                    TAG,
-                    "Auction ID: $auctionId | Auction ended by timeout: ${auctionTimeout}ms"
-                )
+                finishAuction(resultsCollector) { DemandStatus.FillTimeoutReached }
+                logInfo(TAG, "Auction ID: $auctionId | Auction ended by timeout: ${auctionTimeout}ms")
             }
-        }.onFailure {
-            finishWithStatus(
-                tokens = tokens,
-                resultsCollector = resultsCollector,
-                status = it.asBidonErrorOrUnspecified().asDemandStatus()
-            )
-            logError(TAG, "Auction ID: $auctionId | Error occurred during auction", it)
+        }.onFailure { error ->
+            val status = error.asBidonErrorOrUnspecified().asDemandStatus()
+            finishAuction(resultsCollector) { status }
+            logError(TAG, "Auction ID: $auctionId | Error occurred during auction", error)
         }
     }
 
-    private fun finishWithStatus(
-        tokens: Map<String, TokenInfo>?,
-        resultsCollector: ResultsCollector,
-        status: DemandStatus
-    ) {
-        adUnitQueue.forEach {
-            resultsCollector.add(
-                DemandResult.DemandFailed(
-                    adUnit = it,
-                    demandStatus = status,
-                    tokenInfo = tokens?.get(it.demandId)
-                )
-            )
-        }
-    }
-
-    private fun getBelowPriceFloorResult(adUnit: AdUnit, tokenInfo: TokenInfo?): DemandResult {
+    private fun getBelowPriceFloorResult(adUnit: AdUnit): DemandStatus {
         return when (adUnit.bidType) {
-            BidType.RTB -> DemandResult.DemandFailed(
-                adUnit = adUnit,
-                demandStatus = DemandStatus.Lose,
-                tokenInfo = tokenInfo,
-            )
-
-            BidType.CPM -> DemandResult.DemandFailed(
-                adUnit = adUnit,
-                demandStatus = DemandStatus.BelowPricefloor,
-                tokenInfo = null
-            )
+            BidType.RTB -> DemandStatus.Lose
+            BidType.CPM -> DemandStatus.BelowPricefloor
         }
     }
 
-    @Deprecated("It's work incorrectly")
-    // TODO: 30/10/2024 [glavatskikh] change logic, because it's work incorrectly
-    // [ExecuteAuctionUseCase] Loaded eCPM: 1.35932224, next requested eCPM: 1.35932224 - it's use same adUnit for compare
-    private fun shouldRequestNext(
-        demandResult: DemandResult,
-        next: AdUnit?
-    ): Boolean {
-        if (next == null) {
-            return false
+    private fun findAdapter(demandId: String): Adapter? =
+        adaptersSource.adapters.find { it.demandId.demandId == demandId }
+
+    private fun collectResult(adUnit: AdUnit, status: DemandStatus, resultsCollector: ResultsCollector) {
+        resultsCollector.add(DemandResult.DemandFailed(adUnit, status))
+    }
+
+    private fun finishAuction(
+        resultsCollector: ResultsCollector,
+        statusProvider: (statusAdUnit: AdUnit) -> DemandStatus
+    ) {
+        adUnitQueue.forEach { adUnit ->
+            resultsCollector.add(DemandResult.DemandFailed(adUnit, statusProvider(adUnit)))
         }
-        val currentEcpm = demandResult.adSource.getStats().ecpm
-        val nextEcpm = next.pricefloor
-        logInfo(TAG, "Loaded eCPM: $currentEcpm, next requested eCPM: $nextEcpm")
-        return currentEcpm < nextEcpm
+    }
+
+    private fun shouldStopRequests(demandResult: DemandResult, nextAdUnit: AdUnit): Boolean {
+        return demandResult.demandStatus == DemandStatus.Successful &&
+            demandResult.adSource.getStats().ecpm >= nextAdUnit.pricefloor
     }
 
     private fun AdSource<AdAuctionParams>.applyParams(

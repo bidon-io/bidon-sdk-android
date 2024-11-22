@@ -11,7 +11,6 @@ import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.DemandResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -26,9 +25,8 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
         adUnit: AdUnit,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-        tokenInfo: TokenInfo?,
     ): DemandResult {
-        val result: DemandResult? = withTimeoutOrNull(adUnit.timeout) {
+        return withTimeoutOrNull(adUnit.timeout) {
             adSource.markFillStarted(adUnit, adUnit.pricefloor)
 
             val adParam = adSource.getAuctionParam(
@@ -45,13 +43,10 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
                 adSource.adEvent
                     .onSubscription {
                         runCatching {
-                            adSource.markFillStarted(it.adUnit, it.price)
                             adSource.load(it)
                         }.onFailure { ex ->
                             logError(TAG, "Loading failed($it): $ex", ex)
-                            adSource.emitEvent(
-                                AdEvent.LoadFailed(BidonError.NoFill(adSource.demandId))
-                            )
+                            adSource.emitEvent(AdEvent.LoadFailed(BidonError.NoFill(adSource.demandId)))
                         }
                     }
                     .first { event -> event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired }
@@ -67,33 +62,25 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
             val auctionResult = getAuctionResult(
                 bidType = adUnit.bidType,
                 adSource = adSource,
-                requestStatus = requestStatus,
-                tokenInfo = tokenInfo
+                requestStatus = requestStatus
             )
 
             adSource.markFillFinished(requestStatus, adSource.ad?.ecpm)
 
             auctionResult
-        }
-        return if (result == null) {
-            getAuctionResult(
-                bidType = adUnit.bidType,
-                adSource = adSource,
-                requestStatus = DemandStatus.FillTimeoutReached,
-                tokenInfo = tokenInfo
-            )
-        } else {
-            result
-        }
+        } ?: getAuctionResult(
+            bidType = adUnit.bidType,
+            adSource = adSource,
+            requestStatus = DemandStatus.FillTimeoutReached
+        )
     }
 
     private fun getAuctionResult(
         bidType: BidType,
         adSource: AdSource<AdAuctionParams>,
-        requestStatus: DemandStatus,
-        tokenInfo: TokenInfo?
+        requestStatus: DemandStatus
     ): DemandResult = when (bidType) {
-        BidType.RTB -> DemandResult.Bidding(adSource, requestStatus, tokenInfo)
+        BidType.RTB -> DemandResult.Bidding(adSource, requestStatus)
         BidType.CPM -> DemandResult.Network(adSource, requestStatus)
     }
 }

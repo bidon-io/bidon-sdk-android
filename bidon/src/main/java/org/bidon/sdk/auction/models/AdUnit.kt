@@ -18,7 +18,9 @@ data class AdUnit(
     }
 
     override fun toString(): String {
-        return "AdUnit(demandId='$demandId', pricefloor=$pricefloor, bidType=$bidType, timeout=$timeout, ext=$ext)"
+        val trimmedExt =
+            ext?.let { if (it.length > 100) "${it.take(50)}...${it.takeLast(50)}" else it }
+        return "AdUnit(demandId='$demandId', pricefloor=$pricefloor, bidType=$bidType, timeout=$timeout, ext=$trimmedExt)"
     }
 }
 
