@@ -110,7 +110,6 @@ fun SdkSettings(startNewActivity: () -> Unit) {
         SegmentSettingsView()
         AdCacheSettingsView(
             onApply = { adCacheSettings ->
-                Log.d("BidonLog", "AdCacheSettings: $adCacheSettings")
                 BidonSdk.setAdCacheSettings(adCacheSettings)
             }
         )
