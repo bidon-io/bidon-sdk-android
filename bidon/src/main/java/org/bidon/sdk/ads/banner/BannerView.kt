@@ -275,7 +275,7 @@ class BannerView @JvmOverloads constructor(
             adSource.ad?.let { listener.onAdShown(ad = it) }
             adSource.sendShowImpression()
         }
-        if (readVisibilityTracker()) {
+        if (isVisibilityTrackingEnabled()) {
             checkBannerShown(
                 networkAdview = adViewHolder.networkAdview,
                 onBannerShown = onBannerShown
@@ -359,8 +359,8 @@ class BannerView @JvmOverloads constructor(
         }.launchIn(scope)
     }
 
-    private fun readVisibilityTracker(): Boolean {
-        return when(val extra = getExtras()["ext"]) {
+    private fun isVisibilityTrackingEnabled(): Boolean {
+        return when (val extra = getExtras()["ext"]) {
             is JSONObject -> extra.optBoolean("use_visibility_tracker", true)
             else -> true
         }
