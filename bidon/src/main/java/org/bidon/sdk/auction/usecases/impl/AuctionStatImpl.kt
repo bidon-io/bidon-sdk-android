@@ -200,8 +200,8 @@ internal class AuctionStatImpl(
                             currentStatus = demandStat.status,
 
                             isWinner = demandStat.demandId == (winner as? DemandResult.Network)?.adSource?.demandId?.demandId &&
-                                    demandStat.adUnitUid == (winner as? DemandResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
-                                    demandStat.price == (winner as? DemandResult.Network)?.adSource?.getStats()?.ecpm
+                                demandStat.adUnitUid == (winner as? DemandResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
+                                demandStat.price == (winner as? DemandResult.Network)?.adSource?.getStats()?.ecpm
                         )
                     )
                 },

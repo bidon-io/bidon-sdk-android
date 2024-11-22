@@ -159,7 +159,7 @@ internal class ExecuteAuctionUseCaseImpl(
 
     private fun shouldStopRequests(demandResult: DemandResult, nextAdUnit: AdUnit): Boolean {
         return demandResult.demandStatus == DemandStatus.Successful &&
-                demandResult.adSource.getStats().ecpm >= nextAdUnit.pricefloor
+            demandResult.adSource.getStats().ecpm >= nextAdUnit.pricefloor
     }
 
     private fun AdSource<AdAuctionParams>.applyParams(

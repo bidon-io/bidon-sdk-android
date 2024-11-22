@@ -64,7 +64,9 @@ internal class GetDemandsTokensUseCaseImpl : GetDemandsTokensUseCase {
         tokens.forEach { (key, tokenInfo) ->
             val trimmedToken =
                 tokenInfo.token?.let { if (it.length > 20) "${it.take(20)}..." else it }
-            logInfo(TAG, "#$key: status: ${tokenInfo.status}, token: $trimmedToken")
+            val tokenTime =
+                tokenInfo.tokenStartTs?.let { startTs -> tokenInfo.tokenFinishTs?.minus(startTs) } ?: "N/A"
+            logInfo(TAG, "#$key: status: ${tokenInfo.status}, time: ${tokenTime}ms, token: $trimmedToken")
         }
     }
 }
