@@ -46,7 +46,7 @@ interface PositionedBanner {
     )
 
     fun setBannerFormat(bannerFormat: BannerFormat)
-    fun loadAd(activity: Activity, pricefloor: Double = BidonSdk.DefaultPricefloor)
+    fun loadAd(activity: Activity, pricefloor: Double = BidonSdk.DefaultPricefloor, auctionKey: String? = null)
 
     /**
      * Shows if banner is ready to show

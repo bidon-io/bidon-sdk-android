@@ -96,7 +96,7 @@ class BannerManager private constructor(
         _bannerFormat = bannerFormat
     }
 
-    override fun loadAd(activity: Activity, pricefloor: Double) {
+    override fun loadAd(activity: Activity, pricefloor: Double, auctionKey: String?) {
         activity.runOnUiThread {
             weakActivity = WeakReference(activity)
             if (!BidonSdk.isInitialized()) {
@@ -120,6 +120,7 @@ class BannerManager private constructor(
                 activity = activity,
                 format = bannerFormat,
                 pricefloor = pricefloor,
+                auctionKey = auctionKey,
                 extras = extras,
                 onLoaded = { ad, auctionInfo, bannerView ->
                     this.nextBannerView = bannerView
