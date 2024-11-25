@@ -43,12 +43,10 @@ internal class BidMachineAdapter :
     )
 
     override suspend fun getToken(adTypeParam: AdTypeParam): String? =
-        withContext(Dispatchers.Default) {
-            BidMachine.getBidToken(
-                adTypeParam.activity.applicationContext,
-                adTypeParam.toBidmachineAdFormat()
-            )
-        }
+        BidMachine.getBidToken(
+            adTypeParam.activity.applicationContext,
+            adTypeParam.toBidmachineAdFormat()
+        )
 
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
         suspendCoroutine { continuation ->
