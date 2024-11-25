@@ -16,6 +16,9 @@
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Vungle to 7.4.2
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Yandex to 7.7.0
 
+# 0.7.0
+## Promoted the beta release to the stable version
+
 # 0.7.0-beta.1
 ## Features:
 - [BDN-769](https://appodeal.atlassian.net/browse/BDN-769) Fixed MobileFuse SDK ad revenue calculation
