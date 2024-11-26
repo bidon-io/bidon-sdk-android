@@ -9,8 +9,6 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.cache.AdCacheSettingsProvider
-import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy.MAX_ECPM
-import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy.TIMESTAMP
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 
@@ -74,15 +72,10 @@ internal class AdCacheProviderImpl(
             AdType.Rewarded -> settings.settings.rewardedVideo
         }
 
-        val adCacheSorter = when (adCacheSettings.sortStrategy) {
-            MAX_ECPM -> AdCacheSorter.MaxEcpm
-            TIMESTAMP -> AdCacheSorter.Timestamp
-        }
-
         return AdCacheImpl(
             demandAd = demandAd,
-            adCacheSorter = adCacheSorter,
-            adCacheSettings = adCacheSettings,
+            settings = adCacheSettings,
+            sorter = MaxEcpmAdCacheSorter(),
             scope = CoroutineScope(SdkDispatchers.Main),
         )
     }

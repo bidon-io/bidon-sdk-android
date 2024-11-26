@@ -18,9 +18,10 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheSorter
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
@@ -33,8 +34,8 @@ import org.bidon.sdk.utils.ext.TAG
  */
 internal class AdCacheImpl(
     override val demandAd: DemandAd,
-    private val adCacheSorter: AdCacheSorter,
-    private val adCacheSettings: AdCacheSettingsProvider.AdSettings,
+    private val settings: AdSettings,
+    private val sorter: AdCacheSorter,
     private val scope: CoroutineScope,
 ) : AdCache {
 
@@ -48,7 +49,7 @@ internal class AdCacheImpl(
     private val results: StateFlow<Set<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
             combine(loaders.values.map { it.results }) { allResults ->
-                adCacheSorter.sort(allResults.flatMap { it }).toSet()
+                sorter.sort(allResults.flatMap { it }).toSet()
             }
         }
         .onEach { sortedResults ->
@@ -69,7 +70,7 @@ internal class AdCacheImpl(
             cacheJob = scope.launch {
                 logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
                 val adLoader = getOrCreateAdLoader(adTypeParam) {
-                    createAdLoader(demandAd, adCacheSettings)
+                    createAdLoader(demandAd, settings)
                 }
                 adLoader.load(adTypeParam)
                 val (winner, auctionInfo) = results.first { it.isNotEmpty() }.first()
@@ -112,10 +113,7 @@ internal class AdCacheImpl(
         }[key] ?: error("AdLoader should exist after updateAndGet")
     }
 
-    private fun createAdLoader(
-        demandAd: DemandAd,
-        settings: AdCacheSettingsProvider.AdSettings
-    ): AdLoader {
+    private fun createAdLoader(demandAd: DemandAd, settings: AdSettings): AdLoader {
         // TODO: 15/11/2024 [glavatskikh] DI needed?
         return AdLoaderImpl(
             demandAd = demandAd,

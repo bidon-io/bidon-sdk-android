@@ -28,13 +28,11 @@ import androidx.compose.ui.unit.dp
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.Body2Text
-import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdCacheSettings
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_CACHE_SIZE
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_RETRY_DELAY_MS
-import org.bidon.sdk.cache.AdCacheSettingsProvider.SortStrategy
 
 @Composable
 internal fun AdCacheSettingsView(
@@ -44,9 +42,9 @@ internal fun AdCacheSettingsView(
     val adCacheSettings = remember {
         mutableStateOf(
             AdCacheSettings(
-                banner = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
-                interstitial = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
-                rewardedVideo = AdSettings(SortStrategy.TIMESTAMP, MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                banner = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                interstitial = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                rewardedVideo = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
             )
         )
     }
@@ -112,7 +110,6 @@ private fun AdTypeSettingsView(
     onSettingsChange: (AdSettings) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-    var sortStrategy by remember(adSettings) { mutableStateOf(adSettings.sortStrategy) }
     var adunitCacheSize by remember(adSettings) { mutableStateOf(adSettings.cacheSize.toString()) }
     var noFillDelayMs by remember(adSettings) { mutableStateOf(adSettings.retryDelayMs.toString()) }
 
@@ -121,22 +118,6 @@ private fun AdTypeSettingsView(
             .padding(4.dp)
             .fillMaxWidth()
     ) {
-        // Sort Strategy Selector
-        ItemSelector(
-            modifier = Modifier.padding(vertical = 4.dp),
-            horizontalAlignment = Alignment.Start,
-            title = "Sort Strategy",
-            items = listOf(SortStrategy.TIMESTAMP, SortStrategy.MAX_ECPM),
-            selectedItem = sortStrategy,
-            getItemTitle = { itemSortStrategy ->
-                when (itemSortStrategy) {
-                    SortStrategy.TIMESTAMP -> "Timestamp"
-                    SortStrategy.MAX_ECPM -> "Max eCPM"
-                }
-            },
-            onItemClicked = { itemSortStrategy -> sortStrategy = itemSortStrategy }
-        )
-
         // Ad Unit Cache Size
         OutlinedTextField(
             value = adunitCacheSize,
@@ -187,7 +168,6 @@ private fun AdTypeSettingsView(
         ) {
             onSettingsChange(
                 AdSettings(
-                    sortStrategy = sortStrategy,
                     cacheSize = adunitCacheSize.toIntOrNull() ?: adSettings.cacheSize,
                     retryDelayMs = noFillDelayMs.toIntOrNull() ?: adSettings.retryDelayMs
                 )
