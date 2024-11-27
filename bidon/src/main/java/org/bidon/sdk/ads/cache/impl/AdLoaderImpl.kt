@@ -4,7 +4,6 @@ import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -14,6 +13,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import org.bidon.sdk.ads.cache.AdLoader
+import org.bidon.sdk.ads.ext.applyActivity
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.models.DemandResult
@@ -35,132 +35,162 @@ internal class AdLoaderImpl(
     activityProvider: ActivityProvider,
 ) : AdLoader {
 
-    override val results = MutableStateFlow(emptySet<AdInstance>())
+    override val adInstances = MutableStateFlow(emptySet<AdInstance>())
 
     private val tag = "${TAG}_${demandAd.adType.code}"
-    private val isLoading = MutableStateFlow(false)
-    private val currentRetryDelayMs = MutableStateFlow(adSettings.retryDelayMs)
+    private val state = MutableStateFlow<State>(State.Idle)
 
-    private var adTypeParam: AdTypeParam? = null
-    private var auction: Auction? = null
+    private val defaultCacheSize get() = adSettings.cacheSize
+    private val defaultRetryDelayMs get() = adSettings.retryDelayMs
 
     init {
-        activityProvider.resumedActivityFlow.onEach { weakActivity ->
-            val activity = weakActivity.get()
-            val currentParam = adTypeParam
-            if (activity != null && currentParam != null) {
-                adTypeParam = currentParam.applyActivity(activity)
-                logInfo(tag, "Updated adTypeParam with new Activity: $activity")
+        activityProvider.resumedActivityFlow
+            .onEach { weakActivity ->
+                weakActivity.get()?.let { activity ->
+                    updateStateWithActivity(activity)
+                }
             }
-        }.launchIn(scope)
+            .launchIn(scope)
     }
 
-    override fun load(adTypeParam: AdTypeParam) {
-        logInfo(tag, "Loading ad(s): ${results.value.asString()}")
-        this.adTypeParam = adTypeParam
+    private sealed class State {
+        object Idle : State()
+        class Awaiting(val adTypeParam: AdTypeParam) : State()
+        class Loading(val adTypeParam: AdTypeParam, val retryDelayMs: Int) : State()
+    }
 
-        if (results.value.size >= adSettings.cacheSize) {
-            logInfo(tag, "Ad cache size reached. Skipping load.")
-            return
-        }
+    override fun applyAdTypeParam(adTypeParam: AdTypeParam) {
+        logInfo(tag, "Applying ad type param: $adTypeParam")
+        when (state.value) {
+            is State.Idle,
+            is State.Awaiting -> {
+                if (shouldLoadAd(adTypeParam)) {
+                    initiateLoading(adTypeParam, defaultRetryDelayMs)
+                } else {
+                    state.value = State.Awaiting(adTypeParam)
+                    logInfo(tag, "Cache is full, and no ads meet the replacement criteria. Skipping load.")
+                }
+            }
 
-        if (!isLoading.getAndUpdate { true }) {
-            logInfo(tag, "Starting auction for ad type: $adTypeParam")
-            auction = get()
-            auction?.start(
-                demandAd = demandAd,
-                adTypeParam = adTypeParam,
-                onSuccess = { winners, auctionInfo -> onAuctionSuccess(winners, auctionInfo) },
-                onFailure = { _, _ -> onAuctionFailure() }
-            )
-        } else {
-            logInfo(tag, "Load operation is already in progress.")
+            is State.Loading -> {
+                logInfo(tag, "Load already in progress.")
+            }
         }
     }
 
     override fun consumeAdInstance(adInstance: AdInstance) {
-        scope.launch {
-            results.update { it - adInstance }
-            load(adTypeParam ?: return@launch)
+        adInstances.update { it - adInstance }
+        logInfo(tag, "Ad instance consumed: ${adInstance.adSource}")
+        (state.value as? State.Awaiting)?.let {
+            initiateLoading(it.adTypeParam, defaultRetryDelayMs)
         }
     }
 
-    override fun clear() {
-        results.value = emptySet()
-        adTypeParam = null
-        currentRetryDelayMs.value = adSettings.retryDelayMs
+    private fun shouldLoadAd(adTypeParam: AdTypeParam): Boolean {
+        val instances = adInstances.value
+        return instances.size < defaultCacheSize ||
+            instances.any { it.ecpm < adTypeParam.pricefloor }
+    }
 
-        if (isLoading.getAndUpdate { false }) {
-            logInfo(tag, "Clearing ad cache and cancelling ongoing auction.")
-            auction?.cancel()
-            auction = null
+    private fun initiateLoading(adTypeParam: AdTypeParam, retryDelayMs: Int) {
+        logInfo(tag, "Starting auction for ad type: $adTypeParam")
+        state.value = State.Loading(adTypeParam, retryDelayMs)
+        get<Auction>().start(
+            demandAd = demandAd,
+            adTypeParam = adTypeParam,
+            onSuccess = { winners, auctionInfo -> handleAuctionSuccess(winners, auctionInfo) },
+            onFailure = { _, _ -> handleAuctionFailure() }
+        )
+    }
+
+    private fun handleAuctionSuccess(winners: List<DemandResult>, auctionInfo: AuctionInfo) {
+        val currentState = state.value
+        if (currentState is State.Loading) {
+            // For now, we are taking only the first winner; support for multiple winners is planned
+            val winner = winners.first()
+            val newAdInstance = AdInstance(winner.adSource, auctionInfo)
+            updateAdInstances(newAdInstance)
+
+            logInfo(tag, "Auction successful. Current ad cache: ${adInstances.value.asString()}")
+            if (shouldLoadAd(currentState.adTypeParam)) {
+                initiateLoading(currentState.adTypeParam, defaultRetryDelayMs)
+            } else {
+                state.value = State.Awaiting(currentState.adTypeParam)
+                logInfo(tag, "Cache is sufficient. Loading paused.")
+            }
+        } else {
+            logInfo(tag, "Auction success ignored. Current state: $currentState")
         }
     }
 
-    private fun onAuctionSuccess(winners: List<DemandResult>, auctionInfo: AuctionInfo) {
-        // For now, we are taking only the first winner; support for multiple winners is planned
-        val winner = winners.first()
-        val adInstance = AdInstance(winner.adSource, auctionInfo)
-        results.update { it + adInstance }
-        trackExpired(adInstance)
+    private fun handleAuctionFailure() {
+        val currentState = state.value
+        if (currentState is State.Loading) {
+            val nextRetryDelay = calculateRetryDelay(currentState.retryDelayMs)
+            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}, Retrying in $nextRetryDelay ms.")
 
-        logInfo(tag, "Auction successful. Current ad cache: ${results.value.asString()}")
-        isLoading.value = false
-        scope.launch {
-            logInfo(tag, "Resetting retry delay to: ${adSettings.retryDelayMs} ms")
-            currentRetryDelayMs.value = adSettings.retryDelayMs
-            load(adTypeParam ?: return@launch) // Attempt to load more ads if cache isn't full
+            scope.launch {
+                delay(nextRetryDelay.toLong())
+                if (state.value is State.Loading) {
+                    initiateLoading(currentState.adTypeParam, nextRetryDelay)
+                } else {
+                    logInfo(tag, "Retry aborted. Current state: ${state.value}")
+                }
+            }
+        } else {
+            logInfo(tag, "Auction failure ignored. Current state: $currentState")
         }
     }
 
-    private fun onAuctionFailure() {
-        logInfo(tag, "Auction failed. Current ad cache: ${results.value.asString()}")
-        isLoading.value = false
-        scope.launch {
-            val nextRetryDelay =
-                min(currentRetryDelayMs.value * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
-            logInfo(tag, "Retrying after delay: $nextRetryDelay ms")
-            delay(currentRetryDelayMs.getAndUpdate { nextRetryDelay }.toLong())
-            load(adTypeParam ?: return@launch)
+    private fun updateAdInstances(newAdInstance: AdInstance) {
+        adInstances.update { currentCache ->
+            if (currentCache.size < defaultCacheSize) {
+                trackExpired(newAdInstance)
+                currentCache + newAdInstance
+            } else {
+                val lowestValueAd = currentCache.minByOrNull { it.ecpm }
+                if (lowestValueAd != null && newAdInstance.ecpm > lowestValueAd.ecpm) {
+                    logInfo(tag, "Replacing lower-value ad: ${lowestValueAd.adSource} with new ad: ${newAdInstance.adSource}")
+                    trackExpired(newAdInstance)
+                    currentCache - lowestValueAd + newAdInstance
+                } else {
+                    logInfo(tag, "New ad discarded. Lower value than current cache.")
+                    currentCache
+                }
+            }
         }
     }
 
     private fun trackExpired(adInstance: AdInstance) {
         adInstance.adSource.adEvent.onEach { event ->
             if (event is AdEvent.Expired) {
-                results.update { it - adInstance }
                 logInfo(tag, "Ad expired and removed from cache: ${adInstance.adSource}")
+                consumeAdInstance(adInstance)
             }
         }.launchIn(scope)
     }
-}
 
-private fun AdTypeParam.applyActivity(activity: Activity): AdTypeParam {
-    return when (val adTypeParam = this) {
-        is AdTypeParam.Banner -> {
-            AdTypeParam.Banner(
-                activity = activity,
-                pricefloor = adTypeParam.pricefloor,
-                auctionKey = adTypeParam.auctionKey,
-                bannerFormat = adTypeParam.bannerFormat,
-                containerWidth = adTypeParam.containerWidth
-            )
-        }
+    private fun calculateRetryDelay(currentDelay: Int): Int {
+        return min(currentDelay * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
+    }
 
-        is AdTypeParam.Interstitial -> {
-            AdTypeParam.Interstitial(
-                activity = activity,
-                pricefloor = adTypeParam.pricefloor,
-                auctionKey = adTypeParam.auctionKey
-            )
-        }
+    private fun updateStateWithActivity(activity: Activity) {
+        state.update { currentState ->
+            when (currentState) {
+                is State.Awaiting -> {
+                    val updatedAdTypeParam = currentState.adTypeParam.applyActivity(activity)
+                    logInfo(tag, "Updated adTypeParam for Awaiting state with new Activity: $activity")
+                    State.Awaiting(updatedAdTypeParam)
+                }
 
-        is AdTypeParam.Rewarded -> {
-            AdTypeParam.Rewarded(
-                activity = activity,
-                pricefloor = adTypeParam.pricefloor,
-                auctionKey = adTypeParam.auctionKey
-            )
+                is State.Loading -> {
+                    val updatedAdTypeParam = currentState.adTypeParam.applyActivity(activity)
+                    logInfo(tag, "Updated adTypeParam for Loading state with new Activity: $activity")
+                    State.Loading(updatedAdTypeParam, currentState.retryDelayMs)
+                }
+
+                else -> currentState
+            }
         }
     }
 }

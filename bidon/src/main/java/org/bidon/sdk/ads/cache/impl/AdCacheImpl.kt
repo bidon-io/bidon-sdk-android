@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.updateAndGet
@@ -46,75 +45,71 @@ internal class AdCacheImpl(
     private var cacheJob: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val results: StateFlow<Set<AdInstance>> = adLoaders
+    private val adInstances: StateFlow<Set<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
-            combine(loaders.values.map { it.results }) { allResults ->
+            combine(loaders.values.map { it.adInstances }) { allResults ->
                 sorter.sort(allResults.flatMap { it }).toSet()
             }
         }
         .onEach { sortedResults ->
-            logInfo(tag, "Cache results updated: ${sortedResults.size} ads: ${sortedResults.asString()}")
+            logInfo(tag, "Cache updated: ${sortedResults.asString()}")
         }
-        .stateIn(
-            scope = scope,
-            started = SharingStarted.Eagerly,
-            initialValue = emptySet()
-        )
+        .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     override fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
-        onFailure: (AuctionInfo?, Throwable) -> Unit, // ignore
+        onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        if (!isLoading.getAndUpdate { true }) {
+        if (isLoading.compareAndSet(expect = false, update = true)) {
             cacheJob = scope.launch {
-                logInfo(tag, "Cache started for demandAd: ${demandAd.adType}")
-                val adLoader = getOrCreateAdLoader(adTypeParam) {
-                    createAdLoader(demandAd, settings)
+                try {
+                    logInfo(tag, "Starting cache for demandAd: ${demandAd.adType}")
+                    processAdLoaders(adTypeParam)
+
+                    val winner = adInstances
+                        .first { set -> set.any { it.ecpm >= adTypeParam.pricefloor } }
+                        .first()
+                    onSuccess(winner.adSource, winner.auctionInfo)
+                } catch (e: Exception) {
+                    logInfo(tag, "Cache failed: ${e.message}")
+                    onFailure(null, e)
+                } finally {
+                    isLoading.value = false
                 }
-                adLoader.load(adTypeParam)
-                val (winner, auctionInfo) = results.first { it.isNotEmpty() }.first()
-                isLoading.value = false
-                onSuccess(winner, auctionInfo)
             }
         } else {
-            logInfo(tag, "Cache is already started")
+            logInfo(tag, "Cache is already running.")
         }
     }
 
-    override fun peek(): AdSource<*>? = results.value.firstOrNull()?.adSource
+    override fun peek(): AdSource<*>? = adInstances.value.firstOrNull()?.adSource
 
     override fun pop(): AdSource<*>? {
-        val adInstance = results.value.firstOrNull()
+        val adInstance = adInstances.value.firstOrNull()
         adInstance?.let { consumeAdInstance(it) }
         return adInstance?.adSource
     }
 
-    override fun all(): List<AdSource<*>> {
-        return results.value.map { it.adSource }
-    }
+    override fun all(): List<AdSource<*>> = adInstances.value.map { it.adSource }
 
     override fun clear() {
-        // we don't need to clear adLoaders and results
-        if (isLoading.getAndUpdate { false }) {
-            logInfo(tag, "Cache canceled")
+        if (isLoading.compareAndSet(expect = true, update = false)) {
+            logInfo(tag, "Cache active job canceled")
             cacheJob?.cancel()
             cacheJob = null
         }
     }
 
-    private fun getOrCreateAdLoader(
-        adTypeParam: AdTypeParam,
-        createAdLoader: () -> AdLoader
-    ): AdLoader {
-        val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
-        return adLoaders.updateAndGet { currentLoaders ->
+    private fun processAdLoaders(adTypeParam: AdTypeParam) {
+        adLoaders.updateAndGet { currentLoaders ->
+            val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
             if (key in currentLoaders) {
                 currentLoaders
             } else {
-                currentLoaders + (key to createAdLoader())
+                currentLoaders + (key to createAdLoader(demandAd, settings))
             }
-        }[key] ?: error("AdLoader should exist after updateAndGet")
+        }.values.forEach { it.applyAdTypeParam(adTypeParam) }
     }
 
     private fun createAdLoader(demandAd: DemandAd, settings: AdSettings): AdLoader {
@@ -123,16 +118,16 @@ internal class AdCacheImpl(
             demandAd = demandAd,
             adSettings = settings,
             scope = CoroutineScope(SdkDispatchers.Main),
-            activityProvider = get()
+            activityProvider = get(),
         ).also {
             logInfo(tag, "AdLoader created with settings: $settings")
         }
     }
 
     private fun consumeAdInstance(adInstance: AdInstance) {
-        logInfo(tag, "Cache consume: $adInstance")
+        logInfo(tag, "Consuming ad instance: $adInstance")
         adLoaders.value.values.forEach { loader ->
-            if (loader.results.value.contains(adInstance)) {
+            if (loader.adInstances.value.contains(adInstance)) {
                 loader.consumeAdInstance(adInstance)
             }
         }

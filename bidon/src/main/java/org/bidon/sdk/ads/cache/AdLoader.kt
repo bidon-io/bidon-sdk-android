@@ -15,22 +15,17 @@ internal interface AdLoader {
     val demandAd: DemandAd
 
     /**
-     * Results of the loaded ads.
+     * Ad instances.
      */
-    val results: StateFlow<Set<AdInstance>>
+    val adInstances: StateFlow<Set<AdInstance>>
 
     /**
-     * Loads ads.
+     * Applies ad type param.
      */
-    fun load(adTypeParam: AdTypeParam)
+    fun applyAdTypeParam(adTypeParam: AdTypeParam)
 
     /**
      * Consumes the result.
      */
     fun consumeAdInstance(adInstance: AdInstance)
-
-    /**
-     * Clears the loader.
-     */
-    fun clear()
 }
