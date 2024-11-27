@@ -17,6 +17,10 @@
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Yandex to 7.7.0
 - [BDN-778](https://appodeal.atlassian.net/browse/BDN-778) Updated Bidmachine to 3.1.1
 
+# 0.7.1-next.1
+## Features:
+- [BDN-816](https://appodeal.atlassian.net/browse/BDN-816) Stabilized SDK for Unity plugin
+
 # 0.7.0
 ## Promoted the beta release to the stable version
 
