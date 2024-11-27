@@ -360,10 +360,7 @@ class BannerView @JvmOverloads constructor(
     }
 
     private fun isVisibilityTrackingEnabled(): Boolean {
-        return when (val extra = getExtras()["ext"]) {
-            is JSONObject -> extra.optBoolean("use_visibility_tracker", true)
-            else -> true
-        }
+        return getExtras()["use_visibility_tracker"] as? Boolean ?: true
     }
 
     private fun checkBannerShown(networkAdview: View, onBannerShown: () -> Unit) {
