@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.impl
 
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.utils.ext.SystemTimeNow
 
 /**
  * Created by Bidon Team on 06/11/2024.'
@@ -14,7 +13,6 @@ internal data class AdInstance(
     val auctionInfo: AuctionInfo,
 ) {
     val ecpm: Double get() = adSource.getStats().ecpm
-    val timestamp: Long = SystemTimeNow
 }
 
 internal fun Set<AdInstance>.asString(): String {

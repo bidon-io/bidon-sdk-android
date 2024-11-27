@@ -90,6 +90,10 @@ internal class AdCacheImpl(
         return adInstance?.adSource
     }
 
+    override fun all(): List<AdSource<*>> {
+        return results.value.map { it.adSource }
+    }
+
     override fun clear() {
         // we don't need to clear adLoaders and results
         if (isLoading.getAndUpdate { false }) {
