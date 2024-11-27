@@ -2,8 +2,6 @@ package org.bidon.bidmachine
 
 import android.content.Context
 import io.bidmachine.BidMachine
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.bidon.bidmachine.ext.adapterVersion
 import org.bidon.bidmachine.ext.sdkVersion
 import org.bidon.bidmachine.ext.toBidmachineAdFormat

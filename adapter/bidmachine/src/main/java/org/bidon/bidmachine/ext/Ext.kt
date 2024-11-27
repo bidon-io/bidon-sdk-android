@@ -19,9 +19,14 @@ internal fun AdTypeParam.toBidmachineAdFormat(): AdsFormat = when (this) {
 }
 
 private fun BannerFormat.toBidmachineBannerAdFormat(): AdsFormat = when (this) {
-    BannerFormat.Banner, BannerFormat.Adaptive -> AdsFormat.Banner_320x50
+    BannerFormat.Banner -> AdsFormat.Banner_320x50
     BannerFormat.LeaderBoard -> AdsFormat.Banner_728x90
     BannerFormat.MRec -> AdsFormat.Banner_300x250
+    BannerFormat.Adaptive -> if (DeviceInfo.isTablet) {
+        AdsFormat.Banner_728x90
+    } else {
+        AdsFormat.Banner_320x50
+    }
 }
 
 internal fun BannerFormat.asBidMachineBannerSize(): BannerSize = when (this) {
