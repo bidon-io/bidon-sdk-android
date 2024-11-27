@@ -14,6 +14,7 @@ import org.bidon.sdk.utils.json.JsonParsers
 import org.bidon.sdk.utils.networking.BaseResponse
 import org.bidon.sdk.utils.networking.JsonHttpRequest
 import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCase
+import org.bidon.sdk.utils.serializer.serialize
 
 /**
  * Created by Bidon Team on 06/02/2023.
@@ -39,10 +40,10 @@ internal class StatsRequestUseCaseImpl(
         return withContext(SdkDispatchers.IO) {
             val requestBody = createRequestBody(
                 binders = binders,
-                dataKeyName = "stats",
-                data = statsRequestBody,
                 extras = BidonSdk.getExtras() + demandAd.getExtras()
-            )
+            ) {
+                "stats" hasValue statsRequestBody?.serialize()
+            }
             logInfo(TAG, "$requestBody")
             get<JsonHttpRequest>().invoke(
                 path = "$StatsRequestPath/${demandAd.adType.code}",

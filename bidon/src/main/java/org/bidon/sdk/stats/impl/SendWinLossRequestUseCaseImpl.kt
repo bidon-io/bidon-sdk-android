@@ -5,7 +5,6 @@ import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.models.Loss
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.WinLossRequestData
 import org.bidon.sdk.utils.SdkDispatchers
@@ -42,20 +41,14 @@ internal class SendWinLossRequestUseCaseImpl(
             val urlPath = "$path/${data.demandAd.adType.code}"
             val requestBody = createRequestBody(
                 binders = binders,
-                dataKeyName = "external_winner",
-                data = when (data) {
-                    is WinLossRequestData.Loss -> {
-                        Loss(
-                            demandId = data.winnerDemandId,
-                            ecpm = data.winnerEcpm
-                        )
-                    }
-
-                    is WinLossRequestData.Win -> null
-                },
                 extras = BidonSdk.getExtras() + data.demandAd.getExtras()
-            )
-            requestBody.put(data.bodyKey, data.body.serialize())
+            ) {
+                "bid" hasValue data.bidBody.serialize()
+                "external_winner" hasValue when (data) {
+                    is WinLossRequestData.Loss -> data.winnerBody.serialize()
+                    is WinLossRequestData.Win -> null
+                }
+            }
             logInfo(TAG, "Request body: $requestBody")
             get<JsonHttpRequest>().invoke(
                 path = urlPath,

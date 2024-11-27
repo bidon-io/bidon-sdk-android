@@ -37,13 +37,10 @@ internal class GetConfigRequestUseCaseImpl(
 
     override suspend fun request(body: ConfigRequestBody): Result<ConfigResponse> {
         return withContext(SdkDispatchers.IO) {
-            val bindersData = createRequestBody(
+            val requestBody = createRequestBody(
                 binders = binders,
-                dataKeyName = null,
-                data = null,
                 extras = BidonSdk.getExtras()
-            )
-            val requestBody = jsonObject(putTo = bindersData) {
+            ) {
                 "adapters" hasValue jsonObject {
                     body.adapters.forEach { (adapterName, data) ->
                         adapterName hasValue data.serialize()

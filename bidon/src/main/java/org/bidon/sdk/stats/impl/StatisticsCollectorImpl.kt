@@ -18,6 +18,7 @@ import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.DemandStatus
 import org.bidon.sdk.stats.models.ImpressionRequestBody
+import org.bidon.sdk.stats.models.Winner
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.WinLossRequestData
@@ -166,10 +167,9 @@ class StatisticsCollectorImpl : StatisticsCollector {
             scope.launch {
                 sendLossRequest.invoke(
                     WinLossRequestData.Loss(
-                        winnerDemandId = winnerDemandId,
-                        winnerEcpm = winnerEcpm,
                         demandAd = demandAd,
-                        body = createImpressionRequestBody(adType)
+                        bidBody = createImpressionRequestBody(adType),
+                        winnerBody = createWinnerBody(winnerDemandId, winnerEcpm),
                     )
                 )
             }
@@ -186,7 +186,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
                 sendLossRequest.invoke(
                     WinLossRequestData.Win(
                         demandAd = demandAd,
-                        body = createImpressionRequestBody(adType)
+                        bidBody = createImpressionRequestBody(adType)
                     )
                 )
             }
@@ -294,6 +294,13 @@ class StatisticsCollectorImpl : StatisticsCollector {
                 Triple(null, null, RewardedRequest)
             }
         }
+    }
+
+    private fun createWinnerBody(winnerDemandId: String, winnerEcpm: Double): Winner {
+        return Winner(
+            demandId = winnerDemandId,
+            ecpm = winnerEcpm
+        )
     }
 
     private fun StatisticsCollector.AdType.asAdType() = when (this) {

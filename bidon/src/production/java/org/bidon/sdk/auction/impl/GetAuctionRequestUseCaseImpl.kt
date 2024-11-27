@@ -2,7 +2,6 @@ package org.bidon.sdk.auction.impl
 
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
-import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
 import org.bidon.sdk.ads.ext.asAdRequestBody
@@ -21,6 +20,7 @@ import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.json.JsonParsers
 import org.bidon.sdk.utils.networking.JsonHttpRequest
 import org.bidon.sdk.utils.networking.requests.CreateRequestBodyUseCase
+import org.bidon.sdk.utils.serializer.serialize
 
 /**
  * Created by Bidon Team on 06/02/2023.
@@ -46,7 +46,6 @@ internal class GetAuctionRequestUseCaseImpl(
         adTypeParam: AdTypeParam,
         auctionId: String,
         demandAd: DemandAd,
-        adapters: Map<String, AdapterInfo>,
         demandsTokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse> {
         return withContext(SdkDispatchers.IO) {
@@ -59,14 +58,14 @@ internal class GetAuctionRequestUseCaseImpl(
                 rewarded = rewarded,
                 orientationCode = getOrientation().code,
                 pricefloor = adTypeParam.pricefloor,
-                demands = demandsTokens
+                demands = demandsTokens,
             )
             val requestBody = createRequestBody(
                 binders = binders,
-                dataKeyName = "ad_object",
-                data = adObject,
                 extras = BidonSdk.getExtras() + demandAd.getExtras()
-            )
+            ) {
+                "ad_object" hasValue adObject.serialize()
+            }
             logInfo(TAG, "Request body: $requestBody")
             get<JsonHttpRequest>().invoke(
                 path = "$AuctionRequestPath/${adTypeParam.asAdType().code}",
