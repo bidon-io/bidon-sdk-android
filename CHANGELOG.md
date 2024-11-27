@@ -15,6 +15,7 @@
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated UnityAds to 4.12.4
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Vungle to 7.4.2
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Yandex to 7.7.0
+- [BDN-778](https://appodeal.atlassian.net/browse/BDN-778) Updated Bidmachine to 3.1.1
 
 # 0.7.0
 ## Promoted the beta release to the stable version
