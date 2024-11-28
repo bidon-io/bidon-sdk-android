@@ -7,19 +7,29 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import java.lang.ref.WeakReference
 
+/**
+ * Created by Bidon Team on 31/10/2024.
+ *
+ * Implementation of [ActivityProvider].
+ */
 internal class ActivityProviderImpl(application: Application) : ActivityProvider {
 
     override val resumedActivityFlow = MutableSharedFlow<WeakReference<Activity?>>(replay = 1)
     private var currentActivityRef: WeakReference<Activity?> = WeakReference(null)
+
+    private val appPackageName: String = application.packageName
 
     init {
         registerApplicationObserver(application)
     }
 
     override fun emitActivity(activity: Activity?) {
-        if (currentActivityRef.get() != activity) {
-            currentActivityRef = WeakReference(activity)
-            resumedActivityFlow.tryEmit(currentActivityRef)
+        // If the activity is null or the activity is from the same package
+        if (activity == null || activity.packageName == appPackageName) {
+            if (currentActivityRef.get() != activity) {
+                currentActivityRef = WeakReference(activity)
+                resumedActivityFlow.tryEmit(currentActivityRef)
+            }
         }
     }
 
