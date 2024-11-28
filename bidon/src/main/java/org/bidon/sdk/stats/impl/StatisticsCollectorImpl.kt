@@ -85,7 +85,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             return null
         }
         return Ad(
-            demandAd = demandAd,
             ecpm = stat.ecpm,
             currencyCode = AdValue.USD,
             auctionId = auctionId,

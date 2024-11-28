@@ -189,6 +189,7 @@ class BannerView @JvmOverloads constructor(
                     val adSource = (adCache.pop() as? AdSource.Banner<*>).also { winner = it }
                     if (adSource?.isAdReadyToShow == true) {
                         subscribeToWinner(adSource)
+                        adSource.setDemandAd(demandAd)
                         addViewOnScreen(adSource)
                     } else {
                         logInfo(TAG, "Show failed. Ad not ready.")

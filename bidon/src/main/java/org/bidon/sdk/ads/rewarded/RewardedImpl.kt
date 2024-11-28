@@ -93,6 +93,7 @@ internal class RewardedImpl(
             val adSource = (adCache.pop() as? AdSource.Rewarded).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
                 subscribeToWinner(adSource)
+                adSource.setDemandAd(demandAd)
                 adSource.show(activity)
             } else {
                 logInfo(TAG, "Show failed. Ad not ready.")

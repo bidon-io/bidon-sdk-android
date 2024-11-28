@@ -32,7 +32,6 @@ import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body2Text
 import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.ui.domain.BannerManagerViewModel
-import org.bidon.demoapp.ui.ext.demo
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -61,27 +60,27 @@ fun PositionedBannerScreen(
         setBannerListener(
             object : BannerListener {
                 override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                    logFlow.log("onAdLoaded ad: ${ad.demo()}. auctionInfo: ${auctionInfo.demo()}")
+                    logFlow.log("onAdLoaded ad: $ad. auctionInfo: $auctionInfo")
                 }
 
                 override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                    logFlow.log("onAdLoadFailed: $cause. auctionInfo: ${auctionInfo?.demo()}")
+                    logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                 }
 
                 override fun onAdShown(ad: Ad) {
-                    logFlow.log("onAdShown: ${ad.demo()}")
+                    logFlow.log("onAdShown: $ad")
                 }
 
                 override fun onAdClicked(ad: Ad) {
-                    logFlow.log("onAdClicked: ${ad.demo()}")
+                    logFlow.log("onAdClicked: $ad")
                 }
 
                 override fun onAdExpired(ad: Ad) {
-                    logFlow.log("onAdExpired: ${ad.demo()}")
+                    logFlow.log("onAdExpired: $ad")
                 }
 
                 override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                    logFlow.log("onRevenuePaid: ad: ${ad.demo()}, adValue: $adValue")
+                    logFlow.log("onRevenuePaid: ad: $ad, adValue: $adValue")
                 }
 
                 override fun onAdShowFailed(cause: BidonError) {

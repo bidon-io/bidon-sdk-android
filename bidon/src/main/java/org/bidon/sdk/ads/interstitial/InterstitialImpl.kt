@@ -93,6 +93,7 @@ internal class InterstitialImpl(
             val adSource = (adCache.pop() as? AdSource.Interstitial).also { winner = it }
             if (adSource?.isAdReadyToShow == true) {
                 subscribeToWinner(adSource)
+                adSource.setDemandAd(demandAd)
                 adSource.show(activity)
             } else {
                 logInfo(TAG, "Show failed. Ad not ready.")
