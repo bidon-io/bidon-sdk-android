@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.updateAndGet
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheSorter
@@ -30,20 +31,20 @@ import org.bidon.sdk.utils.ext.TAG
  * Implementation of [AdCache].
  */
 internal class AdCacheImpl(
-    override val demandAd: DemandAd,
-    private val settings: AdSettings,
-    private val sorter: AdCacheSorter,
-    scope: CoroutineScope,
+    private val adType: AdType,
+    private val adSettings: AdSettings,
+    private val adCacheSorter: AdCacheSorter,
+    private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main),
 ) : AdCache {
 
-    private val tag = "${TAG}_${demandAd.adType.code}"
+    private val tag = "${TAG}_${adType.code}"
     private val adLoaders = MutableStateFlow<Map<String, AdLoader>>(emptyMap())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val adInstances: StateFlow<Set<AdInstance>> = adLoaders
         .flatMapLatest { loaders ->
             combine(loaders.values.map { it.adInstances }) { allResults ->
-                sorter.sort(allResults.flatMap { it }).toSet()
+                adCacheSorter.sort(allResults.flatMap { it }).toSet()
             }
         }
         .onEach { sortedResults ->
@@ -52,13 +53,14 @@ internal class AdCacheImpl(
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     override suspend fun cache(
+        demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
-        onFailure: (AuctionInfo?, Throwable) -> Unit,
+        onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
         logInfo(tag, "Starting cache for demandAd: ${demandAd.adType}")
         try {
-            processAdLoaders(adTypeParam)
+            processAdLoaders(demandAd, adTypeParam)
             val winner = adInstances
                 .first { set -> set.any { it.ecpm >= adTypeParam.pricefloor } }
                 .first()
@@ -79,24 +81,19 @@ internal class AdCacheImpl(
 
     override fun all(): List<AdSource<*>> = adInstances.value.map { it.adSource }
 
-    private fun processAdLoaders(adTypeParam: AdTypeParam) {
+    private fun processAdLoaders(demandAd: DemandAd, adTypeParam: AdTypeParam) {
         adLoaders.updateAndGet { currentLoaders ->
             val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
             if (key in currentLoaders) {
                 currentLoaders
             } else {
-                currentLoaders + (key to createAdLoader(demandAd, settings))
+                currentLoaders + (key to createAdLoader(adType, adSettings))
             }
-        }.values.forEach { it.applyAdTypeParam(adTypeParam) }
+        }.values.forEach { it.applyLoadParams(demandAd, adTypeParam) }
     }
 
-    private fun createAdLoader(demandAd: DemandAd, settings: AdSettings): AdLoader {
-        return AdLoaderImpl(
-            demandAd = demandAd,
-            adSettings = settings,
-            scope = CoroutineScope(SdkDispatchers.Main),
-            activityProvider = get(),
-        ).also {
+    private fun createAdLoader(adType: AdType, settings: AdSettings): AdLoader {
+        return get<AdLoader> { params(adType, settings) }.also {
             logInfo(tag, "AdLoader created with settings: $settings")
         }
     }

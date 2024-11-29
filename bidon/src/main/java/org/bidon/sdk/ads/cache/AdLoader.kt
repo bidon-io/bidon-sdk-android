@@ -11,18 +11,15 @@ import org.bidon.sdk.auction.AdTypeParam
  * Interface for ad loader.
  */
 internal interface AdLoader {
-
-    val demandAd: DemandAd
-
     /**
      * Ad instances.
      */
     val adInstances: StateFlow<Set<AdInstance>>
 
     /**
-     * Applies ad type param.
+     * Applies the load parameters.
      */
-    fun applyAdTypeParam(adTypeParam: AdTypeParam)
+    fun applyLoadParams(demandAd: DemandAd, adTypeParam: AdTypeParam)
 
     /**
      * Consumes the result.

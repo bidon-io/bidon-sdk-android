@@ -4,10 +4,12 @@ import org.bidon.sdk.ads.cache.AdCacheSorter
 
 /**
  * Created by Bidon Team on 26/11/2024.
- *
- * Sorts ad cache by ecpm in descending order.
  */
-internal class MaxEcpmAdCacheSorter : AdCacheSorter {
+internal val MaxEcpmAdCacheSorter: AdCacheSorter by lazy {
+    PriceAdCacheSorter()
+}
+
+private class PriceAdCacheSorter : AdCacheSorter {
     override suspend fun sort(collection: Collection<AdInstance>): Collection<AdInstance> {
         return collection.sortedByDescending { it.ecpm }
     }

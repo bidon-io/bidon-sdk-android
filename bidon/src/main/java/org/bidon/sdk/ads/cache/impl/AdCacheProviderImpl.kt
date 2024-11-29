@@ -1,6 +1,5 @@
 package org.bidon.sdk.ads.cache.impl
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.updateAndGet
 import org.bidon.sdk.adapter.DemandAd
@@ -10,7 +9,7 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.cache.AdCacheSettingsProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.di.get
 
 /**
  * Created by Bidon Team on 14/11/2024.
@@ -72,12 +71,7 @@ internal class AdCacheProviderImpl(
             AdType.Rewarded -> settings.settings.rewardedVideo
         }
 
-        return AdCacheImpl(
-            demandAd = demandAd,
-            settings = adCacheSettings,
-            sorter = MaxEcpmAdCacheSorter(),
-            scope = CoroutineScope(SdkDispatchers.Main),
-        )
+        return get<AdCache> { params(demandAd.adType, adCacheSettings) }
     }
 
     private data class AdCacheKey(val adType: AdType, val bannerFormat: BannerFormat? = null)

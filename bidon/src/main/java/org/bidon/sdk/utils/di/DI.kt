@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.ads.banner.helper.GetOrientationUseCase
@@ -15,8 +16,14 @@ import org.bidon.sdk.ads.banner.render.AdRenderer
 import org.bidon.sdk.ads.banner.render.AdRendererImpl
 import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
+import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheProvider
+import org.bidon.sdk.ads.cache.AdCacheSorter
+import org.bidon.sdk.ads.cache.AdLoader
+import org.bidon.sdk.ads.cache.impl.AdCacheImpl
 import org.bidon.sdk.ads.cache.impl.AdCacheProviderImpl
+import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
+import org.bidon.sdk.ads.cache.impl.MaxEcpmAdCacheSorter
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -35,6 +42,7 @@ import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.bidding.BiddingConfigImpl
 import org.bidon.sdk.bidding.BiddingConfigSynchronizer
 import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
 import org.bidon.sdk.cache.impl.AdCacheSettingsProviderImpl
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.impl.AdapterInstanceCreatorImpl
@@ -287,6 +295,22 @@ internal object DI {
                 RenderInspectorImpl()
             }
             factory { CalculateAdContainerParamsUseCase() }
+
+            factory<AdCacheSorter> { MaxEcpmAdCacheSorter }
+            factoryWithParams<AdCache> { (adType, settings) ->
+                AdCacheImpl(
+                    adType = adType as AdType,
+                    adSettings = settings as AdSettings,
+                    adCacheSorter = get(),
+                )
+            }
+            factoryWithParams<AdLoader> { (adType, settings) ->
+                AdLoaderImpl(
+                    adType = adType as AdType,
+                    adSettings = settings as AdSettings,
+                    activityProvider = get()
+                )
+            }
         }
     }
 }

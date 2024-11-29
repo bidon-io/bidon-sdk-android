@@ -11,13 +11,11 @@ import org.bidon.sdk.auction.AdTypeParam
  * Interface for caching ads.
  */
 internal interface AdCache {
-
-    val demandAd: DemandAd
-
     /**
      * Caches ads.
      */
     suspend fun cache(
+        demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,

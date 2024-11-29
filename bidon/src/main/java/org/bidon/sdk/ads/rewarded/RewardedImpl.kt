@@ -66,6 +66,7 @@ internal class RewardedImpl(
             cacheJob = scope.launch {
                 logInfo(TAG, "Load (pricefloor=$pricefloor)")
                 adCache.cache(
+                    demandAd = demandAd,
                     adTypeParam = AdTypeParam.Rewarded(
                         activity = activity,
                         pricefloor = pricefloor,
