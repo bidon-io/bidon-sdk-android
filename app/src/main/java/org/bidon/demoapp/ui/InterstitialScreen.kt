@@ -41,7 +41,6 @@ import org.bidon.sdk.ads.interstitial.InterstitialListener
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
-import java.util.UUID
 
 @Composable
 fun InterstitialScreen(
@@ -134,9 +133,9 @@ fun InterstitialScreen(
                 AppTextButton(
                     text = "Add extras"
                 ) {
-//                    interstitial.addExtra("some_extra_obj", interstitial)
-                    interstitial.addExtra("some_extra_int", UUID.randomUUID().toString())
-//                    interstitial.addExtra("some_extra_data", "some_value")
+                    interstitial.addExtra("some_extra_obj", interstitial)
+                    interstitial.addExtra("some_extra_int", 123)
+                    interstitial.addExtra("some_extra_data", "some_value")
                 }
             }
             Row(
