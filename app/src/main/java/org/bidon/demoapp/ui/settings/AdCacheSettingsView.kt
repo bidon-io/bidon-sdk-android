@@ -169,7 +169,7 @@ private fun AdTypeSettingsView(
             onSettingsChange(
                 AdSettings(
                     cacheSize = adunitCacheSize.toIntOrNull() ?: adSettings.cacheSize,
-                    retryDelayMs = noFillDelayMs.toIntOrNull() ?: adSettings.retryDelayMs
+                    retryDelayMs = noFillDelayMs.toLongOrNull() ?: adSettings.retryDelayMs
                 )
             )
         }

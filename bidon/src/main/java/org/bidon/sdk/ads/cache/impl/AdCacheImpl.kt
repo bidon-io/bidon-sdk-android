@@ -34,7 +34,6 @@ internal class AdCacheImpl(
     private val adType: AdType,
     private val adSettings: AdSettings,
     private val adCacheSorter: AdCacheSorter,
-    private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main),
 ) : AdCache {
 
     private val tag = "${TAG}_${adType.code}"
@@ -50,7 +49,11 @@ internal class AdCacheImpl(
         .onEach { sortedResults ->
             logInfo(tag, "Cache updated: ${sortedResults.asString()}")
         }
-        .stateIn(scope, SharingStarted.Eagerly, emptySet())
+        .stateIn(
+            scope = CoroutineScope(SdkDispatchers.Default),
+            started = SharingStarted.Eagerly,
+            initialValue = emptySet()
+        )
 
     override suspend fun cache(
         demandAd: DemandAd,
@@ -83,7 +86,7 @@ internal class AdCacheImpl(
 
     private fun processAdLoaders(demandAd: DemandAd, adTypeParam: AdTypeParam) {
         adLoaders.updateAndGet { currentLoaders ->
-            val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
+            val key = adTypeParam.auctionKeyOrDefault
             if (key in currentLoaders) {
                 currentLoaders
             } else {
@@ -107,5 +110,3 @@ internal class AdCacheImpl(
         }
     }
 }
-
-private const val DEFAULT_LOADER_KEY = "default"

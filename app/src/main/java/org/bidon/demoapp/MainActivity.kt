@@ -46,12 +46,18 @@ import org.bidon.demoapp.theme.AppTheme
 import org.bidon.demoapp.ui.SdkSettings
 import org.bidon.demoapp.ui.TestModeKey
 import org.bidon.demoapp.ui.settings.TestModeInfo
+import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.logs.logging.Logger
 
 class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set the logger level to Verbose for detailed logging
+        BidonSdk.setLoggerLevel(Logger.Level.Verbose)
+
         setContent {
             val coroutineScope = rememberCoroutineScope()
             val modalSheetState = rememberModalBottomSheetState(

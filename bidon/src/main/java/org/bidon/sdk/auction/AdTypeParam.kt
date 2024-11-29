@@ -11,6 +11,9 @@ sealed interface AdTypeParam {
     val pricefloor: Double
     val auctionKey: String?
 
+    val auctionKeyOrDefault: String
+        get() = auctionKey ?: "default"
+
     class Banner(
         override val activity: Activity,
         override val pricefloor: Double,

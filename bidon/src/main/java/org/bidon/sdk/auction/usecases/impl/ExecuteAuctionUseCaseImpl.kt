@@ -182,8 +182,9 @@ internal class ExecuteAuctionUseCaseImpl(
         )
         adSource.setAuctionConfigurationId(auctionConfigurationId)
         adSource.setAuctionConfigurationUid(auctionConfigurationUid)
-//        We set demandAd before show see InterstitialImpl, RewardedImpl, BannerView
-//        adSource.setDemandAd(demandAd)
+        // We also setDemandAd before invoking the `show` method in `InterstitialImpl`, `RewardedImpl`, and `BannerView`
+        // to pass new `demandAd` extras to network requests.
+        adSource.setDemandAd(demandAd)
         adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
         adSource.setExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
     }

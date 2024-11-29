@@ -157,7 +157,7 @@ internal fun MainScreen(
 
                         initState.value = MainScreenState.Initializing
                         BidonSdk
-                            .setLoggerLevel(Logger.Level.Verbose)
+//                            .setLoggerLevel(Logger.Level.Verbose)
                             .apply {
                                 adapters.value.forEach {
                                     registerAdapter(it.classPath)

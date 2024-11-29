@@ -1,7 +1,5 @@
 package org.bidon.sdk.cache
 
-import androidx.annotation.IntRange
-
 /**
  * Created by Bidon Team on 07/11/2024.
  *
@@ -37,16 +35,13 @@ interface AdCacheSettingsProvider {
      * @property retryDelayMs The delay before retrying to load an ad after a no-fill response,
      * automatically constrained between 2000 ms and 64000 ms.
      */
-    data class AdSettings(
-        @IntRange(from = 1, to = 10) val cacheSize: Int,
-        @IntRange(from = 2_000, to = 64_000) val retryDelayMs: Int
-    )
+    data class AdSettings(val cacheSize: Int, val retryDelayMs: Long)
 
     companion object {
         const val MIN_CACHE_SIZE: Int = 1
         const val MAX_CACHE_SIZE: Int = 10
-        const val MIN_RETRY_DELAY_MS: Int = 2_000
-        const val MAX_RETRY_DELAY_MS: Int = 64_000
+        const val MIN_RETRY_DELAY_MS: Long = 2_000
+        const val MAX_RETRY_DELAY_MS: Long = 64_000
 
         val DefaultAdSettings
             get() = AdSettings(

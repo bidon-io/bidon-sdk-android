@@ -17,7 +17,7 @@ internal class ActivityProviderImpl(application: Application) : ActivityProvider
     override val resumedActivityFlow = MutableSharedFlow<WeakReference<Activity?>>(replay = 1)
     private var currentActivityRef: WeakReference<Activity?> = WeakReference(null)
 
-    private val appPackageName: String = application.packageName
+    private val applicationPackageName: String = application.packageName
 
     init {
         registerApplicationObserver(application)
@@ -25,7 +25,8 @@ internal class ActivityProviderImpl(application: Application) : ActivityProvider
 
     override fun emitActivity(activity: Activity?) {
         // If the activity is null or the activity is from the same package
-        if (activity == null || activity.packageName == appPackageName) {
+        val activityClassPackage = activity?.javaClass?.`package`?.name
+        if (activity == null || activityClassPackage?.contains(applicationPackageName) == true) {
             if (currentActivityRef.get() != activity) {
                 currentActivityRef = WeakReference(activity)
                 resumedActivityFlow.tryEmit(currentActivityRef)

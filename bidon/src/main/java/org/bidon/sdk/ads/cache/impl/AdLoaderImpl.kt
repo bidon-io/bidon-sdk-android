@@ -31,19 +31,19 @@ import kotlin.math.min
  * Implementation of [AdLoader].
  */
 internal class AdLoaderImpl(
-    private val adType: AdType,
+    adType: AdType,
+    activityProvider: ActivityProvider,
     private val adSettings: AdSettings,
-    private val activityProvider: ActivityProvider,
-    private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main),
 ) : AdLoader {
 
     override val adInstances = MutableStateFlow(emptySet<AdInstance>())
 
     private val tag = "${TAG}_${adType.code}"
     private val state = MutableStateFlow<State>(State.Idle)
+    private val scope = CoroutineScope(SdkDispatchers.Default)
 
-    private val defaultCacheSize get() = adSettings.cacheSize
-    private val defaultRetryDelayMs get() = adSettings.retryDelayMs
+    private val maxCacheSize get() = adSettings.cacheSize
+    private val initialRetryDelayMs get() = adSettings.retryDelayMs
 
     init {
         activityProvider.resumedActivityFlow
@@ -58,7 +58,7 @@ internal class AdLoaderImpl(
     private sealed class State {
         object Idle : State()
         class Awaiting(val demandAd: DemandAd, val adTypeParam: AdTypeParam) : State()
-        class Loading(val demandAd: DemandAd, val adTypeParam: AdTypeParam, val retryDelayMs: Int) : State()
+        class Loading(val demandAd: DemandAd, val adTypeParam: AdTypeParam, val retryDelayMs: Long) : State()
     }
 
     override fun applyLoadParams(demandAd: DemandAd, adTypeParam: AdTypeParam) {
@@ -67,7 +67,7 @@ internal class AdLoaderImpl(
             is State.Idle,
             is State.Awaiting -> {
                 if (shouldLoadAd(adTypeParam)) {
-                    initiateLoading(demandAd, adTypeParam, defaultRetryDelayMs)
+                    initiateLoading(demandAd, adTypeParam, initialRetryDelayMs)
                 } else {
                     state.value = State.Awaiting(demandAd, adTypeParam)
                     logInfo(tag, "Cache is full, and no ads meet the replacement criteria. Skipping load.")
@@ -84,17 +84,17 @@ internal class AdLoaderImpl(
         adInstances.update { it - adInstance }
         logInfo(tag, "Ad instance consumed: ${adInstance.adSource}")
         (state.value as? State.Awaiting)?.let {
-            initiateLoading(it.demandAd, it.adTypeParam, defaultRetryDelayMs)
+            initiateLoading(it.demandAd, it.adTypeParam, initialRetryDelayMs)
         }
     }
 
     private fun shouldLoadAd(adTypeParam: AdTypeParam): Boolean {
         val instances = adInstances.value
-        return instances.size < defaultCacheSize ||
+        return instances.size < maxCacheSize ||
             instances.any { it.ecpm < adTypeParam.pricefloor }
     }
 
-    private fun initiateLoading(demandAd: DemandAd, adTypeParam: AdTypeParam, retryDelayMs: Int) {
+    private fun initiateLoading(demandAd: DemandAd, adTypeParam: AdTypeParam, retryDelayMs: Long) {
         logInfo(tag, "Starting auction for ad type: $adTypeParam")
         state.value = State.Loading(demandAd, adTypeParam, retryDelayMs)
         get<Auction>().start(
@@ -115,7 +115,7 @@ internal class AdLoaderImpl(
 
             logInfo(tag, "Auction successful. Current ad cache: ${adInstances.value.asString()}")
             if (shouldLoadAd(currentState.adTypeParam)) {
-                initiateLoading(currentState.demandAd, currentState.adTypeParam, defaultRetryDelayMs)
+                initiateLoading(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
             } else {
                 state.value = State.Awaiting(currentState.demandAd, currentState.adTypeParam)
                 logInfo(tag, "Cache is sufficient. Loading paused.")
@@ -128,13 +128,13 @@ internal class AdLoaderImpl(
     private fun handleAuctionFailure() {
         val currentState = state.value
         if (currentState is State.Loading) {
-            val nextRetryDelay = calculateRetryDelay(currentState.retryDelayMs)
-            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}, Retrying in $nextRetryDelay ms.")
+            val nextRetryDelayMs = calculateRetryDelay(currentState.retryDelayMs)
+            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}, Retrying in $nextRetryDelayMs ms.")
 
             scope.launch {
-                delay(nextRetryDelay.toLong())
+                delay(nextRetryDelayMs)
                 if (state.value is State.Loading) {
-                    initiateLoading(currentState.demandAd, currentState.adTypeParam, nextRetryDelay)
+                    initiateLoading(currentState.demandAd, currentState.adTypeParam, nextRetryDelayMs)
                 } else {
                     logInfo(tag, "Retry aborted. Current state: ${state.value}")
                 }
@@ -146,7 +146,7 @@ internal class AdLoaderImpl(
 
     private fun updateAdInstances(newAdInstance: AdInstance) {
         adInstances.update { currentCache ->
-            if (currentCache.size < defaultCacheSize) {
+            if (currentCache.size < maxCacheSize) {
                 trackExpired(newAdInstance)
                 currentCache + newAdInstance
             } else {
@@ -172,7 +172,7 @@ internal class AdLoaderImpl(
         }.launchIn(scope)
     }
 
-    private fun calculateRetryDelay(currentDelay: Int): Int {
+    private fun calculateRetryDelay(currentDelay: Long): Long {
         return min(currentDelay * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
     }
 

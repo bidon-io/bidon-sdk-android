@@ -62,32 +62,29 @@ internal class InterstitialImpl(
             listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
             return
         }
-        if (cacheJob?.isActive != true) {
-            cacheJob = scope.launch {
-                logInfo(TAG, "Load (pricefloor=$pricefloor)")
-                adCache.cache(
-                    demandAd = demandAd,
-                    adTypeParam = AdTypeParam.Interstitial(
-                        activity = activity,
-                        pricefloor = pricefloor,
-                        auctionKey = auctionKey,
-                    ),
-                    onSuccess = { adSource, auctionInfo ->
-                        listener.onAdLoaded(
-                            ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
-                            auctionInfo = auctionInfo
-                        )
-                    },
-                    onFailure = { auctionInfo, cause ->
-                        listener.onAdLoadFailed(
-                            auctionInfo = auctionInfo,
-                            cause = cause.asBidonErrorOrUnspecified()
-                        )
-                    }
-                )
-            }
-        } else {
-            logInfo(TAG, "Load is already in progress.")
+        cacheJob?.cancel()
+        cacheJob = scope.launch {
+            logInfo(TAG, "Load (pricefloor=$pricefloor)")
+            adCache.cache(
+                demandAd = demandAd,
+                adTypeParam = AdTypeParam.Interstitial(
+                    activity = activity,
+                    pricefloor = pricefloor,
+                    auctionKey = auctionKey,
+                ),
+                onSuccess = { adSource, auctionInfo ->
+                    listener.onAdLoaded(
+                        ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
+                        auctionInfo = auctionInfo
+                    )
+                },
+                onFailure = { auctionInfo, cause ->
+                    listener.onAdLoadFailed(
+                        auctionInfo = auctionInfo,
+                        cause = cause.asBidonErrorOrUnspecified()
+                    )
+                }
+            )
         }
     }
 

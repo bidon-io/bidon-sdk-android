@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -127,7 +128,10 @@ fun InterstitialScreen(
                         .weight(1f)
                         .padding(horizontal = 4.dp),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
                     maxLines = 1
                 )
                 AppTextButton(
@@ -144,11 +148,12 @@ fun InterstitialScreen(
             ) {
                 AppButton(text = "Load") {
                     val pricefloor = pricefloorState.value.toDoubleOrNull()
+                        ?: pricefloorState.value.toIntOrNull()?.toDouble()
                     if (pricefloor == null) {
                         pricefloorState.value = BidonSdk.DefaultPricefloor.toString()
                     }
                     interstitial.loadAd(
-                        activity,
+                        activity = activity,
                         pricefloor = pricefloor ?: BidonSdk.DefaultPricefloor
                     )
                 }
