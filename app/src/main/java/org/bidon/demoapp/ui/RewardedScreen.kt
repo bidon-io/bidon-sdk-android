@@ -34,7 +34,6 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
-import org.bidon.demoapp.ui.ext.demo
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -65,11 +64,11 @@ fun RewardedScreen(
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded ad: ${ad.demo()}. auctionInfo: ${auctionInfo.demo()}")
+                        logFlow.log("onAdLoaded ad: $ad. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: ${auctionInfo?.demo()}")
+                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {
@@ -77,19 +76,19 @@ fun RewardedScreen(
                     }
 
                     override fun onAdShown(ad: Ad) {
-                        logFlow.log("onAdShown: ${ad.demo()}")
+                        logFlow.log("onAdShown: $ad")
                     }
 
                     override fun onAdClicked(ad: Ad) {
-                        logFlow.log("onAdClicked: ${ad.demo()}")
+                        logFlow.log("onAdClicked: $ad")
                     }
 
                     override fun onAdClosed(ad: Ad) {
-                        logFlow.log("onAdClosed: ${ad.demo()}")
+                        logFlow.log("onAdClosed: $ad")
                     }
 
                     override fun onAdExpired(ad: Ad) {
-                        logFlow.log("onAdExpired: ${ad.demo()}")
+                        logFlow.log("onAdExpired: $ad")
                     }
 
                     override fun onUserRewarded(ad: Ad, reward: Reward?) {
@@ -97,7 +96,7 @@ fun RewardedScreen(
                     }
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                        logFlow.log("onRevenuePaid: ad: ${ad.demo()}, adValue: $adValue")
+                        logFlow.log("onRevenuePaid: ad: $ad, adValue: $adValue")
                     }
                 }
             )
