@@ -57,9 +57,11 @@ class BannerView @JvmOverloads constructor(
     private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd, format)
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
 
-    private var userListener: BannerListener? = null
+    private var cacheJob: Job? = null
     private var observeCallbacksJob: Job? = null
+
     private var winner: AdSource.Banner<*>? = null
+    private var userListener: BannerListener? = null
 
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.BannerView, 0, 0).apply {
@@ -120,29 +122,33 @@ class BannerView @JvmOverloads constructor(
             AdLifecycle.Loaded -> {
                 adLifecycleFlow.value = AdLifecycle.Loading
                 logInfo(TAG, "Load (pricefloor=$pricefloor)")
-                adCache.cache(
-                    adTypeParam = AdTypeParam.Banner(
-                        activity = activity,
-                        pricefloor = pricefloor,
-                        auctionKey = auctionKey,
-                        bannerFormat = format,
-                        containerWidth = width.toFloat()
-                    ),
-                    onSuccess = { adSource, auctionInfo ->
-                        adLifecycleFlow.value = AdLifecycle.Loaded
-                        listener.onAdLoaded(
-                            ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
-                            auctionInfo = auctionInfo
-                        )
-                    },
-                    onFailure = { auctionInfo, cause ->
-                        adLifecycleFlow.value = AdLifecycle.LoadingFailed
-                        listener.onAdLoadFailed(
-                            auctionInfo = auctionInfo,
-                            cause = cause.asBidonErrorOrUnspecified()
-                        )
-                    }
-                )
+                cacheJob?.cancel()
+                cacheJob = scope.launch {
+                    adCache.cache(
+                        demandAd = demandAd,
+                        adTypeParam = AdTypeParam.Banner(
+                            activity = activity,
+                            pricefloor = pricefloor,
+                            auctionKey = auctionKey,
+                            bannerFormat = format,
+                            containerWidth = width.toFloat()
+                        ),
+                        onSuccess = { adSource, auctionInfo ->
+                            adLifecycleFlow.value = AdLifecycle.Loaded
+                            listener.onAdLoaded(
+                                ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
+                                auctionInfo = auctionInfo
+                            )
+                        },
+                        onFailure = { auctionInfo, cause ->
+                            adLifecycleFlow.value = AdLifecycle.LoadingFailed
+                            listener.onAdLoadFailed(
+                                auctionInfo = auctionInfo,
+                                cause = cause.asBidonErrorOrUnspecified()
+                            )
+                        }
+                    )
+                }
             }
 
             AdLifecycle.LoadingFailed -> {
@@ -254,11 +260,16 @@ class BannerView @JvmOverloads constructor(
         scope.launch(Dispatchers.Main.immediate) {
             adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
-            adCache.clear()
-            winner?.destroy()
-            winner = null
+
+            cacheJob?.cancel()
+            cacheJob = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+
+            winner?.destroy()
+            winner = null
+            userListener = null
+
             removeAllViews()
         }
     }

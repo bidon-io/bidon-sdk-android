@@ -37,9 +37,11 @@ internal class RewardedImpl(
     private val listener: RewardedListener by lazy { getRewardedListener() }
     private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd)
 
-    private var userListener: RewardedListener? = null
+    private var cacheJob: Job? = null
     private var observeCallbacksJob: Job? = null
+
     private var winner: AdSource.Rewarded<*>? = null
+    private var userListener: RewardedListener? = null
 
     override fun isReady(): Boolean {
         if (!BidonSdk.isInitialized()) {
@@ -60,26 +62,32 @@ internal class RewardedImpl(
             listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
             return
         }
-        logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        adCache.cache(
-            adTypeParam = AdTypeParam.Rewarded(
-                activity = activity,
-                pricefloor = pricefloor,
-                auctionKey = auctionKey,
-            ),
-            onSuccess = { adSource, auctionInfo ->
-                listener.onAdLoaded(
-                    ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
-                    auctionInfo = auctionInfo
-                )
-            },
-            onFailure = { auctionInfo, cause ->
-                listener.onAdLoadFailed(
-                    auctionInfo = auctionInfo,
-                    cause = cause.asBidonErrorOrUnspecified()
+        if (cacheJob?.isActive != true) {
+            cacheJob = scope.launch {
+                logInfo(TAG, "Load (pricefloor=$pricefloor)")
+                adCache.cache(
+                    adTypeParam = AdTypeParam.Rewarded(
+                        activity = activity,
+                        pricefloor = pricefloor,
+                        auctionKey = auctionKey,
+                    ),
+                    onSuccess = { adSource, auctionInfo ->
+                        listener.onAdLoaded(
+                            ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
+                            auctionInfo = auctionInfo
+                        )
+                    },
+                    onFailure = { auctionInfo, cause ->
+                        listener.onAdLoadFailed(
+                            auctionInfo = auctionInfo,
+                            cause = cause.asBidonErrorOrUnspecified()
+                        )
+                    }
                 )
             }
-        )
+        } else {
+            logInfo(TAG, "Load is already in progress.")
+        }
     }
 
     override fun showAd(activity: Activity) {
@@ -130,11 +138,14 @@ internal class RewardedImpl(
             return
         }
         scope.launch(Dispatchers.Main.immediate) {
-            adCache.clear()
-            winner?.destroy()
-            winner = null
+            cacheJob?.cancel()
+            cacheJob = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+
+            winner?.destroy()
+            winner = null
+            userListener = null
         }
     }
 

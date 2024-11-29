@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +11,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.updateAndGet
-import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
@@ -35,14 +33,11 @@ internal class AdCacheImpl(
     override val demandAd: DemandAd,
     private val settings: AdSettings,
     private val sorter: AdCacheSorter,
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
 ) : AdCache {
 
     private val tag = "${TAG}_${demandAd.adType.code}"
-    private val isLoading = MutableStateFlow(false)
     private val adLoaders = MutableStateFlow<Map<String, AdLoader>>(emptyMap())
-
-    private var cacheJob: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val adInstances: StateFlow<Set<AdInstance>> = adLoaders
@@ -56,30 +51,21 @@ internal class AdCacheImpl(
         }
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
-    override fun cache(
+    override suspend fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        if (isLoading.compareAndSet(expect = false, update = true)) {
-            cacheJob = scope.launch {
-                try {
-                    logInfo(tag, "Starting cache for demandAd: ${demandAd.adType}")
-                    processAdLoaders(adTypeParam)
-
-                    val winner = adInstances
-                        .first { set -> set.any { it.ecpm >= adTypeParam.pricefloor } }
-                        .first()
-                    onSuccess(winner.adSource, winner.auctionInfo)
-                } catch (e: Exception) {
-                    logInfo(tag, "Cache failed: ${e.message}")
-                    onFailure(null, e)
-                } finally {
-                    isLoading.value = false
-                }
-            }
-        } else {
-            logInfo(tag, "Cache is already running.")
+        logInfo(tag, "Starting cache for demandAd: ${demandAd.adType}")
+        try {
+            processAdLoaders(adTypeParam)
+            val winner = adInstances
+                .first { set -> set.any { it.ecpm >= adTypeParam.pricefloor } }
+                .first()
+            onSuccess(winner.adSource, winner.auctionInfo)
+        } catch (e: Exception) {
+            logInfo(tag, "Cache failed: ${e.message}")
+            onFailure(null, e)
         }
     }
 
@@ -93,14 +79,6 @@ internal class AdCacheImpl(
 
     override fun all(): List<AdSource<*>> = adInstances.value.map { it.adSource }
 
-    override fun clear() {
-        if (isLoading.compareAndSet(expect = true, update = false)) {
-            logInfo(tag, "Cache active job canceled")
-            cacheJob?.cancel()
-            cacheJob = null
-        }
-    }
-
     private fun processAdLoaders(adTypeParam: AdTypeParam) {
         adLoaders.updateAndGet { currentLoaders ->
             val key = adTypeParam.auctionKey ?: DEFAULT_LOADER_KEY
@@ -113,7 +91,6 @@ internal class AdCacheImpl(
     }
 
     private fun createAdLoader(demandAd: DemandAd, settings: AdSettings): AdLoader {
-        // TODO: 15/11/2024 [glavatskikh] DI needed?
         return AdLoaderImpl(
             demandAd = demandAd,
             adSettings = settings,
