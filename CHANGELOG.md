@@ -1,3 +1,7 @@
+# 0.8.0-next.1
+## Features:
+- [BDN-782](https://appodeal.atlassian.net/browse/BDN-782) Added ability to disable visibilityTracker
+
 # 0.7.1-next.1
 ## Features:
 - [BDN-816](https://appodeal.atlassian.net/browse/BDN-816) Stabilized SDK for Unity plugin
