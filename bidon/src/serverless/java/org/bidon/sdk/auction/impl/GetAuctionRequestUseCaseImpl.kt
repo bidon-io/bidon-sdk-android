@@ -17,8 +17,7 @@ internal class GetAuctionRequestUseCaseImpl : GetAuctionRequestUseCase {
         adTypeParam: AdTypeParam,
         auctionId: String,
         demandAd: DemandAd,
-        adapters: Map<String, AdapterInfo>,
-        tokens: Map<String, TokenInfo>
+        demandsTokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse> {
         logInfo(TAG, "----------------------------- SERVERLESS DATA / USE ONLY FOR TEST ----------------------------- ")
         return ServerlessAuctionConfig.getAuctionResponse()!!.asSuccess()
