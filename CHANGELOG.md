@@ -1,4 +1,4 @@
-# develop
+# 0.8.0-next.1
 ## Features:
 - [BDN-782](https://appodeal.atlassian.net/browse/BDN-782) Added ability to disable visibilityTracker
 
