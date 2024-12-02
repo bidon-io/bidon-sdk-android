@@ -20,6 +20,7 @@ import org.bidon.sdk.ads.cache.AdCacheSorter
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
@@ -59,7 +60,7 @@ internal class AdCacheImpl(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         onSuccess: (AdSource<*>, AuctionInfo) -> Unit,
-        onFailure: (AuctionInfo?, Throwable) -> Unit
+        onFailure: (AuctionInfo?, Throwable) -> Unit // unused
     ) {
         logInfo(tag, "Starting cache for demandAd: ${demandAd.adType}")
         try {
@@ -69,8 +70,7 @@ internal class AdCacheImpl(
                 .first()
             onSuccess(winner.adSource, winner.auctionInfo)
         } catch (e: Exception) {
-            logInfo(tag, "Cache failed: ${e.message}")
-            onFailure(null, e)
+            logError(tag, "Cache failed: ${e.message}")
         }
     }
 

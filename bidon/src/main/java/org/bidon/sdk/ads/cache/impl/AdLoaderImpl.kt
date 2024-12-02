@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.DemandAd
@@ -39,14 +40,16 @@ internal class AdLoaderImpl(
 
     override val adInstances = MutableStateFlow(emptySet<AdInstance>())
 
-    private val tag = "${TAG}_${adType.code}"
-    private val state = MutableStateFlow<State>(State.Idle)
     private val scope = CoroutineScope(SdkDispatchers.Default)
 
+    private val tag = "${TAG}_${adType.code}"
     private val maxCacheSize = adSettings.cacheSize
     private val initialRetryDelayMs = adSettings.retryDelayMs
 
-    private var retryJob: Job? = null
+    private val state = MutableStateFlow<State>(State.Idle)
+    private val retryDelayMs = MutableStateFlow(initialRetryDelayMs)
+
+    private var delayJob: Job? = null
 
     init {
         observeActivityUpdates(activityProvider)
@@ -55,26 +58,27 @@ internal class AdLoaderImpl(
     private sealed class State {
         object Idle : State()
         class Awaiting(val demandAd: DemandAd, val adTypeParam: AdTypeParam) : State()
-        class Loading(val demandAd: DemandAd, val adTypeParam: AdTypeParam, val retryDelayMs: Long) : State()
+        class Loading(val demandAd: DemandAd, val adTypeParam: AdTypeParam) : State()
     }
 
     override fun applyLoadParams(demandAd: DemandAd, adTypeParam: AdTypeParam) {
-        logInfo(tag, "Applying ad type param: $adTypeParam")
+        logInfo(tag, "Applying ad demandAd $demandAd with ad type param: $adTypeParam")
         when (state.value) {
             is State.Idle,
             is State.Awaiting -> {
                 if (shouldLoadAd(adTypeParam)) {
-                    startAuction(demandAd, adTypeParam, initialRetryDelayMs)
+                    startAuction(demandAd, adTypeParam)
                 } else {
-                    logInfo(tag, "Cache is full, and no ads meet the replacement criteria. Skipping load.")
                     state.value = State.Awaiting(demandAd, adTypeParam)
+                    logInfo(tag, "State is Awaiting. Cache is sufficient. New parameters will be applied during the next auction.")
                 }
             }
 
             is State.Loading -> {
-                logInfo(tag, "Restarting auction with new parameters.")
-                cancelRetry()
-                startAuction(demandAd, adTypeParam, initialRetryDelayMs)
+                cancelDelay()
+                resetRetryDelay()
+                state.value = State.Loading(demandAd, adTypeParam)
+                logInfo(tag, "State is Loading. New parameters will be applied during the next auction.")
             }
         }
     }
@@ -84,24 +88,25 @@ internal class AdLoaderImpl(
         logInfo(tag, "Ad consumed: ${adInstance.adSource}")
         when (val currentState = state.value) {
             is State.Idle -> {
-                logInfo(tag, "No action required after consumption. Current state: $currentState")
+                logInfo(tag, "State is Idle. No action required after ad consumption.")
             }
 
             is State.Awaiting -> {
-                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+                startAuction(currentState.demandAd, currentState.adTypeParam)
             }
 
             is State.Loading -> {
-                logInfo(tag, "Restarting auction after consumption.")
-                cancelRetry()
-                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+                cancelDelay()
+                resetRetryDelay()
+                state.value = State.Loading(currentState.demandAd, currentState.adTypeParam)
+                logInfo(tag, "State is Loading. New parameters after ad consumption will be applied during the next auction.")
             }
         }
     }
 
-    private fun startAuction(demandAd: DemandAd, adTypeParam: AdTypeParam, retryDelayMs: Long) {
-        logInfo(tag, "Starting auction for: $adTypeParam")
-        state.value = State.Loading(demandAd, adTypeParam, retryDelayMs)
+    private fun startAuction(demandAd: DemandAd, adTypeParam: AdTypeParam) {
+        state.value = State.Loading(demandAd, adTypeParam)
+        logInfo(tag, "State is ${state.value}. Starting auction.")
         get<Auction>().start(
             demandAd = demandAd,
             adTypeParam = adTypeParam,
@@ -117,13 +122,14 @@ internal class AdLoaderImpl(
             val winner = winners.first()
             val newAdInstance = AdInstance(winner.adSource, auctionInfo)
             updateAdInstances(newAdInstance)
+            resetRetryDelay()
 
             logInfo(tag, "Auction successful. Current ad cache: ${adInstances.value.asString()}")
             if (shouldLoadAd(currentState.adTypeParam)) {
-                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+                startAuction(currentState.demandAd, currentState.adTypeParam)
             } else {
-                logInfo(tag, "Cache is sufficient. Loading paused.")
                 state.value = State.Awaiting(currentState.demandAd, currentState.adTypeParam)
+                logInfo(tag, "Cache is sufficient. Loading paused.")
             }
         } else {
             logInfo(tag, "Ignored auction success. Current state: $currentState")
@@ -131,21 +137,27 @@ internal class AdLoaderImpl(
     }
 
     private fun handleAuctionFailure() {
-        val currentState = state.value
-        if (currentState is State.Loading) {
-            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}")
-            retryJob = scope.launch {
-                val nextRetryDelay = calculateRetryDelay(currentState.retryDelayMs)
+        scope.launch {
+            val currentState = state.value
+            if (currentState is State.Loading) {
+                logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}")
+                val nextRetryDelay = calculateRetryDelay()
                 logInfo(tag, "Retrying auction in $nextRetryDelay ms.")
-                delay(nextRetryDelay)
+
+                delayJob = launch { delay(nextRetryDelay) }
+                delayJob?.join() // Wait for delay to finish or be canceled
+
+                // Re-check the state after delay
                 if (state.value is State.Loading) {
-                    startAuction(currentState.demandAd, currentState.adTypeParam, nextRetryDelay)
+                    val updatedState = state.value as State.Loading
+                    logInfo(tag, "Retrying auction.")
+                    startAuction(updatedState.demandAd, updatedState.adTypeParam)
                 } else {
-                    logInfo(tag, "Retry aborted. Current state changed: ${state.value}")
+                    logInfo(tag, "Retry aborted. Current state changed to: ${state.value}")
                 }
+            } else {
+                logInfo(tag, "Ignored auction failure. Current state: $currentState")
             }
-        } else {
-            logInfo(tag, "Ignored auction failure. Current state: $currentState")
         }
     }
 
@@ -183,13 +195,20 @@ internal class AdLoaderImpl(
             instances.any { it.ecpm < adTypeParam.pricefloor }
     }
 
-    private fun calculateRetryDelay(currentDelay: Long): Long {
-        return min(currentDelay * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
+    private fun calculateRetryDelay(): Long {
+        return retryDelayMs.updateAndGet { currentDelay ->
+            min(currentDelay * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
+        }
     }
 
-    private fun cancelRetry() {
-        retryJob?.cancel()
-        retryJob = null
+    private fun resetRetryDelay() {
+        retryDelayMs.value = initialRetryDelayMs
+    }
+
+    private fun cancelDelay() {
+        logInfo(tag, "Cancelling delay job.")
+        delayJob?.cancel()
+        delayJob = null
     }
 
     private fun observeActivityUpdates(activityProvider: ActivityProvider) {
@@ -205,6 +224,10 @@ internal class AdLoaderImpl(
     private fun updateStateWithActivity(activity: Activity) {
         state.update { currentState ->
             when (currentState) {
+                is State.Idle -> {
+                    currentState
+                }
+
                 is State.Awaiting -> {
                     val updatedAdTypeParam = currentState.adTypeParam.applyActivity(activity)
                     logInfo(tag, "Updated adTypeParam for Awaiting state with new Activity: $activity")
@@ -214,10 +237,8 @@ internal class AdLoaderImpl(
                 is State.Loading -> {
                     val updatedAdTypeParam = currentState.adTypeParam.applyActivity(activity)
                     logInfo(tag, "Updated adTypeParam for Loading state with new Activity: $activity")
-                    State.Loading(currentState.demandAd, updatedAdTypeParam, currentState.retryDelayMs)
+                    State.Loading(currentState.demandAd, updatedAdTypeParam)
                 }
-
-                else -> currentState
             }
         }
     }
