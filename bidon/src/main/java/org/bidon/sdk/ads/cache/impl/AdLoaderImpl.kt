@@ -2,6 +2,7 @@ package org.bidon.sdk.ads.cache.impl
 
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -32,8 +33,8 @@ import kotlin.math.min
  */
 internal class AdLoaderImpl(
     adType: AdType,
+    adSettings: AdSettings,
     activityProvider: ActivityProvider,
-    private val adSettings: AdSettings,
 ) : AdLoader {
 
     override val adInstances = MutableStateFlow(emptySet<AdInstance>())
@@ -42,17 +43,13 @@ internal class AdLoaderImpl(
     private val state = MutableStateFlow<State>(State.Idle)
     private val scope = CoroutineScope(SdkDispatchers.Default)
 
-    private val maxCacheSize get() = adSettings.cacheSize
-    private val initialRetryDelayMs get() = adSettings.retryDelayMs
+    private val maxCacheSize = adSettings.cacheSize
+    private val initialRetryDelayMs = adSettings.retryDelayMs
+
+    private var retryJob: Job? = null
 
     init {
-        activityProvider.resumedActivityFlow
-            .onEach { weakActivity ->
-                weakActivity.get()?.let { activity ->
-                    updateStateWithActivity(activity)
-                }
-            }
-            .launchIn(scope)
+        observeActivityUpdates(activityProvider)
     }
 
     private sealed class State {
@@ -67,35 +64,43 @@ internal class AdLoaderImpl(
             is State.Idle,
             is State.Awaiting -> {
                 if (shouldLoadAd(adTypeParam)) {
-                    initiateLoading(demandAd, adTypeParam, initialRetryDelayMs)
+                    startAuction(demandAd, adTypeParam, initialRetryDelayMs)
                 } else {
-                    state.value = State.Awaiting(demandAd, adTypeParam)
                     logInfo(tag, "Cache is full, and no ads meet the replacement criteria. Skipping load.")
+                    state.value = State.Awaiting(demandAd, adTypeParam)
                 }
             }
 
             is State.Loading -> {
-                logInfo(tag, "Load already in progress.")
+                logInfo(tag, "Restarting auction with new parameters.")
+                cancelRetry()
+                startAuction(demandAd, adTypeParam, initialRetryDelayMs)
             }
         }
     }
 
     override fun consumeAdInstance(adInstance: AdInstance) {
         adInstances.update { it - adInstance }
-        logInfo(tag, "Ad instance consumed: ${adInstance.adSource}")
-        (state.value as? State.Awaiting)?.let {
-            initiateLoading(it.demandAd, it.adTypeParam, initialRetryDelayMs)
+        logInfo(tag, "Ad consumed: ${adInstance.adSource}")
+        when (val currentState = state.value) {
+            is State.Idle -> {
+                logInfo(tag, "No action required after consumption. Current state: $currentState")
+            }
+
+            is State.Awaiting -> {
+                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+            }
+
+            is State.Loading -> {
+                logInfo(tag, "Restarting auction after consumption.")
+                cancelRetry()
+                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+            }
         }
     }
 
-    private fun shouldLoadAd(adTypeParam: AdTypeParam): Boolean {
-        val instances = adInstances.value
-        return instances.size < maxCacheSize ||
-            instances.any { it.ecpm < adTypeParam.pricefloor }
-    }
-
-    private fun initiateLoading(demandAd: DemandAd, adTypeParam: AdTypeParam, retryDelayMs: Long) {
-        logInfo(tag, "Starting auction for ad type: $adTypeParam")
+    private fun startAuction(demandAd: DemandAd, adTypeParam: AdTypeParam, retryDelayMs: Long) {
+        logInfo(tag, "Starting auction for: $adTypeParam")
         state.value = State.Loading(demandAd, adTypeParam, retryDelayMs)
         get<Auction>().start(
             demandAd = demandAd,
@@ -115,32 +120,32 @@ internal class AdLoaderImpl(
 
             logInfo(tag, "Auction successful. Current ad cache: ${adInstances.value.asString()}")
             if (shouldLoadAd(currentState.adTypeParam)) {
-                initiateLoading(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
+                startAuction(currentState.demandAd, currentState.adTypeParam, initialRetryDelayMs)
             } else {
-                state.value = State.Awaiting(currentState.demandAd, currentState.adTypeParam)
                 logInfo(tag, "Cache is sufficient. Loading paused.")
+                state.value = State.Awaiting(currentState.demandAd, currentState.adTypeParam)
             }
         } else {
-            logInfo(tag, "Auction success ignored. Current state: $currentState")
+            logInfo(tag, "Ignored auction success. Current state: $currentState")
         }
     }
 
     private fun handleAuctionFailure() {
         val currentState = state.value
         if (currentState is State.Loading) {
-            val nextRetryDelayMs = calculateRetryDelay(currentState.retryDelayMs)
-            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}, Retrying in $nextRetryDelayMs ms.")
-
-            scope.launch {
-                delay(nextRetryDelayMs)
+            logInfo(tag, "Auction failed. Current ad cache: ${adInstances.value.asString()}")
+            retryJob = scope.launch {
+                val nextRetryDelay = calculateRetryDelay(currentState.retryDelayMs)
+                logInfo(tag, "Retrying auction in $nextRetryDelay ms.")
+                delay(nextRetryDelay)
                 if (state.value is State.Loading) {
-                    initiateLoading(currentState.demandAd, currentState.adTypeParam, nextRetryDelayMs)
+                    startAuction(currentState.demandAd, currentState.adTypeParam, nextRetryDelay)
                 } else {
-                    logInfo(tag, "Retry aborted. Current state: ${state.value}")
+                    logInfo(tag, "Retry aborted. Current state changed: ${state.value}")
                 }
             }
         } else {
-            logInfo(tag, "Auction failure ignored. Current state: $currentState")
+            logInfo(tag, "Ignored auction failure. Current state: $currentState")
         }
     }
 
@@ -172,8 +177,29 @@ internal class AdLoaderImpl(
         }.launchIn(scope)
     }
 
+    private fun shouldLoadAd(adTypeParam: AdTypeParam): Boolean {
+        val instances = adInstances.value
+        return instances.size < maxCacheSize ||
+            instances.any { it.ecpm < adTypeParam.pricefloor }
+    }
+
     private fun calculateRetryDelay(currentDelay: Long): Long {
         return min(currentDelay * 2, AdCacheSettingsProvider.MAX_RETRY_DELAY_MS)
+    }
+
+    private fun cancelRetry() {
+        retryJob?.cancel()
+        retryJob = null
+    }
+
+    private fun observeActivityUpdates(activityProvider: ActivityProvider) {
+        activityProvider.resumedActivityFlow
+            .onEach { weakActivity ->
+                weakActivity.get()?.let { activity ->
+                    updateStateWithActivity(activity)
+                }
+            }
+            .launchIn(scope)
     }
 
     private fun updateStateWithActivity(activity: Activity) {

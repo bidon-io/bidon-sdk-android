@@ -49,7 +49,6 @@ import org.bidon.demoapp.ui.settings.TestModeInfo
 import org.bidon.demoapp.ui.settings.data.Host
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.config.DefaultAdapters
-import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Gdpr
 import org.bidon.sdk.utils.networking.NetworkSettings
