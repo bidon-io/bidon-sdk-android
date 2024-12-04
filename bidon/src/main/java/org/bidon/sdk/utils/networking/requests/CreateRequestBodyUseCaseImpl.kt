@@ -3,9 +3,8 @@ package org.bidon.sdk.utils.networking.requests
 import org.bidon.sdk.databinders.DataBinderType
 import org.bidon.sdk.databinders.DataProvider
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.json.JsonObjectBuilder
 import org.bidon.sdk.utils.json.jsonObject
-import org.bidon.sdk.utils.serializer.Serializable
-import org.bidon.sdk.utils.serializer.serialize
 import org.json.JSONObject
 
 /**
@@ -14,12 +13,10 @@ import org.json.JSONObject
 internal class CreateRequestBodyUseCaseImpl(
     private val dataProvider: DataProvider,
 ) : CreateRequestBodyUseCase {
-    override suspend operator fun <T : Serializable> invoke(
+    override suspend fun invoke(
         binders: List<DataBinderType>,
-        dataKeyName: String?,
-        data: T?,
-        list: List<T>,
-        extras: Map<String, Any>
+        extras: Map<String, Any>,
+        append: JsonObjectBuilder.() -> Unit
     ): JSONObject {
         val bindData = binders
             .takeIf { it.isNotEmpty() }
@@ -31,16 +28,7 @@ internal class CreateRequestBodyUseCaseImpl(
             if (extras.isNotEmpty()) {
                 "ext" hasValue JSONObject(extras).toString()
             }
-            if (dataKeyName != null) {
-                when {
-                    data != null -> {
-                        dataKeyName hasValue data.serialize()
-                    }
-                    list.isNotEmpty() -> {
-                        dataKeyName hasValue list.serialize()
-                    }
-                }
-            }
+            append(this)
         }.also {
             logInfo(TAG, "$it")
         }

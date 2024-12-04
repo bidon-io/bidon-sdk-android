@@ -17,6 +17,7 @@ import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.AdCacheProvider
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -31,27 +32,28 @@ internal class InterstitialImpl(
     private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Interstitial)
 ) : Interstitial, Extras by demandAd {
-    private var userListener: InterstitialListener? = null
+
+    private val scope: CoroutineScope by lazy { CoroutineScope(dispatcher) }
+    private val listener: InterstitialListener by lazy { getInterstitialListener() }
+    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd)
+
+    private var cacheJob: Job? = null
     private var observeCallbacksJob: Job? = null
 
-    private val adCache: AdCache by lazy {
-        get {
-            params(demandAd)
-        }
-    }
-    private val listener by lazy {
-        getInterstitialListener()
-    }
-    private val scope by lazy {
-        CoroutineScope(dispatcher)
-    }
+    private var winner: AdSource.Interstitial<*>? = null
+    private var userListener: InterstitialListener? = null
 
     override fun isReady(): Boolean {
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
             return false
         }
-        return adCache.peek()?.adSource?.isAdReadyToShow == true
+        return adCache.peek()?.isAdReadyToShow == true
+    }
+
+    override fun setInterstitialListener(listener: InterstitialListener) {
+        logInfo(TAG, "Set interstitial listener")
+        this.userListener = listener
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
@@ -60,29 +62,30 @@ internal class InterstitialImpl(
             listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
             return
         }
-        logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        adCache.cache(
-            adTypeParam = AdTypeParam.Interstitial(
-                activity = activity,
-                pricefloor = pricefloor,
-                auctionKey = auctionKey,
-            ),
-            onSuccess = { auctionResult, auctionInfo ->
-                subscribeToWinner(auctionInfo, auctionResult.adSource)
-                listener.onAdLoaded(
-                    ad = requireNotNull(auctionResult.adSource.ad) {
-                        "[Ad] should exist when action succeeds"
-                    },
-                    auctionInfo = auctionInfo
-                )
-            },
-            onFailure = { auctionResult, cause ->
-                listener.onAdLoadFailed(
-                    auctionInfo = auctionResult,
-                    cause = cause.asBidonErrorOrUnspecified()
-                )
-            }
-        )
+        cacheJob?.cancel()
+        cacheJob = scope.launch {
+            logInfo(TAG, "Load (pricefloor=$pricefloor)")
+            adCache.cache(
+                demandAd = demandAd,
+                adTypeParam = AdTypeParam.Interstitial(
+                    activity = activity,
+                    pricefloor = pricefloor,
+                    auctionKey = auctionKey,
+                ),
+                onSuccess = { adSource, auctionInfo ->
+                    listener.onAdLoaded(
+                        ad = requireNotNull(adSource.ad) { "[Ad] should exist when action succeeds" },
+                        auctionInfo = auctionInfo
+                    )
+                },
+                onFailure = { auctionInfo, cause ->
+                    listener.onAdLoadFailed(
+                        auctionInfo = auctionInfo,
+                        cause = cause.asBidonErrorOrUnspecified()
+                    )
+                }
+            )
+        }
     }
 
     override fun showAd(activity: Activity) {
@@ -93,36 +96,38 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Show")
         activity.runOnUiThread {
-            val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
-            if (adSource == null) {
-                logInfo(TAG, "Show failed. No Auction results.")
-                listener.onAdShowFailed(BidonError.AdNotReady)
-            } else {
+            val adSource = (adCache.pop() as? AdSource.Interstitial).also { winner = it }
+            if (adSource?.isAdReadyToShow == true) {
+                subscribeToWinner(adSource)
+                adSource.setDemandAd(demandAd)
                 adSource.show(activity)
+            } else {
+                logInfo(TAG, "Show failed. Ad not ready.")
+                listener.onAdShowFailed(BidonError.AdNotReady)
             }
         }
     }
 
-    override fun setInterstitialListener(listener: InterstitialListener) {
-        logInfo(TAG, "Set interstitial listener")
-        this.userListener = listener
-    }
-
+    @Deprecated("With ad caching logic, it works incorrectly")
     override fun notifyLoss(winnerDemandId: String, winnerEcpm: Double) {
+        logInfo(TAG, "Notify loss ($winnerDemandId, $winnerEcpm)")
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.pop()?.adSource?.sendLoss(winnerDemandId, winnerEcpm)
-        destroyAd()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
+    @Deprecated("With ad caching logic, it works incorrectly")
     override fun notifyWin() {
+        logInfo(TAG, "Notify win")
         if (!BidonSdk.isInitialized()) {
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.adSource?.sendWin()
+        // Mock implementation
+        // This method is deprecated and should not be used.
     }
 
     override fun destroyAd() {
@@ -131,9 +136,14 @@ internal class InterstitialImpl(
             return
         }
         scope.launch(Dispatchers.Main.immediate) {
-            adCache.clear()
+            cacheJob?.cancel()
+            cacheJob = null
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+
+            winner?.destroy()
+            winner = null
+            userListener = null
         }
     }
 
@@ -141,13 +151,27 @@ internal class InterstitialImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
-        require(adSource is AdSource.Interstitial<*>)
+    private fun subscribeToWinner(adSource: AdSource<*>) {
+        require(adSource is AdSource.Interstitial)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
-                is AdEvent.OnReward,
-                is AdEvent.Fill -> {
+                is AdEvent.Fill,
+                is AdEvent.LoadFailed,
+                is AdEvent.OnReward -> {
                     // do nothing
+                }
+
+                is AdEvent.Shown -> {
+                    listener.onAdShown(adEvent.ad)
+                    adSource.sendShowImpression()
+                }
+
+                is AdEvent.PaidRevenue -> {
+                    listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
+                }
+
+                is AdEvent.ShowFailed -> {
+                    listener.onAdShowFailed(adEvent.cause)
                 }
 
                 is AdEvent.Clicked -> {
@@ -161,15 +185,10 @@ internal class InterstitialImpl(
                     observeCallbacksJob = null
                 }
 
-                is AdEvent.Shown -> {
-                    listener.onAdShown(adEvent.ad)
-                    adSource.sendShowImpression()
+                is AdEvent.Expired -> {
+                    listener.onAdExpired(adEvent.ad)
+                    destroyAd()
                 }
-
-                is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
-                is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
-                is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
     }

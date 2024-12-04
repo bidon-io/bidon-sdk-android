@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -55,7 +56,7 @@ fun RewardedScreen(
     val logFlow = remember {
         mutableStateOf(listOf("Log"))
     }
-    val pricefloor = remember {
+    val pricefloorState = remember {
         mutableStateOf("0.001")
     }
 
@@ -123,9 +124,9 @@ fun RewardedScreen(
             ) {
                 Body1Text(text = "Pricefloor $")
                 BasicTextField(
-                    value = pricefloor.value,
+                    value = pricefloorState.value,
                     onValueChange = { newValue ->
-                        pricefloor.value = newValue
+                        pricefloorState.value = newValue
                     },
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -135,7 +136,10 @@ fun RewardedScreen(
                         .weight(1f)
                         .padding(horizontal = 4.dp),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
                     maxLines = 1
                 )
                 AppTextButton(
@@ -150,11 +154,15 @@ fun RewardedScreen(
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
                 AppButton(text = "Load") {
-                    val minPrice = pricefloor.value.toDoubleOrNull()
-                    if (minPrice == null) {
-                        pricefloor.value = BidonSdk.DefaultPricefloor.toString()
+                    val pricefloor = pricefloorState.value.toDoubleOrNull()
+                        ?: pricefloorState.value.toIntOrNull()?.toDouble()
+                    if (pricefloor == null) {
+                        pricefloorState.value = BidonSdk.DefaultPricefloor.toString()
                     }
-                    rewardedAd.loadAd(activity, pricefloor = minPrice ?: BidonSdk.DefaultPricefloor)
+                    rewardedAd.loadAd(
+                        activity = activity,
+                        pricefloor = pricefloor ?: BidonSdk.DefaultPricefloor
+                    )
                 }
                 AppButton(
                     modifier = Modifier.padding(start = 8.dp),

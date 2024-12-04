@@ -1,6 +1,5 @@
 package org.bidon.sdk.auction.impl
 
-import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -17,8 +16,7 @@ internal class GetAuctionRequestUseCaseImpl : GetAuctionRequestUseCase {
         adTypeParam: AdTypeParam,
         auctionId: String,
         demandAd: DemandAd,
-        adapters: Map<String, AdapterInfo>,
-        tokens: Map<String, TokenInfo>
+        demandsTokens: Map<String, TokenInfo>,
     ): Result<AuctionResponse> {
         logInfo(TAG, "----------------------------- SERVERLESS DATA / USE ONLY FOR TEST ----------------------------- ")
         return ServerlessAuctionConfig.getAuctionResponse()!!.asSuccess()

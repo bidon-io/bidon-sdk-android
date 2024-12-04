@@ -172,7 +172,6 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
                 demandsTokens = any()
             )
@@ -247,7 +246,6 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
                 demandsTokens = any()
             )
@@ -307,7 +305,6 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
                 demandsTokens = any()
             )
@@ -355,7 +352,6 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
                 demandsTokens = any()
             )

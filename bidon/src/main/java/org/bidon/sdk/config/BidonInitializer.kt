@@ -2,6 +2,7 @@ package org.bidon.sdk.config
 
 import android.content.Context
 import org.bidon.sdk.adapter.Adapter
+import org.bidon.sdk.cache.AdCacheSettingsProvider.*
 import org.bidon.sdk.utils.networking.NetworkSettings
 
 /**
@@ -38,6 +39,11 @@ internal interface BidonInitializer {
      * Redefine BaseUrl for /action-requests. Default base url [NetworkSettings.BidonBaseUrl]
      */
     fun setBaseUrl(host: String)
+
+    /**
+     * Set AdCache settings
+     */
+    fun setAdCacheSettings(settings: AdCacheSettings)
 
     fun initialize(context: Context, appKey: String)
 }

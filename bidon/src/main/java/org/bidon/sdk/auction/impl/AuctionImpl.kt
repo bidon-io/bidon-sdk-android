@@ -87,9 +87,6 @@ internal class AuctionImpl(
                         adTypeParam = adTypeParam,
                         auctionId = auctionId,
                         demandAd = demandAd,
-                        adapters = adaptersSource.adapters.associate {
-                            it.demandId.demandId to it.adapterInfo
-                        },
                         demandsTokens = demandsTokens,
                     ).mapCatching { auctionData ->
                         if (auctionId != auctionData.auctionId) {
@@ -105,28 +102,23 @@ internal class AuctionImpl(
                             adTypeParamData = adTypeParam,
                         )
                         if (results.isEmpty()) {
-                            adTypeParam.activity.runOnUiThread {
-                                onFailure(auctionInfo, BidonError.NoAuctionResults)
-                            }
+                            onFailure(auctionInfo, BidonError.NoAuctionResults)
                         } else {
-                            adTypeParam.activity.runOnUiThread {
-                                onSuccess(results, auctionInfo)
-                            }
+                            onSuccess(results, auctionInfo)
                         }
                     }.onFailure { cause ->
                         logError(TAG, "Auction failed during execution", cause)
-                        processAuctionFailed(adTypeParam, onFailure, cause)
+                        processAuctionFailed(onFailure, cause)
                     }
                 }.onFailure { cause ->
                     logError(TAG, "Auction failed", cause)
-                    processAuctionFailed(adTypeParam, onFailure, cause)
+                    processAuctionFailed(onFailure, cause)
                 }
             }
         }
     }
 
     private suspend fun processAuctionFailed(
-        adTypeParam: AdTypeParam,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
         cause: Throwable
     ) {
@@ -134,14 +126,10 @@ internal class AuctionImpl(
         val auctionData = _auctionDataResponse
         if (auctionData == null) {
             logInfo(TAG, "No auction data response info.")
-            adTypeParam.activity.runOnUiThread {
-                onFailure(null, cause)
-            }
+            onFailure(null, cause)
         } else {
             val auctionInfo = getAuctionInfo(auctionData, statResult)
-            adTypeParam.activity.runOnUiThread {
-                onFailure(auctionInfo, cause)
-            }
+            onFailure(auctionInfo, cause)
         }
         // Finish auction
         state.value = AuctionState.Finished

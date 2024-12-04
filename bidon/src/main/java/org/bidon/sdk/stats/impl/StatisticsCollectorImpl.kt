@@ -18,6 +18,7 @@ import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.DemandStatus
 import org.bidon.sdk.stats.models.ImpressionRequestBody
+import org.bidon.sdk.stats.models.Winner
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.WinLossRequestData
@@ -84,7 +85,6 @@ class StatisticsCollectorImpl : StatisticsCollector {
             return null
         }
         return Ad(
-            demandAd = demandAd,
             ecpm = stat.ecpm,
             currencyCode = AdValue.USD,
             auctionId = auctionId,
@@ -159,20 +159,16 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun sendLoss(winnerDemandId: String, winnerEcpm: Double) {
         if (!externalWinNotificationsEnabled) {
-            logInfo(
-                TAG,
-                "External WinLoss Notifications disabled: external_win_notifications=false"
-            )
+            logInfo(TAG, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
         if (!isShowSent.getAndSet(true) && !isWinLossSent.getAndSet(true)) {
             scope.launch {
                 sendLossRequest.invoke(
                     WinLossRequestData.Loss(
-                        winnerDemandId = winnerDemandId,
-                        winnerEcpm = winnerEcpm,
                         demandAd = demandAd,
-                        body = createImpressionRequestBody(adType)
+                        bidBody = createImpressionRequestBody(adType),
+                        winnerBody = createWinnerBody(winnerDemandId, winnerEcpm),
                     )
                 )
             }
@@ -181,10 +177,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
 
     override fun sendWin() {
         if (!externalWinNotificationsEnabled) {
-            logInfo(
-                TAG,
-                "External WinLoss Notifications disabled: external_win_notifications=false"
-            )
+            logInfo(TAG, "External WinLoss Notifications disabled: external_win_notifications=false")
             return
         }
         if (!isShowSent.get() && !isWinLossSent.getAndSet(true)) {
@@ -192,7 +185,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
                 sendLossRequest.invoke(
                     WinLossRequestData.Win(
                         demandAd = demandAd,
-                        body = createImpressionRequestBody(adType)
+                        bidBody = createImpressionRequestBody(adType)
                     )
                 )
             }
@@ -300,6 +293,13 @@ class StatisticsCollectorImpl : StatisticsCollector {
                 Triple(null, null, RewardedRequest)
             }
         }
+    }
+
+    private fun createWinnerBody(winnerDemandId: String, winnerEcpm: Double): Winner {
+        return Winner(
+            demandId = winnerDemandId,
+            ecpm = winnerEcpm
+        )
     }
 
     private fun StatisticsCollector.AdType.asAdType() = when (this) {

@@ -28,6 +28,7 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.demoapp.ui.ext.LocalDateTimeNow
+import org.bidon.demoapp.ui.settings.AdCacheSettingsView
 import org.bidon.demoapp.ui.settings.SegmentSettingsView
 import org.bidon.demoapp.ui.settings.TestModeInfo
 import org.bidon.sdk.BidonSdk
@@ -106,6 +107,11 @@ fun SdkSettings(startNewActivity: () -> Unit) {
             BidonSdk.addExtra("sdk_level_long", LocalDateTimeNow)
         }
         SegmentSettingsView()
+        AdCacheSettingsView(
+            onApply = { adCacheSettings ->
+                BidonSdk.setAdCacheSettings(adCacheSettings)
+            }
+        )
         ItemSelector(
             modifier = Modifier.padding(top = 16.dp),
             horizontalAlignment = Alignment.Start,

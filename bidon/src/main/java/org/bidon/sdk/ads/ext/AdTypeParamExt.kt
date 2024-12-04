@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.ext
 
+import android.app.Activity
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.BannerRequest
@@ -39,6 +40,36 @@ internal fun AdTypeParam.asAdRequestBody(): Triple<BannerRequest?, InterstitialR
                 first = null,
                 second = null,
                 third = RewardedRequest
+            )
+        }
+    }
+}
+
+internal fun AdTypeParam.applyActivity(activity: Activity): AdTypeParam {
+    return when (val adTypeParam = this) {
+        is AdTypeParam.Banner -> {
+            AdTypeParam.Banner(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey,
+                bannerFormat = adTypeParam.bannerFormat,
+                containerWidth = adTypeParam.containerWidth
+            )
+        }
+
+        is AdTypeParam.Interstitial -> {
+            AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey
+            )
+        }
+
+        is AdTypeParam.Rewarded -> {
+            AdTypeParam.Rewarded(
+                activity = activity,
+                pricefloor = adTypeParam.pricefloor,
+                auctionKey = adTypeParam.auctionKey
             )
         }
     }
