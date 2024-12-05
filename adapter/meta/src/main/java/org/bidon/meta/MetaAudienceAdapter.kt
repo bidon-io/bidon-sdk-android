@@ -31,7 +31,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 08/08/2023.
+ * Created by Bidon Team on 08/08/2023.
  */
 internal val MetaDemandId = DemandId("meta")
 

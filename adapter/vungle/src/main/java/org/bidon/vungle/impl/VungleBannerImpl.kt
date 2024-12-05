@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.models.BidType
 import org.bidon.vungle.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 03/08/2023.
+ * Created by Bidon Team on 03/08/2023.
  */
 internal class VungleBannerImpl :
     AdSource.Banner<VungleBannerAuctionParams>,
@@ -45,7 +45,6 @@ internal class VungleBannerImpl :
     }
 
     override fun load(adParams: VungleBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val placementId = adParams.placementId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
 

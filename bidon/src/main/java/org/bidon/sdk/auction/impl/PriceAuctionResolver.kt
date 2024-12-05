@@ -1,7 +1,7 @@
 package org.bidon.sdk.auction.impl
 
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.DemandResult
 
 /**
  * Created by Bidon Team on 06/02/2023.
@@ -11,12 +11,12 @@ internal val MaxEcpmAuctionResolver: AuctionResolver by lazy {
 }
 
 private class PriceAuctionResolver : AuctionResolver {
-    override suspend fun sortWinners(list: List<AuctionResult>): List<AuctionResult> {
+    override suspend fun sortWinners(list: List<DemandResult>): List<DemandResult> {
         return list.sortedByDescending {
             when (it) {
-                is AuctionResult.Bidding -> it.adSource.getStats().ecpm
-                is AuctionResult.Network -> it.adSource.getStats().ecpm
-                is AuctionResult.AuctionFailed -> it.adUnit.pricefloor
+                is DemandResult.Bidding -> it.adSource.getStats().ecpm
+                is DemandResult.Network -> it.adSource.getStats().ecpm
+                is DemandResult.DemandFailed -> it.adUnit.pricefloor
             }
         }
     }

@@ -11,8 +11,8 @@ internal class ExtrasImpl : Extras {
     override fun addExtra(key: String, value: Any?) {
         if (value != null && value.isTypeSupported()) {
             if (extras[key] != value) {
-                logInfo(TAG, "Extras updated: $extras")
                 extras[key] = value
+                logInfo(TAG, "Extras updated: $extras")
             }
         } else {
             extras.remove(key)

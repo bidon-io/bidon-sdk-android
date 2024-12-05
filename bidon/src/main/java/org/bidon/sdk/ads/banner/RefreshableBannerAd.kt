@@ -12,3 +12,5 @@ interface RefreshableBannerAd : BannerAd {
 }
 
 abstract class RefreshableBannerView : RefreshableBannerAd
+
+const val DefaultAutoRefreshTimeoutMs = 10_000L

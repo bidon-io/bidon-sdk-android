@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.unityads.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 02/03/2023.
+ * Created by Bidon Team on 02/03/2023.
  */
 internal class UnityAdsInterstitial :
     AdSource.Interstitial<UnityAdsFullscreenAuctionParams>,
@@ -43,7 +43,6 @@ internal class UnityAdsInterstitial :
     }
 
     override fun load(adParams: UnityAdsFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         placementId = adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -68,7 +67,7 @@ internal class UnityAdsInterstitial :
                 error: UnityAds.UnityAdsLoadError?,
                 message: String?
             ) {
-                logInfo(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
+                logError(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
@@ -82,11 +81,7 @@ internal class UnityAdsInterstitial :
                 error: UnityAds.UnityAdsShowError?,
                 message: String?
             ) {
-                logError(
-                    tag = TAG,
-                    message = "onUnityAdsShowFailure: placementId=$placementId, error=$error, message=$message",
-                    error = error.asBidonError()
-                )
+                logError(TAG, "onUnityAdsShowFailure: placementId=$placementId, error=$error, message=$message")
                 emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 

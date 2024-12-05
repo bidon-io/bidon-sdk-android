@@ -49,7 +49,7 @@ internal class AmazonRewardedImpl(private val bidManager: AmazonBidManager) :
 
         val dtbAdResponse = bidManager.getResponse(slotUuid)
         if (dtbAdResponse == null) {
-            logError(TAG, "DTBAdResponse is null", BidonError.NoBid)
+            logError(TAG, "DTBAdResponse is null")
             emitEvent(AdEvent.LoadFailed(BidonError.NoBid))
             return
         }
@@ -63,7 +63,7 @@ internal class AmazonRewardedImpl(private val bidManager: AmazonBidManager) :
                 }
 
                 override fun onAdFailed(view: View?) {
-                    logInfo(TAG, "onAdFailed")
+                    logError(TAG, "onAdFailed")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 
@@ -116,7 +116,7 @@ internal class AmazonRewardedImpl(private val bidManager: AmazonBidManager) :
     override fun show(activity: Activity) {
         val interstitial = interstitial
         if (interstitial == null) {
-            logError(TAG, "Interstitial is null", BidonError.AdNotReady)
+            logError(TAG, "Interstitial is null")
             emitEvent(AdEvent.LoadFailed(BidonError.AdNotReady))
             return
         }

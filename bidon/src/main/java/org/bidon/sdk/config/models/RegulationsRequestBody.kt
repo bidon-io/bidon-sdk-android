@@ -4,7 +4,7 @@ import org.bidon.sdk.utils.serializer.JsonName
 import org.bidon.sdk.utils.serializer.Serializable
 
 /**
- * Created by Aleksei Cherniaev on 31/05/2023.
+ * Created by Bidon Team on 31/05/2023.
  */
 internal data class RegulationsRequestBody(
     @field:JsonName("coppa")

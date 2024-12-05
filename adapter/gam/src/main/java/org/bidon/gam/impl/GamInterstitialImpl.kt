@@ -17,6 +17,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -41,7 +42,6 @@ internal class GamInterstitialImpl(
     }
 
     override fun load(adParams: GamFullscreenAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adUnitId = when (adParams) {
             is GamFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is GamFullscreenAdAuctionParams.Network -> adParams.adUnitId
@@ -60,7 +60,7 @@ internal class GamInterstitialImpl(
         price = adParams.price
         val requestListener = object : AdManagerInterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
+                logError(TAG, "onAdFailedToLoad: $loadAdError. $this")
                 emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
             }
 

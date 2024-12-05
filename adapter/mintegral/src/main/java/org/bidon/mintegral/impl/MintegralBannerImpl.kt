@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
 /**
- * Created by Aleksei Cherniaev on 20/06/2023.
+ * Created by Bidon Team on 20/06/2023.
  *
  * [Mintegral Bidding](https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-in_app_header_bidding&lang=en)
  */
@@ -47,7 +47,6 @@ internal class MintegralBannerImpl :
     }
 
     override fun load(adParams: MintegralBannerAuctionParam) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val placementId = adParams.placementId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
         val unitId = adParams.unitId

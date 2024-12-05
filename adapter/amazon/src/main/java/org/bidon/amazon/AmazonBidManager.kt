@@ -16,7 +16,6 @@ import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
@@ -122,7 +121,7 @@ internal class AmazonBidManager {
         loader.setSizes(adSize)
         loader.loadAd(object : DTBAdCallback {
             override fun onFailure(adError: AdError) {
-                logError(TAG, "Error while loading ad: $adSize ${adError.code} ${adError.message}", BidonError.NoBid)
+                logError(TAG, "AmazonInfo request fail -> ${adSize.dtbAdType}: ${adSize.slotUUID}, cause: ${adError.code} ${adError.message}")
                 continuation.resume(null)
             }
 

@@ -9,7 +9,7 @@ import android.view.WindowManager
 import androidx.core.view.WindowCompat
 
 /**
- * Created by Aleksei Cherniaev on 08/09/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 object FullscreenModeExt {
     fun Activity.normalSystemUI() {

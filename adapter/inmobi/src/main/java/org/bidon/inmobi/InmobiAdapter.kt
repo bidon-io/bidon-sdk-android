@@ -32,7 +32,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 11/09/2023.
  *
  * [Documentation](https://support.inmobi.com/monetize/sdk-documentation/android-guidelines/overview-android-guidelines#add-the-inmobi-sdk)
  */

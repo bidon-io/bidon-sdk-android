@@ -8,7 +8,7 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.stats.models.BidType
 
 /**
- * Created by Aleksei Cherniaev on 18/08/2023.
+ * Created by Bidon Team on 18/08/2023.
  */
 internal class GetAdAuctionParamsUseCase {
     operator fun invoke(

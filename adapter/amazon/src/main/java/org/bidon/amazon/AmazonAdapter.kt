@@ -28,7 +28,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 27/09/2023.
+ * Created by Bidon Team on 27/09/2023.
  *
  * [Amazon documentation](https://ams.amazon.com/webpublisher/uam/docs/aps-mobile/android)
  */

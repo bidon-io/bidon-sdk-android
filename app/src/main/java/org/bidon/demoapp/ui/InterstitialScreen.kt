@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -33,8 +34,6 @@ import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.AppToolbar
 import org.bidon.demoapp.component.Body1Text
 import org.bidon.demoapp.component.Body2Text
-import org.bidon.demoapp.ui.ext.getImpressionInfo
-import org.bidon.demoapp.ui.ext.toJson
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -63,12 +62,11 @@ fun InterstitialScreen(
             setInterstitialListener(
                 object : InterstitialListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                        logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: \n${auctionInfo.toJson()}")
-                        logFlow.log("onAdLoaded ImpressionInfo: \n${ad.getImpressionInfo()}")
+                        logFlow.log("onAdLoaded ad: $ad. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                        logFlow.log("onAdLoadFailed: $cause. AuctionInfo: \n${auctionInfo?.toJson()}")
+                        logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                     }
 
                     override fun onAdShowFailed(cause: BidonError) {
@@ -77,7 +75,6 @@ fun InterstitialScreen(
 
                     override fun onAdShown(ad: Ad) {
                         logFlow.log("onAdShown: $ad")
-                        logFlow.log("onAdShown ImpressionInfo: \n${ad.getImpressionInfo()}")
                     }
 
                     override fun onAdClicked(ad: Ad) {
@@ -93,8 +90,7 @@ fun InterstitialScreen(
                     }
 
                     override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                        logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
-                        logFlow.log("onRevenuePaid ImpressionInfo: \n${ad.getImpressionInfo()}")
+                        logFlow.log("onRevenuePaid: ad: $ad, adValue: $adValue")
                     }
                 }
             )
@@ -132,7 +128,10 @@ fun InterstitialScreen(
                         .weight(1f)
                         .padding(horizontal = 4.dp),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
                     maxLines = 1
                 )
                 AppTextButton(
@@ -143,13 +142,20 @@ fun InterstitialScreen(
                     interstitial.addExtra("some_extra_data", "some_value")
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
                 AppButton(text = "Load") {
                     val pricefloor = pricefloorState.value.toDoubleOrNull()
+                        ?: pricefloorState.value.toIntOrNull()?.toDouble()
                     if (pricefloor == null) {
                         pricefloorState.value = BidonSdk.DefaultPricefloor.toString()
                     }
-                    interstitial.loadAd(activity, pricefloor = pricefloor ?: BidonSdk.DefaultPricefloor)
+                    interstitial.loadAd(
+                        activity = activity,
+                        pricefloor = pricefloor ?: BidonSdk.DefaultPricefloor
+                    )
                 }
                 AppButton(
                     modifier = Modifier.padding(start = 8.dp),
@@ -164,7 +170,10 @@ fun InterstitialScreen(
                     interstitial.destroyAd()
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
                 AppTextButton(
                     modifier = Modifier.padding(start = 0.dp),
                     text = "Notify Loss"
@@ -180,6 +189,13 @@ fun InterstitialScreen(
                     interstitial.notifyWin()
                     logFlow.log("NotifyWin")
                 }
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                AppTextButton(
+                    modifier = Modifier.padding(start = 0.dp),
+                    text = "Clear logs"
+                ) {
+                    logFlow.value = listOf("Log")
+                }
             }
             LazyColumn(
                 modifier = Modifier
@@ -191,7 +207,10 @@ fun InterstitialScreen(
                     Column(
                         modifier = Modifier
                             .padding(bottom = 2.dp)
-                            .background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                            .background(
+                                MaterialTheme.colorScheme.secondary,
+                                MaterialTheme.shapes.medium
+                            )
                             .padding(4.dp)
                     ) {
                         Body2Text(text = logLine)
@@ -207,7 +226,7 @@ fun InterstitialScreen(
 
 private fun MutableState<List<String>>.log(string: String) {
     synchronized(this) {
-        this.value = this.value + string
+        this.value += string
     }
     logInfo(TAG, string)
 }

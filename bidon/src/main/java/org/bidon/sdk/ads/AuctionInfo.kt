@@ -8,7 +8,11 @@ class AuctionInfo(
     val auctionPricefloor: Double,
     val noBids: List<AdUnitInfo>?,
     val adUnits: List<AdUnitInfo>?,
-)
+) {
+    override fun toString(): String {
+        return "AuctionInfo(id='$auctionId', timeout=$auctionTimeout, pricefloor=$auctionPricefloor, noBidsSize=${noBids?.size}, adUnitsSize=${adUnits?.size})"
+    }
+}
 
 class AdUnitInfo(
     val demandId: String,
@@ -18,7 +22,6 @@ class AdUnitInfo(
     val bidType: String?,
     val fillStartTs: Long?,
     val fillFinishTs: Long?,
-    val timeout: Long?,
     val status: String?,
     val errorMessage: String? = null,
     val ext: String?,

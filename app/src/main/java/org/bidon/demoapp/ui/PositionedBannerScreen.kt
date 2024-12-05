@@ -60,11 +60,11 @@ fun PositionedBannerScreen(
         setBannerListener(
             object : BannerListener {
                 override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
-                    logFlow.log("onAdLoaded WINNER:\n$ad. AuctionInfo: $auctionInfo")
+                    logFlow.log("onAdLoaded ad: $ad. auctionInfo: $auctionInfo")
                 }
 
                 override fun onAdLoadFailed(auctionInfo: AuctionInfo?, cause: BidonError) {
-                    logFlow.log("onAdLoadFailed: $cause. AuctionInfo: $auctionInfo")
+                    logFlow.log("onAdLoadFailed: $cause. auctionInfo: $auctionInfo")
                 }
 
                 override fun onAdShown(ad: Ad) {
@@ -80,7 +80,7 @@ fun PositionedBannerScreen(
                 }
 
                 override fun onRevenuePaid(ad: Ad, adValue: AdValue) {
-                    logFlow.log("onRevenuePaid: ad=$ad, adValue=$adValue")
+                    logFlow.log("onRevenuePaid: ad: $ad, adValue: $adValue")
                 }
 
                 override fun onAdShowFailed(cause: BidonError) {

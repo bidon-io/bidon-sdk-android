@@ -4,7 +4,7 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.TokenInfo
 
-internal interface GetTokensUseCase {
+internal interface GetDemandsTokensUseCase {
     suspend operator fun invoke(
         adTypeParam: AdTypeParam,
         adaptersSource: AdaptersSource,

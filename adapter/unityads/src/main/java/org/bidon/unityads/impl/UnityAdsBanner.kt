@@ -14,13 +14,14 @@ import org.bidon.sdk.auction.ext.height
 import org.bidon.sdk.auction.ext.width
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.unityads.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 12/04/2023.
+ * Created by Bidon Team on 12/04/2023.
  */
 internal class UnityAdsBanner :
     AdSource.Banner<UnityAdsBannerAuctionParams>,
@@ -42,7 +43,6 @@ internal class UnityAdsBanner :
     }
 
     override fun load(adParams: UnityAdsBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val placementId = adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -79,7 +79,7 @@ internal class UnityAdsBanner :
                     bannerAdView: BannerView?,
                     errorInfo: BannerErrorInfo?
                 ) {
-                    logInfo(TAG, "Error while loading ad: $errorInfo. $this")
+                    logError(TAG, "Error while loading ad: $errorInfo. $this")
                     isAdReadyToShow = false
                     emitEvent(AdEvent.LoadFailed(errorInfo.asBidonError()))
                 }

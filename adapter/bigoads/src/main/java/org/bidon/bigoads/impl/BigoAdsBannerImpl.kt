@@ -27,7 +27,7 @@ import sg.bigo.ads.api.BannerAdLoader
 import sg.bigo.ads.api.BannerAdRequest
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 25/07/2023.
  */
 internal class BigoAdsBannerImpl :
     AdSource.Banner<BigoAdsBannerAuctionParams>,
@@ -73,9 +73,8 @@ internal class BigoAdsBannerImpl :
         val loader = BannerAdLoader.Builder()
             .withAdLoadListener(object : AdLoadListener<BannerAd> {
                 override fun onError(adError: AdError) {
-                    val error = adError.asBidonError()
-                    logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}. $this", error)
-                    emitEvent(AdEvent.LoadFailed(error))
+                    logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}. $this")
+                    emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
                 }
 
                 override fun onAdLoaded(bannerAd: BannerAd) {
@@ -83,9 +82,8 @@ internal class BigoAdsBannerImpl :
                     this@BigoAdsBannerImpl.bannerAd = bannerAd
                     bannerAd.setAdInteractionListener(object : AdInteractionListener {
                         override fun onAdError(error: AdError) {
-                            val cause = error.asBidonError()
-                            logError(TAG, "onAdError: $this", cause)
-                            emitEvent(AdEvent.ShowFailed(cause))
+                            logError(TAG, "onAdError: $error. $this")
+                            emitEvent(AdEvent.ShowFailed(error.asBidonError()))
                         }
 
                         override fun onAdImpression() {

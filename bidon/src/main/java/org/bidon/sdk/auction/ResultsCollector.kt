@@ -1,27 +1,26 @@
 package org.bidon.sdk.auction
 
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.usecases.models.RoundResult
+import org.bidon.sdk.auction.models.DemandResult
+import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.auction.usecases.models.AuctionResult
 
 /**
- * Created by Aleksei Cherniaev on 05/07/2023.
+ * Created by Bidon Team on 05/07/2023.
  */
 internal interface ResultsCollector {
-    fun startRound(pricefloor: Double)
-    @Deprecated("")
-    fun serverBiddingStarted()
-    @Deprecated("")
-    fun serverBiddingFinished(adUnits: List<AdUnit>?)
-    fun setNoBidInfo(noBidsInfo: List<AdUnit>?)
-    fun biddingTimeoutReached()
-    fun add(result: AuctionResult)
-    fun getRoundResults(): RoundResult
+    fun startAuction(pricefloor: Double)
 
-    fun getAll(): List<AuctionResult>
+    fun serverBiddingStarted()
+    fun serverBiddingFinished(tokens: Map<String, TokenInfo>, noBids: List<AdUnit>?)
+
+    fun add(result: DemandResult)
+    fun getRoundResults(): AuctionResult
+
+    fun getAll(): List<DemandResult>
     fun clear()
-    @Deprecated("")
-    suspend fun saveWinners(sourcePriceFloor: Double)
+
+    suspend fun finishAuction(pricefloor: Double)
 
     companion object {
         /**

@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.yandex.ext.asBidonAdValue
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 17/09/2023.
  */
 internal class YandexBannerImpl :
     AdSource.Banner<YandexBannerAuctionParam>,
@@ -63,7 +63,7 @@ internal class YandexBannerImpl :
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
-                    logError(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this", BidonError.NoFill(demandId))
+                    logError(TAG, "onAdFailedToLoad: ${error.code} ${error.description}. $this")
                     emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
                 }
 

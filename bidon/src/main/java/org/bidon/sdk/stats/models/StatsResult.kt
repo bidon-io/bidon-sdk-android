@@ -9,7 +9,7 @@ import org.bidon.sdk.utils.serializer.Serializable
 /**
  * Created by Bidon Team on 03/03/2023.
  */
-internal data class ResultBody(
+internal data class StatsResult(
     @field:JsonName("status")
     val status: String,
     @field:JsonName("winner_demand_id")
@@ -33,4 +33,11 @@ internal data class ResultBody(
     val interstitial: InterstitialRequest?,
     @field:JsonName("rewarded")
     val rewarded: RewardedRequest?
-) : Serializable
+) : Serializable {
+
+    enum class Status(val code: String) {
+        AUCTION_CANCELLED("AUCTION_CANCELLED"),
+        SUCCESS("SUCCESS"),
+        FAIL("FAIL"),
+    }
+}

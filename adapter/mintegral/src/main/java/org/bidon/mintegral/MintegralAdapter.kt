@@ -30,7 +30,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 20/06/2023.
+ * Created by Bidon Team on 20/06/2023.
  *
  * [Mintegral](https://dev.mintegral.com/doc/)
  */
@@ -71,7 +71,7 @@ internal class MintegralAdapter :
                         }
 
                         override fun onInitFail(message: String?) {
-                            logError(TAG, "Error while initialization: $message", BidonError.Unspecified(demandId))
+                            logError(TAG, "Error while initialization: $message")
                             continuation.resumeWithException(BidonError.Unspecified(demandId))
                         }
                     }

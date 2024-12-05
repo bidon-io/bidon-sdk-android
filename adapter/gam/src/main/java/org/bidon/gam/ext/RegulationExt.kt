@@ -6,12 +6,21 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 
 internal fun Regulation.asBundle() = Bundle().apply {
-    logInfo("GamAdapter", "Applying regulation to ${GamDemandId.demandId}")
-    this@asBundle.usPrivacyString?.let {
+    val regulation = this@asBundle
+    logInfo(
+        "GamAdapter",
+        "Applying regulation to ${GamDemandId.demandId} <- " +
+            "GDPR=${regulation.gdpr}, " +
+            "COPPA=${regulation.coppa}, " +
+            "usPrivacyString=${regulation.usPrivacyString}, " +
+            "gdprConsentString=${regulation.gdprConsentString}"
+    )
+
+    regulation.usPrivacyString?.let {
         putString("IABUSPrivacy_String", it)
     }
-    this@asBundle.gdprConsentString?.let {
+    regulation.gdprConsentString?.let {
         putString("IABConsent_ConsentString", it)
     }
-    putBoolean("IABConsent_SubjectToGDPR", this@asBundle.gdprApplies)
+    putBoolean("IABConsent_SubjectToGDPR", regulation.gdprApplies)
 }

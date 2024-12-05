@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.Adapter
+import org.bidon.sdk.cache.AdCacheSettingsProvider
+import org.bidon.sdk.cache.AdCacheSettingsProvider.*
 import org.bidon.sdk.config.AdapterInstanceCreator
 import org.bidon.sdk.config.BidonInitializer
 import org.bidon.sdk.config.InitializationCallback
@@ -24,7 +26,7 @@ import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.networking.BidonEndpoints
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 06/02/2023.
  */
 internal class BidonInitializerImpl : BidonInitializer {
 
@@ -50,6 +52,7 @@ internal class BidonInitializerImpl : BidonInitializer {
     private val keyValueStorage: KeyValueStorage get() = get()
     private val bidOnEndpoints: BidonEndpoints get() = get()
     private val segmentSynchronizer: SegmentSynchronizer get() = get()
+    private val adCacheSettingsProvider: AdCacheSettingsProvider get() = get()
 
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
@@ -77,6 +80,10 @@ internal class BidonInitializerImpl : BidonInitializer {
 
     override fun setBaseUrl(host: String) {
         bidOnEndpoints.init(host, setOf())
+    }
+
+    override fun setAdCacheSettings(settings: AdCacheSettings) {
+        adCacheSettingsProvider.setAdCacheSettings(settings)
     }
 
     override fun initialize(context: Context, appKey: String) {

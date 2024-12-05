@@ -27,7 +27,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 /**
- * Created by Aleksei Cherniaev on 17/04/2023.
+ * Created by Bidon Team on 17/04/2023.
  */
 internal class DTExchangeBanner :
     AdSource.Banner<DTExchangeBannerAuctionParams>,
@@ -52,7 +52,6 @@ internal class DTExchangeBanner :
     }
 
     override fun load(adParams: DTExchangeBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val spotId = adParams.spotId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -131,9 +130,8 @@ internal class DTExchangeBanner :
                 adSpot: InneractiveAdSpot?,
                 adDisplayError: InneractiveUnitController.AdDisplayError?
             ) {
-                val cause = adDisplayError.asBidonError()
-                logError(TAG, "onAdEnteredErrorState: $adSpot, $adDisplayError", cause)
-                emitEvent(AdEvent.ShowFailed(cause))
+                logError(TAG, "onAdEnteredErrorState: $adSpot, $adDisplayError")
+                emitEvent(AdEvent.ShowFailed(adDisplayError.asBidonError()))
             }
 
             override fun onAdExpanded(adSpot: InneractiveAdSpot?) {}

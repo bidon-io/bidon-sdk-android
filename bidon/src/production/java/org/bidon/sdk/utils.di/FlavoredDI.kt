@@ -15,7 +15,8 @@ object FlavoredDI {
                 GetAuctionRequestUseCaseImpl(
                     createRequestBody = get(),
                     getOrientation = get(),
-                    segmentSynchronizer = get()
+                    segmentSynchronizer = get(),
+                    adCacheProvider = get()
                 )
             }
             factory<GetConfigRequestUseCase> {

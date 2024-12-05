@@ -12,7 +12,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.TAG
 
 /**
- * Created by Aleksei Cherniaev on 24/11/2023.
+ * Created by Bidon Team on 24/11/2023.
  */
 internal class RootAdContainer(context: Context) : FrameLayout(context) {
 

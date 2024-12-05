@@ -3,7 +3,7 @@ package org.bidon.sdk.ads.ext
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.DemandStatus
 import org.bidon.sdk.stats.models.StatsAdUnit
 
 internal fun StatsAdUnit.toAuctionInfo() =
@@ -17,7 +17,6 @@ internal fun StatsAdUnit.toAuctionInfo() =
         fillFinishTs = fillFinishTs,
         status = status,
         errorMessage = errorMessage,
-        timeout = timeout,
         ext = ext.toString(),
     )
 
@@ -30,8 +29,7 @@ internal fun AdUnit.toAuctionNoBidInfo() =
         bidType = BidType.RTB.code,
         fillStartTs = null,
         fillFinishTs = null,
-        status = RoundStatus.NoBid.code,
-        timeout = timeout,
+        status = DemandStatus.NoBid.code,
         errorMessage = null,
         ext = extra.toString(),
     )

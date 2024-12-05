@@ -6,7 +6,7 @@ import org.bidon.sdk.utils.serializer.Serializable
 /**
  * Created by Bidon Team on 06/04/2023.
  */
-internal data class Loss(
+internal data class Winner(
     @field:JsonName("demand_id")
     val demandId: String,
     @field:JsonName("price")

@@ -1,7 +1,7 @@
 package javadoc
 
 /**
- * Created by Aleksei Cherniaev on 25/05/2023.
+ * Created by Bidon Team on 25/05/2023.
  */
 object ClassesList {
     /**
@@ -33,5 +33,6 @@ object ClassesList {
         "org/bidon/sdk/logs/analytic/AdValue.kt",
         "org/bidon/sdk/logs/analytic/Precision.kt",
         "org/bidon/sdk/segment/Segment.kt",
+        "org/bidon/sdk/cache/AdCacheSettingsProvider.kt",
     )
 }

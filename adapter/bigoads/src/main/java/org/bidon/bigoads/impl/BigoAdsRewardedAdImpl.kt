@@ -24,7 +24,7 @@ import sg.bigo.ads.api.RewardVideoAdLoader
 import sg.bigo.ads.api.RewardVideoAdRequest
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 25/07/2023.
  */
 internal class BigoAdsRewardedAdImpl :
     AdSource.Rewarded<BigoAdsFullscreenAuctionParams>,
@@ -49,9 +49,8 @@ internal class BigoAdsRewardedAdImpl :
         val loader = RewardVideoAdLoader.Builder()
             .withAdLoadListener(object : AdLoadListener<RewardVideoAd> {
                 override fun onError(adError: AdError) {
-                    val error = adError.asBidonError()
-                    logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}. $this", error)
-                    emitEvent(AdEvent.LoadFailed(error))
+                    logError(TAG, "Error while loading ad: ${adError.code} ${adError.message}. $this")
+                    emitEvent(AdEvent.LoadFailed(adError.asBidonError()))
                 }
 
                 override fun onAdLoaded(rewardVideoAd: RewardVideoAd) {
@@ -92,9 +91,8 @@ internal class BigoAdsRewardedAdImpl :
     ) {
         rewardVideoAd.setAdInteractionListener(object : RewardAdInteractionListener {
             override fun onAdError(error: AdError) {
-                val cause = error.asBidonError()
-                logError(TAG, "onAdError: $this", cause)
-                emitEvent(AdEvent.ShowFailed(cause))
+                logError(TAG, "onAdError: $error. $this")
+                emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 
             override fun onAdImpression() {

@@ -2,6 +2,7 @@ package org.bidon.demoapp
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -45,12 +46,18 @@ import org.bidon.demoapp.theme.AppTheme
 import org.bidon.demoapp.ui.SdkSettings
 import org.bidon.demoapp.ui.TestModeKey
 import org.bidon.demoapp.ui.settings.TestModeInfo
+import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.logs.logging.Logger
 
 class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set the logger level to Verbose for detailed logging
+        BidonSdk.setLoggerLevel(Logger.Level.Verbose)
+
         setContent {
             val coroutineScope = rememberCoroutineScope()
             val modalSheetState = rememberModalBottomSheetState(
@@ -70,7 +77,17 @@ class MainActivity : FragmentActivity() {
                     sheetState = modalSheetState,
                     sheetShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                     sheetContent = {
-                        SdkSettings()
+                        SdkSettings {
+                            startActivity(
+                                Intent(
+                                    this@MainActivity,
+                                    MainActivity::class.java
+                                ).apply {
+                                    flags =
+                                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                            )
+                        }
                     }
                 ) {
                     Box(

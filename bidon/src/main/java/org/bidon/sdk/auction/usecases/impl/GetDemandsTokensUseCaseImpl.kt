@@ -10,13 +10,13 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.TokenInfo
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.GetDemandsTokensUseCase
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.SystemTimeNow
 import org.bidon.sdk.utils.ext.TAG
 
-internal class GetTokensUseCaseImpl : GetTokensUseCase {
+internal class GetDemandsTokensUseCaseImpl : GetDemandsTokensUseCase {
 
     override suspend fun invoke(
         adTypeParam: AdTypeParam,
@@ -62,7 +62,11 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
 
     private fun logTokens(tokens: Map<String, TokenInfo>) {
         tokens.forEach { (key, tokenInfo) ->
-            logInfo(TAG, "#$key: status: ${tokenInfo.status}, token: ${tokenInfo.token}")
+            val trimmedToken =
+                tokenInfo.token?.let { if (it.length > 20) "${it.take(20)}..." else it }
+            val tokenTime =
+                tokenInfo.tokenStartTs?.let { startTs -> tokenInfo.tokenFinishTs?.minus(startTs) } ?: "N/A"
+            logInfo(TAG, "#$key: status: ${tokenInfo.status}, time: ${tokenTime}ms, token: $trimmedToken")
         }
     }
 }

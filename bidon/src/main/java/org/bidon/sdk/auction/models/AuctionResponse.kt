@@ -1,5 +1,7 @@
 package org.bidon.sdk.auction.models
 
+import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.json.JsonParser
 import org.bidon.sdk.utils.json.JsonParsers
 import org.json.JSONObject
@@ -35,3 +37,18 @@ internal class AuctionResponseParser : JsonParser<AuctionResponse> {
 }
 
 private const val auctionTimeoutDefault = 30_000L
+
+internal fun AuctionResponse.logAuctionWaterfall(demandAd: DemandAd) {
+    if (adUnits.isNullOrEmpty()) {
+        logInfo("${demandAd.adType} auction waterfall", "No ad units available for auction.")
+        return
+    }
+
+    val auctionHeader =
+        "Auction ID: $auctionId, Timeout: ${auctionTimeout}ms, Pricefloor: $pricefloor"
+    val waterfallDetails = adUnits.withIndex().joinToString(separator = "\n") { (index, adUnit) ->
+        "#${index + 1} $adUnit"
+    }
+
+    logInfo("${demandAd.adType} auction waterfall", "$auctionHeader\n$waterfallDetails")
+}

@@ -27,7 +27,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 /**
- * Created by Aleksei Cherniaev on 28/02/2023.
+ * Created by Bidon Team on 28/02/2023.
  */
 internal class DTExchangeRewarded :
     AdSource.Rewarded<DTExchangeAdAuctionParams>,
@@ -49,7 +49,6 @@ internal class DTExchangeRewarded :
     }
 
     override fun load(adParams: DTExchangeAdAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val spotId = adParams.spotId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -129,7 +128,7 @@ internal class DTExchangeRewarded :
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
                     val error = inneractiveErrorCode.asBidonError()
-                    logError(TAG, "Error while bidding: $inneractiveErrorCode", error)
+                    logError(TAG, "Error while bidding: $inneractiveErrorCode")
                     emitEvent(AdEvent.LoadFailed(error))
                 }
             }

@@ -21,7 +21,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 11/09/2023.
  */
 internal class InmobiRewardedImpl :
     AdSource.Rewarded<InmobiFullscreenAuctionParams>,
@@ -44,7 +44,6 @@ internal class InmobiRewardedImpl :
     }
 
     override fun load(adParams: InmobiFullscreenAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -58,7 +57,7 @@ internal class InmobiRewardedImpl :
             object : InterstitialAdEventListener() {
                 override fun onAdLoadSucceeded(interstitial: InMobiInterstitial, adMetaInfo: AdMetaInfo) {
                     logInfo(TAG, "onAdLoadSucceeded: $this, ${adMetaInfo.bid} USD")
-                    setPrice(adMetaInfo.bid)
+                    setEcpm(adMetaInfo.bid)
                     emitEvent(AdEvent.Fill(getAd() ?: return))
                 }
 
@@ -90,7 +89,7 @@ internal class InmobiRewardedImpl :
                 }
 
                 override fun onAdDisplayFailed(interstitial: InMobiInterstitial) {
-                    logError(TAG, "onAdDisplayFailed. $this", BidonError.Unspecified(demandId))
+                    logError(TAG, "onAdDisplayFailed. $this")
                     emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
                 }
 

@@ -13,6 +13,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -43,7 +44,6 @@ internal class GamBannerImpl(
 
     @SuppressLint("MissingPermission")
     override fun load(adParams: GamBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams")
         val adUnitId = when (adParams) {
             is GamBannerAuctionParams.Bidding -> adParams.adUnitId
             is GamBannerAuctionParams.Network -> adParams.adUnitId
@@ -68,7 +68,7 @@ internal class GamBannerImpl(
             }
             val requestListener = object : AdListener() {
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    logInfo(TAG, "onAdFailedToLoad: $loadAdError. $this")
+                    logError(TAG, "onAdFailedToLoad: $loadAdError. $this")
                     emitEvent(AdEvent.LoadFailed(loadAdError.asBidonError()))
                 }
 

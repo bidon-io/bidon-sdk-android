@@ -24,7 +24,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 11/09/2023.
  */
 internal class InmobiBannerImpl :
     AdSource.Banner<InmobiBannerAuctionParams>,
@@ -51,7 +51,6 @@ internal class InmobiBannerImpl :
     }
 
     override fun load(adParams: InmobiBannerAuctionParams) {
-        logInfo(TAG, "Starting with $adParams: $this")
         adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
@@ -71,7 +70,7 @@ internal class InmobiBannerImpl :
             override fun onAdLoadSucceeded(inMobiBanner: InMobiBanner, adMetaInfo: AdMetaInfo) {
                 this@InmobiBannerImpl.adMetaInfo = adMetaInfo
                 logInfo(TAG, "onAdLoadSucceeded: $this")
-                setPrice(adMetaInfo.bid)
+                setEcpm(adMetaInfo.bid)
                 emitEvent(AdEvent.Fill(getAd() ?: return))
             }
 

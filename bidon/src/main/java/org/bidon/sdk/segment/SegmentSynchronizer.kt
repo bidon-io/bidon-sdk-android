@@ -4,7 +4,7 @@ import org.bidon.sdk.segment.models.SegmentAttributes
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 
 /**
- * Created by Aleksei Cherniaev on 15/06/2023.
+ * Created by Bidon Team on 15/06/2023.
  */
 internal interface SegmentSynchronizer {
     val attributes: SegmentAttributes

@@ -10,7 +10,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Created by Aleksei Cherniaev on 18/08/2023.
+ * Created by Bidon Team on 18/08/2023.
  */
 internal class GetFullScreenContentCallbackUseCase {
     fun createCallback(
@@ -31,7 +31,7 @@ internal class GetFullScreenContentCallbackUseCase {
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                logError(TAG, "onAdFailedToShowFullScreenContent: $this", error.asBidonError())
+                logError(TAG, "onAdFailedToShowFullScreenContent: $error. $this")
                 adEventFlow.emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 

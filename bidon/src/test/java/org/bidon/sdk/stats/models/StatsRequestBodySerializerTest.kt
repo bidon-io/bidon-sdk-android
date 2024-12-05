@@ -61,7 +61,7 @@ class StatsRequestBodySerializerTest {
                     ext = JSONObject(),
                 )
             ),
-            result = ResultBody(
+            result = StatsResult(
                 status = "SUCCESS",
                 winnerDemandId = "d345",
                 bidType = BidType.CPM.code,

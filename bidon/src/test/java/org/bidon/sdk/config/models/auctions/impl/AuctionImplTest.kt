@@ -24,7 +24,7 @@ import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.auction.usecases.GetDemandsTokensUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
@@ -58,7 +58,7 @@ internal class AuctionImplTest : ConcurrentTest() {
 
     private val adaptersSource: AdaptersSource by lazy { mockk(relaxed = true) }
     private val executeAuctionUseCase: ExecuteAuctionUseCase by lazy { mockk(relaxed = true) }
-    private val tokenGetter: GetTokensUseCase by lazy { mockk(relaxed = true) }
+    private val tokenGetter: GetDemandsTokensUseCase by lazy { mockk(relaxed = true) }
     private val biddingConfig: BiddingConfig by lazy { mockk(relaxed = true) }
     private val statRequestUseCase: StatsRequestUseCase by lazy { mockk(relaxed = true) }
 
@@ -72,7 +72,7 @@ internal class AuctionImplTest : ConcurrentTest() {
     private val testee: Auction by lazy {
         AuctionImpl(
             adaptersSource = adaptersSource,
-            getTokens = tokenGetter,
+            getDemandsTokens = tokenGetter,
             getAuctionRequest = getAuctionRequestUseCase,
             executeAuction = executeAuctionUseCase,
             auctionStat = auctionStat,
@@ -172,9 +172,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
-                tokens = any()
+                demandsTokens = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -247,9 +246,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
-                tokens = any()
+                demandsTokens = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -307,9 +305,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
-                tokens = any()
+                demandsTokens = any()
             )
         } returns auctionConfig.asSuccess()
 
@@ -355,9 +352,8 @@ internal class AuctionImplTest : ConcurrentTest() {
             getAuctionRequestUseCase.request(
                 adTypeParam = any(),
                 auctionId = any(),
-                adapters = any(),
                 demandAd = any(),
-                tokens = any()
+                demandsTokens = any()
             )
         } returns auctionConfig.asSuccess()
 

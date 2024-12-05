@@ -25,7 +25,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
 /**
- * Created by Aleksei Cherniaev on 20/06/2023.
+ * Created by Bidon Team on 20/06/2023.
  *
  * [Mintegral Bidding](https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-in_app_header_bidding&lang=en)
  */
@@ -52,7 +52,6 @@ internal class MintegralInterstitialImpl :
     }
 
     override fun load(adParams: MintegralAuctionParam) {
-        logInfo(TAG, "Starting with $adParams: $this")
         val placementId = adParams.placementId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
         val unitId = adParams.unitId
@@ -93,7 +92,7 @@ internal class MintegralInterstitialImpl :
             }
 
             override fun onShowFail(mBridgeIds: MBridgeIds?, message: String?) {
-                logError(TAG, "onShowFail $mBridgeIds", Throwable(message))
+                logError(TAG, "onShowFail $mBridgeIds, message $message")
                 emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId, Throwable(message))))
             }
 

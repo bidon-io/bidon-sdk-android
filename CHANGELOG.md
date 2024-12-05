@@ -1,6 +1,7 @@
 # 0.8.0-next.1
 ## Features:
 - [BDN-782](https://appodeal.atlassian.net/browse/BDN-782) Added ability to disable visibilityTracker
+- [BDN-786](https://appodeal.atlassian.net/browse/BDN-786) Implemented ad cache logic for auctions
 
 # 0.7.1-next.1
 ## Features:

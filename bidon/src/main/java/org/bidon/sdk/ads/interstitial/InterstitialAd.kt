@@ -13,9 +13,9 @@ class InterstitialAd @JvmOverloads constructor(
 ) : Interstitial by InterstitialImpl(auctionKey = auctionKey)
 
 interface Interstitial : Extras, WinLossNotifier {
-    fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
-    fun destroyAd()
     fun isReady(): Boolean
-    fun showAd(activity: Activity)
     fun setInterstitialListener(listener: InterstitialListener)
+    fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
+    fun showAd(activity: Activity)
+    fun destroyAd()
 }
