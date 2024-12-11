@@ -18,7 +18,6 @@ import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import sg.bigo.ads.BigoAdSdk
