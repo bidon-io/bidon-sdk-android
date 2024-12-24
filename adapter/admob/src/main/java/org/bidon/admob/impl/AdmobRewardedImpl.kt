@@ -6,7 +6,6 @@ import com.google.android.gms.ads.OnPaidEventListener
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import org.bidon.admob.AdmobFullscreenAdAuctionParams
-import org.bidon.admob.AdmobInitParameters
 import org.bidon.admob.asBidonError
 import org.bidon.admob.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -23,8 +22,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 internal class AdmobRewardedImpl(
-    configParams: AdmobInitParameters?,
-    private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(configParams),
+    private val getAdRequest: GetAdRequestUseCase = GetAdRequestUseCase(),
     private val getFullScreenContentCallback: GetFullScreenContentCallbackUseCase = GetFullScreenContentCallbackUseCase(),
     private val obtainAdAuctionParams: GetAdAuctionParamsUseCase = GetAdAuctionParamsUseCase(),
 ) : AdSource.Rewarded<AdmobFullscreenAdAuctionParams>,
@@ -42,16 +40,8 @@ internal class AdmobRewardedImpl(
     }
 
     override fun load(adParams: AdmobFullscreenAdAuctionParams) {
-        val adRequest = getAdRequest(adParams) ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId, "payload")
-                )
-            )
-            return
-        }
+        logInfo(TAG, "Starting with $adParams")
         val adUnitId = when (adParams) {
-            is AdmobFullscreenAdAuctionParams.Bidding -> adParams.adUnitId
             is AdmobFullscreenAdAuctionParams.Network -> adParams.adUnitId
         } ?: run {
             emitEvent(
@@ -95,7 +85,7 @@ internal class AdmobRewardedImpl(
                 }
             }
         }
-        RewardedAd.load(adParams.activity, adUnitId, adRequest, requestListener)
+        RewardedAd.load(adParams.activity, adUnitId, getAdRequest(), requestListener)
     }
 
     override fun show(activity: Activity) {
