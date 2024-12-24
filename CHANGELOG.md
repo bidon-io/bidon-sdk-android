@@ -1,5 +1,6 @@
 # 0.8.0-next.2
 ## Features:
+- [BDN-855](https://appodeal.atlassian.net/browse/BDN-855) Fixed applying new parameters for AdLoader
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Admob/Gam to 23.5.0
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Aamazon to 9.10.3
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Applovin to 13.0.1
