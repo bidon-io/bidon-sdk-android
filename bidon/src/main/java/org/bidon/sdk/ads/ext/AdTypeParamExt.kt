@@ -74,3 +74,33 @@ internal fun AdTypeParam.applyActivity(activity: Activity): AdTypeParam {
         }
     }
 }
+
+internal fun AdTypeParam.applyPricefloor(pricefloor: Double): AdTypeParam {
+    return when (val adTypeParam = this) {
+        is AdTypeParam.Banner -> {
+            AdTypeParam.Banner(
+                activity = adTypeParam.activity,
+                pricefloor = pricefloor,
+                auctionKey = adTypeParam.auctionKey,
+                bannerFormat = adTypeParam.bannerFormat,
+                containerWidth = adTypeParam.containerWidth
+            )
+        }
+
+        is AdTypeParam.Interstitial -> {
+            AdTypeParam.Interstitial(
+                activity = adTypeParam.activity,
+                pricefloor = pricefloor,
+                auctionKey = adTypeParam.auctionKey
+            )
+        }
+
+        is AdTypeParam.Rewarded -> {
+            AdTypeParam.Rewarded(
+                activity = adTypeParam.activity,
+                pricefloor = pricefloor,
+                auctionKey = adTypeParam.auctionKey
+            )
+        }
+    }
+}
