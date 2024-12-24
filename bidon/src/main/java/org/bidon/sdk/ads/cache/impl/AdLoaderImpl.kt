@@ -17,6 +17,7 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.helper.ActivityProvider
 import org.bidon.sdk.ads.cache.AdLoader
 import org.bidon.sdk.ads.ext.applyActivity
+import org.bidon.sdk.ads.ext.applyPricefloor
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.models.DemandResult
@@ -63,13 +64,18 @@ internal class AdLoaderImpl(
 
     override fun applyLoadParams(demandAd: DemandAd, adTypeParam: AdTypeParam) {
         logInfo(tag, "Applying ad demandAd $demandAd with ad type param: $adTypeParam")
-        when (state.value) {
+
+        val currentState = state.value
+        val updatedAdTypeParam = currentState.adTypeParamUpdated(adTypeParam)
+
+        when (currentState) {
             is State.Idle,
             is State.Awaiting -> {
-                if (shouldLoadAd(adTypeParam)) {
-                    startAuction(demandAd, adTypeParam)
+                if (shouldLoadAd(updatedAdTypeParam)) {
+                    state.value = State.Loading(demandAd, updatedAdTypeParam)
+                    startAuction()
                 } else {
-                    state.value = State.Awaiting(demandAd, adTypeParam)
+                    state.value = State.Awaiting(demandAd, updatedAdTypeParam)
                     logInfo(tag, "State is Awaiting. Cache is sufficient. New parameters will be applied during the next auction.")
                 }
             }
@@ -77,7 +83,7 @@ internal class AdLoaderImpl(
             is State.Loading -> {
                 cancelDelay()
                 resetRetryDelay()
-                state.value = State.Loading(demandAd, adTypeParam)
+                state.value = State.Loading(demandAd, updatedAdTypeParam)
                 logInfo(tag, "State is Loading. New parameters will be applied during the next auction.")
             }
         }
@@ -92,7 +98,8 @@ internal class AdLoaderImpl(
             }
 
             is State.Awaiting -> {
-                startAuction(currentState.demandAd, currentState.adTypeParam)
+                state.value = State.Loading(currentState.demandAd, currentState.adTypeParam)
+                startAuction()
             }
 
             is State.Loading -> {
@@ -104,12 +111,28 @@ internal class AdLoaderImpl(
         }
     }
 
-    private fun startAuction(demandAd: DemandAd, adTypeParam: AdTypeParam) {
-        state.value = State.Loading(demandAd, adTypeParam)
+    private fun State.adTypeParamUpdated(adTypeParam: AdTypeParam): AdTypeParam {
+        return when (this) {
+            is State.Idle -> adTypeParam
+            is State.Awaiting ->
+                this.adTypeParam
+                    .applyActivity(adTypeParam.activity)
+                    .applyPricefloor(adTypeParam.pricefloor)
+
+            is State.Loading ->
+                this.adTypeParam
+                    .applyActivity(adTypeParam.activity)
+                    .applyPricefloor(adTypeParam.pricefloor)
+        }
+    }
+
+    private fun startAuction() {
+        val currentState = state.value
+        require(currentState is State.Loading) { "Auction can be started only in Loading state." }
         logInfo(tag, "State is ${state.value}. Starting auction.")
         get<Auction>().start(
-            demandAd = demandAd,
-            adTypeParam = adTypeParam,
+            demandAd = currentState.demandAd,
+            adTypeParam = currentState.adTypeParam,
             onSuccess = { winners, auctionInfo -> handleAuctionSuccess(winners, auctionInfo) },
             onFailure = { _, _ -> handleAuctionFailure() }
         )
@@ -126,7 +149,8 @@ internal class AdLoaderImpl(
 
             logInfo(tag, "Auction successful. Current ad cache: ${adInstances.value.asString()}")
             if (shouldLoadAd(currentState.adTypeParam)) {
-                startAuction(currentState.demandAd, currentState.adTypeParam)
+                state.value = State.Loading(currentState.demandAd, currentState.adTypeParam)
+                startAuction()
             } else {
                 state.value = State.Awaiting(currentState.demandAd, currentState.adTypeParam)
                 logInfo(tag, "Cache is sufficient. Loading paused.")
@@ -151,7 +175,8 @@ internal class AdLoaderImpl(
                 if (state.value is State.Loading) {
                     val updatedState = state.value as State.Loading
                     logInfo(tag, "Retrying auction.")
-                    startAuction(updatedState.demandAd, updatedState.adTypeParam)
+                    state.value = State.Loading(updatedState.demandAd, updatedState.adTypeParam)
+                    startAuction()
                 } else {
                     logInfo(tag, "Retry aborted. Current state changed to: ${state.value}")
                 }
