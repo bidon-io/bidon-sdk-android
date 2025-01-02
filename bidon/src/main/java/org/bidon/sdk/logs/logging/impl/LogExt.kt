@@ -12,13 +12,15 @@ import org.bidon.sdk.logs.logging.Logger.Level
  */
 fun logInfo(tag: String, message: String) {
     if (BidonSdk.loggerLevel == Level.Verbose) {
-        Log.d(DefaultTag, "[$tag] $message")
+        val thread = Thread.currentThread().name
+        Log.d(DefaultTag, "[$thread] [$tag] $message")
     }
 }
 
 fun logError(tag: String, message: String, error: Throwable? = null) {
     if (BidonSdk.loggerLevel in arrayOf(Level.Error, Level.Verbose)) {
-        Log.e(DefaultTag, "[$tag] $message", error)
+        val thread = Thread.currentThread().name
+        Log.e(DefaultTag, "[$thread] [$tag] $message", error)
     }
 }
 

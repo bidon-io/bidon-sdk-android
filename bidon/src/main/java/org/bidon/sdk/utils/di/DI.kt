@@ -2,6 +2,7 @@ package org.bidon.sdk.utils.di
 
 import android.app.Application
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.impl.AdaptersSourceImpl
 import org.bidon.sdk.ads.AdType
@@ -24,6 +25,7 @@ import org.bidon.sdk.ads.cache.impl.AdCacheImpl
 import org.bidon.sdk.ads.cache.impl.AdCacheProviderImpl
 import org.bidon.sdk.ads.cache.impl.AdLoaderImpl
 import org.bidon.sdk.ads.cache.impl.MaxEcpmAdCacheSorter
+import org.bidon.sdk.ads.cache.impl.OldAdCacheImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -93,6 +95,7 @@ import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
+import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -302,6 +305,14 @@ internal object DI {
                     adType = adType as AdType,
                     adSettings = settings as AdSettings,
                     adCacheSorter = get(),
+                )
+            }
+            // hack only for test old cache
+            factoryWithParams<OldAdCacheImpl> { (adType) ->
+                OldAdCacheImpl(
+                    adType = adType as AdType,
+                    scope = CoroutineScope(SdkDispatchers.Main),
+                    resolver = get(),
                 )
             }
             factoryWithParams<AdLoader> { (adType, settings) ->

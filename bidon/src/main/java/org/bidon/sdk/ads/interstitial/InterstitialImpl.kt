@@ -35,7 +35,7 @@ internal class InterstitialImpl(
 
     private val scope: CoroutineScope by lazy { CoroutineScope(dispatcher) }
     private val listener: InterstitialListener by lazy { getInterstitialListener() }
-    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd)
+    private val adCache: AdCache by lazy { get<AdCacheProvider>().provide(demandAd) }
 
     private var cacheJob: Job? = null
     private var observeCallbacksJob: Job? = null
@@ -138,6 +138,7 @@ internal class InterstitialImpl(
         scope.launch(Dispatchers.Main.immediate) {
             cacheJob?.cancel()
             cacheJob = null
+            adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
 

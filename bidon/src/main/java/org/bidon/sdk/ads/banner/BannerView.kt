@@ -55,7 +55,7 @@ class BannerView @JvmOverloads constructor(
     private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Main) }
     private val listener: BannerListener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
-    private val adCache: AdCache get() = get<AdCacheProvider>().provide(demandAd, format)
+    private val adCache: AdCache by lazy { get<AdCacheProvider>().provide(demandAd, format) }
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
 
     private var cacheJob: Job? = null
@@ -264,6 +264,7 @@ class BannerView @JvmOverloads constructor(
 
             cacheJob?.cancel()
             cacheJob = null
+            adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
 

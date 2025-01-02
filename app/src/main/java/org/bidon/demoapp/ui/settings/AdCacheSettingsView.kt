@@ -28,9 +28,11 @@ import androidx.compose.ui.unit.dp
 import org.bidon.demoapp.component.AppOutlinedButton
 import org.bidon.demoapp.component.AppTextButton
 import org.bidon.demoapp.component.Body2Text
+import org.bidon.demoapp.component.ItemSelector
 import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdCacheSettings
 import org.bidon.sdk.cache.AdCacheSettingsProvider.AdSettings
+import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.CACHE_ENABLED
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_CACHE_SIZE
 import org.bidon.sdk.cache.AdCacheSettingsProvider.Companion.MIN_RETRY_DELAY_MS
 
@@ -42,9 +44,9 @@ internal fun AdCacheSettingsView(
     val adCacheSettings = remember {
         mutableStateOf(
             AdCacheSettings(
-                banner = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
-                interstitial = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
-                rewardedVideo = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS),
+                banner = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS, CACHE_ENABLED),
+                interstitial = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS, CACHE_ENABLED),
+                rewardedVideo = AdSettings(MIN_CACHE_SIZE, MIN_RETRY_DELAY_MS, CACHE_ENABLED),
             )
         )
     }
@@ -112,6 +114,7 @@ private fun AdTypeSettingsView(
     val focusManager = LocalFocusManager.current
     var adunitCacheSize by remember(adSettings) { mutableStateOf(adSettings.cacheSize.toString()) }
     var noFillDelayMs by remember(adSettings) { mutableStateOf(adSettings.retryDelayMs.toString()) }
+    var adCacheMode by remember(adSettings) { mutableStateOf(adSettings.isCacheEnabled) }
 
     Column(
         modifier = Modifier
@@ -160,6 +163,21 @@ private fun AdTypeSettingsView(
             )
         )
 
+        // Ad Ca
+        ItemSelector(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalAlignment = Alignment.Start,
+            title = "Ad Cache enabled",
+            items = listOf(true, false),
+            selectedItem = adCacheMode,
+            getItemTitle = { adCacheMode ->
+                "True".takeIf { adCacheMode } ?: "False"
+            },
+            onItemClicked = { newValue ->
+                adCacheMode = newValue
+            }
+        )
+
         AppOutlinedButton(
             text = "Apply Settings",
             modifier = Modifier
@@ -169,7 +187,8 @@ private fun AdTypeSettingsView(
             onSettingsChange(
                 AdSettings(
                     cacheSize = adunitCacheSize.toIntOrNull() ?: adSettings.cacheSize,
-                    retryDelayMs = noFillDelayMs.toLongOrNull() ?: adSettings.retryDelayMs
+                    retryDelayMs = noFillDelayMs.toLongOrNull() ?: adSettings.retryDelayMs,
+                    isCacheEnabled = adCacheMode
                 )
             )
         }

@@ -84,6 +84,10 @@ internal class AdCacheImpl(
 
     override fun all(): List<AdSource<*>> = adInstances.value.map { it.adSource }
 
+    override fun clear() {
+        // Clearing the cache is not supported for this implementation
+    }
+
     private fun processAdLoaders(demandAd: DemandAd, adTypeParam: AdTypeParam) {
         adLoaders.updateAndGet { currentLoaders ->
             val key = adTypeParam.auctionKeyOrDefault

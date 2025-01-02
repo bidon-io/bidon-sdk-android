@@ -26,10 +26,22 @@ internal class AdCacheProviderImpl(
         demandAd: DemandAd,
         bannerFormat: BannerFormat // only for banner ad cache
     ): AdCache {
-        return when (demandAd.adType) {
-            AdType.Banner -> provideBannerCache(demandAd, bannerFormat)
-            AdType.Interstitial -> provideInterstitialCache(demandAd)
-            AdType.Rewarded -> provideRewardedCache(demandAd)
+        val isNewCacheEnabled = when (demandAd.adType) {
+            AdType.Banner -> settings.settings.banner.isCacheEnabled
+            AdType.Interstitial -> settings.settings.interstitial.isCacheEnabled
+            AdType.Rewarded -> settings.settings.rewardedVideo.isCacheEnabled
+        }
+
+        return if (isNewCacheEnabled) {
+            logInfo(TAG, "New cache is enabled")
+            when (demandAd.adType) {
+                AdType.Banner -> provideBannerCache(demandAd, bannerFormat)
+                AdType.Interstitial -> provideInterstitialCache(demandAd)
+                AdType.Rewarded -> provideRewardedCache(demandAd)
+            }
+        } else {
+            logInfo(TAG, "New cache is disabled, use old cache")
+            get<OldAdCacheImpl> { params(demandAd.adType) }
         }
     }
 

@@ -35,4 +35,9 @@ internal interface AdCache {
      * Returns all ads in the cache.
      */
     fun all(): List<AdSource<*>>
+
+    /**
+     * Clears the cache.
+     */
+    fun clear()
 }
