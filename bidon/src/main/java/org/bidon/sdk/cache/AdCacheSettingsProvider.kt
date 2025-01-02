@@ -34,19 +34,22 @@ interface AdCacheSettingsProvider {
      * automatically constrained between 1 and 10.
      * @property retryDelayMs The delay before retrying to load an ad after a no-fill response,
      * automatically constrained between 2000 ms and 64000 ms.
+     * @property isCacheEnabled Whether the cache is enabled.
      */
-    data class AdSettings(val cacheSize: Int, val retryDelayMs: Long)
+    data class AdSettings(val cacheSize: Int, val retryDelayMs: Long, val isCacheEnabled: Boolean)
 
     companion object {
         const val MIN_CACHE_SIZE: Int = 1
         const val MAX_CACHE_SIZE: Int = 10
         const val MIN_RETRY_DELAY_MS: Long = 2_000
         const val MAX_RETRY_DELAY_MS: Long = 64_000
+        const val CACHE_ENABLED: Boolean = true
 
         val DefaultAdSettings
             get() = AdSettings(
                 cacheSize = MIN_CACHE_SIZE,
-                retryDelayMs = MIN_RETRY_DELAY_MS
+                retryDelayMs = MIN_RETRY_DELAY_MS,
+                isCacheEnabled = CACHE_ENABLED
             )
     }
 }
