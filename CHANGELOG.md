@@ -1,3 +1,6 @@
+# 0.8.0-next.3
+## Features:
+
 # 0.8.0-next.2
 ## Features:
 - [BDN-855](https://appodeal.atlassian.net/browse/BDN-855) Fixed applying new parameters for AdLoader
