@@ -1,5 +1,6 @@
 # 0.8.0-next.3
 ## Features:
+- [BDN-859](https://appodeal.atlassian.net/browse/BDN-859) Add feature toggle for ad caching mode
 
 # 0.8.0-next.2
 ## Features:
