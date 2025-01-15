@@ -13,7 +13,7 @@ object Versions {
         val BidMachine = "$mainVersion.0" + semanticVersion
         val BigoAds = "$mainVersion.0" + semanticVersion
         val Chartboost = "$mainVersion.0" + semanticVersion
-        val DTExchange = "$mainVersion.0" + semanticVersion
+        val DTExchange = "$mainVersion.1" + semanticVersion
         val Gam = "$mainVersion.0" + semanticVersion
         val Inmobi = "$mainVersion.0" + semanticVersion
         val IronSource = "$mainVersion.0" + semanticVersion
