@@ -1,3 +1,7 @@
+# 0.7.2
+## Features:
+- [BDN-877](https://appodeal.atlassian.net/browse/BDN-877) Updated DtExchange to 8.3.5
+
 # 0.7.1
 ## Features:
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Admob/Gam to 23.5.0
@@ -16,7 +20,6 @@
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Vungle to 7.4.2
 - [BDN-799](https://appodeal.atlassian.net/browse/BDN-799) Updated Yandex to 7.7.0
 - [BDN-778](https://appodeal.atlassian.net/browse/BDN-778) Updated Bidmachine to 3.1.1
-- [BDN-877](https://appodeal.atlassian.net/browse/BDN-877) Updated DtExchange to 8.3.5
 
 # 0.7.1-next.1
 ## Features:
