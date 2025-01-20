@@ -23,7 +23,7 @@ import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.impl.AuctionImpl
-import org.bidon.sdk.auction.impl.MaxEcpmAuctionResolver
+import org.bidon.sdk.auction.impl.MaxPriceAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
@@ -178,7 +178,7 @@ internal object DI {
                 )
             }
             factory<AdapterInstanceCreator> { AdapterInstanceCreatorImpl() }
-            factory<AuctionResolver> { MaxEcpmAuctionResolver }
+            factory<AuctionResolver> { MaxPriceAuctionResolver }
             factory<Auction> {
                 AuctionImpl(
                     adaptersSource = get(),
