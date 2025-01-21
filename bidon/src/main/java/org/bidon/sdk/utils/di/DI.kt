@@ -153,11 +153,7 @@ internal object DI {
 
             // [SegmentDataSource] should be singleton per session
             singleton<TokenDataSource> { TokenDataSourceImpl(keyValueStorage = get()) }
-            singleton<Regulation> {
-                RegulationImpl(
-                    iabConsent = get()
-                )
-            }
+            singleton<Regulation> { RegulationImpl() }
             /**
              * [SegmentSynchronizer] depends on it
              */
@@ -247,7 +243,10 @@ internal object DI {
             }
             factory<DataProvider> {
                 DataProviderImpl(
-                    deviceBinder = DeviceBinder(deviceDataSource = get(), locationDataSource = get()),
+                    deviceBinder = DeviceBinder(
+                        deviceDataSource = get(),
+                        locationDataSource = get()
+                    ),
                     appBinder = AppBinder(dataSource = get()),
                     sessionBinder = SessionBinder(dataSource = get()),
                     tokenBinder = TokenBinder(dataSource = get()),
