@@ -1,3 +1,7 @@
+# develop (2025.02.*)
+## Features:
+- [BDN-903](https://appodeal.atlassian.net/browse/BDN-903) Synchronize banner view ad size logic with iOS
+
 # 0.7.4 (2025.02.06)
 ## Features:
 - [BDN-782](https://appodeal.atlassian.net/browse/BDN-782) Added ability to disable visibilityTracker

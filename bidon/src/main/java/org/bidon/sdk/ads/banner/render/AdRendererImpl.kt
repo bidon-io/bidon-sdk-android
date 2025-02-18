@@ -17,7 +17,7 @@ import org.bidon.sdk.ads.banner.BannerView
 import org.bidon.sdk.ads.banner.render.AdRenderer.PositionState
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.TAG
-import org.bidon.sdk.utils.ext.dp
+import org.bidon.sdk.utils.ext.pxToDp
 import java.lang.ref.WeakReference
 
 /**
@@ -223,17 +223,17 @@ internal class AdRendererImpl(
         )
     }
 
-    private fun BannerView.obtainWidth() = this.adSize?.widthDp?.dp ?: when (format) {
-        BannerFormat.MRec -> 300.dp
-        BannerFormat.LeaderBoard -> 728.dp
-        BannerFormat.Banner -> 320.dp
+    private fun BannerView.obtainWidth() = this.adSize?.widthDp?.pxToDp ?: when (format) {
+        BannerFormat.MRec -> 300.pxToDp
+        BannerFormat.LeaderBoard -> 728.pxToDp
+        BannerFormat.Banner -> 320.pxToDp
         BannerFormat.Adaptive -> WRAP_CONTENT
     }
 
-    private fun BannerView.obtainHeight() = this.adSize?.heightDp?.dp ?: when (format) {
-        BannerFormat.MRec -> 250.dp
-        BannerFormat.LeaderBoard -> 90.dp
-        BannerFormat.Banner -> 50.dp
+    private fun BannerView.obtainHeight() = this.adSize?.heightDp?.pxToDp ?: when (format) {
+        BannerFormat.MRec -> 250.pxToDp
+        BannerFormat.LeaderBoard -> 90.pxToDp
+        BannerFormat.Banner -> 50.pxToDp
         BannerFormat.Adaptive -> WRAP_CONTENT
     }
 }
