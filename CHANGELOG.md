@@ -2,6 +2,7 @@
 ## Features:
 - [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated Amazon to 10.0.0
 - [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated Applovin to 13.1.0
+- [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated Admob/Gam to 23.6.0
 - [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated Bidmachine to 3.2.0
 - [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated BigoAds to 5.1.0
 - [BDN-898](https://appodeal.atlassian.net/browse/BDN-898) Updated Chartboost to 9.8.2
