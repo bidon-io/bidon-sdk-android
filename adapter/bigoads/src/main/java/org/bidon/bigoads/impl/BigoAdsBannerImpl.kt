@@ -107,7 +107,14 @@ internal class BigoAdsBannerImpl :
         adRequestBuilder.withAdSizes(adParams.bannerSize)
         if (adParams.adUnit.bidType == BidType.RTB) {
             val payload = adParams.payload
-                ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
+                ?: return emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(
+                            demandId = demandId,
+                            message = "payload"
+                        )
+                    )
+                )
             adRequestBuilder.withBid(payload)
         }
         adRequestBuilder.withSlotId(slotId)
