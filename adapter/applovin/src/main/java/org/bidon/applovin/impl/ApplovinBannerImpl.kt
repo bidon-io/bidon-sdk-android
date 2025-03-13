@@ -48,7 +48,6 @@ internal class ApplovinBannerImpl(
 
             override fun adHidden(ad: AppLovinAd) {
                 logInfo(TAG, "adHidden: $ad")
-                emitEvent(AdEvent.ShowFailed(BidonError.NoFill(demandId)))
             }
 
             override fun adClicked(ad: AppLovinAd) {
