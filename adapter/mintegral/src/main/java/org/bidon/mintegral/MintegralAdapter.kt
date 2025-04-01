@@ -71,21 +71,9 @@ internal class MintegralAdapter :
                         }
 
                         override fun onInitFail(message: String?) {
-                            val sourceError = Throwable(message)
-                            logError(
-                                tag = TAG,
-                                message = "Error while initialization: $message",
-                                error = BidonError.Unspecified(
-                                    demandId = demandId,
-                                    cause = sourceError
-                                )
-                            )
-                            continuation.resumeWithException(
-                                BidonError.Unspecified(
-                                    demandId = demandId,
-                                    cause = sourceError
-                                )
-                            )
+                            val error = BidonError.Unspecified(demandId, Throwable(message))
+                            logError(TAG, "Error while initialization: $message", error)
+                            continuation.resumeWithException(error)
                         }
                     }
                 )
