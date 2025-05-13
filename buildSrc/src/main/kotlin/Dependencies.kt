@@ -7,7 +7,7 @@ object Dependencies {
     }
 
     object Kotlin {
-        const val kotlinVersion = "1.8.10"
+        const val kotlinVersion = "2.1.0"
 
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
@@ -26,9 +26,9 @@ object Dependencies {
     }
 
     object Android {
-        const val gradlePlugin = "com.android.tools.build:gradle:7.4.2"
+        const val gradlePlugin = "com.android.tools.build:gradle:8.8.2"
         const val compileSdkVersion = 34
-        const val minSdkVersion = 21
+        const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
         const val Annotation = "androidx.annotation:annotation:1.1.0"
@@ -36,7 +36,7 @@ object Dependencies {
 
     object Google {
         const val Services = "com.google.gms:google-services:4.3.14"
-        const val PlayServicesAds = "com.google.android.gms:play-services-ads:23.6.0"
+        const val PlayServicesAds = "com.google.android.gms:play-services-ads:24.2.0"
         const val PlayServicesAdsIdentifier = "com.google.android.gms:play-services-ads-identifier:18.0.1"
     }
 }
