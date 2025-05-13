@@ -29,9 +29,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
  *
  * https://appodeal.slack.com/archives/C02PE4GAFU0/p1661421318406689
  */
-internal class ApplovinRewardedImpl(
-    private val applovinSdk: AppLovinSdk,
-) : AdSource.Rewarded<ApplovinFullscreenAdAuctionParams>,
+internal class ApplovinRewardedImpl : AdSource.Rewarded<ApplovinFullscreenAdAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
@@ -123,7 +121,7 @@ internal class ApplovinRewardedImpl(
             return
         }
         val incentivizedInterstitial =
-            AppLovinIncentivizedInterstitial.create(zoneId, applovinSdk).also {
+            AppLovinIncentivizedInterstitial(zoneId).also {
                 rewardedAd = it
             }
         val requestListener = object : AppLovinAdLoadListener {
