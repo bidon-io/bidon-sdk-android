@@ -76,8 +76,10 @@ afterEvaluate {
                 afterEvaluate {
                     from(components["productionRelease"])
                 }
-                artifact(dokkaJar)
-                artifact(sourcesJar)
+                artifact(dokkaJar.get())
+                if (!plugins.hasPlugin("com.android.library")) {
+                    artifact(sourcesJar.get())
+                }
                 pom {
                     groupId = "org.bidon"
                     artifactId = getArtifactId
