@@ -146,7 +146,7 @@ internal class ApplovinRewardedImpl : AdSource.Rewarded<ApplovinFullscreenAdAuct
         logInfo(TAG, "Starting show: $this")
         val applovinAd = this.applovinAd
         if (rewardedAd?.isAdReadyToDisplay == true && applovinAd != null) {
-            rewardedAd?.show(applovinAd, activity.applicationContext, listener, listener, listener, listener)
+            rewardedAd?.show(applovinAd, listener, listener, listener, listener)
             this.applovinAd = null
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
