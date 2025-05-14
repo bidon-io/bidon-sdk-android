@@ -6,7 +6,7 @@ plugins {
 }
 
 project.extra.apply {
-    this.set("AdapterGroupId", "com.applovin.mediation.adapters")
+    this.set("AdapterGroupId", "com.applovin.mediation")
     this.set("AdapterArtifactId", "bidon-adapter")
     this.set("AdapterVersionName", Versions.ThirdPartyMediationAdapters.ApplovinMax)
 }
