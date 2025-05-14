@@ -1,10 +1,10 @@
 package com.applovin.mediation.adapters.rewarded
 
 import android.app.Activity
-import androidx.annotation.VisibleForTesting
 import com.applovin.mediation.adapters.keeper.AdInstance
 import com.applovin.mediation.adapters.keeper.DEFAULT_DEMAND_ID
 import com.applovin.mediation.adapters.keeper.DEFAULT_ECPM
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.rewarded.RewardedAd
 import org.bidon.sdk.ads.rewarded.RewardedListener
@@ -13,11 +13,14 @@ internal class RewardedAdInstance(
     auctionKey: String? = null,
 ) : AdInstance {
 
-    @VisibleForTesting
-    internal val rewardedAd = RewardedAd(auctionKey = auctionKey)
+    private val rewardedAd = RewardedAd(auctionKey = auctionKey)
 
     private var rewardedListener: RewardedListener? = null
     private var rewardedAdInfo: Ad? = null
+
+    init {
+        rewardedAd.addExtra("mediator", "max")
+    }
 
     override val ecpm: Double get() = rewardedAdInfo?.price ?: DEFAULT_ECPM
     override val demandId: String get() = rewardedAdInfo?.networkName ?: DEFAULT_DEMAND_ID
@@ -28,12 +31,12 @@ internal class RewardedAdInstance(
         rewardedAd.setRewardedListener(listener)
     }
 
-    fun addExtra(key: String, value: Any) {
+    fun addExtra(key: String, value: Any?) {
         rewardedAd.addExtra(key, value)
     }
 
-    fun load(activity: Activity, pricefloor: Double) {
-        rewardedAd.loadAd(activity = activity, pricefloor = pricefloor)
+    fun load(activity: Activity) {
+        rewardedAd.loadAd(activity = activity, pricefloor = BidonSdk.DefaultPricefloor)
     }
 
     fun show(activity: Activity) {

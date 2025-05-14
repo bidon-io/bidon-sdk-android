@@ -14,7 +14,6 @@ import com.applovin.mediation.adapters.ext.updatePrivacySettings
 import com.applovin.mediation.adapters.interstitial.BidonInterstitial
 import com.applovin.mediation.adapters.rewarded.BidonRewarded
 import com.applovin.sdk.AppLovinSdk
-import org.bidon.applovin.BuildConfig
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.logs.logging.Logger
 
@@ -27,13 +26,10 @@ internal class BidonMediationAdapter(
     MaxRewardedAdapter by BidonRewarded() {
 
     override fun getSdkVersion(): String = BidonSdk.SdkVersion
-    override fun getAdapterVersion(): String = "${BidonSdk.SdkVersion}.${BuildConfig.ADAPTER_VERSION}"
+    override fun getAdapterVersion(): String = BuildConfig.ADAPTER_VERSION
 
     override fun shouldInitializeOnUiThread(): Boolean = false
-    override fun shouldLoadAdsOnUiThread(adFormat: MaxAdFormat?): Boolean = when (adFormat) {
-        MaxAdFormat.BANNER, MaxAdFormat.MREC -> true
-        else -> false
-    }
+    override fun shouldLoadAdsOnUiThread(adFormat: MaxAdFormat?): Boolean = false
 
     override fun initialize(
         parameters: MaxAdapterInitializationParameters,

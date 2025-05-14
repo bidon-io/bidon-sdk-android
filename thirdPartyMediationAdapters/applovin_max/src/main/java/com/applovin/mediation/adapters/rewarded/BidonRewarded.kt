@@ -57,35 +57,19 @@ internal class BidonRewarded(
             if (activity == null) {
                 log(TAG, "Rewarded ad failed to load: Activity is null")
                 listener.onRewardedAdLoadFailed(MaxAdapterError.MISSING_ACTIVITY)
+                onDestroy()
             } else {
                 val auctionKey = customParameters.getString("auction_key", null)
-                val pricefloorCoef = customParameters.getAsDouble("pricefloor_coef", 1.0)
-                val pricefloorStart = customParameters.getAsDouble("pricefloor_start", 1.0)
-                // Calculate pricefloor
-                val pricefloor = if (lastRegisteredEcpm == null) {
-                    log(
-                        TAG,
-                        "No last ecpm, use start pricefloor: $pricefloorStart, Placement ID: $maxPlacementId"
-                    )
-                    pricefloorStart
-                } else {
-                    log(
-                        TAG,
-                        "Calculate pricefloor (last=$lastRegisteredEcpm * coef=$pricefloorCoef), Placement ID: $maxPlacementId"
-                    )
-                    lastRegisteredEcpm * pricefloorCoef
-                }
-
                 log(
                     TAG,
-                    "Loading rewarded ad for auction key: $auctionKey, pricefloor: $pricefloor, Placement ID: $maxPlacementId"
+                    "Loading rewarded ad for auction key: $auctionKey, pricefloor: ${0.0}, Placement ID: $maxPlacementId"
                 )
 
                 val newAdInstance = RewardedAdInstance(auctionKey = auctionKey)
                     .also { this.adInstance = it }
                 newAdInstance.setListener(listener.asBidonListener())
-                newAdInstance.addExtra("previous_waterfall_pricefloor", lastRegisteredEcpm ?: 0.0)
-                newAdInstance.load(activity = activity, pricefloor = pricefloor)
+                newAdInstance.addExtra("previous_auction_price", lastRegisteredEcpm)
+                newAdInstance.load(activity)
             }
         } else {
             log(TAG, "Placement ID: $maxPlacementId, No Unicorn Detected, Placement ECPM: $maxEcpm")
@@ -97,6 +81,7 @@ internal class BidonRewarded(
                     "Rewarded ad failed to load from cache: ECPM ISN'T SUITABLE, Placement ID: $maxPlacementId"
                 )
                 listener.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
+                onDestroy()
             } else {
                 log(
                     TAG,
@@ -119,18 +104,21 @@ internal class BidonRewarded(
         if (adInstance == null) {
             log(TAG, "Rewarded ad display failed: Ad is null, Placement ID: $maxPlacementId")
             listener.onRewardedAdDisplayFailed(MaxAdapterError.AD_DISPLAY_FAILED)
+            onDestroy()
         } else if (adInstance.isReady == false) {
             log(
                 TAG,
                 "Rewarded ad display failed: Ad is not ready, Placement ID: $maxPlacementId"
             )
             listener.onRewardedAdDisplayFailed(MaxAdapterError.AD_DISPLAY_FAILED)
+            onDestroy()
         } else if (activity == null) {
             log(
                 TAG,
                 "Rewarded ad display failed: Activity is null, Placement ID: $maxPlacementId"
             )
             listener.onRewardedAdDisplayFailed(MaxAdapterError.MISSING_ACTIVITY)
+            onDestroy()
         } else {
             adInstance.show(activity)
         }
@@ -154,6 +142,7 @@ internal class BidonRewarded(
                         "Rewarded ad failed to load: Ad is null, Placement ID: $maxPlacementId"
                     )
                     maxRewardedCallback.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
+                    onDestroy()
                 } else {
                     log(
                         TAG,
@@ -174,6 +163,7 @@ internal class BidonRewarded(
                             "Rewarded ad failed to load from cache: ECPM ISN'T SUITABLE, Placement ID: $maxPlacementId"
                         )
                         maxRewardedCallback.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
+                        onDestroy()
                     } else {
                         log(
                             TAG,
@@ -199,6 +189,7 @@ internal class BidonRewarded(
             override fun onAdShowFailed(cause: BidonError) {
                 log(TAG, "Rewarded ad failed to show: $cause, Placement ID: $maxPlacementId")
                 maxRewardedCallback.onRewardedAdDisplayFailed(cause.asMaxAdapterError())
+                onDestroy()
             }
 
             override fun onAdClicked(ad: Ad) {

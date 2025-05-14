@@ -60,28 +60,12 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
             if (activity == null) {
                 log(TAG, "Banner ad failed to load: Activity is null")
                 listener.onAdViewAdLoadFailed(MaxAdapterError.MISSING_ACTIVITY)
+                onDestroy()
             } else {
                 val auctionKey = customParameters.getString("auction_key", null)
-                val pricefloorCoef = customParameters.getAsDouble("pricefloor_coef", 1.0)
-                val pricefloorStart = customParameters.getAsDouble("pricefloor_start", 1.0)
-                // Calculate pricefloor
-                val pricefloor = if (lastRegisteredEcpm == null) {
-                    log(
-                        TAG,
-                        "No last ecpm, use start pricefloor: $pricefloorStart, Placement ID: $maxPlacementId"
-                    )
-                    pricefloorStart
-                } else {
-                    log(
-                        TAG,
-                        "Calculate pricefloor (last=$lastRegisteredEcpm * coef=$pricefloorCoef), Placement ID: $maxPlacementId"
-                    )
-                    lastRegisteredEcpm * pricefloorCoef
-                }
-
                 log(
                     TAG,
-                    "Loading banner ad for auction key: $auctionKey, pricefloor: $pricefloor, Placement ID: $maxPlacementId"
+                    "Loading banner ad for auction key: $auctionKey, pricefloor: ${0.0}, Placement ID: $maxPlacementId"
                 )
 
                 val newAdInstance = BannerAdInstance(
@@ -90,8 +74,8 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
                     auctionKey = auctionKey,
                 ).also { this.adInstance = it }
                 newAdInstance.setListener(listener.asBidonListener())
-                newAdInstance.addExtra("previous_waterfall_pricefloor", lastRegisteredEcpm ?: 0.0)
-                newAdInstance.load(activity = activity, pricefloor = pricefloor)
+                newAdInstance.addExtra("previous_auction_price", lastRegisteredEcpm)
+                newAdInstance.load(activity)
             }
         } else {
             log(TAG, "Placement ID: $maxPlacementId, No Unicorn Detected, Placement ECPM: $maxEcpm")
@@ -103,6 +87,7 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
                     "Banner ad failed to load from cache: ECPM ISN'T SUITABLE, Placement ID: $maxPlacementId"
                 )
                 listener.onAdViewAdLoadFailed(MaxAdapterError.NO_FILL)
+                onDestroy()
             } else {
                 log(
                     TAG,
@@ -134,6 +119,7 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
                         "Banner ad failed to load: Ad is null or keeper is null, Placement ID: $maxPlacementId"
                     )
                     maxBannerCallback.onAdViewAdLoadFailed(MaxAdapterError.NO_FILL)
+                    onDestroy()
                 } else {
                     log(
                         TAG,
@@ -154,6 +140,7 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
                             "Banner ad failed to load from cache: ECPM ISN'T SUITABLE, Placement ID: $maxPlacementId"
                         )
                         maxBannerCallback.onAdViewAdLoadFailed(MaxAdapterError.NO_FILL)
+                        onDestroy()
                     } else {
                         log(
                             TAG,
@@ -179,7 +166,8 @@ internal class BidonBanner : MaxAdViewAdapter, Logger by AppLovinSdkLogger {
 
             override fun onAdShowFailed(cause: BidonError) {
                 log(TAG, "Banner ad failed to show: $cause, Placement ID: $maxPlacementId")
-                maxBannerCallback.onAdViewAdLoadFailed(cause.asMaxAdapterError())
+                maxBannerCallback.onAdViewAdDisplayFailed(cause.asMaxAdapterError())
+                onDestroy()
             }
 
             override fun onAdClicked(ad: Ad) {
