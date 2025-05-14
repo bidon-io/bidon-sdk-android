@@ -53,7 +53,7 @@ internal class GetAuctionRequestUseCaseImpl(
             val (banner, interstitial, rewarded) = adTypeParam.asAdRequestBody()
             val adObject = AdObjectRequest(
                 auctionId = auctionId,
-                auctionKey = "1JS9C788K0000",
+                auctionKey = adTypeParam.auctionKey,
                 banner = banner,
                 interstitial = interstitial,
                 rewarded = rewarded,
