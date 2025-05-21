@@ -1,6 +1,6 @@
 # 0.7.9 (2025.05.**)
 ## Features:
-- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.2.0
+- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.3.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Migrated to gradle 8
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Migrated to Kotlin 2.1.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Amazon SDK to 11.0.0
@@ -14,7 +14,6 @@
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Mintegral SDK to 16.9.71
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated UnityAds SDK to 4.14.2
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Vungle SDK to 7.5.0
-- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Yandex SDK to 7.12.2N
 
 # 0.7.8 (2025.05.07)
 ## Features:
