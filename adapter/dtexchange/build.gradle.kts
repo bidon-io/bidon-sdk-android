@@ -1,4 +1,6 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")

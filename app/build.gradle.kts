@@ -1,13 +1,12 @@
 import ext.BIDON_API_KEY
 import ext.STAGING_BASIC_AUTH_PASSWORD
 import ext.STAGING_BASIC_AUTH_USERNAME
+import ext.Dependencies
 import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
-    kotlin("android")
+    id("application-compose")
 }
 
 val defaultPackage = "org.bidon.demoapp"
@@ -72,12 +71,12 @@ android {
             dimension = "server"
         }
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+//    kotlinOptions {
+//        jvmTarget = "11"
+//    }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
@@ -110,18 +109,18 @@ dependencies {
 //    implementation("org.bidon:vungle-adapter:0.3.1.0")
 //    implementation("org.bidon:yandex-adapter:0.3.1.0")
 
-    implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
-    implementation("com.google.android.gms:play-services-ads:22.5.0")
+
+    implementation("test.bidon.adapter:admob:0.7.9.0")
 
     implementation(projects.bidon)
-    implementation(projects.adapter.admob)
+//    implementation(projects.adapter.admob)
     implementation(projects.adapter.amazon)
     implementation(projects.adapter.applovin)
     implementation(projects.adapter.bidmachine)
     implementation(projects.adapter.bigoads)
     implementation(projects.adapter.chartboost)
     implementation(projects.adapter.dtexchange)
-    implementation(projects.adapter.gam)
+//    implementation(projects.adapter.gam)
     implementation(projects.adapter.inmobi)
     implementation(projects.adapter.ironsource)
     implementation(projects.adapter.meta)
@@ -133,6 +132,9 @@ dependencies {
     implementation(projects.adapter.yandex)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
+
+    implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
+    implementation("com.google.android.gms:play-services-ads:22.5.0")
 
     implementation("com.google.accompanist:accompanist-permissions:0.29.1-alpha")
     implementation("androidx.multidex:multidex:2.0.1")

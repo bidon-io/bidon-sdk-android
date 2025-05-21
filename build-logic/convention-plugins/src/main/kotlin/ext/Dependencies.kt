@@ -1,3 +1,5 @@
+package ext
+
 object Dependencies {
 
     object SdkAdapter {
@@ -7,7 +9,7 @@ object Dependencies {
     }
 
     object Kotlin {
-        const val kotlinVersion = "2.1.0"
+        const val kotlinVersion = "1.9.10"
 
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
@@ -36,7 +38,7 @@ object Dependencies {
 
     object Google {
         const val Services = "com.google.gms:google-services:4.3.14"
-        const val PlayServicesAds = "com.google.android.gms:play-services-ads:24.2.0"
+        const val PlayServicesAds = "com.google.android.gms:play-services-ads:24.3.0"
         const val PlayServicesAdsIdentifier = "com.google.android.gms:play-services-ads-identifier:18.0.1"
     }
 }

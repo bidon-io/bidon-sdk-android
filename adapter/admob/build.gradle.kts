@@ -1,8 +1,12 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
+import ext.Dependencies
 
 plugins {
-    id("common")
     id("publish-adapter")
+    id("kotlin-2-0")
+    id("com.android.library") version "8.7.3" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
 project.extra.apply {
