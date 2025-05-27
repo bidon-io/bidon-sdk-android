@@ -29,6 +29,7 @@ afterEvaluate {
         from(android.sourceSets.getByName("main").java.srcDirs)
     }
     publishing {
+        val getGroupId = project.getGroupId(default = "org.bidon")
         val getArtifactId = project.getArtifactId()
         val getVersionName = project.getVersionName()
         repositories {
@@ -76,10 +77,12 @@ afterEvaluate {
                 afterEvaluate {
                     from(components["productionRelease"])
                 }
-                artifact(dokkaJar)
-                artifact(sourcesJar)
+                artifact(dokkaJar.get())
+                if (!plugins.hasPlugin("com.android.library")) {
+                    artifact(sourcesJar.get())
+                }
                 pom {
-                    groupId = "org.bidon"
+                    groupId = getGroupId
                     artifactId = getArtifactId
                     version = getVersionName
                     name.set(project.name)
