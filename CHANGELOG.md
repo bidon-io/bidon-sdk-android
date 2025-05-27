@@ -1,9 +1,9 @@
 # 0.7.9 (2025.05.**)
 ## Features:
-- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.2.0
+- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Min sdk api increased to 23
+- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.3.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Migrated to gradle 8
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Migrated to Kotlin 2.1.0
-
 
 # 0.7.8 (2025.05.07)
 ## Features:

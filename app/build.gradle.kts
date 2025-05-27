@@ -23,6 +23,7 @@ android {
     namespace = defaultPackage
     buildFeatures {
         buildConfig = true
+        compose = true
     }
     defaultConfig {
         applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as? String ?: defaultPackage
@@ -73,17 +74,11 @@ android {
         }
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = Dependencies.Kotlin.kotlinCompilerExtensionVersion
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     lint {
         checkReleaseBuilds = false
