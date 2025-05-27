@@ -12,7 +12,6 @@ object Dependencies {
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
          */
-        const val kotlinCompilerExtensionVersion = "1.4.4"
         const val bom = "org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"
         const val gradlePlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         const val reflect = "org.jetbrains.kotlin:kotlin-reflect"
