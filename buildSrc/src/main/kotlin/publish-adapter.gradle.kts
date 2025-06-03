@@ -22,12 +22,6 @@ afterEvaluate {
         archiveClassifier.set("javadoc")
         from("$buildDir/dokka/javadoc")
     }
-    val sourcesJar by tasks.registering(Jar::class) {
-        group = "documentation"
-        archiveClassifier.set("sources")
-        include(javadoc.ClassesList.javaDocsAllowList)
-        from(android.sourceSets.getByName("main").java.srcDirs)
-    }
     publishing {
         val getGroupId = project.getGroupId(default = "org.bidon")
         val getArtifactId = project.getArtifactId()
@@ -77,10 +71,7 @@ afterEvaluate {
                 afterEvaluate {
                     from(components["productionRelease"])
                 }
-                artifact(dokkaJar.get())
-                if (!plugins.hasPlugin("com.android.library")) {
-                    artifact(sourcesJar.get())
-                }
+                artifact(dokkaJar)
                 pom {
                     groupId = getGroupId
                     artifactId = getArtifactId
