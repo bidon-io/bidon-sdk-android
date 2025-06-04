@@ -90,7 +90,6 @@ class CommonGradlePlugin : Plugin<Project> {
         }
 
         dependencies {
-            add("testImplementation", "junit:junit:4.13.2")
             add( "implementation", platform(Dependencies.Kotlin.bom))
             add( "implementation", Dependencies.Kotlin.reflect)
             add( "implementation", platform(Dependencies.Kotlin.Coroutines.bom))
@@ -102,6 +101,7 @@ class CommonGradlePlugin : Plugin<Project> {
             /**
              * Testing
              */
+            add("testImplementation", "junit:junit:4.13.2")
             add("testImplementation", "org.jetbrains.kotlin:kotlin-test:${Dependencies.Kotlin.kotlinVersion}")
             add("testImplementation", "org.jetbrains.kotlin:kotlin-test-junit:${Dependencies.Kotlin.kotlinVersion}")
             add("testImplementation", "org.jetbrains.kotlinx:kotlinx-coroutines-test")
