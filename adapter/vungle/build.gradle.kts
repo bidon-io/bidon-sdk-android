@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "vungle-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Vungle)
+publishAdapter {
+    artifactId = "vungle-adapter"
+    versionName = Versions.Adapters.Vungle
 }
 
 android {

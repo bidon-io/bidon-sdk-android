@@ -1,5 +1,7 @@
 import com.android.build.gradle.LibraryExtension
 import ext.Dependencies
+import ext.Dependencies.Java.javaVersion
+import ext.Dependencies.Java.kotlinCompile
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -10,23 +12,15 @@ import org.gradle.kotlin.dsl.exclude
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 class Kotlin20Plugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply {
             apply("com.android.library")
             apply("org.jetbrains.kotlin.android")
-        }
-
-        tasks.withType<KotlinCompile>().configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
-                languageVersion = "2.0"
-                freeCompilerArgs += listOf(
-                    "-opt-in=kotlin.RequiresOptIn",
-                    "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-                )
-            }
         }
 
         extensions.configure<LibraryExtension> {
@@ -38,8 +32,8 @@ class Kotlin20Plugin : Plugin<Project> {
             }
 
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
+                sourceCompatibility = JavaVersion.toVersion(javaVersion)
+                targetCompatibility = JavaVersion.toVersion(javaVersion)
             }
 
             buildFeatures {
@@ -85,8 +79,18 @@ class Kotlin20Plugin : Plugin<Project> {
             }
         }
 
-        extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension>().jvmToolchain {
-            languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(17))
+        project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
+            compilerOptions {
+                jvmTarget.set(kotlinCompile)
+                //TODO move to Dependencies?
+                languageVersion.set(KotlinVersion.KOTLIN_2_1)
+                freeCompilerArgs.addAll(
+                    "-opt-in=kotlin.RequiresOptIn",
+                    "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                    "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+                    "-opt-in=kotlinx.coroutines.FlowPreview"
+                )
+            }
         }
 
         dependencies {

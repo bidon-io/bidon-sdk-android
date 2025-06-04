@@ -5,8 +5,12 @@ import org.gradle.api.JavaVersion
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import ext.Dependencies
+import ext.Dependencies.Java.javaVersion
+import ext.Dependencies.Java.kotlinCompile
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.kotlin.dsl.exclude
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 class CommonGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
@@ -23,13 +27,9 @@ class CommonGradlePlugin : Plugin<Project> {
                 consumerProguardFiles("proguard-rules-consumer.pro")
             }
 
-//            kotlinOptions {
-//                jvmTarget = "11"
-//            }
-
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
+                sourceCompatibility = JavaVersion.toVersion(javaVersion)
+                targetCompatibility = JavaVersion.toVersion(javaVersion)
             }
 
             buildFeatures {
@@ -75,10 +75,12 @@ class CommonGradlePlugin : Plugin<Project> {
             }
         }
 
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
-                freeCompilerArgs += listOf(
+        project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
+            compilerOptions {
+                jvmTarget.set(kotlinCompile)
+                //TODO move to Dependencies?
+                languageVersion.set(KotlinVersion.KOTLIN_1_9)
+                freeCompilerArgs.addAll(
                     "-opt-in=kotlin.RequiresOptIn",
                     "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                     "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",

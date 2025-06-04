@@ -3,9 +3,6 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     includeBuild("build-logic")
-    plugins {
-        id("org.jetbrains.kotlin.android") version "2.1.0"
-    }
     repositories {
         google()
         mavenCentral()
@@ -38,14 +35,6 @@ rootProject.name = "BidonSDK"
 include(
     ":app",
 )
-
-includeBuild("adapter/admob") {
-    dependencySubstitution {
-        substitute(module("org.bidon:adapter"))
-            .using(project("admob"))
-    }
-}//includeBuild("adapter/gam")
-
 include(
     ":bidon",
 //    ":adapter:admob",
@@ -67,4 +56,5 @@ include(
     ":adapter:yandex",
 //    ":adapter:fyber",
 //    ":adapter:appsflyer"
+    ":thirdPartyMediationAdapters:applovin_max"
 )

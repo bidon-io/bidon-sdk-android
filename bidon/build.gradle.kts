@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "bidon-sdk")
-    this.set("AdapterVersionName", Versions.BidonVersionName)
+publishAdapter {
+    artifactId = "bidon-sdk"
+    versionName = Versions.BidonVersionName
 }
 
 android {

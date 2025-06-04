@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "mobilefuse-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.MobileFuse)
+publishAdapter {
+    artifactId = "mobilefuse-adapter"
+    versionName = Versions.Adapters.MobileFuse
 }
 
 android {

@@ -1,16 +1,15 @@
 import ext.ADAPTER_VERSION
-import ext.Versions
 import ext.Dependencies
+import ext.Versions
 
 plugins {
+    id("common")
     id("publish-adapter")
-    id("kotlin-2-0")
-    id("org.jetbrains.kotlin.android") version "2.1.0"
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "gam-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Gam)
+publishAdapter {
+    artifactId = "gam-adapter"
+    versionName = Versions.Adapters.Gam
 }
 
 android {

@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "bigoads-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.BigoAds)
+publishAdapter {
+    artifactId = "bigoads-adapter"
+    versionName = Versions.Adapters.BigoAds
 }
 
 android {

@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "amazon-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Amazon)
+publishAdapter {
+    artifactId = "amazon-adapter"
+    versionName = Versions.Adapters.Amazon
 }
 
 android {

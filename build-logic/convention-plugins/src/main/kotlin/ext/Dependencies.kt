@@ -1,22 +1,16 @@
 package ext
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 object Dependencies {
-
-    object SdkAdapter {
-        const val AppsflyerVersion = "6.9.0"
-        const val Appsflyer = "com.appsflyer:af-android-sdk:$AppsflyerVersion"
-        const val AppsflyerAdRevenue = "com.appsflyer:adrevenue:$AppsflyerVersion"
-    }
-
     object Kotlin {
         const val kotlinVersion = "1.9.10"
 
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
          */
-        const val kotlinCompilerExtensionVersion = "1.4.4"
+        const val kotlinCompilerExtensionVersion = "1.5.3"
         const val bom = "org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"
-        const val gradlePlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         const val reflect = "org.jetbrains.kotlin:kotlin-reflect"
 
         object Coroutines {
@@ -30,10 +24,16 @@ object Dependencies {
     object Android {
         const val gradlePlugin = "com.android.tools.build:gradle:8.8.2"
         const val compileSdkVersion = 34
+        const val targetSdkVersion = 33
         const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
         const val Annotation = "androidx.annotation:annotation:1.1.0"
+    }
+
+    object Java {
+        const val javaVersion = 17
+        val kotlinCompile = JvmTarget.JVM_17
     }
 
     object Google {

@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "chartboost-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Chartboost)
+publishAdapter {
+    artifactId = "chartboost-adapter"
+    versionName = Versions.Adapters.Chartboost
 }
 
 android {

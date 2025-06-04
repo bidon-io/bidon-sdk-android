@@ -6,9 +6,9 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "vkads-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.VkAds)
+publishAdapter {
+    artifactId = "vkads-adapter"
+    versionName = Versions.Adapters.VkAds
 }
 
 android {
