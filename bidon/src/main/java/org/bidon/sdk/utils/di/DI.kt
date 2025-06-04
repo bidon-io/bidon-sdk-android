@@ -88,6 +88,8 @@ import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
+import org.bidon.sdk.utils.keyvaluestorage.readers.StoredLocalExtraReader
+import org.bidon.sdk.utils.keyvaluestorage.readers.StoredLocalExtraReaderImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
 import org.bidon.sdk.utils.networking.JsonHttpRequest
 import org.bidon.sdk.utils.networking.NetworkStateObserver
@@ -123,6 +125,11 @@ internal object DI {
             singleton<BidonEndpoints> { BidonEndpointsImpl() }
             singleton<KeyValueStorage> {
                 KeyValueStorageImpl(
+                    context = get()
+                )
+            }
+            singleton<StoredLocalExtraReader> {
+                StoredLocalExtraReaderImpl(
                     context = get()
                 )
             }
