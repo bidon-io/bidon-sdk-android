@@ -3,7 +3,6 @@ import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    kotlin("android")
     id("sample-app-config")
     id("signature")
     id("compose")
@@ -74,14 +73,14 @@ android {
 
 dependencies {
     implementation(projects.bidon)
-//    implementation(projects.adapter.admob)
+    implementation(projects.adapter.admob)
     implementation(projects.adapter.amazon)
     implementation(projects.adapter.applovin)
     implementation(projects.adapter.bidmachine)
     implementation(projects.adapter.bigoads)
     implementation(projects.adapter.chartboost)
     implementation(projects.adapter.dtexchange)
-//    implementation(projects.adapter.gam)
+    implementation(projects.adapter.gam)
     implementation(projects.adapter.inmobi)
     implementation(projects.adapter.ironsource)
     implementation(projects.adapter.meta)

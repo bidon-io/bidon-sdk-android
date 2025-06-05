@@ -37,14 +37,14 @@ include(
 )
 include(
     ":bidon",
-//    ":adapter:admob",
+    ":adapter:admob",
     ":adapter:amazon",
     ":adapter:applovin",
     ":adapter:bidmachine",
     ":adapter:bigoads",
     ":adapter:chartboost",
     ":adapter:dtexchange",
-//    ":adapter:gam",
+    ":adapter:gam",
     ":adapter:inmobi",
     ":adapter:ironsource",
     ":adapter:meta",

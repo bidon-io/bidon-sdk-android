@@ -55,7 +55,6 @@ class SampleAppConfigPlugin : Plugin<Project> {
             buildFeatures {
                 buildConfig = true
             }
-
         }
         project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
             compilerOptions {

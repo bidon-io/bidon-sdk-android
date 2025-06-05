@@ -4,12 +4,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 object Dependencies {
     object Kotlin {
-        const val kotlinVersion = "1.9.10"
+        const val kotlinVersion = "2.0.10"
 
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
          */
-        const val kotlinCompilerExtensionVersion = "1.5.3"
         const val bom = "org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"
         const val reflect = "org.jetbrains.kotlin:kotlin-reflect"
 

@@ -3,7 +3,7 @@ package ext
 object Versions {
     private val major = 0
     private val minor = 7
-    private val patch = 9
+    private val patch = 10
     private val semantic: String = ""
 
     val BidonVersionName = mainVersion + semanticVersion

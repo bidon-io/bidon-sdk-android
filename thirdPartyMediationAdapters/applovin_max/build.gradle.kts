@@ -6,10 +6,6 @@ plugins {
     id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterVersionName", Versions.ThirdPartyMediationAdapters.ApplovinMax)
-}
-
 publishAdapter {
     groupId = "com.applovin.mediation"
     artifactId = "bidon-adapter"
