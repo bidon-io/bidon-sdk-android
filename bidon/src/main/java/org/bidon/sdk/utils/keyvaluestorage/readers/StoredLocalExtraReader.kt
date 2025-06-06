@@ -1,16 +1,24 @@
 package org.bidon.sdk.utils.keyvaluestorage.readers
 
 /**
- * Reads the raw string value of the "stored_local_extras" key
- * from default (public) SharedPreferences.
+ * Provides access to the raw JSON string stored under the key "stored_local_extras"
+ * in Android's default (public) SharedPreferences.
  *
- * Intended for cross-module or SDK communication where impression data,
- * ad metadata, or structured payloads are passed via a shared storage layer.
+ * This interface is used to extract structured auxiliary data—such as impression metadata—
+ * that may be injected into ad requests, analytics payloads, or bidding signals.
+ *
+ * The returned result is formatted as a [Map] to enable seamless merging with other
+ * parameter sets across SDK modules.
  */
 internal interface StoredLocalExtraReader {
+
     /**
-     * @return The raw JSON string stored under "stored_local_extras",
-     * or null if the key is missing or unset.
+     * Reads the value of the "stored_local_extras" key from default SharedPreferences.
+     *
+     * @return A single-entry [Map] with the key "stored_local_extras" mapped to its
+     *         raw JSON string value, or an empty map if no value is present.
+     *
+     * @throws Exception never — safe fallback to emptyMap on error or null value.
      */
-    fun read(): String?
+    suspend fun readAsMap(): Map<String, String>
 }

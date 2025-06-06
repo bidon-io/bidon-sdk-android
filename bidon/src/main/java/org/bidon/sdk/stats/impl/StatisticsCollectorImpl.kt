@@ -25,6 +25,7 @@ import org.bidon.sdk.stats.usecases.WinLossRequestData
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.SystemTimeNow
+import org.bidon.sdk.utils.keyvaluestorage.readers.StoredLocalExtraReader
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -42,6 +43,9 @@ class StatisticsCollectorImpl : StatisticsCollector {
     }
     private val sendLossRequest by lazy {
         get<SendWinLossRequestUseCase>()
+    }
+    private val localExtraReader by lazy {
+        get<StoredLocalExtraReader>()
     }
 
     private val isShowSent = AtomicBoolean(false)
@@ -118,7 +122,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
                     urlPath = "$key/$lastSegment",
                     bodyKey = "bid",
                     body = createImpressionRequestBody(adType),
-                    extras = demandAd.getExtras()
+                    extras = demandAd.getExtras() + localExtraReader.readAsMap()
                 )
             }
         }
@@ -133,7 +137,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
                     urlPath = "$key/$lastSegment",
                     bodyKey = "bid",
                     body = createImpressionRequestBody(adType),
-                    extras = _demandAd?.getExtras().orEmpty()
+                    extras = demandAd.getExtras() + localExtraReader.readAsMap()
                 )
             }
         }
@@ -148,7 +152,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
                     urlPath = "$key/$lastSegment",
                     bodyKey = "bid",
                     body = createImpressionRequestBody(StatisticsCollector.AdType.Rewarded),
-                    extras = demandAd.getExtras()
+                    extras = demandAd.getExtras() + localExtraReader.readAsMap()
                 )
             }
         }
