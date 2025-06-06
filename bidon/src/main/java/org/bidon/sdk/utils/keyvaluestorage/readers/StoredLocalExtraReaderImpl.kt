@@ -5,15 +5,12 @@ import android.content.SharedPreferences
 import android.preference.PreferenceManager
 
 /**
- * Concrete implementation of [StoredLocalExtraReader] that retrieves
- * the raw string value stored under "stored_local_extras" from Android's
- * default (public) SharedPreferences.
+ * Implementation of [StoredLocalExtraReader] that accesses the value stored under
+ * the "stored_local_extras" key in Android's default SharedPreferences
+ * (via [PreferenceManager.getDefaultSharedPreferences]).
  *
- * This is used to pass structured impression metadata or auction data
- * between SDK modules, mediation layers, or ad sources.
- *
- * The result is wrapped as a Map with a single key-value pair,
- * making it composable with other parameter sets for request payloads.
+ * The returned value is wrapped in a singleton [Map] to support consistent merging
+ * with other parameter sets when forming ad requests or auction signals.
  */
 internal class StoredLocalExtraReaderImpl(
     context: Context
@@ -21,25 +18,25 @@ internal class StoredLocalExtraReaderImpl(
 
     companion object {
         /**
-         * Constant key used to access shared impression data.
+         * SharedPreferences key that stores the serialized extras payload.
          */
         private const val STORED_LOCAL_EXTRAS_KEY = "stored_local_extras"
     }
 
     /**
-     * Lazy-initialized default SharedPreferences.
-     * Uses application context to ensure proper lifecycle.
+     * Lazily initialized SharedPreferences instance backed by the application context.
+     * Safe to use across lifecycle boundaries and multiple threads.
      */
     private val sharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
     }
 
     /**
-     * Reads the raw JSON string under "stored_local_extras" and returns it as a
-     * single-entry map: { "stored_local_extras" to rawValue }.
+     * Reads the raw string value associated with "stored_local_extras" and returns it
+     * as a single-entry [Map] where the key is the same as the SharedPreferences key.
      *
-     * @return Map with one entry or an empty map if key is not set or value is null.
-     * Safe to call from any thread. Internally dispatched to IO.
+     * @return A [Map] containing one entry if the value is present and non-null,
+     * or an empty map otherwise.
      */
     override suspend fun readAsMap(): Map<String, String> {
         val value = sharedPreferences.getString(STORED_LOCAL_EXTRAS_KEY, null)
