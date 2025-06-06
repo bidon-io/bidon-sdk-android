@@ -30,7 +30,7 @@ internal class StoredLocalExtraReaderImpl(
      * Lazy-initialized default SharedPreferences.
      * Uses application context to ensure proper lifecycle.
      */
-    private val sharedPreferences: SharedPreferences by lazy(LazyThreadSafetyMode.NONE) {
+    private val sharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
     }
 
