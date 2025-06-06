@@ -1,5 +1,6 @@
 # develop (2025.*.*)
 ## Features:
+- [BDN-955](https://appodeal.atlassian.net/browse/BDN-955) Passed Appodeal Impression ID to Bidon Ad Instances
 - [BDN-933](https://appodeal.atlassian.net/browse/BDN-933) Added BCA-MAX to Bidon Sdk repository and publish to Bidon artifactory
 
 # 0.7.8 (2025.05.07)
