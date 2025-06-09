@@ -1,4 +1,4 @@
-# 0.7.9 (2025.06.10)
+# 0.7.9 (2025.06.11)
 ## Features:
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Min sdk api increased to 23
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.3.0
