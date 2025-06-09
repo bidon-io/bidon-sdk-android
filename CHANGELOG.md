@@ -1,4 +1,4 @@
-# 0.7.9 (2025.05.**)
+# 0.7.9 (2025.06.10)
 ## Features:
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Min sdk api increased to 23
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.3.0
@@ -16,6 +16,7 @@
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Mintegral SDK to 16.9.71
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated UnityAds SDK to 4.14.2
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Vungle SDK to 7.5.0
+- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated BCA-MAX SDK to 13.2.0
 - [BDN-933](https://appodeal.atlassian.net/browse/BDN-933) Added BCA-MAX to Bidon Sdk repository and publish to Bidon artifactory
 - [BDN-946](https://appodeal.atlassian.net/browse/BDN-946) Handled `custom_parameters` from server and provided to BidMachine SDK ad requests
 - 
