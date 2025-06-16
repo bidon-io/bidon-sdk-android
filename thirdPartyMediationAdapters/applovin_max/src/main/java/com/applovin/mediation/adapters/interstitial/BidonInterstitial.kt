@@ -1,6 +1,7 @@
 package com.applovin.mediation.adapters.interstitial
 
 import android.app.Activity
+import android.os.Bundle
 import com.applovin.mediation.MaxAdFormat
 import com.applovin.mediation.adapter.MaxAdapterError
 import com.applovin.mediation.adapter.MaxInterstitialAdapter
@@ -8,6 +9,7 @@ import com.applovin.mediation.adapter.listeners.MaxInterstitialAdapterListener
 import com.applovin.mediation.adapter.parameters.MaxAdapterResponseParameters
 import com.applovin.mediation.adapters.ext.asMaxAdapterError
 import com.applovin.mediation.adapters.ext.getAsDouble
+import com.applovin.mediation.adapters.ext.toAdValueBundle
 import com.applovin.mediation.adapters.ext.updatePrivacySettings
 import com.applovin.mediation.adapters.keeper.AdKeeper
 import com.applovin.mediation.adapters.keeper.AdKeepers
@@ -131,6 +133,7 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
 
     private fun MaxInterstitialAdapterListener.asBidonListener(adKeeper: AdKeeper<InterstitialAdInstance>): InterstitialListener {
         val maxInterstitialCallback = this
+        val extraInfo = Bundle(1)
         return object : InterstitialListener {
             override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                 val loadedAdInstance = this@BidonInterstitial.adInstance
@@ -167,8 +170,10 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
                             TAG,
                             "Interstitial ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
                         )
+                        val adValue = ad.toAdValueBundle(maxPlacement = maxPlacementId, maxEcpm = maxEcpm)
+                        extraInfo.putBundle("ad_values", adValue)
                         consumeAdInstance.setListener(this)
-                        maxInterstitialCallback.onInterstitialAdLoaded()
+                        maxInterstitialCallback.onInterstitialAdLoaded(extraInfo)
                     }
                 }
             }
@@ -181,7 +186,7 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
 
             override fun onAdShown(ad: Ad) {
                 log(TAG, "Interstitial ad shown, Placement ID: $maxPlacementId, ECPM: ${ad.price}")
-                maxInterstitialCallback.onInterstitialAdDisplayed()
+                maxInterstitialCallback.onInterstitialAdDisplayed(extraInfo)
             }
 
             override fun onAdShowFailed(cause: BidonError) {

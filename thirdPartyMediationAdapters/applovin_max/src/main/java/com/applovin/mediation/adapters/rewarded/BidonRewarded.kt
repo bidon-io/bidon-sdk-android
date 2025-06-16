@@ -1,6 +1,7 @@
 package com.applovin.mediation.adapters.rewarded
 
 import android.app.Activity
+import android.os.Bundle
 import com.applovin.impl.mediation.MaxRewardImpl
 import com.applovin.mediation.MaxAdFormat
 import com.applovin.mediation.adapter.MaxAdapterError
@@ -9,6 +10,7 @@ import com.applovin.mediation.adapter.listeners.MaxRewardedAdapterListener
 import com.applovin.mediation.adapter.parameters.MaxAdapterResponseParameters
 import com.applovin.mediation.adapters.ext.asMaxAdapterError
 import com.applovin.mediation.adapters.ext.getAsDouble
+import com.applovin.mediation.adapters.ext.toAdValueBundle
 import com.applovin.mediation.adapters.ext.updatePrivacySettings
 import com.applovin.mediation.adapters.keeper.AdKeeper
 import com.applovin.mediation.adapters.keeper.AdKeepers
@@ -133,6 +135,7 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
     private fun MaxRewardedAdapterListener.asBidonListener(adKeeper: AdKeeper<RewardedAdInstance>): RewardedListener {
         val maxRewardedCallback = this
+        val extraInfo = Bundle(1)
         var hasGrantedReward = false
         return object : RewardedListener {
             override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
@@ -170,8 +173,10 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
                             TAG,
                             "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
                         )
+                        val adValue = ad.toAdValueBundle(maxPlacement = maxPlacementId, maxEcpm = maxEcpm)
+                        extraInfo.putBundle("ad_values", adValue)
                         consumeAdInstance.setListener(this)
-                        maxRewardedCallback.onRewardedAdLoaded()
+                        maxRewardedCallback.onRewardedAdLoaded(extraInfo)
                     }
                 }
             }
@@ -184,7 +189,7 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
             override fun onAdShown(ad: Ad) {
                 log(TAG, "Rewarded ad shown, Placement ID: $maxPlacementId, ECPM: ${ad.price}")
-                maxRewardedCallback.onRewardedAdDisplayed()
+                maxRewardedCallback.onRewardedAdDisplayed(extraInfo)
             }
 
             override fun onAdShowFailed(cause: BidonError) {
