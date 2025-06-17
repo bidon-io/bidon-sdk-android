@@ -28,6 +28,7 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
 
     private var maxPlacementId: String = "UNDEFINED"
     private var maxEcpm: Double = 0.0
+    private val extraInfo = Bundle(1)
 
     init {
         log(TAG, "Create instance $this")
@@ -84,12 +85,14 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
                 listener.onInterstitialAdLoadFailed(MaxAdapterError.NO_FILL)
                 onDestroy()
             } else {
+                val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
+                extraInfo.putBundle("ad_values", adValue)
                 log(
                     TAG,
-                    "Interstitial ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
+                    "Interstitial ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId, extraInfo: $extraInfo"
                 )
                 consumeAdInstance.setListener(listener.asBidonListener(adKeeper))
-                listener.onInterstitialAdLoaded()
+                listener.onInterstitialAdLoaded(extraInfo)
             }
         }
     }
@@ -133,7 +136,6 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
 
     private fun MaxInterstitialAdapterListener.asBidonListener(adKeeper: AdKeeper<InterstitialAdInstance>): InterstitialListener {
         val maxInterstitialCallback = this
-        val extraInfo = Bundle(1)
         return object : InterstitialListener {
             override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
                 val loadedAdInstance = this@BidonInterstitial.adInstance
@@ -166,12 +168,12 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
                         maxInterstitialCallback.onInterstitialAdLoadFailed(MaxAdapterError.NO_FILL)
                         onDestroy()
                     } else {
+                        val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
+                        extraInfo.putBundle("ad_values", adValue)
                         log(
                             TAG,
-                            "Interstitial ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
+                            "Interstitial ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId, extraInfo: $extraInfo"
                         )
-                        val adValue = ad.toAdValueBundle(maxPlacement = maxPlacementId, maxEcpm = maxEcpm)
-                        extraInfo.putBundle("ad_values", adValue)
                         consumeAdInstance.setListener(this)
                         maxInterstitialCallback.onInterstitialAdLoaded(extraInfo)
                     }
@@ -185,7 +187,7 @@ internal class BidonInterstitial : MaxInterstitialAdapter, Logger by AppLovinSdk
             }
 
             override fun onAdShown(ad: Ad) {
-                log(TAG, "Interstitial ad shown, Placement ID: $maxPlacementId, ECPM: ${ad.price}")
+                log(TAG, "Interstitial ad shown, Placement ID: $maxPlacementId, ECPM: ${ad.price}, extraInfo: $extraInfo")
                 maxInterstitialCallback.onInterstitialAdDisplayed(extraInfo)
             }
 

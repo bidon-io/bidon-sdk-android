@@ -1,16 +1,16 @@
 package com.applovin.mediation.adapters.ext
 
 import android.os.Bundle
-import org.bidon.sdk.ads.Ad
+import com.applovin.mediation.adapters.keeper.AdInstance
 
-fun Ad.toAdValueBundle(maxPlacement: String, maxEcpm: Double): Bundle =
+internal fun AdInstance.toAdValueBundle(maxPlacement: String, maxEcpm: Double): Bundle =
     Bundle(6).apply {
         putString(KEY_MAX_PLACEMENT, maxPlacement)
         putDouble(KEY_MAX_ECPM, maxEcpm)
-        putString(KEY_AD_UNIT_UID, adUnit.uid)
-        putString(KEY_DEMAND_ID, networkName)
-        putDouble(KEY_PRICE, price)
-        putString(KEY_BID_TYPE, bidType.code)
+        putString(KEY_AD_UNIT_UID, uid)
+        putString(KEY_DEMAND_ID, demandId)
+        putDouble(KEY_PRICE, ecpm)
+        putString(KEY_BID_TYPE, bidType)
     }
 
 private const val KEY_MAX_PLACEMENT = "max_placement"

@@ -30,6 +30,7 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
     private var maxPlacementId: String = "UNDEFINED"
     private var maxEcpm: Double = 0.0
+    private val extraInfo = Bundle(1)
 
     init {
         log(TAG, "Create instance $this")
@@ -86,12 +87,14 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
                 listener.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
                 onDestroy()
             } else {
+                val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
+                extraInfo.putBundle("ad_values", adValue)
                 log(
                     TAG,
                     "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
                 )
                 consumeAdInstance.setListener(listener.asBidonListener(adKeeper))
-                listener.onRewardedAdLoaded()
+                listener.onRewardedAdLoaded(extraInfo)
             }
         }
     }
@@ -135,7 +138,6 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
     private fun MaxRewardedAdapterListener.asBidonListener(adKeeper: AdKeeper<RewardedAdInstance>): RewardedListener {
         val maxRewardedCallback = this
-        val extraInfo = Bundle(1)
         var hasGrantedReward = false
         return object : RewardedListener {
             override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
@@ -169,12 +171,12 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
                         maxRewardedCallback.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
                         onDestroy()
                     } else {
+                        val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
+                        extraInfo.putBundle("ad_values", adValue)
                         log(
                             TAG,
                             "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
                         )
-                        val adValue = ad.toAdValueBundle(maxPlacement = maxPlacementId, maxEcpm = maxEcpm)
-                        extraInfo.putBundle("ad_values", adValue)
                         consumeAdInstance.setListener(this)
                         maxRewardedCallback.onRewardedAdLoaded(extraInfo)
                     }
