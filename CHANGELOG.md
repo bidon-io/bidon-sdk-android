@@ -1,7 +1,3 @@
-# 0.7.10 (2025.**.**)
-## Features:
-- [APDM-1337](https://appodeal.atlassian.net/browse/APDM-1337) Added passing ImpressionLevelData to Max CA
-
 # 0.7.9 (2025.06.11)
 ## Features:
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Min sdk api increased to 23

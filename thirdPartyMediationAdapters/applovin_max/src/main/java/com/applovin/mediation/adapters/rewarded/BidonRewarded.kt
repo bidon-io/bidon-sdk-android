@@ -1,7 +1,6 @@
 package com.applovin.mediation.adapters.rewarded
 
 import android.app.Activity
-import android.os.Bundle
 import com.applovin.impl.mediation.MaxRewardImpl
 import com.applovin.mediation.MaxAdFormat
 import com.applovin.mediation.adapter.MaxAdapterError
@@ -30,7 +29,6 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
     private var maxPlacementId: String = "UNDEFINED"
     private var maxEcpm: Double = 0.0
-    private val extraInfo = Bundle(1)
 
     init {
         log(TAG, "Create instance $this")
@@ -87,14 +85,13 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
                 listener.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
                 onDestroy()
             } else {
-                val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
-                extraInfo.putBundle("ad_values", adValue)
+                val adValue = consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
                 log(
                     TAG,
-                    "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
+                    "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId, adValue: $adValue"
                 )
                 consumeAdInstance.setListener(listener.asBidonListener(adKeeper))
-                listener.onRewardedAdLoaded(extraInfo)
+                listener.onRewardedAdLoaded(adValue)
             }
         }
     }
@@ -171,14 +168,13 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
                         maxRewardedCallback.onRewardedAdLoadFailed(MaxAdapterError.NO_FILL)
                         onDestroy()
                     } else {
-                        val adValue =  consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
-                        extraInfo.putBundle("ad_values", adValue)
+                        val adValue = consumeAdInstance.toAdValueBundle(maxPlacementId, maxEcpm)
                         log(
                             TAG,
-                            "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId"
+                            "Rewarded ad loaded $consumeAdInstance from cache, Placement ID: $maxPlacementId, adValue: $adValue"
                         )
                         consumeAdInstance.setListener(this)
-                        maxRewardedCallback.onRewardedAdLoaded(extraInfo)
+                        maxRewardedCallback.onRewardedAdLoaded(adValue)
                     }
                 }
             }
@@ -191,7 +187,7 @@ internal class BidonRewarded : MaxRewardedAdapter, Logger by AppLovinSdkLogger {
 
             override fun onAdShown(ad: Ad) {
                 log(TAG, "Rewarded ad shown, Placement ID: $maxPlacementId, ECPM: ${ad.price}")
-                maxRewardedCallback.onRewardedAdDisplayed(extraInfo)
+                maxRewardedCallback.onRewardedAdDisplayed()
             }
 
             override fun onAdShowFailed(cause: BidonError) {
