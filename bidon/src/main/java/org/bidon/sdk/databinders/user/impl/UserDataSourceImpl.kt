@@ -2,6 +2,7 @@ package org.bidon.sdk.databinders.user.impl
 
 import org.bidon.sdk.databinders.user.AdvertisingData
 import org.bidon.sdk.databinders.user.AdvertisingProfile
+import org.bidon.sdk.databinders.user.AppSetIdRepository
 import org.bidon.sdk.databinders.user.TrackingAuthorizationStatus
 import org.bidon.sdk.databinders.user.UserDataSource
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
@@ -11,6 +12,7 @@ import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 internal class UserDataSourceImpl(
     private val keyValueStorage: KeyValueStorage,
     private val advertisingData: AdvertisingData,
+    private val appSetIdRepository: AppSetIdRepository
 ) : UserDataSource {
 
     override fun getTrackingAuthorizationStatus(): String {
@@ -36,6 +38,14 @@ internal class UserDataSourceImpl(
             is AdvertisingProfile.Huawei -> data.advertisingId
             AdvertisingProfile.Denied -> defaultAdvertisingId
         }
+    }
+
+    override suspend fun getAppSetId(): String? {
+        return appSetIdRepository.getAppSetId()
+    }
+
+    override suspend fun isDeveloperScope(): Boolean? {
+        return appSetIdRepository.isDeveloperScope()
     }
 }
 

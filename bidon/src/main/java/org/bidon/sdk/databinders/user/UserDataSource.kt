@@ -13,6 +13,9 @@ internal interface UserDataSource : DataSource {
      */
     fun getAdvertisingId(): String
 
+    suspend fun getAppSetId(): String?
+    suspend fun isDeveloperScope(): Boolean?
+
 //    fun getCoppa(): Boolean
 //    fun getConsent(): String
 //    fun getConsentStatus(): String

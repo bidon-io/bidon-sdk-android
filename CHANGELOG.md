@@ -1,4 +1,8 @@
-# 0.8.0 (2025.**.**)
+# Develop (2025.**.**)
+## Features:
+- [BDN-958](https://appodeal.atlassian.net/browse/BDN-958) Added appSet id receiving logic
+
+# 0.8.0 (2025.06.23)
 ## Features:
 - [BDN-956](https://appodeal.atlassian.net/browse/BDN-956) Added ability to add multiple InitializationCallback
 

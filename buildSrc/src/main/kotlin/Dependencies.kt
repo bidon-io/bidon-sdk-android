@@ -30,7 +30,7 @@ object Dependencies {
         const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
-        const val Annotation = "androidx.annotation:annotation:1.1.0"
+        const val Annotation = "androidx.annotation:annotation:1.6.0"
     }
 
     object Google {
