@@ -6,13 +6,13 @@ plugins {
 }
 
 project.extra.apply {
-    this.set("AdapterGroupId", "com.ironsourcs.adapters")
+    this.set("AdapterGroupId", "com.ironsource.adapters")
     this.set("AdapterArtifactId", "bidon-adapter")
     this.set("AdapterVersionName", Versions.ThirdPartyMediationAdapters.LevelPlay)
 }
 
 android {
-    namespace = "com.ironsourcs.adapters.custom.bidon"
+    namespace = "com.ironsource.adapters.custom.bidon"
     defaultConfig {
         ADAPTER_VERSION = Versions.ThirdPartyMediationAdapters.LevelPlay
     }
