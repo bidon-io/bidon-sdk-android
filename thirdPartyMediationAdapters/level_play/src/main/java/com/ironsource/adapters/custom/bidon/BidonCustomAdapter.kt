@@ -8,6 +8,7 @@ import com.ironsource.mediationsdk.AdapterNetworkData
 import com.ironsource.mediationsdk.adunit.adapter.BaseAdapter
 import com.ironsource.mediationsdk.adunit.adapter.listener.NetworkInitializationListener
 import com.ironsource.mediationsdk.adunit.adapter.utility.AdData
+import com.ironsourcs.adapters.custom.bidon.BuildConfig
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.logs.logging.Logger.Level.Off
 import org.bidon.sdk.logs.logging.Logger.Level.Verbose
