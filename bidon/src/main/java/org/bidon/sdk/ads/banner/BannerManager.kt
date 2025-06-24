@@ -4,6 +4,10 @@ import android.app.Activity
 import android.graphics.Point
 import android.graphics.PointF
 import androidx.core.view.children
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -16,6 +20,7 @@ import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.databinders.extras.ExtrasImpl
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 import java.lang.ref.WeakReference
@@ -41,6 +46,7 @@ class BannerManager private constructor(
     }
 
     private val tag get() = TAG
+    private val scope: CoroutineScope by lazy { CoroutineScope(SdkDispatchers.Default) }
     private var weakActivity = WeakReference<Activity>(null)
     private var nextBannerView: BannerView? = null
     private var nextAd: Ad? = null
@@ -55,6 +61,7 @@ class BannerManager private constructor(
 
     override val bannerFormat: BannerFormat get() = _bannerFormat
     override val adSize: AdSize? get() = nextBannerView?.adSize ?: currentBannerView?.adSize
+    override var isWaitingForInit = AtomicBoolean(true)
 
     override var isDisplaying: Boolean = false
         private set
@@ -100,24 +107,25 @@ class BannerManager private constructor(
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
-        activity.runOnUiThread {
-            weakActivity = WeakReference(activity)
-            if (!BidonSdk.isInitialized()) {
-                publisherListener?.onAdLoadFailed(null, BidonError.SdkNotInitialized)
-                return@runOnUiThread
+        weakActivity = WeakReference(activity)
+        scope.launch {
+            if (!initWaitAndContinueIfRequired(publisherListener)) {
+                return@launch
             }
             val nextBannerView = nextBannerView
             if (nextBannerView != null) {
                 logInfo(tag, "Ad is already loaded")
                 nextAd?.let {
-                    publisherListener?.onAdLoaded(
-                        ad = it,
-                        auctionInfo = requireNotNull(nextAuctionInfo) {
-                            "Could not receive nextAuctionInfo"
-                        }
-                    )
+                    withContext(Dispatchers.Main) {
+                        publisherListener?.onAdLoaded(
+                            ad = it,
+                            auctionInfo = requireNotNull(nextAuctionInfo) {
+                                "Could not receive nextAuctionInfo"
+                            }
+                        )
+                    }
                 }
-                return@runOnUiThread
+                return@launch
             }
             bannersCache.get(
                 activity = activity,
@@ -126,8 +134,8 @@ class BannerManager private constructor(
                 auctionKey = auctionKey,
                 extras = extras,
                 onLoaded = { ad, auctionInfo, bannerView ->
-                    this.nextBannerView = bannerView
-                    this.nextAd = ad
+                    this@BannerManager.nextBannerView = bannerView
+                    this@BannerManager.nextAd = ad
                     nextAuctionInfo = auctionInfo
                     publisherListener?.onAdLoaded(ad, auctionInfo)
                     if (showAfterLoad.getAndSet(false) || isDisplaying) {

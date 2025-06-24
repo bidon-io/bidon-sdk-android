@@ -3,6 +3,7 @@ package org.bidon.sdk.config.impl
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.Adapter
@@ -54,12 +55,23 @@ internal class BidonInitializerImpl : BidonInitializer {
 
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
+    override val isInitializing: Boolean
+        get() = initializationState.value == SdkState.Initializing
+    override val isInitFailed: Boolean
+        get() = initializationState.value == SdkState.InitializationFailed
     override var isTestMode: Boolean = false
     override val baseUrl: String
         get() = bidOnEndpoints.activeEndpoint
 
     override fun registerDefaultAdapters() {
         useDefaultAdapters = true
+    }
+
+    override suspend fun initAwaiter() {
+        initializationState.first {
+            initializationState.value == SdkState.Initialized
+                    || initializationState.value == SdkState.InitializationFailed
+        }
     }
 
     override fun registerAdapters(vararg adapters: Adapter) {

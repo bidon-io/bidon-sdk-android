@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.R
 import org.bidon.sdk.adapter.AdEvent
@@ -95,6 +96,7 @@ class BannerView @JvmOverloads constructor(
 
     private var internalAdSize: AdSize? = null
 
+    override var isWaitingForInit = AtomicBoolean(true)
     override val adSize: AdSize
         get() = internalAdSize ?: AdSize(widthDp = format.width, heightDp = format.height)
             .also { internalAdSize = it }
@@ -105,38 +107,42 @@ class BannerView @JvmOverloads constructor(
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
         logInfo(TAG, "LoadAd. $this. ${Thread.currentThread()}")
-        if (!BidonSdk.isInitialized()) {
-            logInfo(TAG, "Sdk is not initialized")
-            listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
-            return
-        }
-        if (adLifecycleFlow.compareAndSet(
-                expect = AdLifecycle.Created,
-                update = AdLifecycle.Loading
-            )
-        ) {
-            conductAuction(activity, pricefloor)
-        } else {
-            when (adLifecycleFlow.value) {
-                AdLifecycle.Loading -> {
-                    logInfo(TAG, "Auction already in progress")
-                    userListener?.onAdLoadFailed(null, BidonError.AuctionInProgress)
-                }
-
-                AdLifecycle.Loaded -> {
-                    winner?.adSource?.ad?.let {
-                        logInfo(TAG, "Banner loaded")
-                        userListener?.onAdLoaded(
-                            ad = it,
-                            auctionInfo = requireNotNull(auctionInfo) {
-                                "[AuctionInfo] should exist when action succeeds"
-                            }
-                        )
+        scope.launch(Dispatchers.Default) {
+            if (!initWaitAndContinueIfRequired(listener)) {
+                return@launch
+            }
+            if (adLifecycleFlow.compareAndSet(
+                    expect = AdLifecycle.Created,
+                    update = AdLifecycle.Loading
+                )
+            ) {
+                conductAuction(activity, pricefloor)
+            } else {
+                when (adLifecycleFlow.value) {
+                    AdLifecycle.Loading -> {
+                        logInfo(TAG, "Auction already in progress")
+                        withContext(Dispatchers.Main) {
+                            userListener?.onAdLoadFailed(null, BidonError.AuctionInProgress)
+                        }
                     }
-                }
 
-                else -> {
-                    logInfo(TAG, "Ad State=${adLifecycleFlow.value}")
+                    AdLifecycle.Loaded -> {
+                        winner?.adSource?.ad?.let {
+                            logInfo(TAG, "Banner loaded")
+                            withContext(Dispatchers.Main) {
+                                userListener?.onAdLoaded(
+                                    ad = it,
+                                    auctionInfo = requireNotNull(auctionInfo) {
+                                        "[AuctionInfo] should exist when action succeeds"
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        logInfo(TAG, "Ad State=${adLifecycleFlow.value}")
+                    }
                 }
             }
         }

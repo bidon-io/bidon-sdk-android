@@ -10,8 +10,12 @@ import org.bidon.sdk.utils.networking.NetworkSettings
 internal interface BidonInitializer {
 
     val isInitialized: Boolean
+    val isInitializing: Boolean
+    val isInitFailed: Boolean
     var isTestMode: Boolean
     val baseUrl: String
+
+    suspend fun initAwaiter()
 
     /**
      * Default adapters is in [DefaultAdapters]

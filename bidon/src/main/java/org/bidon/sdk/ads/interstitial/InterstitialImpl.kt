@@ -25,6 +25,7 @@ import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class InterstitialImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
@@ -33,6 +34,7 @@ internal class InterstitialImpl(
 ) : Interstitial, Extras by demandAd {
     private var userListener: InterstitialListener? = null
     private var observeCallbacksJob: Job? = null
+    override var isWaitingForInit = AtomicBoolean(true)
 
     private val adCache: AdCache by lazy {
         get {
@@ -55,34 +57,34 @@ internal class InterstitialImpl(
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
-        if (!BidonSdk.isInitialized()) {
-            logInfo(TAG, "Sdk is not initialized")
-            listener.onAdLoadFailed(null, BidonError.SdkNotInitialized)
-            return
-        }
-        logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        adCache.cache(
-            adTypeParam = AdTypeParam.Interstitial(
-                activity = activity,
-                pricefloor = pricefloor,
-                auctionKey = auctionKey,
-            ),
-            onSuccess = { auctionResult, auctionInfo ->
-                subscribeToWinner(auctionInfo, auctionResult.adSource)
-                listener.onAdLoaded(
-                    ad = requireNotNull(auctionResult.adSource.ad) {
-                        "[Ad] should exist when action succeeds"
-                    },
-                    auctionInfo = auctionInfo
-                )
-            },
-            onFailure = { auctionResult, cause ->
-                listener.onAdLoadFailed(
-                    auctionInfo = auctionResult,
-                    cause = cause.asBidonErrorOrUnspecified()
-                )
+        scope.launch(Dispatchers.Default) {
+            if (!initWaitAndContinueIfRequired(listener)) {
+                return@launch
             }
-        )
+            logInfo(TAG, "Load (pricefloor=$pricefloor)")
+            adCache.cache(
+                adTypeParam = AdTypeParam.Interstitial(
+                    activity = activity,
+                    pricefloor = pricefloor,
+                    auctionKey = auctionKey,
+                ),
+                onSuccess = { auctionResult, auctionInfo ->
+                    subscribeToWinner(auctionInfo, auctionResult.adSource)
+                    listener.onAdLoaded(
+                        ad = requireNotNull(auctionResult.adSource.ad) {
+                            "[Ad] should exist when action succeeds"
+                        },
+                        auctionInfo = auctionInfo
+                    )
+                },
+                onFailure = { auctionResult, cause ->
+                    listener.onAdLoadFailed(
+                        auctionInfo = auctionResult,
+                        cause = cause.asBidonErrorOrUnspecified()
+                    )
+                }
+            )
+        }
     }
 
     override fun showAd(activity: Activity) {

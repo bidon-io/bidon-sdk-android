@@ -1,7 +1,7 @@
 package org.bidon.sdk.ads.rewarded
 
 import android.app.Activity
-import org.bidon.sdk.BidonSdk.DefaultPricefloor
+import org.bidon.sdk.ads.BidonAd
 import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.stats.WinLossNotifier
 
@@ -12,9 +12,7 @@ class RewardedAd @JvmOverloads constructor(
     auctionKey: String? = null
 ) : Rewarded by RewardedImpl(auctionKey = auctionKey)
 
-interface Rewarded : Extras, WinLossNotifier {
-    fun isReady(): Boolean // for show
-    fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
+internal interface Rewarded : BidonAd, Extras, WinLossNotifier {
     fun destroyAd()
     fun showAd(activity: Activity)
     fun setRewardedListener(listener: RewardedListener)

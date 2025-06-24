@@ -3,14 +3,14 @@ package org.bidon.sdk.ads.banner
 import android.app.Activity
 import android.graphics.Point
 import android.graphics.PointF
-import org.bidon.sdk.BidonSdk
+import org.bidon.sdk.ads.BidonAd
 
 /**
  * Created by Aleksei Cherniaev on 04/09/2023.
  *
  * [showAd], [hideAd], [destroyAd], [notifyLoss] need activity to be passed as parameter, mainly for Unity UI thread.
  */
-interface PositionedBanner {
+internal interface PositionedBanner: BidonAd {
     /**
      * Common interface for [BannerView]
      */
@@ -46,12 +46,7 @@ interface PositionedBanner {
     )
 
     fun setBannerFormat(bannerFormat: BannerFormat)
-    fun loadAd(activity: Activity, pricefloor: Double = BidonSdk.DefaultPricefloor)
 
-    /**
-     * Shows if banner is ready to show
-     */
-    fun isReady(): Boolean
     fun showAd(activity: Activity)
     fun hideAd(activity: Activity)
     fun destroyAd(activity: Activity)
