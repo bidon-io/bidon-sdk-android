@@ -40,6 +40,7 @@ class BidonCustomAdapter : BaseAdapter(), Logger by LevelPLaySdkLogger {
             log(TAG, "Bidon SDK initializing with app key:$appKey, context: $context")
             BidonSdk
                 .setBaseUrl("https://b.appbaqend.com")
+                .registerDefaultAdapters()
                 .setInitializationCallback {
                     log(TAG, "Bidon SDK initialized successfully")
                     initListener?.onInitSuccess()
