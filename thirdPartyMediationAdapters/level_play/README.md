@@ -15,9 +15,9 @@ To set **GDPR**, **CCPA**, and **COPPA** consent status for the Bidon network ad
 `BIDON_CA_NETWORK_KEY = "15c0a270d"`
 
 ##### Consent Keys:
-`BIDON_GDPR_KEY = "BidonCA_GDPR"`
-`BIDON_CCPA_KEY = "BidonCA_CCPA"`
-`BIDON_COPPA_KEY = "BidonCA_COPPA"`
+- `BIDON_GDPR_KEY = "BidonCA_GDPR"`
+- `BIDON_CCPA_KEY = "BidonCA_CCPA"`
+- `BIDON_COPPA_KEY = "BidonCA_COPPA"`
 
 Then put consent `Boolean` value to json with `Bidon network key` and call:
 ```
@@ -34,6 +34,6 @@ networkData.put(BIDON_COPPA_KEY, isUserAgeRestricted)
 IronSource.setNetworkData(BIDON_CA_NETWORK_KEY, networkData)
 ```
 where:
-- `isUserHasGdprConsent` — Boolean: user’s GDPR consent.
-- `isUserHasCcpaConsent` — Boolean: user’s CCPA consent
-- `isUserAgeRestricted` — Boolean: user’s COPPA (age restriction) status, 
+- `isUserHasGdprConsent` — Boolean: user’s GDPR consent;
+- `isUserHasCcpaConsent` — Boolean: user’s CCPA consent;
+- `isUserAgeRestricted` — Boolean: user’s COPPA (age restriction) status.
