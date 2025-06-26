@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
@@ -16,6 +17,8 @@ import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.InitAwaiter
+import org.bidon.sdk.ads.InitAwaiterImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
@@ -25,17 +28,17 @@ import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
-import java.util.concurrent.atomic.AtomicBoolean
 
 internal class RewardedImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
     private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Rewarded)
-) : Rewarded, Extras by demandAd {
+) : InitAwaiter by InitAwaiterImpl(),
+    Rewarded,
+    Extras by demandAd {
 
     private var userListener: RewardedListener? = null
     private var observeCallbacksJob: Job? = null
-    override var isWaitingForInit = AtomicBoolean(true)
 
     private val adCache: AdCache by lazy {
         get { params(demandAd) }
@@ -57,30 +60,40 @@ internal class RewardedImpl(
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
         scope.launch(Dispatchers.Default) {
-            if (!initWaitAndContinueIfRequired(listener)) {
-                return@launch
-            }
-            logInfo(TAG, "Load (pricefloor=$pricefloor)")
-            adCache.cache(
-                adTypeParam = AdTypeParam.Rewarded(
-                    activity = activity,
-                    pricefloor = pricefloor,
-                    auctionKey = auctionKey,
-                ),
-                onSuccess = { auctionResult, auctionInfo ->
-                    subscribeToWinner(auctionInfo, auctionResult.adSource)
-                    listener.onAdLoaded(
-                        ad = requireNotNull(auctionResult.adSource.ad) {
-                            "[Ad] should exist when action succeeds"
+            initWaitAndContinueIfRequired(
+                onSuccess = {
+                    logInfo(TAG, "Load (pricefloor=$pricefloor)")
+                    adCache.cache(
+                        adTypeParam = AdTypeParam.Rewarded(
+                            activity = activity,
+                            pricefloor = pricefloor,
+                            auctionKey = auctionKey,
+                        ),
+                        onSuccess = { auctionResult, auctionInfo ->
+                            subscribeToWinner(auctionInfo, auctionResult.adSource)
+                            listener.onAdLoaded(
+                                ad = requireNotNull(auctionResult.adSource.ad) {
+                                    "[Ad] should exist when action succeeds"
+                                },
+                                auctionInfo = auctionInfo
+                            )
                         },
-                        auctionInfo = auctionInfo
+                        onFailure = { auctionResult, cause ->
+                            listener.onAdLoadFailed(
+                                auctionInfo = auctionResult,
+                                cause = cause.asBidonErrorOrUnspecified()
+                            )
+                        }
                     )
                 },
-                onFailure = { auctionResult, cause ->
-                    listener.onAdLoadFailed(
-                        auctionInfo = auctionResult,
-                        cause = cause.asBidonErrorOrUnspecified()
-                    )
+                onFailure = {
+                    withContext(Dispatchers.Main) {
+                        logInfo(TAG, "Sdk was initialized with error")
+                        listener.onAdLoadFailed(
+                            auctionInfo = null,
+                            cause = BidonError.SdkNotInitialized
+                        )
+                    }
                 }
             )
         }

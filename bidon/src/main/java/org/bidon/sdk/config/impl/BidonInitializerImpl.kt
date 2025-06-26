@@ -44,7 +44,6 @@ internal class BidonInitializerImpl : BidonInitializer {
     private var publisherAdapters = mutableMapOf<Class<out Adapter>, Adapter>()
     private var publisherAdapterClasses = mutableSetOf<String>()
     private val initializationCallbacks = CopyOnWriteArraySet<InitializationCallback>()
-    private val initializationState = MutableStateFlow(SdkState.NotInitialized)
 
     private val initAndRegisterAdapters: InitAndRegisterAdaptersUseCase get() = get()
     private val getConfigRequest: GetConfigRequestUseCase get() = get()
@@ -53,25 +52,15 @@ internal class BidonInitializerImpl : BidonInitializer {
     private val bidOnEndpoints: BidonEndpoints get() = get()
     private val segmentSynchronizer: SegmentSynchronizer get() = get()
 
+    override val initializationState = MutableStateFlow(SdkState.NotInitialized)
     override val isInitialized: Boolean
         get() = initializationState.value == SdkState.Initialized
-    override val isInitializing: Boolean
-        get() = initializationState.value == SdkState.Initializing
-    override val isInitFailed: Boolean
-        get() = initializationState.value == SdkState.InitializationFailed
     override var isTestMode: Boolean = false
     override val baseUrl: String
         get() = bidOnEndpoints.activeEndpoint
 
     override fun registerDefaultAdapters() {
         useDefaultAdapters = true
-    }
-
-    override suspend fun initAwaiter() {
-        initializationState.first {
-            initializationState.value == SdkState.Initialized
-                    || initializationState.value == SdkState.InitializationFailed
-        }
     }
 
     override fun registerAdapters(vararg adapters: Adapter) {
@@ -122,7 +111,7 @@ internal class BidonInitializerImpl : BidonInitializer {
                     initializationState.value = SdkState.InitializationFailed
                 }.onSuccess {
                     logInfo(TAG, "Initialized in ${System.currentTimeMillis() - timeStart} ms.")
-                    initializationState.value = SdkState.Initialized
+                    initializationState.value = SdkState.InitializationFailed
                 }
                 notifyInitialized()
             }

@@ -1,7 +1,10 @@
+# 0.8.1 (2025.**.**)
+## Features:
+- [BDN-977](https://appodeal.atlassian.net/browse/BDN-977) Added initialization awaiting logic to ad loading
+
 # 0.8.0 (2025.06.26)
 ## Features:
 - [BDN-956](https://appodeal.atlassian.net/browse/BDN-956) Added ability to add multiple InitializationCallback
-- [BDN-977](https://appodeal.atlassian.net/browse/BDN-977) Added initialization awaiting logic to ad loading 
 
 # 0.7.9 (2025.06.11)
 ## Features:
