@@ -17,7 +17,7 @@ internal interface InitAwaiter {
 
 internal class InitAwaiterImpl : InitAwaiter {
 
-    var isWaitingForInit = AtomicBoolean(true)
+    private var isWaitingForInit = AtomicBoolean(true)
 
     override suspend fun initWaitAndContinueIfRequired(
         onSuccess: suspend () -> Unit,
@@ -37,12 +37,11 @@ internal class InitAwaiterImpl : InitAwaiter {
                 val result = BidonSdk.bidon.initializationState
                     .filter { it == SdkState.Initialized || it == SdkState.InitializationFailed }
                     .first()
-                when {
-                    result == SdkState.Initialized -> onSuccess()
-                    result == SdkState.InitializationFailed -> {
-                        if (isWaitingForInit.compareAndSet(true, false)) {
-                            onFailure()
-                        }
+                if (isWaitingForInit.compareAndSet(true, false)) {
+                    when (result) {
+                        SdkState.Initialized -> onSuccess()
+                        SdkState.InitializationFailed -> onFailure()
+                        else -> {}
                     }
                 }
             }

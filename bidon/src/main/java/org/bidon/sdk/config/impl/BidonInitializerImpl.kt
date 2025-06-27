@@ -111,7 +111,7 @@ internal class BidonInitializerImpl : BidonInitializer {
                     initializationState.value = SdkState.InitializationFailed
                 }.onSuccess {
                     logInfo(TAG, "Initialized in ${System.currentTimeMillis() - timeStart} ms.")
-                    initializationState.value = SdkState.InitializationFailed
+                    initializationState.value = SdkState.Initialized
                 }
                 notifyInitialized()
             }
