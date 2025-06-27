@@ -21,7 +21,7 @@ internal class UserBinder(
             trackingAuthorizationStatus = dataSource.getTrackingAuthorizationStatus(),
             applicationId = dataSource.getApplicationId(),
             appSetId = dataSource.getAppSetId(),
-            isDeveloperAppSetId = dataSource.isDeveloperScope()
+            appSetIdScope = dataSource.getAppSetIdScope()
         )
     }
 }

@@ -15,6 +15,6 @@ internal data class User(
     var applicationId: String?, // ID that app generates on the very first launch and send across session.
     @field:JsonName("app_set_id")
     var appSetId: String?,
-    @field:JsonName("is_developer_app_set")
-    var isDeveloperAppSetId: Boolean?,
+    @field:JsonName("app_set_id_scope")
+    var appSetIdScope: String?,
 ) : Serializable
