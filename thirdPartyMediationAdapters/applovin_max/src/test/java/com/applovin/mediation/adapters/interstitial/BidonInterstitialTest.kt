@@ -1,12 +1,14 @@
 package com.applovin.mediation.adapters.interstitial
 
 import android.app.Activity
+import com.applovin.mediation.MaxAdFormat
 import com.applovin.mediation.adapter.MaxAdapterError
 import com.applovin.mediation.adapter.listeners.MaxInterstitialAdapterListener
 import com.applovin.mediation.adapter.parameters.MaxAdapterResponseParameters
 import com.applovin.mediation.adapters.ext.getAsDouble
 import com.applovin.mediation.adapters.keeper.AdKeeper
 import com.applovin.mediation.adapters.keeper.AdKeepers
+import com.applovin.mediation.adapters.mockk.mockkLog
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -30,6 +32,8 @@ class BidonInterstitialTest {
 
     @Before
     fun setup() {
+        mockkLog()
+
         mockActivity = mockk()
         mockListener = mockk(relaxed = true)
         mockParameters = mockk(relaxed = true)
@@ -37,7 +41,14 @@ class BidonInterstitialTest {
 
         mockkObject(AdKeepers)
 
-        every { AdKeepers.interstitial } returns mockAdKeeper
+        every { AdKeepers.getKeeper<InterstitialAdInstance>(any(), any()) } returns mockAdKeeper
+        every { mockParameters.customParameters } returns mockk {
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns false
+            every { getAsDouble("ecpm") } returns 1.0
+        }
+        every { mockParameters.adUnitId } returns "test_ad_unit_id"
+
         every { mockAdKeeper.lastRegisteredEcpm() } returns null
         every { mockAdKeeper.registerEcpm(any()) } just Runs
         every { mockAdKeeper.keepAd(any()) } returns null
@@ -55,6 +66,7 @@ class BidonInterstitialTest {
         // Mock InterstitialAdInstance creation
         mockkConstructor(InterstitialAdInstance::class)
         every { anyConstructed<InterstitialAdInstance>().load(any()) } just Runs
+        every { anyConstructed<InterstitialAdInstance>().addExtra(any(), any()) } just Runs
 
         bidonInterstitial = BidonInterstitial()
     }
@@ -68,7 +80,7 @@ class BidonInterstitialTest {
     fun `loadInterstitialAd with null activity should fail with missing activity error`() {
         // Given
         every { mockParameters.customParameters } returns mockk {
-            every { getBoolean("unicorn") } returns true
+            every { getBoolean("unicorn", false) } returns true
             every { getAsDouble("ecpm") } returns 1.0
         }
 
@@ -83,7 +95,7 @@ class BidonInterstitialTest {
     fun `loadInterstitialAd with unicorn true should load new ad and register ecpm`() {
         // Given
         every { mockParameters.customParameters } returns mockk {
-            every { getBoolean("unicorn") } returns true
+            every { getBoolean("unicorn", false) } returns true
             every { getAsDouble("ecpm") } returns 2.0
             every { getString("auction_key", null) } returns "test_auction_key"
         }
@@ -93,6 +105,7 @@ class BidonInterstitialTest {
         bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
 
         // Then
+        verify { AdKeepers.getKeeper<InterstitialAdInstance>("test_ad_unit_id", MaxAdFormat.INTERSTITIAL) }
         verify { mockAdKeeper.registerEcpm(2.0) }
         verify { anyConstructed<InterstitialAdInstance>().load(mockActivity) }
         verify { anyConstructed<InterstitialAdInstance>().addExtra("previous_auction_price", null) }
@@ -102,7 +115,7 @@ class BidonInterstitialTest {
     fun `loadInterstitialAd with unicorn true and last ecpm should pass it as extra`() {
         // Given
         every { mockParameters.customParameters } returns mockk {
-            every { getBoolean("unicorn") } returns true
+            every { getBoolean("unicorn", false) } returns true
             every { getAsDouble("ecpm") } returns 2.0
             every { getString("auction_key", null) } returns "test_auction_key"
         }
@@ -117,26 +130,11 @@ class BidonInterstitialTest {
     }
 
     @Test
-    fun `loadInterstitialAd with unicorn false should consume ad from keeper`() {
-        // Given
-        every { mockParameters.customParameters } returns mockk {
-            every { getBoolean("unicorn") } returns false
-            every { getAsDouble("ecpm") } returns 1.0
-        }
-
-        // When
-        bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
-
-        // Then
-        verify { mockAdKeeper.consumeAd(1.0) }
-        verify { mockListener.onInterstitialAdLoaded() }
-    }
-
-    @Test
     fun `loadInterstitialAd with unicorn false and no available ad should fail`() {
         // Given
         every { mockParameters.customParameters } returns mockk {
-            every { getBoolean("unicorn") } returns false
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns false
             every { getAsDouble("ecpm") } returns 1.0
         }
         every { mockAdKeeper.consumeAd(any()) } returns null
@@ -157,5 +155,79 @@ class BidonInterstitialTest {
 
         // Then
         verify { mockListener.onInterstitialAdDisplayFailed(MaxAdapterError.AD_DISPLAY_FAILED) }
+    }
+
+    @Test
+    fun `loadInterstitialAd with should_load true should load new ad and register ecpm`() {
+        // Given
+        every { mockParameters.customParameters } returns mockk {
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns true
+            every { getAsDouble("ecpm") } returns 2.0
+            every { getString("auction_key", null) } returns "test_auction_key"
+        }
+        every { mockAdKeeper.lastRegisteredEcpm() } returns null
+
+        // When
+        bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
+
+        // Then
+        verify { AdKeepers.getKeeper<InterstitialAdInstance>("test_ad_unit_id", MaxAdFormat.INTERSTITIAL) }
+        verify { mockAdKeeper.registerEcpm(2.0) }
+        verify { anyConstructed<InterstitialAdInstance>().load(mockActivity) }
+        verify { anyConstructed<InterstitialAdInstance>().addExtra("previous_auction_price", null) }
+    }
+
+    @Test
+    fun `loadInterstitialAd with should_load true and last ecpm should pass it as extra`() {
+        // Given
+        every { mockParameters.customParameters } returns mockk {
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns true
+            every { getAsDouble("ecpm") } returns 2.0
+            every { getString("auction_key", null) } returns "test_auction_key"
+        }
+        every { mockAdKeeper.lastRegisteredEcpm() } returns 1.5
+
+        // When
+        bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
+
+        // Then
+        verify { anyConstructed<InterstitialAdInstance>().addExtra("previous_auction_price", 1.5) }
+        verify { anyConstructed<InterstitialAdInstance>().load(mockActivity) }
+    }
+
+    @Test
+    fun `loadInterstitialAd with should_load false should consume ad from keeper`() {
+        // Given
+        every { mockParameters.customParameters } returns mockk {
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns false
+            every { getAsDouble("ecpm") } returns 1.0
+        }
+
+        // When
+        bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
+
+        // Then
+        verify { mockAdKeeper.consumeAd(1.0) }
+        verify { mockListener.onInterstitialAdLoaded() }
+    }
+
+    @Test
+    fun `loadInterstitialAd with should_load false and no available ad should fail`() {
+        // Given
+        every { mockParameters.customParameters } returns mockk {
+            every { getBoolean("unicorn", false) } returns false
+            every { getBoolean("should_load", false) } returns false
+            every { getAsDouble("ecpm") } returns 1.0
+        }
+        every { mockAdKeeper.consumeAd(any()) } returns null
+
+        // When
+        bidonInterstitial.loadInterstitialAd(mockParameters, mockActivity, mockListener)
+
+        // Then
+        verify { mockListener.onInterstitialAdLoadFailed(MaxAdapterError.NO_FILL) }
     }
 }

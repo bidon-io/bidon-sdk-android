@@ -1,11 +1,9 @@
-package com.applovin.mediation.adapters.interstitial
+package com.ironsource.adapters.custom.bidon.interstitial
 
 import android.app.Activity
-import com.applovin.mediation.adapters.keeper.AdInstance
-import com.applovin.mediation.adapters.keeper.DEFAULT_BID_TYPE
-import com.applovin.mediation.adapters.keeper.DEFAULT_DEMAND_ID
-import com.applovin.mediation.adapters.keeper.DEFAULT_ECPM
-import com.applovin.mediation.adapters.keeper.DEFAULT_UID
+import com.ironsource.adapters.custom.bidon.keeper.AdInstance
+import com.ironsource.adapters.custom.bidon.keeper.DEFAULT_DEMAND_ID
+import com.ironsource.adapters.custom.bidon.keeper.DEFAULT_ECPM
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.interstitial.InterstitialAd
@@ -19,14 +17,12 @@ internal class InterstitialAdInstance(auctionKey: String? = null) : AdInstance {
     private var interstitialAdInfo: Ad? = null
 
     init {
-        interstitialAd.addExtra("mediator", "max")
+        interstitialAd.addExtra("mediator", "level_play")
     }
 
     override val ecpm: Double get() = interstitialAdInfo?.price ?: DEFAULT_ECPM
     override val demandId: String get() = interstitialAdInfo?.networkName ?: DEFAULT_DEMAND_ID
     override val isReady: Boolean get() = interstitialAd.isReady()
-    override val uid: String get() = interstitialAdInfo?.adUnit?.uid ?: DEFAULT_UID
-    override val bidType: String get() = interstitialAdInfo?.bidType?.code ?: DEFAULT_BID_TYPE
 
     fun setListener(listener: InterstitialListener) {
         this.interstitialListener = listener
@@ -49,7 +45,7 @@ internal class InterstitialAdInstance(auctionKey: String? = null) : AdInstance {
 
     override fun notifyLoss(winnerDemandId: String, winnerPrice: Double) {
         interstitialAd.notifyLoss(
-            winnerDemandId = "maxca_$winnerDemandId",
+            winnerDemandId = "lpca_$winnerDemandId",
             winnerPrice = winnerPrice,
         )
     }
