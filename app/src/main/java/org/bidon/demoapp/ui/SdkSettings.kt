@@ -45,7 +45,7 @@ import org.json.JSONObject
  * Created by Aleksei Cherniaev on 21/06/2023.
  */
 @Composable
-fun SdkSettings(sdkStateViewModel: SdkStateViewModel ) {
+fun SdkSettings(sdkStateViewModel: SdkStateViewModel) {
     val tempAdmobBid = DeleteMe.payloadFlow.collectAsState().value
     val isInitialized by sdkStateViewModel.isInitialized.collectAsState()
     val buttonText = if (isInitialized) "SDK Initialized" else "Initialize SDK"

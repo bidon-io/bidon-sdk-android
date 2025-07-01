@@ -63,7 +63,7 @@ internal fun MainScreen(
     initState: MutableState<MainScreenState>,
     sharedPreferences: SharedPreferences,
     sdkStateViewModel: SdkStateViewModel,
-    ) {
+) {
     val activity = LocalContext.current as Activity
     val shared = LocalContext.current.getSharedPreferences("app_test", Context.MODE_PRIVATE)
 
@@ -149,8 +149,7 @@ internal fun MainScreen(
                         AppButton(
                             text = "Init",
                             modifier = Modifier.fillMaxWidth()
-                        )
-                        {
+                        ) {
                             val host = Host.fromString(sharedPreferences.getString("host", null))
                             if (host is Host.Staging) {
                                 println("Using staging: ${host.baseUrl}")

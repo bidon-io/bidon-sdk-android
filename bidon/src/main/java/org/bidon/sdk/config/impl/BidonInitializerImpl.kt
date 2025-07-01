@@ -3,7 +3,6 @@ package org.bidon.sdk.config.impl
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.Adapter
