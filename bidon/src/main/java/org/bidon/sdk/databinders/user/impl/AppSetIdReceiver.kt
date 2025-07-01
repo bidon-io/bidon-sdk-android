@@ -29,8 +29,7 @@ internal class AppSetIdReceiver(
 
     private fun isDeveloperScope(scope: Int) = scope == AppSetIdInfo.SCOPE_DEVELOPER
 
-    private suspend fun getOrFetchAppSetIdInfo(
-    ): AppSetIdInfo? {
+    private suspend fun getOrFetchAppSetIdInfo(): AppSetIdInfo? {
         cachedAppSetIdInfo.get()?.let {
             logInfo(
                 TAG,
