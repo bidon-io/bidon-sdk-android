@@ -1,4 +1,4 @@
-# develop (2025.*.*)
+# 0.8.1 (2025.07.02)
 ## Features:
 - [BDN-982](https://appodeal.atlassian.net/browse/BDN-982) Fixed an `IllegalStateException: Already resumed` in the Mintegral Adapter
 - [BDN-977](https://appodeal.atlassian.net/browse/BDN-977) Added initialization awaiting logic to ad loading
