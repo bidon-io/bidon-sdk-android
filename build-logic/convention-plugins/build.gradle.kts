@@ -32,10 +32,6 @@ gradlePlugin {
             id = "compose"
             implementationClass = "ComposePlugin"
         }
-        register("kotlin20") {
-            id = "kotlin-2-0"
-            implementationClass = "Kotlin20Plugin"
-        }
     }
 }
 
