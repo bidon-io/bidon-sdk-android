@@ -1,3 +1,6 @@
+# Develop (2025.**.**)
+- [BDN-999](https://appodeal.atlassian.net/browse/BDN-999) Updated Yandex ads SDK to 7.14.1
+
 # 0.8.1 (2025.07.02)
 ## Features:
 - [BDN-985](https://appodeal.atlassian.net/browse/BDN-985) Updated Ktlint to 0.48.2+ and configured .editorconfig for compatibility
