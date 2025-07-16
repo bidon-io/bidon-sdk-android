@@ -19,7 +19,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    compileSdk = 34
+    compileSdk = 35
     namespace = defaultPackage
     buildFeatures {
         buildConfig = true
@@ -28,7 +28,7 @@ android {
     defaultConfig {
         applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as? String ?: defaultPackage
         minSdk = 23
-        targetSdk = 33
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

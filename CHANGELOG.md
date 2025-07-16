@@ -1,3 +1,7 @@
+# Develop (2025.**.**)
+## Features:
+- [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
+
 # 0.8.1 (2025.07.02)
 ## Features:
 - [BDN-985](https://appodeal.atlassian.net/browse/BDN-985) Updated Ktlint to 0.48.2+ and configured .editorconfig for compatibility
