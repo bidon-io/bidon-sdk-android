@@ -27,6 +27,7 @@ object Dependencies {
     object Android {
         const val gradlePlugin = "com.android.tools.build:gradle:8.8.2"
         const val compileSdkVersion = 35
+        const val targetSdkVersion = 35
         const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
