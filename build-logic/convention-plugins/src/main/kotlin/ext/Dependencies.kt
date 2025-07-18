@@ -27,7 +27,7 @@ object Dependencies {
         const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
-        const val Annotation = "androidx.annotation:annotation:1.1.0"
+        const val Annotation = "androidx.annotation:annotation:1.6.0"
     }
 
     object Java {
@@ -37,7 +37,7 @@ object Dependencies {
 
     object Google {
         const val PlayServicesAds = "com.google.android.gms:play-services-ads:24.3.0"
-        const val AppSet = "com.google.android.gms:play-services-appset:16.0.1"
+        const val AppSet = "com.google.android.gms:play-services-appset:16.0.0"
         const val PlayServicesAdsIdentifier = "com.google.android.gms:play-services-ads-identifier:18.0.1"
     }
 }
