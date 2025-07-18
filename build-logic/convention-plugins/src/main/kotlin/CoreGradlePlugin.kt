@@ -10,7 +10,7 @@ class CoreGradlePlugin : Plugin<Project> {
         }
 
         dependencies {
-            add("implementation", platform(Dependencies.Google.AppSet))
+            add("implementation", Dependencies.Google.AppSet)
         }
     }
 }
