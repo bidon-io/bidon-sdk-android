@@ -66,3 +66,7 @@
 -keep public interface org.bidon.sdk.logs.analytic.AdRevenueLogger { *; }
 -keep public interface org.bidon.sdk.logs.analytic.AdValue { *; }
 -keep public interface org.bidon.sdk.logs.analytic.Precision { *; }
+
+-keepclassmembers class org.bidon.sdk.config.models.Device {
+     <fields>;
+}
