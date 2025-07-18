@@ -12,6 +12,10 @@ repositories {
 
 gradlePlugin {
     plugins {
+        register("coreGradle") {
+            id = "core"
+            implementationClass = "CoreGradlePlugin"
+        }
         register("commonGradle") {
             id = "common"
             implementationClass = "CommonGradlePlugin"

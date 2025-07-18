@@ -2,7 +2,7 @@ import ext.ADAPTER_VERSION
 import ext.Versions
 
 plugins {
-    id("common")
+    id("core")
     id("publish-adapter")
 }
 
@@ -16,7 +16,4 @@ android {
     defaultConfig {
         ADAPTER_VERSION = Versions.BidonVersionName
     }
-}
-
-dependencies {
 }

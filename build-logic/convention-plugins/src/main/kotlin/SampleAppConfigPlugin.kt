@@ -6,7 +6,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.provider.Property
 import ext.BIDON_API_KEY
 import ext.Dependencies.Java.javaVersion
-import ext.Dependencies.Java.kotlinCompile
+import ext.Dependencies.Java.javaCompile
 import ext.STAGING_BASIC_AUTH_PASSWORD
 import ext.STAGING_BASIC_AUTH_USERNAME
 import org.gradle.kotlin.dsl.configure
@@ -58,7 +58,7 @@ class SampleAppConfigPlugin : Plugin<Project> {
         }
         project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
             compilerOptions {
-                jvmTarget.set(kotlinCompile)
+                jvmTarget.set(javaCompile)
             }
         }
     }

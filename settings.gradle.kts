@@ -57,5 +57,5 @@ include(
 //    ":adapter:fyber",
 //    ":adapter:appsflyer"
     ":thirdPartyMediationAdapters:applovin_max",
-    ":thirdPartyMediationAdapters:level_play"
+    ":thirdPartyMediationAdapters:level_play",
 )

@@ -11,7 +11,11 @@ subprojects {
     apply(plugin = "org.jetbrains.dokka")
 
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set("0.48.2")
         debug.set(true)
+        verbose.set(true)
+        android.set(false)
+        outputToConsole.set(true)
     }
 }
 

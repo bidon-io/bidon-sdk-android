@@ -1,10 +1,11 @@
 package ext
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 object Dependencies {
     object Kotlin {
-        const val kotlinVersion = "2.0.10"
+        const val kotlinVersion = "2.1.0"
+        val kotlinTarget = KotlinVersion.KOTLIN_2_1
 
         /**
          * [Compatibility](https://developer.android.com/jetpack/androidx/releases/compose-kotlin)
@@ -31,11 +32,12 @@ object Dependencies {
 
     object Java {
         const val javaVersion = 17
-        val kotlinCompile = JvmTarget.JVM_17
+        val javaCompile = JvmTarget.JVM_17
     }
 
     object Google {
         const val PlayServicesAds = "com.google.android.gms:play-services-ads:24.3.0"
+        const val AppSet = "com.google.android.gms:play-services-appset:16.0.1"
         const val PlayServicesAdsIdentifier = "com.google.android.gms:play-services-ads-identifier:18.0.1"
     }
 }

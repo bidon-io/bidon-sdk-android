@@ -1,7 +1,19 @@
-# develop (2025.*.*)
+# Develop
 ## Features:
-- [BDN-982](https://appodeal.atlassian.net/browse/BDN-982) Fixed an `IllegalStateException: Already resumed` in the Mintegral Adapter
 - [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
+
+# 0.9.0 (2025.**.**)
+## Features:
+- [BDN-995](https://appodeal.atlassian.net/browse/BDN-995) Updated Bidmachine SDK to 3.3.0. Added support for BidMachine Placement ID
+- [BDN-999](https://appodeal.atlassian.net/browse/BDN-999) Updated Yandex ads SDK to 7.14.1
+- [BDN-1000](https://appodeal.atlassian.net/browse/BDN-1000) Updated MyTarget (VK) Ads SDK to 5.27.2
+
+# 0.8.1 (2025.07.02)
+## Features:
+- [BDN-985](https://appodeal.atlassian.net/browse/BDN-985) Updated Ktlint to 0.48.2+ and configured .editorconfig for compatibility
+- [BDN-982](https://appodeal.atlassian.net/browse/BDN-982) Fixed an `IllegalStateException: Already resumed` in the Mintegral Adapter
+- [BDN-977](https://appodeal.atlassian.net/browse/BDN-977) Added initialization awaiting logic to ad loading
+- [BDN-958](https://appodeal.atlassian.net/browse/BDN-958) Added appSet id receiving logic
 
 # 0.8.0 (2025.06.26)
 ## Features:
@@ -15,7 +27,7 @@
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Admob SDK to 24.3.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Amazon SDK to 11.0.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Applovin SDK to 13.2.0
-- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Bidmachine SDK to 3.3.0
+- [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Bidmachine SDK to 3.2.1
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated BigoAds SDK to 5.3.0
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated Chartboost SDK to 9.8.3
 - [BDN-931](https://appodeal.atlassian.net/browse/BDN-931) Updated DtExchange SDK to 8.3.7

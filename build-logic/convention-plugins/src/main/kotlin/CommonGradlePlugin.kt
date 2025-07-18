@@ -6,10 +6,8 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import ext.Dependencies
 import ext.Dependencies.Java.javaVersion
-import ext.Dependencies.Java.kotlinCompile
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.kotlin.dsl.exclude
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 class CommonGradlePlugin : Plugin<Project> {
@@ -77,9 +75,8 @@ class CommonGradlePlugin : Plugin<Project> {
 
         project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
             compilerOptions {
-                jvmTarget.set(kotlinCompile)
-                //TODO move to Dependencies?
-                languageVersion.set(KotlinVersion.KOTLIN_1_9)
+                jvmTarget.set(Dependencies.Java.javaCompile)
+                languageVersion.set(Dependencies.Kotlin.kotlinTarget)
                 freeCompilerArgs.addAll(
                     "-opt-in=kotlin.RequiresOptIn",
                     "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
