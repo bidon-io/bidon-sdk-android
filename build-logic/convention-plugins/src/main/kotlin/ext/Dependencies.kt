@@ -23,8 +23,8 @@ object Dependencies {
     }
 
     object Android {
-        const val compileSdkVersion = 34
-        const val targetSdkVersion = 33
+        const val compileSdkVersion = 35
+        const val targetSdkVersion = 35
         const val minSdkVersion = 23
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"

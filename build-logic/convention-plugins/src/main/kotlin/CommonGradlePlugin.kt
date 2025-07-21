@@ -15,11 +15,13 @@ class CommonGradlePlugin : Plugin<Project> {
         pluginManager.apply {
             apply("com.android.library")
             apply("org.jetbrains.kotlin.android")
+            apply("publish-adapter")
         }
 
         extensions.configure<LibraryExtension> {
             compileSdk = Dependencies.Android.compileSdkVersion
-
+            lint.targetSdk = Dependencies.Android.targetSdkVersion
+            testOptions.targetSdk = Dependencies.Android.targetSdkVersion
             defaultConfig {
                 minSdk = Dependencies.Android.minSdkVersion
                 consumerProguardFiles("proguard-rules-consumer.pro")

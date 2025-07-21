@@ -4,7 +4,6 @@ import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
 publishAdapter {
