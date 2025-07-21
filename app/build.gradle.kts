@@ -11,10 +11,10 @@ plugins {
 val defaultPackage = "org.bidon.demoapp"
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
-        if (keystorePropertiesFile.exists()) {
-            load(FileInputStream(keystorePropertiesFile))
-        }
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
     }
+}
 
 sampleAppProperties {
     appBundle = keystoreProperties["DEMO_APPLICATION_ID"] as? String

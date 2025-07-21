@@ -1,7 +1,7 @@
 package ext
 
-import com.android.build.api.variant.Variant
 import com.android.build.api.variant.BuildConfigField
+import com.android.build.api.variant.Variant
 
 private fun Variant.addBuildConfigField(
     type: BuildConfigFieldType,
