@@ -22,10 +22,19 @@ jobs:
     steps:
       - name: Check branch
         run: |
-          if [[ "${GITHUB_REF#refs/heads/}" != release/* ]]; then
-            echo "This workflow can only be run from branches starting with 'release/'"
-            exit 1
+          echo "Checking repo: $ORG_GRADLE_PROJECT_repo"
+          echo "Current branch: ${GITHUB_REF#refs/heads/}"
+          
+          if [[ "$ORG_GRADLE_PROJECT_repo" == "bidon" ]]; then
+            if [[ "${GITHUB_REF#refs/heads/}" != release/* ]]; then
+              echo "❌ Publishing to public repository is only allowed from 'release/' branch"
+              exit 1
+            fi
           fi
+          
+          echo "✅ Branch and repository check passed"
+        env:
+          ORG_GRADLE_PROJECT_repo: ${{ github.event.inputs.ORG_GRADLE_PROJECT_repo }}
 
       - uses: actions/checkout@v2
 
