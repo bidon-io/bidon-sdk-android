@@ -86,28 +86,6 @@ android {
 }
 
 dependencies {
-//    implementation("org.bidon:bidon-sdk:0.3.1")
-//    implementation("org.bidon:admob-adapter:0.3.1.0")
-//    implementation("org.bidon:amazon-adapter:0.3.1.0")
-//    implementation("org.bidon:applovin-adapter:0.3.1.0")
-//    implementation("org.bidon:bidmachine-adapter:0.3.1.0")
-//    implementation("org.bidon:bigoads-adapter:0.3.1.0")
-//    implementation("org.bidon:chartboost-adapter:0.3.1.0")
-//    implementation("org.bidon:dtexchange-adapter:0.3.1.0")
-//    implementation("org.bidon:gam-adapter:0.3.1.0")
-//    implementation("org.bidon:inmobi-adapter:0.3.1.0")
-//    implementation("org.bidon:ironsource-adapter:0.3.1.0")
-//    implementation("org.bidon:meta-adapter:0.3.1.0")
-//    implementation("org.bidon:mintegral-adapter:0.3.1.0")
-//    implementation("org.bidon:mobilefuse-adapter:0.3.1.0")
-//    implementation("org.bidon:unityads-adapter:0.3.1.0")
-//    implementation("org.bidon:vkads-adapter:0.3.1.0")
-//    implementation("org.bidon:vungle-adapter:0.3.1.0")
-//    implementation("org.bidon:yandex-adapter:0.3.1.0")
-
-    implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
-    implementation("com.google.android.gms:play-services-ads:22.5.0")
-
     implementation(projects.bidon)
     implementation(projects.adapter.admob)
     implementation(projects.adapter.amazon)
