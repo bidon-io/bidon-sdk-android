@@ -1,12 +1,12 @@
 import com.android.build.gradle.LibraryExtension
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.JavaVersion
-import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.dependencies
 import ext.Dependencies
 import ext.Dependencies.Java.javaVersion
+import org.gradle.api.JavaVersion
+import org.gradle.api.Plugin
+import org.gradle.api.Project
 import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.exclude
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
@@ -87,13 +87,13 @@ class CommonGradlePlugin : Plugin<Project> {
         }
 
         dependencies {
-            add( "implementation", platform(Dependencies.Kotlin.bom))
-            add( "implementation", Dependencies.Kotlin.reflect)
-            add( "implementation", platform(Dependencies.Kotlin.Coroutines.bom))
-            add( "implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesCore)
-            add( "implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesAndroid)
-            add( "implementation", Dependencies.Android.CoreKtx)
-            add( "implementation", Dependencies.Android.Annotation)
+            add("implementation", platform(Dependencies.Kotlin.bom))
+            add("implementation", Dependencies.Kotlin.reflect)
+            add("implementation", platform(Dependencies.Kotlin.Coroutines.bom))
+            add("implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesCore)
+            add("implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesAndroid)
+            add("implementation", Dependencies.Android.CoreKtx)
+            add("implementation", Dependencies.Android.Annotation)
 
             /**
              * Testing

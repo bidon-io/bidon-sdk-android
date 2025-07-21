@@ -9,7 +9,8 @@ import java.util.Properties
 
 class PublishAdapterPlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
-        val publishAdapterExtension = project.extensions.create("publishAdapter", PublishAdapterExtension::class.java)
+        val publishAdapterExtension =
+            project.extensions.create("publishAdapter", PublishAdapterExtension::class.java)
 
         plugins.apply("maven-publish")
         plugins.apply("signing")

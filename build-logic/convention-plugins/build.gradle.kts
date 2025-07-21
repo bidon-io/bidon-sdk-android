@@ -1,13 +1,34 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     `kotlin-dsl`
 }
 
 group = "org.bidon.convention-plugins"
 
-repositories {
-    google()
-    mavenCentral()
-    gradlePluginPortal()
+// Configure the build-logic plugins to target JDK 17
+// This matches the JDK used to build the project, and is not related to what is running on device.
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+
+tasks {
+    validatePlugins {
+        enableStricterValidation = true
+        failOnWarning = true
+    }
+}
+
+dependencies {
+    compileOnly(kotlin("gradle-plugin"))
+    compileOnly("com.android.tools.build:gradle:8.7.3")
 }
 
 gradlePlugin {
@@ -37,20 +58,4 @@ gradlePlugin {
             implementationClass = "ComposePlugin"
         }
     }
-}
-
-tasks {
-    validatePlugins {
-        enableStricterValidation = true
-        failOnWarning = true
-    }
-}
-
-dependencies {
-    implementation(kotlin("gradle-plugin"))
-    compileOnly("com.android.tools.build:gradle:8.7.3")
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
-    compileOnly("com.android.tools:common:31.9.0")
-    compileOnly("org.jlleitschuh.gradle:ktlint-gradle:12.1.0")
-    compileOnly("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:2.1.0")
 }
