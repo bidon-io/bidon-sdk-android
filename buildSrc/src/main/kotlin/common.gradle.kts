@@ -7,6 +7,8 @@ plugins {
 
 android {
     compileSdk = Dependencies.Android.compileSdkVersion
+    lint.targetSdk = Dependencies.Android.targetSdkVersion
+    testOptions.targetSdk = Dependencies.Android.targetSdkVersion
     buildFeatures {
         buildConfig = true
     }
