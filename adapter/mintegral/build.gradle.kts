@@ -1,13 +1,13 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "mintegral-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Mintegral)
+publishAdapter {
+    artifactId = "mintegral-adapter"
+    versionName = Versions.Adapters.Mintegral
 }
 
 android {

@@ -1,13 +1,13 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "inmobi-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Inmobi)
+publishAdapter {
+    artifactId = "inmobi-adapter"
+    versionName = Versions.Adapters.Inmobi
 }
 
 android {

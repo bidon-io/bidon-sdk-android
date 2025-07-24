@@ -1,13 +1,13 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "ironsource-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.IronSource)
+publishAdapter {
+    artifactId = "ironsource-adapter"
+    versionName = Versions.Adapters.IronSource
 }
 
 android {

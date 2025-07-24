@@ -1,13 +1,13 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "yandex-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.Yandex)
+publishAdapter {
+    artifactId = "yandex-adapter"
+    versionName = Versions.Adapters.Yandex
 }
 
 android {
