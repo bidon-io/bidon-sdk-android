@@ -1,3 +1,7 @@
+# 0.10.0.0 (2025.**.**)
+## Features:
+- [BDN-1005](https://appodeal.atlassian.net/browse/APDM-1005) Updated Applovin SDK to 13.3.1 for BCA-MAX SDK
+
 # 0.8.1.0 (2025.07.02)
 ## Features:
 - [APDM-1337](https://appodeal.atlassian.net/browse/APDM-1337) Added passing ImpressionLevelData to Max CA

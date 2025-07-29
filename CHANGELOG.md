@@ -2,6 +2,17 @@
 ## Features:
 - [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
 - [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Admob adapter to 24.5.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated GAM adapter to 24.5.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Amazon adapter to 11.0.1
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Applovin adapter to 13.3.1
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated BigoAds adapter to 5.4.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Chartboost adapter to 9.9.1
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated DTExchange adapter to 8.3.8
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated IronSource adapter to 8.10.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Mintegral adapter to 16.9.91
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
 
 # 0.9.0 (2025.07.24)
 ## Features:
