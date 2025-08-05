@@ -1,14 +1,14 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterGroupId", "com.ironsource.adapters")
-    this.set("AdapterArtifactId", "bidon-adapter")
-    this.set("AdapterVersionName", Versions.ThirdPartyMediationAdapters.LevelPlay)
+publishAdapter {
+    groupId = "com.ironsource.adapters"
+    artifactId = "bidon-adapter"
+    versionName = Versions.ThirdPartyMediationAdapters.LevelPlay
 }
 
 android {

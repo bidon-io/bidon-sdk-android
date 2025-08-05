@@ -1,13 +1,11 @@
-import ext.BIDON_API_KEY
-import ext.STAGING_BASIC_AUTH_PASSWORD
-import ext.STAGING_BASIC_AUTH_USERNAME
+import ext.Dependencies
 import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
-    kotlin("android")
+    id("sample-app-config")
+    id("signature")
+    id("compose")
 }
 
 val defaultPackage = "org.bidon.demoapp"
@@ -18,37 +16,33 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+sampleAppProperties {
+    appBundle = keystoreProperties["DEMO_APPLICATION_ID"] as? String
+    bidonApiKey = keystoreProperties["BIDON_API_KEY"] as? String
+    stagingUsername = keystoreProperties["STAGING_BASIC_AUTH_USERNAME"] as? String
+    stagingPassword = keystoreProperties["STAGING_BASIC_AUTH_PASSWORD"] as? String
+    admobAppId = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as? String
+}
+
+signatureProperties {
+    storePassword = keystoreProperties["storeSigningKey"] as String
+    keyAlias = keystoreProperties["signingKeyAlias"] as String
+    keyPassword = keystoreProperties["signingKeyPassword"] as String
+    storeFilePath = keystoreProperties["storeSigningFileName"] as String
+}
+
 android {
-    compileSdk = 34
+    compileSdk = Dependencies.Android.compileSdkVersion
     namespace = defaultPackage
-    buildFeatures {
-        buildConfig = true
-        compose = true
-    }
     defaultConfig {
-        applicationId = keystoreProperties["DEMO_APPLICATION_ID"] as? String ?: defaultPackage
-        minSdk = 23
-        targetSdk = 33
+        minSdk = Dependencies.Android.minSdkVersion
+        targetSdk = Dependencies.Android.targetSdkVersion
+
         versionCode = 1
         versionName = "1.0"
 
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        manifestPlaceholders["MOBILE_ADS_APPLICATION_ID"] = keystoreProperties["MOBILE_ADS_APPLICATION_ID"] as? String ?: ""
-        BIDON_API_KEY = keystoreProperties["BIDON_API_KEY"] as? String ?: ""
-        STAGING_BASIC_AUTH_USERNAME = keystoreProperties["STAGING_BASIC_AUTH_USERNAME"] as? String ?: "username"
-        STAGING_BASIC_AUTH_PASSWORD = keystoreProperties["STAGING_BASIC_AUTH_PASSWORD"] as? String ?: "password"
-    }
-    signingConfigs {
-        create("myConfig") {
-            if (keystorePropertiesFile.exists()) {
-                storeFile = file(keystoreProperties["storeSigningFileName"] as String)
-                storePassword = keystoreProperties["storeSigningKey"] as String
-                keyAlias = keystoreProperties["signingKeyAlias"] as String
-                keyPassword = keystoreProperties["signingKeyPassword"] as String
-            }
-        }
     }
     buildTypes {
         debug {
@@ -58,8 +52,10 @@ android {
         release {
             isMinifyEnabled = true
             isDebuggable = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules-consumer.pro")
-            signingConfig = signingConfigs.getByName("myConfig")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules-consumer.pro"
+            )
         }
     }
     flavorDimensions += "server"
@@ -72,16 +68,6 @@ android {
             description = "No /config and /auction/* requests. Set it manually for tests"
             dimension = "server"
         }
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    lint {
-        checkReleaseBuilds = false
     }
 }
 
@@ -106,6 +92,9 @@ dependencies {
     implementation(projects.adapter.yandex)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
+
+    implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
+    implementation("com.google.android.gms:play-services-ads:22.5.0")
 
     implementation("com.google.accompanist:accompanist-permissions:0.29.1-alpha")
     implementation("androidx.multidex:multidex:2.0.1")

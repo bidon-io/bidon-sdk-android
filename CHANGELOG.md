@@ -1,5 +1,10 @@
 # Develop (2025.**.**)
 ## Features:
+- [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
+- [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
+
+# 0.9.0 (2025.07.24)
+## Features:
 - [BDN-995](https://appodeal.atlassian.net/browse/BDN-995) Updated Bidmachine SDK to 3.3.0. Added support for BidMachine Placement ID
 - [BDN-999](https://appodeal.atlassian.net/browse/BDN-999) Updated Yandex ads SDK to 7.14.1
 - [BDN-1000](https://appodeal.atlassian.net/browse/BDN-1000) Updated MyTarget (VK) Ads SDK to 5.27.2

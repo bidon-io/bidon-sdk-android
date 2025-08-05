@@ -1,13 +1,13 @@
 import ext.ADAPTER_VERSION
+import ext.Versions
 
 plugins {
     id("common")
-    id("publish-adapter")
 }
 
-project.extra.apply {
-    this.set("AdapterArtifactId", "unityads-adapter")
-    this.set("AdapterVersionName", Versions.Adapters.UnityAds)
+publishAdapter {
+    artifactId = "unityads-adapter"
+    versionName = Versions.Adapters.UnityAds
 }
 
 android {
