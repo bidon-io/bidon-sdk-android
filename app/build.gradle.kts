@@ -25,10 +25,10 @@ sampleAppProperties {
 }
 
 signatureProperties {
-    storePassword = keystoreProperties["storeSigningKey"] as String
-    keyAlias = keystoreProperties["signingKeyAlias"] as String
-    keyPassword = keystoreProperties["signingKeyPassword"] as String
-    storeFilePath = keystoreProperties["storeSigningFileName"] as String
+    storePassword = keystoreProperties["storeSigningKey"] as? String
+    keyAlias = keystoreProperties["signingKeyAlias"] as? String
+    keyPassword = keystoreProperties["signingKeyPassword"] as? String
+    storeFilePath = keystoreProperties["storeSigningFileName"] as? String
 }
 
 android {
