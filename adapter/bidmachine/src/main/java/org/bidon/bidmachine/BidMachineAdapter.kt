@@ -61,8 +61,12 @@ internal class BidMachineAdapter :
         suspendCoroutine { continuation ->
             this.placements = configParams.placements ?: emptyMap()
             val sourceId = configParams.sellerId
+            val endpoint = configParams.endpoint
+
             BidMachine.setTestMode(isTestMode)
+            endpoint?.let { BidMachine.setEndpoint(it) }
             BidMachine.setLoggingEnabled(BidonSdk.loggerLevel != Logger.Level.Off)
+
             BidMachine.initialize(context, sourceId) {
                 continuation.resume(Unit)
             }
@@ -73,13 +77,6 @@ internal class BidMachineAdapter :
         return BidMachineParameters(
             sellerId = jsonObject.getString("seller_id"),
             endpoint = jsonObject.optString("endpoint", "").takeIf { !it.isNullOrBlank() },
-            mediationConfig = jsonObject.optJSONArray("mediation_config")?.let {
-                buildList {
-                    repeat(it.length()) { index ->
-                        add(it.getString(index))
-                    }
-                }
-            },
             placements = jsonObject.optJSONObject("placements")?.let { placements ->
                 buildMap {
                     placements.keys().forEach { key ->
