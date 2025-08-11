@@ -30,9 +30,6 @@ class PublishAdapterPlugin : Plugin<Project> {
         }
 
         extensions.configure(PublishingExtension::class.java) {
-            val artifactId = publishAdapterExtension.artifactId.orNull
-            val versionName = publishAdapterExtension.versionName.orNull
-            val groupId = publishAdapterExtension.groupId.getOrElse(defaultGroupId)
 
             repositories {
                 maven {
@@ -70,6 +67,10 @@ class PublishAdapterPlugin : Plugin<Project> {
             publications {
                 create("gpr", MavenPublication::class.java) {
                     project.afterEvaluate {
+                        val artifactId = publishAdapterExtension.artifactId.orNull
+                        val versionName = publishAdapterExtension.versionName.orNull
+                        val groupId = publishAdapterExtension.groupId.getOrElse(defaultGroupId)
+
                         val component =
                             components.findByName("release")
                                 ?: components.findByName("productionRelease")
@@ -77,14 +78,14 @@ class PublishAdapterPlugin : Plugin<Project> {
                         if (component != null) {
                             from(component)
                         }
+
+                        this@create.groupId = groupId
+                        this@create.artifactId = artifactId
+                        this@create.version = versionName
                     }
                     if (tasks.findByName("dokkaJar") != null) {
                         artifact(dokkaJar.get())
                     }
-
-                    this.groupId = groupId
-                    this.artifactId = artifactId
-                    this.version = versionName
 
                     pom {
                         name.set(project.name)
