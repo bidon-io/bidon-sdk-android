@@ -37,6 +37,7 @@ internal class BMBannerAdImpl(
 
     private var adRequest: BannerRequest? = null
     private var bannerView: BannerView? = null
+    private var shouldNotifyMediationEvents: Boolean = false
 
     override val isAdReadyToShow: Boolean
         get() = bannerView?.canShow() == true
@@ -46,6 +47,7 @@ internal class BMBannerAdImpl(
         adParams.activity.runOnUiThread {
             bannerView = BannerView(adParams.activity.applicationContext)
             val bidType = adParams.adUnit.bidType
+            shouldNotifyMediationEvents = bidType == BidType.CPM
             val requestBuilder = BannerRequest.Builder()
                 .apply {
                     when (bidType) {
@@ -107,12 +109,16 @@ internal class BMBannerAdImpl(
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
         logInfo(TAG, "notifyLoss: $this")
-        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        }
     }
 
     override fun notifyWin() {
         logInfo(TAG, "notifyWin: $this")
-        adRequest?.notifyMediationWin()
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationWin()
+        }
     }
 
     override fun getAdView(): AdViewHolder? = bannerView?.let { AdViewHolder(it) }
@@ -124,6 +130,7 @@ internal class BMBannerAdImpl(
         bannerView?.setListener(null)
         bannerView?.destroy()
         bannerView = null
+        shouldNotifyMediationEvents = false
     }
 
     private fun fillRequest(adRequest: BannerRequest?, bidType: BidType) {

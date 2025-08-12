@@ -39,6 +39,7 @@ internal class BMInterstitialAdImpl(
     private var context: Context? = null
     private var adRequest: InterstitialRequest? = null
     private var interstitialAd: InterstitialAd? = null
+    private var shouldNotifyMediationEvents: Boolean = false
 
     override val isAdReadyToShow: Boolean
         get() = interstitialAd?.canShow() == true
@@ -51,6 +52,7 @@ internal class BMInterstitialAdImpl(
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
+        shouldNotifyMediationEvents = bidType == BidType.CPM
         val requestBuilder = InterstitialRequest.Builder()
             .apply {
                 when (bidType) {
@@ -119,12 +121,16 @@ internal class BMInterstitialAdImpl(
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
         logInfo(TAG, "notifyLoss: $this")
-        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        }
     }
 
     override fun notifyWin() {
         logInfo(TAG, "notifyWin: $this")
-        adRequest?.notifyMediationWin()
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationWin()
+        }
     }
 
     override fun destroy() {
@@ -133,6 +139,7 @@ internal class BMInterstitialAdImpl(
         adRequest = null
         interstitialAd?.destroy()
         interstitialAd = null
+        shouldNotifyMediationEvents = false
     }
 
     private fun fillRequest(adRequest: InterstitialRequest?, bidType: BidType) {

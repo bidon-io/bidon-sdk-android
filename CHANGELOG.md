@@ -3,6 +3,7 @@
 - [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
 - [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
 - [BDN-944](https://appodeal.atlassian.net/browse/BDN-944) Use endpoint for BidMachine configuration
+- [BDN-1022](https://appodeal.atlassian.net/browse/BDN-1022) BidMachine adapter: notifyMediationWin/Loss only triggered for CPM mode
 
 # 0.9.0 (2025.07.24)
 ## Features:

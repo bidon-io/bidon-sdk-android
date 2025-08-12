@@ -38,6 +38,7 @@ internal class BMRewardedAdImpl(
     private var context: Context? = null
     private var adRequest: RewardedRequest? = null
     private var rewardedAd: RewardedAd? = null
+    private var shouldNotifyMediationEvents: Boolean = false
 
     override val isAdReadyToShow: Boolean
         get() = rewardedAd?.canShow() == true
@@ -50,6 +51,7 @@ internal class BMRewardedAdImpl(
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
+        shouldNotifyMediationEvents = bidType == BidType.CPM
         val requestBuilder = RewardedRequest.Builder()
             .apply {
                 when (bidType) {
@@ -117,12 +119,16 @@ internal class BMRewardedAdImpl(
 
     override fun notifyLoss(winnerNetworkName: String, winnerNetworkPrice: Double) {
         logInfo(TAG, "notifyLoss: $this")
-        adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationLoss(winnerNetworkName, winnerNetworkPrice)
+        }
     }
 
     override fun notifyWin() {
         logInfo(TAG, "notifyWin: $this")
-        adRequest?.notifyMediationWin()
+        if (shouldNotifyMediationEvents) {
+            adRequest?.notifyMediationWin()
+        }
     }
 
     override fun destroy() {
@@ -131,6 +137,7 @@ internal class BMRewardedAdImpl(
         adRequest = null
         rewardedAd?.destroy()
         rewardedAd = null
+        shouldNotifyMediationEvents = false
     }
 
     private fun fillAd(adRequest: RewardedRequest?, bidType: BidType) {
