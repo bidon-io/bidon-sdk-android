@@ -10,9 +10,10 @@
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Chartboost adapter to 9.9.1
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated DTExchange adapter to 8.3.8
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated IronSource adapter to 8.10.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Inmobi adapter to 10.8.7
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Mintegral adapter to 16.9.91
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
-- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Yandex adapter to 7.15.0
 
 # 0.9.0 (2025.07.24)
 ## Features:
