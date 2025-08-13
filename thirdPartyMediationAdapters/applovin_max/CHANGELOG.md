@@ -1,3 +1,7 @@
+# 0.10.0.0
+## Features:
+- [BDN-1024](https://appodeal.atlassian.net/browse/BDN-1024) Added win/loss notification support for BCA-MAX adapter to properly notify ads of auction results
+
 # 0.8.1.0 (2025.07.02)
 ## Features:
 - [APDM-1337](https://appodeal.atlassian.net/browse/APDM-1337) Added passing ImpressionLevelData to Max CA
