@@ -1,5 +1,6 @@
 # Develop (2025.**.**)
 ## Features:
+- [BDN-1020](https://appodeal.atlassian.net/browse/BDN-1020) Improved Win/Loss notification flow to respect external_win_notifications parameter
 - [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
 - [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
 - [BDN-944](https://appodeal.atlassian.net/browse/BDN-944) Use endpoint for BidMachine configuration

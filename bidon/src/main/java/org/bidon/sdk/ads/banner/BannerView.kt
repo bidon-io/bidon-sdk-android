@@ -22,6 +22,8 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.ad
+import org.bidon.sdk.adapter.ext.notifyExternalLoss
+import org.bidon.sdk.adapter.ext.notifyExternalWin
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.InitAwaiter
@@ -231,10 +233,7 @@ class BannerView @JvmOverloads constructor(
 
             AdLifecycle.Loaded -> {
                 if (!wasNotified.getAndSet(true)) {
-                    winner?.adSource?.sendLoss(
-                        winnerDemandId = winnerDemandId,
-                        winnerPrice = winnerPrice,
-                    )
+                    winner?.adSource?.notifyExternalLoss(winnerDemandId, winnerPrice)
                     destroyAd()
                 }
             }
@@ -252,7 +251,7 @@ class BannerView @JvmOverloads constructor(
             return
         }
         if (adLifecycleFlow.value == AdLifecycle.Loaded && !wasNotified.getAndSet(true)) {
-            winner?.adSource?.sendWin()
+            winner?.adSource?.notifyExternalWin()
         }
     }
 
