@@ -6,6 +6,7 @@
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated GAM adapter to 24.5.0
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Amazon adapter to 11.0.1
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Applovin adapter to 13.3.1
+- [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Bidmachine adapter to 3.4.0
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated BigoAds adapter to 5.4.0
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Chartboost adapter to 9.9.1
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated DTExchange adapter to 8.3.8
