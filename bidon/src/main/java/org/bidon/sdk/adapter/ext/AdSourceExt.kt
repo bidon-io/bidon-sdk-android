@@ -4,41 +4,65 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
+import org.bidon.sdk.stats.models.BidType
 
 internal val AdSource<*>.ad get() = (this as StatisticsCollector).getAd()
 
 private const val TAG = "AdSourceExt"
 
 /**
- * Sends loss notification to both server and adapter if conditions are met.
+ * Sends loss notification to server or adapter based on bid type if conditions are met.
  * Respects externalWinNotificationsEnabled flag and prevents duplicate notifications.
  */
 internal fun AdSource<*>.notifyExternalLoss(winnerDemandId: String, winnerPrice: Double) {
-    val statisticsCollector = this as StatisticsCollector
-    if (statisticsCollector.canSendWinLoseNotifications()) {
-        statisticsCollector.markWinLoseNotificationsSent()
-
-        logInfo(TAG, "Sending loss notification to server and adapter: ${statisticsCollector.demandId}")
-        statisticsCollector.sendLoss(winnerDemandId, winnerPrice)
-        (this as WinLossNotifiable).notifyLoss(winnerDemandId, winnerPrice)
-    } else {
-        logInfo(TAG, "Not sending loss notification to server and adapter: ${statisticsCollector.demandId}")
-    }
+    processWinLossNotification(
+        notificationType = "loss",
+        onRtbNotification = { sendLoss(winnerDemandId, winnerPrice) },
+        onCpmNotification = { (this as? WinLossNotifiable)?.notifyLoss(winnerDemandId, winnerPrice) }
+    )
 }
 
 /**
- * Sends win notification to both server and adapter if conditions are met.
+ * Sends win notification to server or adapter based on bid type if conditions are met.
  * Respects externalWinNotificationsEnabled flag and prevents duplicate notifications.
  */
 internal fun AdSource<*>.notifyExternalWin() {
-    val statisticsCollector = this as StatisticsCollector
-    if (statisticsCollector.canSendWinLoseNotifications()) {
-        statisticsCollector.markWinLoseNotificationsSent()
+    processWinLossNotification(
+        notificationType = "win",
+        onRtbNotification = { sendWin() },
+        onCpmNotification = { (this as? WinLossNotifiable)?.notifyWin() }
+    )
+}
 
-        logInfo(TAG, "Sending win notification to server and adapter: ${statisticsCollector.demandId}")
-        statisticsCollector.sendWin()
-        (this as WinLossNotifiable).notifyWin()
-    } else {
-        logInfo(TAG, "Not sending win notification to server and adapter: ${statisticsCollector.demandId}")
+/**
+ * Common logic for processing win/loss notifications based on bid type.
+ */
+private inline fun AdSource<*>.processWinLossNotification(
+    notificationType: String,
+    onRtbNotification: StatisticsCollector.() -> Unit,
+    onCpmNotification: () -> Unit
+) {
+    val statisticsCollector = this as StatisticsCollector
+
+    if (!statisticsCollector.canSendWinLoseNotifications()) {
+        logInfo(TAG, "Not sending $notificationType notification: ${statisticsCollector.demandId}")
+        return
+    }
+
+    statisticsCollector.markWinLoseNotificationsSent()
+
+    val bidType = ad?.bidType ?: statisticsCollector.getStats().bidType
+    when (bidType) {
+        BidType.RTB -> {
+            logInfo(TAG, "Sending $notificationType notification to server: ${statisticsCollector.demandId}")
+            statisticsCollector.onRtbNotification()
+        }
+        BidType.CPM -> {
+            logInfo(TAG, "Sending $notificationType notification to adapter: ${statisticsCollector.demandId}")
+            onCpmNotification()
+        }
+        null -> {
+            logInfo(TAG, "BidType is null. Not sending $notificationType notification: ${statisticsCollector.demandId}")
+        }
     }
 }
