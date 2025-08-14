@@ -14,6 +14,8 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.ad
+import org.bidon.sdk.adapter.ext.notifyExternalLoss
+import org.bidon.sdk.adapter.ext.notifyExternalWin
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
@@ -127,7 +129,7 @@ internal class RewardedImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.pop()?.adSource?.sendLoss(winnerDemandId, winnerPrice)
+        adCache.pop()?.adSource?.notifyExternalLoss(winnerDemandId, winnerPrice)
         destroyAd()
     }
 
@@ -136,7 +138,7 @@ internal class RewardedImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.adSource?.sendWin()
+        adCache.peek()?.adSource?.notifyExternalWin()
     }
 
     override fun destroyAd() {

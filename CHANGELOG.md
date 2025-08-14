@@ -1,5 +1,6 @@
-# Develop (2025.**.**)
+# 0.10.0-alpha.1 (2025.08.14)
 ## Features:
+- [BDN-1020](https://appodeal.atlassian.net/browse/BDN-1020) Improved Win/Loss notification flow to respect external_win_notifications parameter
 - [BDN-990](https://appodeal.atlassian.net/browse/BDN-990) Updated compileSdkVersion to 35
 - [BDN-954](https://appodeal.atlassian.net/browse/BDN-954) Migrated to build-logic
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Admob adapter to 24.5.0
@@ -15,6 +16,7 @@
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Mintegral adapter to 16.9.91
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Yandex adapter to 7.15.0
+- [BDN-944](https://appodeal.atlassian.net/browse/BDN-944) Use endpoint for BidMachine configuration
 
 # 0.9.0 (2025.07.24)
 ## Features:
