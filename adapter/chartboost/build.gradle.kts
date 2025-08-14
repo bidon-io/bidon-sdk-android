@@ -22,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.chartboost:chartboost-sdk:9.8.3")
+    implementation("com.chartboost:chartboost-sdk:9.9.1")
 }
