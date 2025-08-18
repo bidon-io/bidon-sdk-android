@@ -61,12 +61,8 @@ internal class BidMachineAdapter :
         suspendCoroutine { continuation ->
             this.placements = configParams.placements ?: emptyMap()
             val sourceId = configParams.sellerId
-            val endpoint = configParams.endpoint
-
             BidMachine.setTestMode(isTestMode)
-            endpoint?.let { BidMachine.setEndpoint(it) }
             BidMachine.setLoggingEnabled(BidonSdk.loggerLevel != Logger.Level.Off)
-
             BidMachine.initialize(context, sourceId) {
                 continuation.resume(Unit)
             }

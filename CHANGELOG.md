@@ -16,7 +16,7 @@
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Mintegral adapter to 16.9.91
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated UnityAds adapter to 4.16.0
 - [BDN-1005](https://appodeal.atlassian.net/browse/BDN-1005) Updated Yandex adapter to 7.15.0
-- [BDN-944](https://appodeal.atlassian.net/browse/BDN-944) Use endpoint for BidMachine configuration
+- [BDN-944](https://appodeal.atlassian.net/browse/BDN-944) Remove mediation config from BidMachine configuration
 
 # 0.9.0 (2025.07.24)
 ## Features:
