@@ -40,16 +40,6 @@ class CommonGradlePlugin : Plugin<Project> {
                 unitTests.isReturnDefaultValues = true
             }
 
-            packaging {
-                resources.excludes.addAll(
-                    listOf(
-                        "META-INF/LICENSE.txt",
-                        "META-INF/NOTICE.txt",
-                        "META-INF/*.kotlin_module"
-                    )
-                )
-            }
-
             buildTypes {
                 debug {
                     isMinifyEnabled = false
