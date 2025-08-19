@@ -32,8 +32,8 @@ object Dependencies {
     }
 
     object Java {
-        const val javaVersion = 17
-        val javaCompile = JvmTarget.JVM_17
+        const val javaVersion = 11
+        val javaCompile = JvmTarget.JVM_11
     }
 
     object Google {
