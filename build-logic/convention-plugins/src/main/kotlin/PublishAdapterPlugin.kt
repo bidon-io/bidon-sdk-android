@@ -1,11 +1,11 @@
+import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.tasks.bundling.Jar
+import org.gradle.kotlin.dsl.configure
 import org.gradle.plugins.signing.SigningExtension
-import javadoc.ClassesList
 import java.util.Properties
 
 class PublishAdapterPlugin : Plugin<Project> {
@@ -16,22 +16,16 @@ class PublishAdapterPlugin : Plugin<Project> {
         plugins.apply("maven-publish")
         plugins.apply("signing")
 
-        val githubProperties = Properties().apply {
-            val githubCredentialFile = rootProject.file("github.properties")
-            if (githubCredentialFile.exists()) {
-                load(githubCredentialFile.inputStream())
+        extensions.configure<LibraryExtension> {
+            publishing {
+                singleVariant("productionRelease") {
+                    withSourcesJar()
+                    withJavadocJar()
+                }
             }
         }
 
-        afterEvaluate {
-            val dokkaJar = tasks.register("dokkaJar", Jar::class.java) {
-                group = "documentation"
-                dependsOn(tasks.getByName("dokkaJavadoc"))
-                include(ClassesList.javaDocsAllowList)
-                archiveClassifier.set("javadoc")
-                from("${layout.buildDirectory.get()}/dokka/javadoc")
-            }
-
+        project.afterEvaluate {
             extensions.configure(PublishingExtension::class.java) {
                 val getGroupId = publishAdapterExtension.groupId.getOrElse(defaultGroupId)
                 val getArtifactId = publishAdapterExtension.artifactId.orNull
@@ -41,6 +35,12 @@ class PublishAdapterPlugin : Plugin<Project> {
                         name = "GitHubPackages"
                         url = uri("https://maven.pkg.github.com/bidon-io/bidon-sdk-android")
                         credentials {
+                            val githubProperties = Properties().apply {
+                                val githubCredentialFile = rootProject.file("github.properties")
+                                if (githubCredentialFile.exists()) {
+                                    load(githubCredentialFile.inputStream())
+                                }
+                            }
                             username =
                                 githubProperties["gpr.usr"] as? String ?: System.getenv("GPR_USER")
                             password =
@@ -79,13 +79,7 @@ class PublishAdapterPlugin : Plugin<Project> {
 
                 publications {
                     create("gpr", MavenPublication::class.java) {
-                        val component = components.findByName("productionRelease")
-                            ?: components.findByName("release")
-                            ?: components.findByName("java")
-                        if (component != null) {
-                            from(component)
-                        }
-                        artifact(dokkaJar.get())
+                        from(components.getByName("productionRelease"))
                         pom {
                             groupId = getGroupId
                             artifactId = getArtifactId
