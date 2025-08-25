@@ -1,3 +1,7 @@
+# 0.10.0 (2025.08.27)
+## Features:
+-[APDM-1462](https://appodeal.atlassian.net/browse/APDM-1462) Promoted 0.10.0 release to stable
+
 # 0.10.0-alpha.1 (2025.08.14)
 ## Features:
 - [BDN-1020](https://appodeal.atlassian.net/browse/BDN-1020) Improved Win/Loss notification flow to respect external_win_notifications parameter
