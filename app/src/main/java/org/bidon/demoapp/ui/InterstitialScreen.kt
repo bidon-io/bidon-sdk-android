@@ -57,7 +57,8 @@ fun InterstitialScreen(
     val pricefloorState = remember {
         mutableStateOf("0.001")
     }
-    val auctionKeyState = remember { mutableStateOf("") }
+    // TODO remove after tests
+    val auctionKeyState = remember { mutableStateOf("1MD294H5O0400") }
 
     val interstitial by lazy {
         InterstitialAd(auctionKey = auctionKeyState.value.ifBlank { null }).apply {

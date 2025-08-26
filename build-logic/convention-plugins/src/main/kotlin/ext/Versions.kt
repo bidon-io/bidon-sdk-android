@@ -22,6 +22,7 @@ object Versions {
         val Meta = "$mainVersion.0" + semanticVersion
         val Mintegral = "$mainVersion.0" + semanticVersion
         val MobileFuse = "$mainVersion.0" + semanticVersion
+        val Moloco = "$mainVersion.0" + semanticVersion
         val UnityAds = "$mainVersion.0" + semanticVersion
         val VkAds = "$mainVersion.0" + semanticVersion
         val Vungle = "$mainVersion.0" + semanticVersion

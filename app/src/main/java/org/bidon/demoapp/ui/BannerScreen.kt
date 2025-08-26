@@ -80,7 +80,8 @@ fun BannerScreen(navController: NavHostController) {
     val pricefloor = remember {
         mutableStateOf("0.001")
     }
-    val auctionKeyState = remember { mutableStateOf("") }
+    // TODO remove after tests
+    val auctionKeyState = remember { mutableStateOf("1MD28VQU40400") }
 
     Column(
         modifier = Modifier
