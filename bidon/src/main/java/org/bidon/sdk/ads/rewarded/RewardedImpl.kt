@@ -40,7 +40,7 @@ internal class RewardedImpl(
     Extras by demandAd {
 
     private var userListener: RewardedListener? = null
-    private var winner: AdSource<*>? = null
+    private var winner: AdSource.Rewarded<*>? = null
     private var observeCallbacksJob: Job? = null
 
     private val adCache: AdCache by lazy {
@@ -140,7 +140,9 @@ internal class RewardedImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        winner?.notifyExternalWin()
+        val notifiedSource = winner ?: adCache.peek()?.adSource as? AdSource.Interstitial
+        notifiedSource?.notifyExternalWin()
+        winner = null
     }
 
     override fun destroyAd() {
