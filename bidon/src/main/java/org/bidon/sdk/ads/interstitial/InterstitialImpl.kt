@@ -40,6 +40,7 @@ internal class InterstitialImpl(
     Interstitial,
     Extras by demandAd {
     private var userListener: InterstitialListener? = null
+    private var winner: AdSource.Interstitial<*>? = null
     private var observeCallbacksJob: Job? = null
 
     private val adCache: AdCache by lazy {
@@ -116,6 +117,7 @@ internal class InterstitialImpl(
                 logInfo(TAG, "Show failed. No Auction results.")
                 listener.onAdShowFailed(BidonError.AdNotReady)
             } else {
+                winner = adSource
                 adSource.show(activity)
             }
         }
@@ -140,7 +142,9 @@ internal class InterstitialImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        adCache.peek()?.adSource?.notifyExternalWin()
+        val notifiedSource = winner ?: adCache.peek()?.adSource as? AdSource.Interstitial
+        notifiedSource?.notifyExternalWin()
+        winner = null
     }
 
     override fun destroyAd() {
@@ -152,6 +156,7 @@ internal class InterstitialImpl(
             adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+            winner = null
         }
     }
 
