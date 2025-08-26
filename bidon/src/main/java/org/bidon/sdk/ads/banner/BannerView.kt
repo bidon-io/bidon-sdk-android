@@ -251,8 +251,8 @@ class BannerView @JvmOverloads constructor(
             return
         }
         val adSource = winner?.adSource
-        if (adSource?.canSendWinLoseNotifications() == true
-            && !wasNotified.getAndSet(true)
+        if (adSource?.canSendWinLoseNotifications() == true &&
+            !wasNotified.getAndSet(true)
         ) {
             adSource.notifyExternalWin()
         }
