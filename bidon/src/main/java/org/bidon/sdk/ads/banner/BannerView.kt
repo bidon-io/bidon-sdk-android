@@ -250,11 +250,11 @@ class BannerView @JvmOverloads constructor(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        if ((adLifecycleFlow.value == AdLifecycle.Loaded
-                || adLifecycleFlow.value == AdLifecycle.Displaying)
+        val adSource = winner?.adSource
+        if (adSource?.canSendWinLoseNotifications() == true
             && !wasNotified.getAndSet(true)
         ) {
-            winner?.adSource?.notifyExternalWin()
+            adSource.notifyExternalWin()
         }
     }
 
