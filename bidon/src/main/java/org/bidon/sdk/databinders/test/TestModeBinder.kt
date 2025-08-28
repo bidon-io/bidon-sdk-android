@@ -1,5 +1,6 @@
 package org.bidon.sdk.databinders.test
 
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.databinders.DataBinder
 
 /**
@@ -8,5 +9,5 @@ import org.bidon.sdk.databinders.DataBinder
 internal class TestModeBinder : DataBinder<Boolean> {
     override val fieldName: String = "test"
 
-    override suspend fun getJsonObject(): Boolean = true
+    override suspend fun getJsonObject(): Boolean = BidonSdk.bidon.isTestMode
 }
