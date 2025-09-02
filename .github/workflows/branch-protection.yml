@@ -1,4 +1,4 @@
-name: Branch Protection and Git-Flow Enforcement
+name: Git-Flow Branch Protection
 
 on:
   pull_request:
@@ -24,7 +24,6 @@ on:
 
 jobs:
   gitflow-validate:
-    name: gitflow/validate
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
 
@@ -205,8 +204,7 @@ jobs:
           
           echo "✅ Pull request validation passed"
 
-  status-check-enforcement:
-    name: Enforce Status Checks
+  gitflow-status-check:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     needs: gitflow-validate
