@@ -48,44 +48,46 @@ internal class MolocoInterstitialImpl :
         }
     }
 
-    private val showListener: InterstitialAdShowListener = object : InterstitialAdShowListener {
-        override fun onAdShowSuccess(molocoAd: MolocoAd) {
-            logInfo(TAG, "onAdRendered")
-            getAd()?.let {
-                emitEvent(AdEvent.Shown(it))
-                emitEvent(
-                    AdEvent.PaidRevenue(
-                        ad = it,
-                        adValue = AdValue(
-                            adRevenue = molocoAd.revenue?.toDouble() ?: 0.0,
-                            currency = AdValue.USD,
-                            precision = Precision.Precise
+    private val showListener: InterstitialAdShowListener by lazy {
+        object : InterstitialAdShowListener {
+            override fun onAdShowSuccess(molocoAd: MolocoAd) {
+                logInfo(TAG, "onAdRendered")
+                getAd()?.let {
+                    emitEvent(AdEvent.Shown(it))
+                    emitEvent(
+                        AdEvent.PaidRevenue(
+                            ad = it,
+                            adValue = AdValue(
+                                adRevenue = molocoAd.revenue?.toDouble() ?: 0.0,
+                                currency = AdValue.USD,
+                                precision = Precision.Precise
+                            )
                         )
+                    )
+                }
+            }
+
+            override fun onAdShowFailed(molocoAdError: MolocoAdError) {
+                logInfo(TAG, "onAdShowFailed: ${molocoAdError.description}")
+                emitEvent(
+                    AdEvent.ShowFailed(
+                        (BidonError.Unspecified(
+                            demandId,
+                            molocoAdError.toBidonShowError()
+                        ))
                     )
                 )
             }
-        }
 
-        override fun onAdShowFailed(molocoAdError: MolocoAdError) {
-            logInfo(TAG, "onAdShowFailed: ${molocoAdError.description}")
-            emitEvent(
-                AdEvent.ShowFailed(
-                    (BidonError.Unspecified(
-                        demandId,
-                        molocoAdError.toBidonShowError()
-                    ))
-                )
-            )
-        }
+            override fun onAdHidden(molocoAd: MolocoAd) {
+                logInfo(TAG, "onAdHidden: $this")
+                getAd()?.let { emitEvent(AdEvent.Closed(it)) }
+            }
 
-        override fun onAdHidden(molocoAd: MolocoAd) {
-            logInfo(TAG, "onAdHidden: $this")
-            getAd()?.let { emitEvent(AdEvent.Closed(it)) }
-        }
-
-        override fun onAdClicked(molocoAd: MolocoAd) {
-            logInfo(TAG, "onAdClicked")
-            getAd()?.let { emitEvent(AdEvent.Clicked(it)) }
+            override fun onAdClicked(molocoAd: MolocoAd) {
+                logInfo(TAG, "onAdClicked")
+                getAd()?.let { emitEvent(AdEvent.Clicked(it)) }
+            }
         }
     }
 

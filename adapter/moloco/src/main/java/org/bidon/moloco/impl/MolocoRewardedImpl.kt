@@ -48,7 +48,7 @@ internal class MolocoRewardedImpl :
         }
     }
 
-    private val showListener: RewardedInterstitialAdShowListener =
+    private val showListener: RewardedInterstitialAdShowListener by lazy {
         object : RewardedInterstitialAdShowListener {
             override fun onAdShowSuccess(molocoAd: MolocoAd) {
                 logInfo(TAG, "onAdRendered")
@@ -104,6 +104,7 @@ internal class MolocoRewardedImpl :
                 logInfo(TAG, "onRewardedVideoCompleted: $this")
             }
         }
+    }
 
     override fun show(activity: Activity) {
         if (isAdReadyToShow) {

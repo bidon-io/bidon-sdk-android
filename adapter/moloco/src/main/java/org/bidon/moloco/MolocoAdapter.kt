@@ -58,7 +58,7 @@ internal class MolocoAdapter :
             logInfo(TAG, "Requesting bid token")
             Moloco.getBidToken(
                 MediationInfo(EMPTY_MEDIATOR),
-                adTypeParam.activity
+                adTypeParam.activity.applicationContext
             ) { bidToken: String, error: MolocoAdError.ErrorType? ->
                 if (error != null) {
                     logError(
