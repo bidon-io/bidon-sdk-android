@@ -22,7 +22,6 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by Aleksei Cherniaev on 11/09/2023.
@@ -33,8 +32,6 @@ internal class InmobiBannerImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerView: InMobiBanner? = null
-    private var adMetaInfo: AdMetaInfo? = null
-    private val clicked = AtomicBoolean(false)
 
     override val isAdReadyToShow: Boolean
         get() = bannerView != null
@@ -70,9 +67,7 @@ internal class InmobiBannerImpl :
         bannerView.setAnimationType(InMobiBanner.AnimationType.ANIMATION_OFF)
         bannerView.setListener(object : BannerAdEventListener() {
             override fun onAdLoadSucceeded(inMobiBanner: InMobiBanner, adMetaInfo: AdMetaInfo) {
-                this@InmobiBannerImpl.adMetaInfo = adMetaInfo
                 logInfo(TAG, "onAdLoadSucceeded: $this")
-                setPrice(adMetaInfo.bid)
                 emitEvent(AdEvent.Fill(getAd() ?: return))
             }
 
@@ -84,26 +79,22 @@ internal class InmobiBannerImpl :
 
             override fun onAdClicked(inMobiBanner: InMobiBanner, map: MutableMap<Any, Any>?) {
                 logInfo(TAG, "onAdClicked: $map, $this")
-                if (!clicked.getAndSet(true)) {
-                    emitEvent(AdEvent.Clicked(getAd() ?: return))
-                }
+                emitEvent(AdEvent.Clicked(getAd() ?: return))
             }
 
             override fun onAdImpression(inMobiBanner: InMobiBanner) {
                 logInfo(TAG, "onAdImpression: $this")
-                adMetaInfo?.let {
-                    val ad = getAd() ?: return
-                    emitEvent(
-                        AdEvent.PaidRevenue(
-                            ad = ad,
-                            adValue = AdValue(
-                                adRevenue = it.bid / 1000.0,
-                                precision = Precision.Precise,
-                                currency = AdValue.USD,
-                            )
+                val ad = getAd() ?: return
+                emitEvent(
+                    AdEvent.PaidRevenue(
+                        ad = ad,
+                        adValue = AdValue(
+                            adRevenue = adParams.price / 1000.0,
+                            precision = Precision.Precise,
+                            currency = AdValue.USD,
                         )
                     )
-                }
+                )
             }
         })
         if (adParams.adUnit.bidType == BidType.RTB) {
