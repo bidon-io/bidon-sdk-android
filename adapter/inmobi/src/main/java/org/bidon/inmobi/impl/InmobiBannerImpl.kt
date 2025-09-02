@@ -4,6 +4,7 @@ import com.inmobi.ads.AdMetaInfo
 import com.inmobi.ads.InMobiAdRequestStatus
 import com.inmobi.ads.InMobiBanner
 import com.inmobi.ads.listeners.BannerAdEventListener
+import org.bidon.inmobi.InmobiAdapter
 import org.bidon.inmobi.ext.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -12,7 +13,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdViewHolder
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.ext.height
 import org.bidon.sdk.ads.banner.ext.width
 import org.bidon.sdk.config.BidonError
@@ -21,6 +21,7 @@ import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -33,7 +34,6 @@ internal class InmobiBannerImpl :
 
     private var bannerView: InMobiBanner? = null
     private var adMetaInfo: AdMetaInfo? = null
-    private var bannerFormat: BannerFormat? = null
     private val clicked = AtomicBoolean(false)
 
     override val isAdReadyToShow: Boolean
@@ -60,10 +60,11 @@ internal class InmobiBannerImpl :
             )
             return
         }
-        bannerFormat = adParams.bannerFormat
-        val bannerView = InMobiBanner(adParams.activity.applicationContext, adParams.placementId).also {
-            this.bannerView = it
-        }
+        val bannerView = InMobiBanner(
+            context = adParams.activity.applicationContext,
+            placementId = adParams.placementId
+        ).also { this.bannerView = it }
+        bannerView.setExtras(InmobiAdapter.getExtras())
         bannerView.setBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
         bannerView.setEnableAutoRefresh(false)
         bannerView.setAnimationType(InMobiBanner.AnimationType.ANIMATION_OFF)
@@ -105,7 +106,23 @@ internal class InmobiBannerImpl :
                 }
             }
         })
-        bannerView.load()
+        if (adParams.adUnit.bidType == BidType.RTB) {
+            val payload = adParams.payload
+            if (payload != null) {
+                bannerView.load(payload.toByteArray())
+            } else {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.IncorrectAdUnit(
+                            demandId = demandId,
+                            message = "payload"
+                        )
+                    )
+                )
+            }
+        } else {
+            bannerView.load()
+        }
     }
 
     override fun getAdView(): AdViewHolder? = bannerView?.let { AdViewHolder(it) }

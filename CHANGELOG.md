@@ -1,6 +1,10 @@
+# 0.11.0
+## Features:
+- [BDN-1039](https://appodeal.atlassian.net/browse/BDN-1039) Implemented RTB mode for Inmobi adapter
+
 # 0.10.0 (2025.08.27)
 ## Features:
--[APDM-1462](https://appodeal.atlassian.net/browse/APDM-1462) Promoted 0.10.0 release to stable
+- [APDM-1462](https://appodeal.atlassian.net/browse/APDM-1462) Promoted 0.10.0 release to stable
 
 # 0.10.0-alpha.1 (2025.08.14)
 ## Features:
