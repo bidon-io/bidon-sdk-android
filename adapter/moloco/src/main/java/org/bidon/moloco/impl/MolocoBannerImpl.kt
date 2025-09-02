@@ -120,36 +120,24 @@ internal class MolocoBannerImpl :
             )
             return
         }
-        try {
-            Moloco.createBannerAd(
-                adParams.bannerSize,
-                adUnitId = adParams.adUnitId
-            ) { banner: Banner?, adCreateError: Throwable? ->
-                if (banner != null) {
-                    bannerAd = banner
-                    banner.load(adParams.payload, listener = loadListener)
-                } else {
-                    emitEvent(
-                        AdEvent.LoadFailed(
-                            BidonError.Unspecified(
-                                MolocoDemandId,
-                                message = adCreateError?.message
-                                    ?: "Created banner is null."
-                            )
+        Moloco.createBannerAd(
+            adParams.bannerSize,
+            adUnitId = adParams.adUnitId
+        ) { banner: Banner?, adCreateError: Throwable? ->
+            if (banner != null) {
+                bannerAd = banner
+                banner.load(adParams.payload, listener = loadListener)
+            } else {
+                emitEvent(
+                    AdEvent.LoadFailed(
+                        BidonError.Unspecified(
+                            MolocoDemandId,
+                            message = adCreateError?.message
+                                ?: "Created banner is null."
                         )
                     )
-                }
-            }
-        } catch (e: Exception) {
-            logError(TAG, "Failed to create or load banner ad", e)
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.Unspecified(
-                        MolocoDemandId,
-                        message = e.message ?: "Failed to create banner ad"
-                    )
                 )
-            )
+            }
         }
     }
 
