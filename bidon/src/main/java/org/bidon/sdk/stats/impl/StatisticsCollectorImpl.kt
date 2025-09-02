@@ -252,7 +252,7 @@ class StatisticsCollectorImpl : StatisticsCollector {
     override fun getStats(): BidStat = stat
 
     override fun canSendWinLoseNotifications(): Boolean {
-        return externalWinNotificationsEnabled && !isShowSent.get() && !isWinLossSent.get()
+        return externalWinNotificationsEnabled && !isWinLossSent.get()
     }
 
     override fun markWinLoseNotificationsSent() {
