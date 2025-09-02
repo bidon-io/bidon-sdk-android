@@ -3,11 +3,9 @@ package org.bidon.moloco.impl
 import com.moloco.sdk.publisher.AdLoad
 import com.moloco.sdk.publisher.Banner
 import com.moloco.sdk.publisher.BannerAdShowListener
-import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
 import com.moloco.sdk.publisher.MolocoAd
 import com.moloco.sdk.publisher.MolocoAdError
-import org.bidon.moloco.EMPTY_MEDIATOR
 import org.bidon.moloco.MolocoDemandId
 import org.bidon.moloco.ext.createBannerAd
 import org.bidon.moloco.ext.toBidonLoadError
@@ -125,7 +123,6 @@ internal class MolocoBannerImpl :
         try {
             Moloco.createBannerAd(
                 adParams.bannerSize,
-                mediationInfo = MediationInfo(EMPTY_MEDIATOR),
                 adUnitId = adParams.adUnitId
             ) { banner: Banner?, adCreateError: Throwable? ->
                 if (banner != null) {

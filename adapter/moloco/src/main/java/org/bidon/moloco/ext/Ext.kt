@@ -1,7 +1,6 @@
 package org.bidon.moloco.ext
 
 import com.moloco.sdk.publisher.Banner
-import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
 import com.moloco.sdk.publisher.MolocoAdError
 import org.bidon.moloco.EMPTY_WATERMARK
@@ -26,7 +25,6 @@ fun MolocoAdError.toBidonShowError() = when (errorType) {
 
 internal fun Moloco.createBannerAd(
     bannerSize: BannerFormat,
-    mediationInfo: MediationInfo,
     adUnitId: String,
     callback: (Banner?, Throwable?) -> Unit
 ) {
@@ -45,13 +43,13 @@ internal fun Moloco.createBannerAd(
     try {
         when (bannerSize) {
             BannerFormat.Banner ->
-                Moloco.createBanner(mediationInfo, adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createBanner(adUnitId, EMPTY_WATERMARK, sdkCallback)
 
             BannerFormat.LeaderBoard ->
-                Moloco.createBannerTablet(mediationInfo, adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createBannerTablet(adUnitId, EMPTY_WATERMARK, sdkCallback)
 
             BannerFormat.MRec ->
-                Moloco.createMREC(mediationInfo, adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createMREC(adUnitId, EMPTY_WATERMARK, sdkCallback)
 
             BannerFormat.Adaptive -> {
                 callback(

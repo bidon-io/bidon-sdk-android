@@ -22,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.moloco.sdk:moloco-sdk:4.0.0")
+    implementation("com.moloco.sdk:moloco-sdk:3.12.0")
 }
