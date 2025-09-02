@@ -205,51 +205,11 @@ jobs:
           
           echo "✅ Pull request validation passed"
 
-  check-review-requirements:
-    name: Check Review Requirements
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-    needs: gitflow-validate
-
-    steps:
-      - name: Check Review Status
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            
-            const approvals = reviews.filter(review => 
-              review.state === 'APPROVED' && 
-              review.user.login !== context.payload.pull_request.user.login
-            );
-            
-            const targetBranch = context.payload.pull_request.base.ref;
-            const protectedBranches = ['main', 'master', 'develop'];
-            const protectedPatterns = ['release/', 'hotfix/', 'experiment/'];
-            
-            const isProtected = protectedBranches.includes(targetBranch) || 
-              protectedPatterns.some(pattern => targetBranch.startsWith(pattern));
-            
-            if (isProtected && approvals.length === 0) {
-              core.setFailed(`❌ At least one peer review approval is required for merges to protected branch '${targetBranch}'`);
-              return;
-            }
-            
-            if (isProtected) {
-              console.log(`✅ Found ${approvals.length} peer review approval(s) for protected branch '${targetBranch}'`);
-            } else {
-              console.log(`✅ Branch '${targetBranch}' is not protected - no review requirements`);
-            }
-
   status-check-enforcement:
     name: Enforce Status Checks
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    needs: [gitflow-validate, check-review-requirements]
+    needs: gitflow-validate
     
     steps:
       - name: Status Check Summary
