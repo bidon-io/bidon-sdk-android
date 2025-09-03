@@ -50,8 +50,7 @@ fun RewardedScreen(
     val pricefloor = remember {
         mutableStateOf("0.001")
     }
-    // TODO remove after tests
-    val auctionKeyState = remember { mutableStateOf("1MD2985BO0400") }
+    val auctionKeyState = remember { mutableStateOf("") }
 
     val rewardedAd by lazy {
         RewardedAd(auctionKey = auctionKeyState.value.ifBlank { null }).apply {
