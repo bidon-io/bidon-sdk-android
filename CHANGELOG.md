@@ -1,3 +1,7 @@
+# 0.11.0 (2025.**.**)
+## Features:
+-[APDM-1468](https://appodeal.atlassian.net/browse/APDM-1468) Added github action validation flow
+
 # 0.10.0 (2025.08.27)
 ## Features:
 -[APDM-1462](https://appodeal.atlassian.net/browse/APDM-1462) Promoted 0.10.0 release to stable
