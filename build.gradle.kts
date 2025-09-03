@@ -8,7 +8,6 @@ buildscript {
 
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
-    apply(plugin = "org.jetbrains.dokka")
 
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         version.set("0.48.2")
@@ -32,5 +31,4 @@ plugins {
     // --- Tools & utilities ---
     id("org.jlleitschuh.gradle.ktlint") version "12.1.0" apply false
     id("com.google.gms.google-services") version "4.3.14" apply false
-    id("org.jetbrains.dokka") version "1.9.20" apply false
 }

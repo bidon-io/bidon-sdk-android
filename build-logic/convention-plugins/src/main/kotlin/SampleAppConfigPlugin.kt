@@ -55,6 +55,15 @@ class SampleAppConfigPlugin : Plugin<Project> {
             buildFeatures {
                 buildConfig = true
             }
+            packaging {
+                resources.excludes.addAll(
+                    listOf(
+                        "META-INF/LICENSE.txt",
+                        "META-INF/NOTICE.txt",
+                        "META-INF/*.kotlin_module"
+                    )
+                )
+            }
         }
         project.tasks.withType(KotlinJvmCompile::class.java).configureEach {
             compilerOptions {
