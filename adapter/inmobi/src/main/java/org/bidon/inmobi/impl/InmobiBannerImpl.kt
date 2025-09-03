@@ -57,10 +57,8 @@ internal class InmobiBannerImpl :
             )
             return
         }
-        val bannerView = InMobiBanner(
-            context = adParams.activity.applicationContext,
-            placementId = adParams.placementId
-        ).also { this.bannerView = it }
+        val bannerView = InMobiBanner(adParams.activity, adParams.placementId)
+            .also { this.bannerView = it }
         bannerView.setExtras(InmobiAdapter.getExtras())
         bannerView.setBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
         bannerView.setEnableAutoRefresh(false)
