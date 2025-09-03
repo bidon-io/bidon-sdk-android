@@ -1,5 +1,6 @@
 # 0.11.0 (2025.**.**)
 ## Features:
+-[BDN-1030](https://appodeal.atlassian.net/browse/BDN-1030) Added Moloco SDK 4.0.0 as ad adapter
 -[APDM-1468](https://appodeal.atlassian.net/browse/APDM-1468) Added github action validation flow
 
 # 0.10.0 (2025.08.27)
