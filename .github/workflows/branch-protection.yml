@@ -11,16 +11,6 @@ on:
       - 'hotfix/*'
       - 'experiment/*'
       - 'feature/*'
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - master
-      - develop
-      - 'release/*'
-      - 'hotfix/*'
-      - 'experiment/*'
-      - 'feature/*'
 
 jobs:
   gitflow-validate:
