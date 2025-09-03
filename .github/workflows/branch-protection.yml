@@ -79,6 +79,19 @@ jobs:
           fi
           
           echo "🛡️ Target branch '$TARGET_BRANCH' is protected - validating merge rules..."
+
+          # Global rule: main/master can merge ONLY into develop or experiment/*
+          if { [[ "$SOURCE_BRANCH" == "main" ]] || [[ "$SOURCE_BRANCH" == "master" ]] ; } \
+             && { [[ "$TARGET_BRANCH" != "develop" ]] && [[ "$TARGET_BRANCH" != experiment/* ]]; }; then
+            echo "❌ main/master can be merged only into develop or experiment/*"
+            exit 1
+          fi
+          
+          # Global rule: hotfix/* can merge ONLY into main/master
+          if [[ $SOURCE_BRANCH == hotfix/* && "$TARGET_BRANCH" != "main" && "$TARGET_BRANCH" != "master" ]]; then
+            echo "❌ hotfix/* branches can only merge into main/master."
+            exit 1
+          fi
           
           # Validate specific merge patterns according to Git-Flow diagram
           VALID_MERGE=false
@@ -92,14 +105,11 @@ jobs:
               elif [[ $SOURCE_BRANCH == bugfix/* ]]; then
                 VALID_MERGE=true
                 MERGE_REASON="Bugfix branch to develop"
-              elif [[ $SOURCE_BRANCH == hotfix/* ]]; then
-                VALID_MERGE=true
-                MERGE_REASON="Hotfix branch to develop (completing hotfix flow)"
               elif [[ $SOURCE_BRANCH == release/* ]]; then
                 VALID_MERGE=true
                 MERGE_REASON="Release branch back to develop (completing release flow)"
               else
-                echo "❌ Invalid merge to develop. Allowed: feature/*, bugfix/*, hotfix/*, release/*"
+                echo "❌ Invalid merge to develop. Allowed: feature/*, bugfix/*, release/*"
                 echo "Note: experiment/* branches should merge to feature/* branches first"
                 exit 1
               fi
@@ -141,14 +151,11 @@ jobs:
               fi
               ;;
             hotfix/*)
-              if [[ $SOURCE_BRANCH == "main" ]] || [[ $SOURCE_BRANCH == "master" ]]; then
-                VALID_MERGE=true
-                MERGE_REASON="Main branch to hotfix (starting hotfix)"
-              elif [[ $SOURCE_BRANCH == bugfix/* ]]; then
+              if [[ $SOURCE_BRANCH == bugfix/* ]]; then
                 VALID_MERGE=true
                 MERGE_REASON="Bugfix branch to hotfix branch"
               else
-                echo "❌ Only main/master and bugfix/* branches can merge to hotfix/* branches"
+                echo "❌ Only bugfix/* branches can merge to hotfix/* branches"
                 exit 1
               fi
               ;;
