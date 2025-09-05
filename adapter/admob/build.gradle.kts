@@ -8,13 +8,13 @@ plugins {
 
 publishAdapter {
     artifactId = "admob-adapter"
-    versionName = Versions.Adapters.Admob
+    versionName = Versions.PublishedAdapters.Admob
 }
 
 android {
     namespace = "org.bidon.admob"
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Admob
+        ADAPTER_VERSION = Versions.PublishedAdapters.Admob
     }
 }
 
@@ -22,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation(Dependencies.Google.PlayServicesAds)
+    implementation(Dependencies.Adapter.Admob)
 }

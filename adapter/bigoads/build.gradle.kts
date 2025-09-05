@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,13 +8,13 @@ plugins {
 
 publishAdapter {
     artifactId = "bigoads-adapter"
-    versionName = Versions.Adapters.BigoAds
+    versionName = Versions.PublishedAdapters.BigoAds
 }
 
 android {
     namespace = "org.bidon.bigoads"
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.BigoAds
+        ADAPTER_VERSION = Versions.PublishedAdapters.BigoAds
     }
 }
 
@@ -21,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.bigossp:bigo-ads:5.4.0")
+    implementation(Dependencies.Adapter.BigoAds)
 }

@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "mintegral-adapter"
-    versionName = Versions.Adapters.Mintegral
+    versionName = Versions.PublishedAdapters.Mintegral
 }
 
 android {
     namespace = "org.bidon.mintegral"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Mintegral
+        ADAPTER_VERSION = Versions.PublishedAdapters.Mintegral
     }
 }
 
@@ -22,5 +23,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.mbridge.msdk.oversea:mbridge_android_sdk:16.9.91")
+    implementation(Dependencies.Adapter.Mintegral)
 }

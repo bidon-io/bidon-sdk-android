@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "inmobi-adapter"
-    versionName = Versions.Adapters.Inmobi
+    versionName = Versions.PublishedAdapters.Inmobi
 }
 
 android {
     namespace = "org.bidon.inmobi"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Inmobi
+        ADAPTER_VERSION = Versions.PublishedAdapters.Inmobi
     }
 }
 
@@ -22,5 +23,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.inmobi.monetization:inmobi-ads-kotlin:10.8.7")
+    implementation(Dependencies.Adapter.Inmobi)
 }

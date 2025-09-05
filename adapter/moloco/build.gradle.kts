@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "moloco-adapter"
-    versionName = Versions.Adapters.Moloco
+    versionName = Versions.PublishedAdapters.Moloco
 }
 
 android {
     namespace = "org.bidon.moloco"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Moloco
+        ADAPTER_VERSION = Versions.PublishedAdapters.Moloco
     }
 }
 
@@ -22,5 +23,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.moloco.sdk:moloco-sdk:3.12.0")
+    implementation(Dependencies.Adapter.Moloco)
 }

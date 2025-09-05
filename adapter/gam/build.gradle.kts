@@ -8,13 +8,13 @@ plugins {
 
 publishAdapter {
     artifactId = "gam-adapter"
-    versionName = Versions.Adapters.Gam
+    versionName = Versions.PublishedAdapters.Gam
 }
 
 android {
     namespace = "org.bidon.gam"
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Gam
+        ADAPTER_VERSION = Versions.PublishedAdapters.Gam
     }
 }
 
@@ -22,5 +22,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation(Dependencies.Google.PlayServicesAds)
+    implementation(Dependencies.Adapter.Admob)
 }

@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "yandex-adapter"
-    versionName = Versions.Adapters.Yandex
+    versionName = Versions.PublishedAdapters.Yandex
 }
 
 android {
     namespace = "org.bidon.yandex"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Yandex
+        ADAPTER_VERSION = Versions.PublishedAdapters.Yandex
     }
 }
 
@@ -22,5 +23,5 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.yandex.android:mobileads:7.15.0")
+    implementation(Dependencies.Adapter.Yandex)
 }

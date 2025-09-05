@@ -1,5 +1,6 @@
 import ext.ADAPTER_VERSION
 import ext.Versions
+import ext.Dependencies
 
 plugins {
     id("common")
@@ -7,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "amazon-adapter"
-    versionName = Versions.Adapters.Amazon
+    versionName = Versions.PublishedAdapters.Amazon
 }
 
 android {
     namespace = "org.bidon.amazon"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.Amazon
+        ADAPTER_VERSION = Versions.PublishedAdapters.Amazon
     }
 }
 
@@ -22,6 +23,6 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.amazon.android:aps-sdk:11.0.1")
-    implementation("com.iabtcf:iabtcf-decoder:2.0.10")
+    implementation(Dependencies.Adapter.Amazon)
+    implementation(Dependencies.Others.IabTcfDecoder)
 }

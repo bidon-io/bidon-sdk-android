@@ -8,14 +8,14 @@ plugins {
 
 publishAdapter {
     artifactId = "dtexchange-adapter"
-    versionName = Versions.Adapters.DTExchange
+    versionName = Versions.PublishedAdapters.DTExchange
 }
 
 android {
     namespace = "org.bidon.dtexchange"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.DTExchange
+        ADAPTER_VERSION = Versions.PublishedAdapters.DTExchange
     }
 }
 
@@ -23,6 +23,6 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    implementation("com.fyber:marketplace-sdk:8.3.8")
+    implementation(Dependencies.Adapter.Dtexchange)
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 }
