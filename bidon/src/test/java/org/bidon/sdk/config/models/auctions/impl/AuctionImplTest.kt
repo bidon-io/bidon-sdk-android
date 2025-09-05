@@ -49,7 +49,6 @@ internal const val BidMachine = "bidmachine"
 internal const val Applovin = "applovin"
 internal const val Admob = "admob"
 
-@Ignore
 @ExperimentalCoroutinesApi
 internal class AuctionImplTest : ConcurrentTest() {
 
@@ -163,7 +162,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                     pricefloor = 0.021,
                     uid = "123567",
                     timeout = 5000L,
-                    ext = ""
+                    ext = "{}"
                 )
             )
         )
@@ -422,7 +421,7 @@ internal class AuctionImplTest : ConcurrentTest() {
                 pricefloor = 0.021,
                 uid = "123567",
                 timeout = 5000L,
-                ext = ""
+                ext = "{}"
             )
         )
     )
