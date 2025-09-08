@@ -19,7 +19,7 @@ import ext.Versions.AdapterSdk.VungleSdk
 import ext.Versions.AdapterSdk.YandexSdk
 
 object Versions {
-    private const val major = 1
+    private const val major = 0
     private const val minor = 11
     private const val patch = 0
     private const val semantic: String = ""

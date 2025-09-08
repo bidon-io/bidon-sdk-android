@@ -8,12 +8,22 @@ class AdapterGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
         pluginManager.apply("common")
 
-        // Add API dependency on core SDK with version constraints
+        // Add API dependency on core SDK with strictly version constraints,
+        // it will applied for adapters during publishing
         dependencies {
             add("api", "org.bidon:bidon-sdk") {
                 version {
-                    strictly("[${SupportedCoreRange.Min},${SupportedCoreRange.Min})")
+                    strictly("[${SupportedCoreRange.Min},${SupportedCoreRange.Max})")
                 }
+                because("${project.name} adapter is only compatible with bidon-sdk versions ${SupportedCoreRange.Min} to ${SupportedCoreRange.Max}. Please use a compatible version of bidon-sdk.")
+            }
+        }
+
+        // Using local project instead of maven dependency for local development and testing
+        configurations.all {
+            resolutionStrategy.dependencySubstitution {
+                substitute(module("org.bidon:bidon-sdk"))
+                    .using(project(":bidon"))
             }
         }
     }

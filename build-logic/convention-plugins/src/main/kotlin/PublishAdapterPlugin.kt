@@ -1,5 +1,4 @@
 import com.android.build.gradle.LibraryExtension
-import ext.Versions.PublishedAdapters.SupportedCoreRange
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -111,25 +110,6 @@ class PublishAdapterPlugin : Plugin<Project> {
                                     email.set("dev@bidon.org")
                                     url.set("https://bidon.org/")
                                 }
-                            }
-
-                            // Add dependency management to enforce version constraints
-                            withXml {
-                                val root = asNode()
-                                // Find existing dependencies node or create new one
-                                val dependenciesNodeList = root.get("dependencies") as groovy.util.NodeList
-                                val dependenciesNode = if (dependenciesNodeList.isNotEmpty()) {
-                                    dependenciesNodeList[0] as groovy.util.Node
-                                } else {
-                                    root.appendNode("dependencies")
-                                }
-
-                                // Add bidon-sdk dependency with version constraint
-                                val dependencyNode = dependenciesNode.appendNode("dependency")
-                                dependencyNode.appendNode("groupId", "org.bidon")
-                                dependencyNode.appendNode("artifactId", "bidon-sdk")
-                                dependencyNode.appendNode("version", "[${SupportedCoreRange.Min},${SupportedCoreRange.Max})")
-                                dependencyNode.appendNode("scope", "compile")
                             }
                         }
                     }
