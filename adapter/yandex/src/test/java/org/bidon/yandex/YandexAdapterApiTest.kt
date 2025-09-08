@@ -56,7 +56,6 @@ class YandexAdapterApiTest {
 
         assertThat(hasDemandIdField || hasDemandIdGetter).isTrue()
 
-        // adapterInfo может быть как полем, так и геттером
         val hasAdapterInfoField = try {
             adapterClass.getDeclaredField("adapterInfo")
             true

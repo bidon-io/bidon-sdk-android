@@ -1,16 +1,10 @@
 package org.bidon.moloco.impl
 
 import android.app.Activity
-import com.moloco.sdk.publisher.InterstitialAd
 import com.moloco.sdk.publisher.Moloco
-import com.moloco.sdk.publisher.MolocoAdError
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import io.mockk.verify
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType

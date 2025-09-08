@@ -1,6 +1,6 @@
 import ext.ADAPTER_VERSION
-import ext.Versions
 import ext.Dependencies
+import ext.Versions
 
 plugins {
     id("adapter")

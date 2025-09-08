@@ -51,31 +51,30 @@ class VungleAdapterApiTest {
         } catch (e: NoSuchFieldException) {
             false
         }
-        
+
         val hasDemandIdGetter = try {
             adapterClass.getMethod("getDemandId")
             true
         } catch (e: NoSuchMethodException) {
             false
         }
-        
+
         assertThat(hasDemandIdField || hasDemandIdGetter).isTrue()
-        
-        // adapterInfo может быть как полем, так и геттером
+
         val hasAdapterInfoField = try {
             adapterClass.getDeclaredField("adapterInfo")
             true
         } catch (e: NoSuchFieldException) {
             false
         }
-        
+
         val hasAdapterInfoGetter = try {
             adapterClass.getMethod("getAdapterInfo")
             true
         } catch (e: NoSuchMethodException) {
             false
         }
-        
+
         assertThat(hasAdapterInfoField || hasAdapterInfoGetter).isTrue()
     }
 

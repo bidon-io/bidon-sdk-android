@@ -43,7 +43,7 @@ class AdmobAdapterApiTest {
     fun `Adapter_Network has required properties`() {
         val demandIdField = adapterClass.getDeclaredField("demandId")
         assertNotNull(demandIdField)
-        
+
         val adapterInfoField = adapterClass.getDeclaredField("adapterInfo")
         assertNotNull(adapterInfoField)
     }
@@ -104,11 +104,11 @@ class AdmobAdapterApiTest {
         val bannerImplClass = Class.forName("org.bidon.admob.impl.AdmobBannerImpl")
         val rewardedImplClass = Class.forName("org.bidon.admob.impl.AdmobRewardedImpl")
         val interstitialImplClass = Class.forName("org.bidon.admob.impl.AdmobInterstitialImpl")
-        
+
         assertNotNull(bannerImplClass.constructors)
         assertNotNull(rewardedImplClass.constructors)
         assertNotNull(interstitialImplClass.constructors)
-        
+
         assertThat(bannerImplClass.constructors.isNotEmpty()).isTrue()
         assertThat(rewardedImplClass.constructors.isNotEmpty()).isTrue()
         assertThat(interstitialImplClass.constructors.isNotEmpty()).isTrue()

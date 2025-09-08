@@ -42,7 +42,6 @@ import org.bidon.sdk.utils.di.SimpleDiStorage
 import org.bidon.sdk.utils.ext.asSuccess
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 internal const val BidMachine = "bidmachine"

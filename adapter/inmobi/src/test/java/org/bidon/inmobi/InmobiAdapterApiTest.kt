@@ -51,17 +51,16 @@ class InmobiAdapterApiTest {
         } catch (e: NoSuchFieldException) {
             false
         }
-        
+
         val hasDemandIdGetter = try {
             adapterClass.getMethod("getDemandId")
             true
         } catch (e: NoSuchMethodException) {
             false
         }
-        
+
         assertThat(hasDemandIdField || hasDemandIdGetter).isTrue()
 
-        // adapterInfo может быть как полем, так и геттером
         val hasAdapterInfoField = try {
             adapterClass.getDeclaredField("adapterInfo")
             true
