@@ -1,3 +1,7 @@
+# 0.12.0 (2025.**.**)
+## Features:
+- [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
+
 # 0.11.0 (2025.**.**)
 ## Features:
 - [BDN-1030](https://appodeal.atlassian.net/browse/BDN-1030) Added Moloco SDK 3.12.0 as ad adapter
