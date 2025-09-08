@@ -3,7 +3,7 @@ import ext.Versions
 import ext.Dependencies
 
 plugins {
-    id("common")
+    id("adapter")
 }
 
 publishAdapter {
@@ -20,9 +20,6 @@ android {
 }
 
 dependencies {
-    compileOnly(projects.bidon)
-    testImplementation(projects.bidon)
-
     implementation(Dependencies.Adapter.Amazon)
     implementation(Dependencies.Others.IabTcfDecoder)
 }

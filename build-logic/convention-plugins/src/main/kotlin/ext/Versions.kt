@@ -26,6 +26,11 @@ object Versions {
 
     val BidonVersionName = mainVersion + semanticVersion
 
+    object AdapterRange {
+        const val Min = "0.11.0"
+        const val Max = "1.0.0"
+    }
+
     object AdapterSdk {
         const val AdmobSdk = "24.5.0"
         const val AmazonSdk = "11.0.1"
@@ -50,21 +55,21 @@ object Versions {
         private fun adapterVersion(sdk: String, minor: Int) = "$sdk.$minor$semanticVersion"
 
         val Admob = adapterVersion(sdk = AdmobSdk, minor = 0)
-        val Amazon = adapterVersion(sdk = AmazonSdk, minor = 1)
+        val Amazon = adapterVersion(sdk = AmazonSdk, minor = 0)
         val Applovin = adapterVersion(sdk = ApplovinSdk, minor = 0)
-        val BidMachine = adapterVersion(sdk = BidmachineSdk, minor = 3)
-        val BigoAds = adapterVersion(sdk = BigoAdsSdk, minor = 1)
-        val Chartboost = adapterVersion(sdk = ChartboostSdk, minor = 2)
-        val DTExchange = adapterVersion(sdk = DtexchangeSdk, minor = 1)
+        val BidMachine = adapterVersion(sdk = BidmachineSdk, minor = 0)
+        val BigoAds = adapterVersion(sdk = BigoAdsSdk, minor = 0)
+        val Chartboost = adapterVersion(sdk = ChartboostSdk, minor = 0)
+        val DTExchange = adapterVersion(sdk = DtexchangeSdk, minor = 0)
         val Gam = adapterVersion(sdk = AdmobSdk, minor = 0)
         val Inmobi = adapterVersion(sdk = InmobiSdk, minor = 0)
         val IronSource = adapterVersion(sdk = IronsourceSdk, minor = 0)
         val Meta = adapterVersion(sdk = MetaSdk, minor = 0)
         val Mintegral = adapterVersion(sdk = MintegralSdk, minor = 0)
         val MobileFuse = adapterVersion(sdk = MobilefuseSdk, minor = 0)
-        val Moloco = adapterVersion(sdk = MolocoSdk, minor = 1)
+        val Moloco = adapterVersion(sdk = MolocoSdk, minor = 0)
         val UnityAds = adapterVersion(sdk = UnityAdsSdk, minor = 0)
-        val VkAds = adapterVersion(sdk = VkAdsSdk, minor = 2)
+        val VkAds = adapterVersion(sdk = VkAdsSdk, minor = 0)
         val Vungle = adapterVersion(sdk = VungleSdk, minor = 0)
         val Yandex = adapterVersion(sdk = YandexSdk, minor = 0)
 
