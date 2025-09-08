@@ -19,17 +19,12 @@ import ext.Versions.AdapterSdk.VungleSdk
 import ext.Versions.AdapterSdk.YandexSdk
 
 object Versions {
-    private val major = 0
-    private val minor = 11
-    private val patch = 0
-    private val semantic: String = ""
+    private const val major = 1
+    private const val minor = 11
+    private const val patch = 0
+    private const val semantic: String = ""
 
     val BidonVersionName = mainVersion + semanticVersion
-
-    object AdapterRange {
-        const val Min = "0.11.0"
-        const val Max = "1.0.0"
-    }
 
     object AdapterSdk {
         const val AdmobSdk = "24.5.0"
@@ -75,11 +70,16 @@ object Versions {
 
         val Appsflyer = "$mainVersion.0"
         val Fyber = "$mainVersion.0"
+
+        object SupportedCoreRange {
+            const val Min = "0.10.0"
+            const val Max = "1.0.0"
+        }
     }
 
     object ThirdPartyMediationAdapters {
-        val ApplovinMax = "$mainVersion.0" + semanticVersion
-        val LevelPlay = "$mainVersion.0" + semanticVersion
+        val ApplovinMax = "$mainVersion.0$semanticVersion"
+        val LevelPlay = "$mainVersion.0$semanticVersion"
     }
 
     private val mainVersion get() = "$major.$minor.$patch"
