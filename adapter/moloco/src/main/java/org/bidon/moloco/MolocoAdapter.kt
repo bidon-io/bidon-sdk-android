@@ -28,6 +28,7 @@ import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 import com.moloco.sdk.BuildConfig as MolocoSdkBuildConfig
 import org.bidon.sdk.BuildConfig as BidonBuildConfig
 
@@ -97,27 +98,25 @@ internal class MolocoAdapter :
 
         logInfo(TAG, "Moloco initialize called")
 
-        return suspendCancellableCoroutine { continuation ->
-            continuation.invokeOnCancellation {
-                logInfo(TAG, "Moloco init cancelled by caller")
-            }
+        return suspendCoroutine { continuation ->
 
             Moloco.initialize(initParams) { status ->
                 try {
                     when (status.initialization) {
                         Initialization.SUCCESS -> {
                             logInfo(TAG, "Moloco SDK initialized")
-                            if (continuation.isActive) continuation.resume(Unit)
+                            continuation.resume(Unit)
                         }
+
                         Initialization.FAILURE -> {
                             val msg = "Moloco SDK initialization failed: ${status.description}"
                             val err = Exception(msg)
                             logError(TAG, msg, err)
-                            if (continuation.isActive) continuation.resumeWithException(err)
+                            continuation.resumeWithException(err)
                         }
                     }
-                } catch (t: Throwable) {
-                    if (continuation.isActive) continuation.resumeWithException(t)
+                } catch (throwable: Throwable) {
+                    continuation.resumeWithException(throwable)
                 }
             }
         }
