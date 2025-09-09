@@ -2,7 +2,6 @@ package org.bidon.sdk.config.impl
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -46,30 +45,20 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
         adapters.forEach {
             (it as? SupportsTestMode)?.isTestMode = isTestMode
         }
-        logInfo(TAG, "Initialization timeout: ${configResponse.initializationTimeout} ms.")
 
         // start initialization
         canContinueFlow
             .onSubscription {
-                logInfo(TAG, "Initialization started onSubscription")
                 scope.launch {
-                    logInfo(TAG, "Initialization started launch")
                     delay(configResponse.initializationTimeout)
-                    logInfo(TAG, "Initialization delay ${configResponse.initializationTimeout} ms.")
                     /**
                      * Continue initialization flow after timeout.
                      * Not initialized adapters will be added to [AdaptersSource] after timeout.
                      */
                     canContinueFlow.update { isInitializedOnTime ->
-                        logInfo(TAG, "Initialization started launch")
                         if (!isInitializedOnTime) {
-                            val initializedAdapters =
-                                adaptersSource.adapters.joinToString { it.demandId.demandId }
-                            logError(
-                                TAG,
-                                "Timeout reached. Available adapters: $initializedAdapters",
-                                null
-                            )
+                            val initializedAdapters = adaptersSource.adapters.joinToString { it.demandId.demandId }
+                            logError(TAG, "Timeout reached. Available adapters: $initializedAdapters", null)
                         }
                         true
                     }
@@ -78,20 +67,15 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                     /**
                      * Initialize adapters
                      */
-                    logInfo(TAG, "initializeAdapters")
                     initializeAdapters(adapters, configResponse, context)
                 }
             }.first { canContinue ->
                 /**
                  * Wait for ability to continue initialization flow.
                  */
-                logInfo(TAG, "canContinue: $canContinue")
                 canContinue
             }
-        logInfo(
-            TAG,
-            "Registered adapters: ${adaptersSource.adapters.joinToString { it::class.java.simpleName }}"
-        )
+        logInfo(TAG, "Registered adapters: ${adaptersSource.adapters.joinToString { it::class.java.simpleName }}")
     }
 
     private suspend fun initializeAdapters(
@@ -106,25 +90,15 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                 .groupBy { (_, initJson) -> initJson.optInt("order", 0) }
                 .toSortedMap()
                 .onEach { (order, adaptersInfo) ->
-                    logInfo(
-                        TAG,
-                        "Initialization order #$order: ${adaptersInfo.joinToString { it.first }}"
-                    )
+                    logInfo(TAG, "Initialization order #$order: ${adaptersInfo.joinToString { it.first }}")
                 }
 
             val minOrder = groupedAdapters.keys.minOrNull()
 
             // Initialize critical adapters (lowest order) synchronously
             groupedAdapters.forEach { (order, adaptersInfo) ->
-                logInfo(
-                    TAG,
-                    "groupedAdapters: order: $order adaptersInfo: ${adaptersInfo.joinToString { it.first }}"
-                )
                 val isCritical = (order == minOrder)
-                logInfo(
-                    TAG,
-                    "Start ${if (isCritical) "critical" else "background"} initialization #$order: ${adaptersInfo.joinToString { it.first }}"
-                )
+                logInfo(TAG, "Start ${if (isCritical) "critical" else "background"} initialization #$order: ${adaptersInfo.joinToString { it.first }}")
 
                 initializeAdapterGroup(
                     context = context,
@@ -138,11 +112,7 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                 if (isCritical) {
                     canContinueFlow.update { isTimedOut ->
                         if (isTimedOut) {
-                            logError(
-                                TAG,
-                                "Critical adapters initialized after timeout ${configResponse.initializationTimeout} ms",
-                                null
-                            )
+                            logError(TAG, "Critical adapters initialized after timeout ${configResponse.initializationTimeout} ms", null)
                         }
                         true
                     }
@@ -164,7 +134,6 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
             }.also {
                 onAdapterInitializationStarted(it.toSet())
             }
-        logInfo(TAG, "initializeAdapterGroup order #${nextAdaptersGroup.toString()}")
         val deferredList = nextAdaptersGroup.map { adapter ->
             scope.async {
                 runCatching {
@@ -174,21 +143,12 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
                      * Add adapter to [AdaptersSource] only if it was initialized successfully.
                      */
                     adaptersSource.add(adapter)
-                    logInfo(TAG, "initializeAdapterGroup onSuccess")
                 }.onFailure { cause ->
-                    logError(
-                        TAG,
-                        "Adapter not initialized: ${adapter.demandId.demandId}: ${cause.message}",
-                        cause
-                    )
+                    logError(TAG, "Adapter not initialized: ${adapter.demandId.demandId}: ${cause.message}", cause)
                 }
             }
         }
         withTimeoutOrNull(configResponse.initializationTimeout) {
-            logInfo(
-                TAG,
-                "initializeAdapterGroup await All: ${configResponse.initializationTimeout}"
-            )
             deferredList.awaitAll()
         }
     }
@@ -200,32 +160,13 @@ internal class InitAndRegisterAdaptersUseCaseImpl(
         configResponse: ConfigResponse
     ) {
         val initializable = adapter as? Initializable<AdapterParameters>
-        logInfo(TAG, "initializeSingleAdapter: ${adapter.demandId.demandId}")
         if (initializable != null) {
-            logInfo(
-                TAG,
-                "initializeSingleAdapter: initializable non null ${adapter.demandId.demandId}"
-            )
             val measuredTime = measureTimeMillis {
                 val adapterParameters =
                     parseAdapterParameters(configResponse, initializable).getOrThrow()
-                logInfo(TAG, "initializeSingleAdapter: adapterParameters $adapterParameters")
-                if (adapter.demandId.demandId == "moloco") {
-                    logInfo(TAG, "initializeSingleAdapter: moloco start")
-                    CoroutineScope(Dispatchers.Main).launch {
-                        adapter.init(context, adapterParameters)
-                        logInfo(TAG, "initializeSingleAdapter: moloco end")
-                    }
-                } else {
-                    adapter.init(context, adapterParameters)
-                }
+                adapter.init(context, adapterParameters)
             }
             logInfo(TAG, "Adapter ${adapter.demandId.demandId} initialized in $measuredTime ms.")
-        } else {
-            logInfo(
-                TAG,
-                "initializeSingleAdapter: initializable is null ${adapter.demandId.demandId}"
-            )
         }
     }
 

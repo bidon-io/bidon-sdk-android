@@ -28,7 +28,6 @@ import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import com.moloco.sdk.BuildConfig as MolocoSdkBuildConfig
 import org.bidon.sdk.BuildConfig as BidonBuildConfig
 
@@ -73,41 +72,52 @@ internal class MolocoAdapter :
     override suspend fun init(
         context: Context,
         configParams: MolocoParams
-    ) = suspendCoroutine { continuation ->
+    ) {
+        Moloco.initJob?.join()
+
         logInfo(TAG, "Moloco init start")
         if (Moloco.isInitialized) {
             logInfo(TAG, "Moloco SDK already initialized")
-            continuation.resume(Unit)
-            return@suspendCoroutine
+            return
         }
 
         if (configParams.appKey.isBlank()) {
-            val errorMessage = "Adapter(${MolocoDemandId.demandId}) app key is empty or blank"
-            val error = IllegalArgumentException(errorMessage)
-            logError(TAG, errorMessage, error)
-            continuation.resumeWithException(error)
-            return@suspendCoroutine
+            val message = "Adapter(${MolocoDemandId.demandId}) app key is empty or blank"
+            val error = IllegalArgumentException(message)
+            logError(TAG, message, error)
+            throw error
         }
         logInfo(TAG, "Moloco appKey not blank")
 
         val initParams = MolocoInitParams(
-            appContext = context,
+            appContext = context.applicationContext,
             appKey = configParams.appKey,
             mediationInfo = MediationInfo(EMPTY_MEDIATOR)
         )
-        logInfo(TAG, "Moloco initialize called")
-        Moloco.initialize(initParams) { status ->
-            when (status.initialization) {
-                Initialization.SUCCESS -> {
-                    logInfo(TAG, "Moloco SDK initialized")
-                    continuation.resume(Unit)
-                }
 
-                Initialization.FAILURE -> {
-                    val errorMessage = "Moloco SDK initialization failed: ${status.description}"
-                    val error = Exception(errorMessage)
-                    logError(TAG, errorMessage, error)
-                    continuation.resumeWithException(error)
+        logInfo(TAG, "Moloco initialize called")
+
+        return suspendCancellableCoroutine { continuation ->
+            continuation.invokeOnCancellation {
+                logInfo(TAG, "Moloco init cancelled by caller")
+            }
+
+            Moloco.initialize(initParams) { status ->
+                try {
+                    when (status.initialization) {
+                        Initialization.SUCCESS -> {
+                            logInfo(TAG, "Moloco SDK initialized")
+                            if (continuation.isActive) continuation.resume(Unit)
+                        }
+                        Initialization.FAILURE -> {
+                            val msg = "Moloco SDK initialization failed: ${status.description}"
+                            val err = Exception(msg)
+                            logError(TAG, msg, err)
+                            if (continuation.isActive) continuation.resumeWithException(err)
+                        }
+                    }
+                } catch (t: Throwable) {
+                    if (continuation.isActive) continuation.resumeWithException(t)
                 }
             }
         }
