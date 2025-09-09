@@ -74,6 +74,7 @@ internal class MolocoAdapter :
         context: Context,
         configParams: MolocoParams
     ) = suspendCoroutine { continuation ->
+        logInfo(TAG, "Moloco init start")
         if (Moloco.isInitialized) {
             logInfo(TAG, "Moloco SDK already initialized")
             continuation.resume(Unit)
@@ -87,16 +88,18 @@ internal class MolocoAdapter :
             continuation.resumeWithException(error)
             return@suspendCoroutine
         }
+        logInfo(TAG, "Moloco appKey not blank")
 
         val initParams = MolocoInitParams(
             appContext = context,
             appKey = configParams.appKey,
             mediationInfo = MediationInfo(EMPTY_MEDIATOR)
         )
-
+        logInfo(TAG, "Moloco initialize called")
         Moloco.initialize(initParams) { status ->
             when (status.initialization) {
                 Initialization.SUCCESS -> {
+                    logInfo(TAG, "Moloco SDK initialized")
                     continuation.resume(Unit)
                 }
 
