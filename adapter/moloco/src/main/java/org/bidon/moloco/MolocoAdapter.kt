@@ -74,6 +74,7 @@ internal class MolocoAdapter :
         context: Context,
         configParams: MolocoParams
     ) {
+        // @VisibleForTesting api usage.
         Moloco.initJob?.join()
 
         logInfo(TAG, "Moloco init start")
@@ -83,9 +84,9 @@ internal class MolocoAdapter :
         }
 
         if (configParams.appKey.isBlank()) {
-            val message = "Adapter(${MolocoDemandId.demandId}) app key is empty or blank"
-            val error = IllegalArgumentException(message)
-            logError(TAG, message, error)
+            val errorMessage = "Adapter(${MolocoDemandId.demandId}) app key is empty or blank"
+            val error = IllegalArgumentException(errorMessage)
+            logError(TAG, errorMessage, error)
             throw error
         }
         logInfo(TAG, "Moloco appKey not blank")
@@ -101,22 +102,18 @@ internal class MolocoAdapter :
         return suspendCoroutine { continuation ->
 
             Moloco.initialize(initParams) { status ->
-                try {
-                    when (status.initialization) {
-                        Initialization.SUCCESS -> {
-                            logInfo(TAG, "Moloco SDK initialized")
-                            continuation.resume(Unit)
-                        }
-
-                        Initialization.FAILURE -> {
-                            val msg = "Moloco SDK initialization failed: ${status.description}"
-                            val err = Exception(msg)
-                            logError(TAG, msg, err)
-                            continuation.resumeWithException(err)
-                        }
+                when (status.initialization) {
+                    Initialization.SUCCESS -> {
+                        logInfo(TAG, "Moloco SDK initialized")
+                        continuation.resume(Unit)
                     }
-                } catch (throwable: Throwable) {
-                    continuation.resumeWithException(throwable)
+
+                    Initialization.FAILURE -> {
+                        val errorMessage = "Moloco SDK initialization failed: ${status.description}"
+                        val error = Exception(errorMessage)
+                        logError(TAG, errorMessage, error)
+                        continuation.resumeWithException(error)
+                    }
                 }
             }
         }
