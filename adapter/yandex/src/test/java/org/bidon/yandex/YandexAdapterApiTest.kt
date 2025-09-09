@@ -39,7 +39,6 @@ class YandexAdapterApiTest {
 
     @Test
     fun `Adapter has required properties`() {
-        // demandId может быть как полем, так и геттером
         val hasDemandIdField = try {
             adapterClass.getDeclaredField("demandId")
             true
