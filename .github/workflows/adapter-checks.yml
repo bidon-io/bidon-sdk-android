@@ -135,17 +135,45 @@ jobs:
       - name: Compile adapter
         run: |
           echo "🔨 Compiling adapter: ${{ matrix.adapter }}"
-          ./gradlew :adapter:${{ matrix.adapter }}:compileProductionDebugKotlin --no-daemon --stacktrace
+          ./gradlew :adapter:${{ matrix.adapter }}:compileProductionDebugKotlin --no-daemon --stacktrace > compile_output.log 2>&1
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Compilation successful"
+          else
+            echo "❌ Compilation failed"
+            cat compile_output.log
+            exit 1
+          fi
+
+      - name: Check for deprecated warnings
+        run: |
+          echo "🔍 Checking for deprecated warnings in adapter: ${{ matrix.adapter }}"
+
+          if grep -q "is deprecated" compile_output.log; then
+            echo "❌ Found deprecated code warnings in adapter ${{ matrix.adapter }}:"
+            echo ""
+
+            grep "is deprecated" compile_output.log | sed 's/^w: //' | while IFS= read -r line; do
+              echo "  🚨 $line"
+            done
+
+            echo ""
+            echo "🚫 Deprecated code is not allowed in adapters."
+            echo "Please remove or replace all deprecated code before merging."
+            echo ""
+            echo "💡 To fix this:"
+            echo "   1. Find the deprecated code in the files listed above"
+            echo "   2. Replace it with non-deprecated alternatives"
+            echo "   3. Remove any @Deprecated annotations from adapter code"
+            exit 1
+          else
+            echo "✅ No deprecated code warnings found"
+          fi
 
       - name: Build adapter
         run: |
           echo "📦 Building adapter: ${{ matrix.adapter }}"
           ./gradlew :adapter:${{ matrix.adapter }}:assembleProductionDebug --no-daemon --stacktrace
-
-      - name: Check for deprecated code
-        run: |
-          echo "🔍 Checking for deprecated code in adapter: ${{ matrix.adapter }}"
-          ./gradlew :adapter:${{ matrix.adapter }}:checkDeprecatedCode --no-daemon --stacktrace
 
       - name: Run unit tests
         run: |
