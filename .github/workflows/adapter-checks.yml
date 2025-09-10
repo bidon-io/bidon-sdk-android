@@ -91,7 +91,16 @@ jobs:
             echo "adapters=[]" >> $GITHUB_OUTPUT
             echo "📭 No adapters changed"
           else
-            json_array=$(printf '%s\n' "${changed_adapters[@]}" | jq -R . | jq -s .)
+            # Создаем JSON массив вручную без jq
+            json_array="["
+            for i in "${!changed_adapters[@]}"; do
+              if [[ $i -gt 0 ]]; then
+                json_array+=","
+              fi
+              json_array+="\"${changed_adapters[$i]}\""
+            done
+            json_array+="]"
+
             echo "adapters=$json_array" >> $GITHUB_OUTPUT
             echo "📦 Changed adapters: ${changed_adapters[*]}"
           fi
