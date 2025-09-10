@@ -1,0 +1,166 @@
+name: Adapter Quality Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - 'adapter/**'
+  push:
+    branches:
+      - develop
+    paths:
+      - 'adapter/**'
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      adapters: ${{ steps.matrix.outputs.adapters }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed adapters
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          list-files: json
+          filters: |
+            admob:
+              - 'adapter/admob/**'
+            amazon:
+              - 'adapter/amazon/**'
+            applovin:
+              - 'adapter/applovin/**'
+            bidmachine:
+              - 'adapter/bidmachine/**'
+            bigoads:
+              - 'adapter/bigoads/**'
+            chartboost:
+              - 'adapter/chartboost/**'
+            dtexchange:
+              - 'adapter/dtexchange/**'
+            gam:
+              - 'adapter/gam/**'
+            inmobi:
+              - 'adapter/inmobi/**'
+            ironsource:
+              - 'adapter/ironsource/**'
+            meta:
+              - 'adapter/meta/**'
+            mintegral:
+              - 'adapter/mintegral/**'
+            mobilefuse:
+              - 'adapter/mobilefuse/**'
+            unityads:
+              - 'adapter/unityads/**'
+            vkads:
+              - 'adapter/vkads/**'
+            vungle:
+              - 'adapter/vungle/**'
+            yandex:
+              - 'adapter/yandex/**'
+
+      - name: Generate adapter matrix
+        id: matrix
+        run: |
+          changed_adapters=()
+
+          if [[ "${{ steps.changes.outputs.admob }}" == "true" ]]; then changed_adapters+=("admob"); fi
+          if [[ "${{ steps.changes.outputs.amazon }}" == "true" ]]; then changed_adapters+=("amazon"); fi
+          if [[ "${{ steps.changes.outputs.applovin }}" == "true" ]]; then changed_adapters+=("applovin"); fi
+          if [[ "${{ steps.changes.outputs.bidmachine }}" == "true" ]]; then changed_adapters+=("bidmachine"); fi
+          if [[ "${{ steps.changes.outputs.bigoads }}" == "true" ]]; then changed_adapters+=("bigoads"); fi
+          if [[ "${{ steps.changes.outputs.chartboost }}" == "true" ]]; then changed_adapters+=("chartboost"); fi
+          if [[ "${{ steps.changes.outputs.dtexchange }}" == "true" ]]; then changed_adapters+=("dtexchange"); fi
+          if [[ "${{ steps.changes.outputs.gam }}" == "true" ]]; then changed_adapters+=("gam"); fi
+          if [[ "${{ steps.changes.outputs.inmobi }}" == "true" ]]; then changed_adapters+=("inmobi"); fi
+          if [[ "${{ steps.changes.outputs.ironsource }}" == "true" ]]; then changed_adapters+=("ironsource"); fi
+          if [[ "${{ steps.changes.outputs.meta }}" == "true" ]]; then changed_adapters+=("meta"); fi
+          if [[ "${{ steps.changes.outputs.mintegral }}" == "true" ]]; then changed_adapters+=("mintegral"); fi
+          if [[ "${{ steps.changes.outputs.mobilefuse }}" == "true" ]]; then changed_adapters+=("mobilefuse"); fi
+          if [[ "${{ steps.changes.outputs.unityads }}" == "true" ]]; then changed_adapters+=("unityads"); fi
+          if [[ "${{ steps.changes.outputs.vkads }}" == "true" ]]; then changed_adapters+=("vkads"); fi
+          if [[ "${{ steps.changes.outputs.vungle }}" == "true" ]]; then changed_adapters+=("vungle"); fi
+          if [[ "${{ steps.changes.outputs.yandex }}" == "true" ]]; then changed_adapters+=("yandex"); fi
+
+          if [[ ${#changed_adapters[@]} -eq 0 ]]; then
+            echo "adapters=[]" >> $GITHUB_OUTPUT
+            echo "📭 No adapters changed"
+          else
+            json_array=$(printf '%s\n' "${changed_adapters[@]}" | jq -R . | jq -s .)
+            echo "adapters=$json_array" >> $GITHUB_OUTPUT
+            echo "📦 Changed adapters: ${changed_adapters[*]}"
+          fi
+
+  adapter-checks:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.adapters != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: ${{ fromJson(needs.detect-changes.outputs.adapters) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create local.properties
+        run: touch local.properties
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Compile adapter
+        run: |
+          echo "🔨 Compiling adapter: ${{ matrix.adapter }}"
+          ./gradlew :adapter:${{ matrix.adapter }}:compileProductionDebugKotlin --no-daemon --stacktrace
+
+      - name: Build adapter
+        run: |
+          echo "📦 Building adapter: ${{ matrix.adapter }}"
+          ./gradlew :adapter:${{ matrix.adapter }}:assembleProductionDebug --no-daemon --stacktrace
+
+      - name: Check for deprecated code
+        run: |
+          echo "🔍 Checking for deprecated code in adapter: ${{ matrix.adapter }}"
+          ./gradlew :adapter:${{ matrix.adapter }}:checkDeprecatedCode --no-daemon --stacktrace
+
+      - name: Run unit tests
+        run: |
+          echo "🧪 Running unit tests for adapter: ${{ matrix.adapter }}"
+          ./gradlew :adapter:${{ matrix.adapter }}:testProductionDebugUnitTest --no-daemon --stacktrace
+
+  adapter-checks-summary:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, adapter-checks]
+    if: always()
+
+    steps:
+      - name: Check all adapter checks passed
+        run: |
+          if [[ "${{ needs.detect-changes.outputs.adapters }}" == "[]" ]]; then
+            echo "📭 No adapters were changed - skipping checks"
+            exit 0
+          fi
+
+          if [[ "${{ needs.adapter-checks.result }}" == "success" ]]; then
+            echo "✅ All adapter checks passed successfully!"
+          elif [[ "${{ needs.adapter-checks.result }}" == "skipped" ]]; then
+            echo "⏭️ Adapter checks were skipped (no changes detected)"
+          else
+            echo "❌ Some adapter checks failed. Please review the logs above."
+            exit 1
+          fi
