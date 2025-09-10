@@ -32,7 +32,7 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 
 internal val ChartboostDemandId = DemandId("chartboost")
-
+//test
 @Suppress("unused")
 internal class ChartboostAdapter :
     Adapter.Network,

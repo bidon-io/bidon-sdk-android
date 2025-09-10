@@ -19,7 +19,7 @@ import org.bidon.vkads.VkAdsDemandId
 
 internal const val adapterVersion = BuildConfig.ADAPTER_VERSION
 internal const val sdkVersion = MyTargetVersion.VERSION
-
+//test
 internal fun BannerFormat.toAdSize() =
     when (this) {
         BannerFormat.LeaderBoard -> AdSize.ADSIZE_728x90

@@ -18,7 +18,7 @@ android {
         ADAPTER_VERSION = Versions.PublishedAdapters.Amazon
     }
 }
-
+//test
 dependencies {
     implementation(Dependencies.Adapter.Amazon)
     implementation(Dependencies.Others.IabTcfDecoder)
