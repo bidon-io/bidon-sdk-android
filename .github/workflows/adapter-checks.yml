@@ -23,85 +23,105 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Discover available adapters
+        id: discover
+        run: |
+          echo "🔍 Discovering available adapters..."
+
+          # Find all adapter directories (excluding build directories)
+          available_adapters=""
+          for dir in adapter/*/; do
+            if [[ -d "$dir" ]]; then
+              adapter_name=$(basename "$dir")
+              # Skip build and other non-adapter directories
+              if [[ "$adapter_name" != "build" ]] && [[ -f "$dir/build.gradle.kts" ]]; then
+                if [[ -n "$available_adapters" ]]; then
+                  available_adapters="$available_adapters $adapter_name"
+                else
+                  available_adapters="$adapter_name"
+                fi
+              fi
+            fi
+          done
+
+          # Sort adapters for consistent output
+          sorted_adapters=$(echo "$available_adapters" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+
+          # Count adapters
+          adapter_count=$(echo "$sorted_adapters" | wc -w)
+          echo "📦 Found $adapter_count adapters: $sorted_adapters"
+
+          # Create JSON array for available adapters
+          # Convert space-separated string to proper JSON array
+          echo "$sorted_adapters" | tr ' ' '\n' > /tmp/adapters_list.txt
+          json_array=$(jq -R -s -c 'split("\n")[:-1]' /tmp/adapters_list.txt)
+          rm -f /tmp/adapters_list.txt
+
+          echo "available_adapters=$json_array" >> $GITHUB_OUTPUT
+
       - name: Detect changed adapters
         uses: dorny/paths-filter@v2
         id: changes
         with:
           list-files: json
           filters: |
-            admob:
-              - 'adapter/admob/**'
-            amazon:
-              - 'adapter/amazon/**'
-            applovin:
-              - 'adapter/applovin/**'
-            bidmachine:
-              - 'adapter/bidmachine/**'
-            bigoads:
-              - 'adapter/bigoads/**'
-            chartboost:
-              - 'adapter/chartboost/**'
-            dtexchange:
-              - 'adapter/dtexchange/**'
-            gam:
-              - 'adapter/gam/**'
-            inmobi:
-              - 'adapter/inmobi/**'
-            ironsource:
-              - 'adapter/ironsource/**'
-            meta:
-              - 'adapter/meta/**'
-            mintegral:
-              - 'adapter/mintegral/**'
-            mobilefuse:
-              - 'adapter/mobilefuse/**'
-            unityads:
-              - 'adapter/unityads/**'
-            vkads:
-              - 'adapter/vkads/**'
-            vungle:
-              - 'adapter/vungle/**'
-            yandex:
-              - 'adapter/yandex/**'
+            any_adapter:
+              - 'adapter/**'
 
       - name: Generate adapter matrix
         id: matrix
         run: |
-          changed_adapters=()
+          echo "🔍 Detecting changed adapters dynamically..."
 
-          if [[ "${{ steps.changes.outputs.admob }}" == "true" ]]; then changed_adapters+=("admob"); fi
-          if [[ "${{ steps.changes.outputs.amazon }}" == "true" ]]; then changed_adapters+=("amazon"); fi
-          if [[ "${{ steps.changes.outputs.applovin }}" == "true" ]]; then changed_adapters+=("applovin"); fi
-          if [[ "${{ steps.changes.outputs.bidmachine }}" == "true" ]]; then changed_adapters+=("bidmachine"); fi
-          if [[ "${{ steps.changes.outputs.bigoads }}" == "true" ]]; then changed_adapters+=("bigoads"); fi
-          if [[ "${{ steps.changes.outputs.chartboost }}" == "true" ]]; then changed_adapters+=("chartboost"); fi
-          if [[ "${{ steps.changes.outputs.dtexchange }}" == "true" ]]; then changed_adapters+=("dtexchange"); fi
-          if [[ "${{ steps.changes.outputs.gam }}" == "true" ]]; then changed_adapters+=("gam"); fi
-          if [[ "${{ steps.changes.outputs.inmobi }}" == "true" ]]; then changed_adapters+=("inmobi"); fi
-          if [[ "${{ steps.changes.outputs.ironsource }}" == "true" ]]; then changed_adapters+=("ironsource"); fi
-          if [[ "${{ steps.changes.outputs.meta }}" == "true" ]]; then changed_adapters+=("meta"); fi
-          if [[ "${{ steps.changes.outputs.mintegral }}" == "true" ]]; then changed_adapters+=("mintegral"); fi
-          if [[ "${{ steps.changes.outputs.mobilefuse }}" == "true" ]]; then changed_adapters+=("mobilefuse"); fi
-          if [[ "${{ steps.changes.outputs.unityads }}" == "true" ]]; then changed_adapters+=("unityads"); fi
-          if [[ "${{ steps.changes.outputs.vkads }}" == "true" ]]; then changed_adapters+=("vkads"); fi
-          if [[ "${{ steps.changes.outputs.vungle }}" == "true" ]]; then changed_adapters+=("vungle"); fi
-          if [[ "${{ steps.changes.outputs.yandex }}" == "true" ]]; then changed_adapters+=("yandex"); fi
-
-          if [[ ${#changed_adapters[@]} -eq 0 ]]; then
+          # Check if any adapter files changed
+          if [[ "${{ steps.changes.outputs.any_adapter }}" != "true" ]]; then
+            echo "📭 No adapter files changed"
             echo "adapters=[]" >> $GITHUB_OUTPUT
-            echo "📭 No adapters changed"
+            exit 0
+          fi
+
+          # Get list of available adapters
+          available_adapters='${{ steps.discover.outputs.available_adapters }}'
+          echo "📋 Available adapters: $available_adapters"
+
+          # Get list of changed files
+          changed_files='${{ steps.changes.outputs.any_adapter_files }}'
+          echo "📝 Changed files: $changed_files"
+
+          # Find which adapters have changes
+          changed_adapters=""
+          echo "$available_adapters" | jq -r '.[]' | while read -r adapter; do
+            # Check if any changed file belongs to this adapter
+            if echo "$changed_files" | jq -r '.[]' | grep -q "^adapter/$adapter/"; then
+              echo "✅ Adapter '$adapter' has changes"
+              echo "$adapter" >> /tmp/changed_adapters.txt
+            fi
+          done
+
+          # Read changed adapters from temp file (to handle subshell issue)
+          if [[ -f /tmp/changed_adapters.txt ]]; then
+            changed_adapters=$(cat /tmp/changed_adapters.txt | tr '\n' ' ' | sed 's/ $//')
+            rm -f /tmp/changed_adapters.txt
+          fi
+
+          if [[ -z "$changed_adapters" ]]; then
+            echo "📭 No specific adapters changed (possibly only shared files)"
+            echo "adapters=[]" >> $GITHUB_OUTPUT
           else
-            json_array="["
-            for i in "${!changed_adapters[@]}"; do
-              if [[ $i -gt 0 ]]; then
-                json_array+=","
-              fi
-              json_array+="\"${changed_adapters[$i]}\""
-            done
-            json_array+="]"
+            # Sort adapters for consistent output
+            sorted_changed=$(echo "$changed_adapters" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+
+            # Count changed adapters
+            adapter_count=$(echo "$sorted_changed" | wc -w)
+
+            # Create JSON array
+            # Convert space-separated string to proper JSON array
+            echo "$sorted_changed" | tr ' ' '\n' > /tmp/changed_adapters_list.txt
+            json_array=$(jq -R -s -c 'split("\n")[:-1]' /tmp/changed_adapters_list.txt)
+            rm -f /tmp/changed_adapters_list.txt
 
             echo "adapters=$json_array" >> $GITHUB_OUTPUT
-            echo "📦 Changed adapters: ${changed_adapters[*]}"
+            echo "📦 Changed adapters ($adapter_count): $sorted_changed"
           fi
 
   adapter-checks:
