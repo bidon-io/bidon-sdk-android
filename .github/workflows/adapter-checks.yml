@@ -133,21 +133,35 @@ jobs:
           gradle-home-cache-cleanup: true
 
       - name: Compile adapter
+        id: compile
+        continue-on-error: true
         run: |
           echo "🔨 Compiling adapter: ${{ matrix.adapter }}"
           ./gradlew :adapter:${{ matrix.adapter }}:compileProductionDebugKotlin --no-daemon --stacktrace > compile_output.log 2>&1
+          COMPILE_EXIT_CODE=$?
 
-          if [ $? -eq 0 ]; then
+          if [ $COMPILE_EXIT_CODE -eq 0 ]; then
             echo "✅ Compilation successful"
+            echo "compile_status=success" >> $GITHUB_OUTPUT
           else
             echo "❌ Compilation failed"
             cat compile_output.log
-            exit 1
+            echo "compile_status=failure" >> $GITHUB_OUTPUT
+            exit $COMPILE_EXIT_CODE
           fi
 
       - name: Check for deprecated warnings
+        id: deprecated
+        if: always()
+        continue-on-error: true
         run: |
           echo "🔍 Checking for deprecated warnings in adapter: ${{ matrix.adapter }}"
+
+          if [ ! -f compile_output.log ]; then
+            echo "⚠️ Compilation output not found, skipping deprecated check"
+            echo "deprecated_status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           if grep -q "is deprecated" compile_output.log; then
             echo "❌ Found deprecated code warnings in adapter ${{ matrix.adapter }}:"
@@ -165,20 +179,57 @@ jobs:
             echo "   1. Find the deprecated code in the files listed above"
             echo "   2. Replace it with non-deprecated alternatives"
             echo "   3. Remove any @Deprecated annotations from adapter code"
+            echo "deprecated_status=failure" >> $GITHUB_OUTPUT
             exit 1
           else
             echo "✅ No deprecated code warnings found"
+            echo "deprecated_status=success" >> $GITHUB_OUTPUT
           fi
 
       - name: Build adapter
+        id: build
+        if: always()
+        continue-on-error: true
         run: |
           echo "📦 Building adapter: ${{ matrix.adapter }}"
           ./gradlew :adapter:${{ matrix.adapter }}:assembleProductionDebug --no-daemon --stacktrace
+          BUILD_EXIT_CODE=$?
+
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build successful"
+            echo "build_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Build failed"
+            echo "build_status=failure" >> $GITHUB_OUTPUT
+            exit $BUILD_EXIT_CODE
+          fi
 
       - name: Run unit tests
+        id: tests
+        if: always()
+        continue-on-error: true
         run: |
           echo "🧪 Running unit tests for adapter: ${{ matrix.adapter }}"
           ./gradlew :adapter:${{ matrix.adapter }}:testProductionDebugUnitTest --no-daemon --stacktrace
+          TEST_EXIT_CODE=$?
+
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "✅ Tests passed"
+            echo "test_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed"
+            echo "test_status=failure" >> $GITHUB_OUTPUT
+            exit $TEST_EXIT_CODE
+          fi
+
+      - name: Report step results
+        if: always()
+        run: |
+          echo "📊 Summary for adapter ${{ matrix.adapter }}:"
+          echo "  🔨 Compile: ${{ steps.compile.outputs.compile_status || 'unknown' }}"
+          echo "  🔍 Deprecated check: ${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
+          echo "  📦 Build: ${{ steps.build.outputs.build_status || 'unknown' }}"
+          echo "  🧪 Tests: ${{ steps.tests.outputs.test_status || 'unknown' }}"
 
   adapter-checks-summary:
     runs-on: ubuntu-latest
@@ -186,18 +237,38 @@ jobs:
     if: always()
 
     steps:
-      - name: Check all adapter checks passed
+      - name: Analyze adapter check results
         run: |
           if [[ "${{ needs.detect-changes.outputs.adapters }}" == "[]" ]]; then
             echo "📭 No adapters were changed - skipping checks"
             exit 0
           fi
 
-          if [[ "${{ needs.adapter-checks.result }}" == "success" ]]; then
-            echo "✅ All adapter checks passed successfully!"
-          elif [[ "${{ needs.adapter-checks.result }}" == "skipped" ]]; then
+          echo "📊 Adapter Checks Summary"
+          echo "========================"
+
+          OVERALL_RESULT="${{ needs.adapter-checks.result }}"
+          echo "Overall job result: $OVERALL_RESULT"
+
+          if [[ "$OVERALL_RESULT" == "success" ]]; then
+            echo "✅ All adapter checks completed successfully!"
+            echo ""
+            echo "All steps (compile, deprecated check, build, tests) passed for all changed adapters."
+          elif [[ "$OVERALL_RESULT" == "skipped" ]]; then
             echo "⏭️ Adapter checks were skipped (no changes detected)"
           else
-            echo "❌ Some adapter checks failed. Please review the logs above."
-            exit 1
+            echo "⚠️ Some adapter checks encountered issues."
+            echo ""
+            echo "📋 What happened:"
+            echo "• All steps were executed independently using continue-on-error"
+            echo "• Each step reported its individual status"
+            echo "• Check the individual step logs above for detailed results"
+            echo ""
+            echo "🔍 To investigate:"
+            echo "1. Look for step-specific status messages in the logs above"
+            echo "2. Each adapter shows a summary with: Compile, Deprecated check, Build, Tests status"
+            echo "3. Fix any failing steps and re-run the workflow"
+            echo ""
+            echo "Note: This workflow is designed to run all steps even if some fail,"
+            echo "providing a complete picture of the adapter's health."
           fi
