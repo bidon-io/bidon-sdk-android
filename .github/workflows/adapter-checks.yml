@@ -163,11 +163,13 @@ jobs:
             exit 0
           fi
 
-          if grep -q "is deprecated" compile_output.log; then
+          ADAPTER_DEPRECATED=$(grep "is deprecated" compile_output.log | grep "adapter/${{ matrix.adapter }}/" || true)
+
+          if [ -n "$ADAPTER_DEPRECATED" ]; then
             echo "❌ Found deprecated code warnings in adapter ${{ matrix.adapter }}:"
             echo ""
 
-            grep "is deprecated" compile_output.log | sed 's/^w: //' | while IFS= read -r line; do
+            echo "$ADAPTER_DEPRECATED" | sed 's/^w: //' | while IFS= read -r line; do
               echo "  🚨 $line"
             done
 
@@ -182,7 +184,10 @@ jobs:
             echo "deprecated_status=failure" >> $GITHUB_OUTPUT
             exit 1
           else
-            echo "✅ No deprecated code warnings found"
+            if grep -q "is deprecated" compile_output.log; then
+              echo "ℹ️ Found deprecated warnings in dependencies, but none in adapter ${{ matrix.adapter }} itself"
+            fi
+            echo "✅ No deprecated code warnings found in adapter"
             echo "deprecated_status=success" >> $GITHUB_OUTPUT
           fi
 
@@ -230,6 +235,21 @@ jobs:
           echo "  🔍 Deprecated check: ${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
           echo "  📦 Build: ${{ steps.build.outputs.build_status || 'unknown' }}"
           echo "  🧪 Tests: ${{ steps.tests.outputs.test_status || 'unknown' }}"
+
+          COMPILE_STATUS="${{ steps.compile.outputs.compile_status || 'unknown' }}"
+          DEPRECATED_STATUS="${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
+          BUILD_STATUS="${{ steps.build.outputs.build_status || 'unknown' }}"
+          TEST_STATUS="${{ steps.tests.outputs.test_status || 'unknown' }}"
+
+          if [[ "$COMPILE_STATUS" == "failure" ]] || [[ "$DEPRECATED_STATUS" == "failure" ]] || [[ "$BUILD_STATUS" == "failure" ]] || [[ "$TEST_STATUS" == "failure" ]]; then
+            echo ""
+            echo "❌ One or more steps failed for adapter ${{ matrix.adapter }}"
+            echo "Please check the logs above and fix the issues before merging."
+            exit 1
+          else
+            echo ""
+            echo "✅ All steps completed successfully for adapter ${{ matrix.adapter }}"
+          fi
 
   adapter-checks-summary:
     runs-on: ubuntu-latest
