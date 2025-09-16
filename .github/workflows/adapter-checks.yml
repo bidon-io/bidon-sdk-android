@@ -21,7 +21,7 @@ jobs:
       adapters: ${{ steps.matrix.outputs.adapters }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Discover available adapters
         id: discover
@@ -127,7 +127,9 @@ jobs:
   adapter-checks:
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.adapters != '[]'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.detect-changes.outputs.adapters != '[]'
     strategy:
       fail-fast: false
       matrix:
@@ -135,7 +137,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create local.properties
         run: touch local.properties
@@ -146,27 +148,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+      - name: Cache Gradle and Wrapper
+        uses: actions/cache@v4
         with:
-          gradle-home-cache-cleanup: true
+          path: |
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      - name: Compile adapter
-        id: compile
+      - name: Clean Build Directories
+        run: rm -rf */build build-logic/build build-logic/convention-plugins/build
+
+      - name: Build adapter
+        id: build
         continue-on-error: true
         run: |
-          echo "🔨 Compiling adapter: ${{ matrix.adapter }}"
-          ./gradlew :adapter:${{ matrix.adapter }}:compileProductionDebugKotlin --no-daemon --stacktrace > compile_output.log 2>&1
-          COMPILE_EXIT_CODE=$?
+          echo "📦 Building adapter: ${{ matrix.adapter }}"
+          ./gradlew :adapter:${{ matrix.adapter }}:assembleProductionRelease --build-cache --no-daemon --stacktrace > build_output.log 2>&1
+          BUILD_EXIT_CODE=$?
 
-          if [ $COMPILE_EXIT_CODE -eq 0 ]; then
-            echo "✅ Compilation successful"
-            echo "compile_status=success" >> $GITHUB_OUTPUT
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build successful"
+            echo "build_status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Compilation failed"
-            cat compile_output.log
-            echo "compile_status=failure" >> $GITHUB_OUTPUT
-            exit $COMPILE_EXIT_CODE
+            echo "❌ Build failed"
+            cat build_output.log
+            echo "build_status=failure" >> $GITHUB_OUTPUT
+            exit $BUILD_EXIT_CODE
           fi
 
       - name: Check for deprecated warnings
@@ -176,13 +185,13 @@ jobs:
         run: |
           echo "🔍 Checking for deprecated warnings in adapter: ${{ matrix.adapter }}"
 
-          if [ ! -f compile_output.log ]; then
-            echo "⚠️ Compilation output not found, skipping deprecated check"
+          if [ ! -f build_output.log ]; then
+            echo "⚠️ Build output not found, skipping deprecated check"
             echo "deprecated_status=skipped" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          ADAPTER_DEPRECATED=$(grep "is deprecated" compile_output.log | grep "adapter/${{ matrix.adapter }}/" || true)
+          ADAPTER_DEPRECATED=$(grep "is deprecated" build_output.log | grep "adapter/${{ matrix.adapter }}/" || true)
 
           if [ -n "$ADAPTER_DEPRECATED" ]; then
             echo "❌ Found deprecated code warnings in adapter ${{ matrix.adapter }}:"
@@ -203,29 +212,11 @@ jobs:
             echo "deprecated_status=failure" >> $GITHUB_OUTPUT
             exit 1
           else
-            if grep -q "is deprecated" compile_output.log; then
+            if grep -q "is deprecated" build_output.log; then
               echo "ℹ️ Found deprecated warnings in dependencies, but none in adapter ${{ matrix.adapter }} itself"
             fi
             echo "✅ No deprecated code warnings found in adapter"
             echo "deprecated_status=success" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build adapter
-        id: build
-        if: always()
-        continue-on-error: true
-        run: |
-          echo "📦 Building adapter: ${{ matrix.adapter }}"
-          ./gradlew :adapter:${{ matrix.adapter }}:assembleProductionDebug --no-daemon --stacktrace
-          BUILD_EXIT_CODE=$?
-
-          if [ $BUILD_EXIT_CODE -eq 0 ]; then
-            echo "✅ Build successful"
-            echo "build_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Build failed"
-            echo "build_status=failure" >> $GITHUB_OUTPUT
-            exit $BUILD_EXIT_CODE
           fi
 
       - name: Run unit tests
@@ -234,7 +225,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧪 Running unit tests for adapter: ${{ matrix.adapter }}"
-          ./gradlew :adapter:${{ matrix.adapter }}:testProductionDebugUnitTest --no-daemon --stacktrace
+          ./gradlew :adapter:${{ matrix.adapter }}:testProductionReleaseUnitTest --build-cache --no-daemon --stacktrace
           TEST_EXIT_CODE=$?
 
           if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -250,17 +241,15 @@ jobs:
         if: always()
         run: |
           echo "📊 Summary for adapter ${{ matrix.adapter }}:"
-          echo "  🔨 Compile: ${{ steps.compile.outputs.compile_status || 'unknown' }}"
-          echo "  🔍 Deprecated check: ${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
           echo "  📦 Build: ${{ steps.build.outputs.build_status || 'unknown' }}"
+          echo "  🔍 Deprecated check: ${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
           echo "  🧪 Tests: ${{ steps.tests.outputs.test_status || 'unknown' }}"
 
-          COMPILE_STATUS="${{ steps.compile.outputs.compile_status || 'unknown' }}"
-          DEPRECATED_STATUS="${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
           BUILD_STATUS="${{ steps.build.outputs.build_status || 'unknown' }}"
+          DEPRECATED_STATUS="${{ steps.deprecated.outputs.deprecated_status || 'unknown' }}"
           TEST_STATUS="${{ steps.tests.outputs.test_status || 'unknown' }}"
 
-          if [[ "$COMPILE_STATUS" == "failure" ]] || [[ "$DEPRECATED_STATUS" == "failure" ]] || [[ "$BUILD_STATUS" == "failure" ]] || [[ "$TEST_STATUS" == "failure" ]]; then
+          if [[ "$BUILD_STATUS" == "failure" ]] || [[ "$DEPRECATED_STATUS" == "failure" ]] || [[ "$TEST_STATUS" == "failure" ]]; then
             echo ""
             echo "❌ One or more steps failed for adapter ${{ matrix.adapter }}"
             echo "Please check the logs above and fix the issues before merging."
@@ -292,7 +281,7 @@ jobs:
           if [[ "$OVERALL_RESULT" == "success" ]]; then
             echo "✅ All adapter checks completed successfully!"
             echo ""
-            echo "All steps (compile, deprecated check, build, tests) passed for all changed adapters."
+            echo "All steps (build, deprecated check, tests) passed for all changed adapters."
           elif [[ "$OVERALL_RESULT" == "skipped" ]]; then
             echo "⏭️ Adapter checks were skipped (no changes detected)"
           else
@@ -305,7 +294,7 @@ jobs:
             echo ""
             echo "🔍 To investigate:"
             echo "1. Look for step-specific status messages in the logs above"
-            echo "2. Each adapter shows a summary with: Compile, Deprecated check, Build, Tests status"
+            echo "2. Each adapter shows a summary with: Build, Deprecated check, Tests status"
             echo "3. Fix any failing steps and re-run the workflow"
             echo ""
             echo "Note: This workflow is designed to run all steps even if some fail,"
