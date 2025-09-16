@@ -8,10 +8,10 @@ class AdapterGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
         pluginManager.apply("common")
 
-        // Add API dependency on core SDK with strictly version constraints,
+        // Add implementation dependency on core SDK with strictly version constraints,
         // it will applied for adapters during publishing
         dependencies {
-            add("api", "org.bidon:bidon-sdk") {
+            add("implementation", "org.bidon:bidon-sdk") {
                 version {
                     strictly("[${SupportedCoreRange.Min},${SupportedCoreRange.Max})")
                 }
