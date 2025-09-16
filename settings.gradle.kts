@@ -23,7 +23,7 @@ dependencyResolutionManagement {
         // mavenLocal()
         mavenCentral()
         maven(url = "https://artifactory.bidon.org/bidon")
-        maven(url = "https://artifactory.bidon.org/bidon-private") {
+        maven(url = "https://artifactory.bidon.org/artifactory/bidon-private/") {
             credentials {
                 username = System.getenv("BDN_USER")
                 password = System.getenv("BDN_PASSWORD")

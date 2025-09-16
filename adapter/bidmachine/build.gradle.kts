@@ -1,25 +1,23 @@
 import ext.ADAPTER_VERSION
+import ext.Dependencies
 import ext.Versions
 
 plugins {
-    id("common")
+    id("adapter")
 }
 
 publishAdapter {
     artifactId = "bidmachine-adapter"
-    versionName = Versions.Adapters.BidMachine
+    versionName = Versions.PublishedAdapters.BidMachine
 }
 
 android {
     namespace = "org.bidon.bidmachine"
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.BidMachine
+        ADAPTER_VERSION = Versions.PublishedAdapters.BidMachine
     }
 }
 
 dependencies {
-    compileOnly(projects.bidon)
-    testImplementation(projects.bidon)
-
-    implementation("io.bidmachine:ads:3.4.0")
+    implementation(Dependencies.Adapter.Bidmachine)
 }

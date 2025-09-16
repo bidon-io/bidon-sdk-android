@@ -1,26 +1,24 @@
 import ext.ADAPTER_VERSION
+import ext.Dependencies
 import ext.Versions
 
 plugins {
-    id("common")
+    id("adapter")
 }
 
 publishAdapter {
     artifactId = "ironsource-adapter"
-    versionName = Versions.Adapters.IronSource
+    versionName = Versions.PublishedAdapters.IronSource
 }
 
 android {
     namespace = "org.bidon.ironsource"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.Adapters.IronSource
+        ADAPTER_VERSION = Versions.PublishedAdapters.IronSource
     }
 }
 
 dependencies {
-    compileOnly(projects.bidon)
-    testImplementation(projects.bidon)
-
-    implementation("com.unity3d.ads-mediation:mediation-sdk:8.10.0")
+    implementation(Dependencies.Adapter.Ironsource)
 }
