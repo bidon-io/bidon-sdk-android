@@ -126,6 +126,7 @@ jobs:
 
   adapter-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: detect-changes
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -162,6 +163,7 @@ jobs:
 
       - name: Build adapter
         id: build
+        timeout-minutes: 10
         continue-on-error: true
         run: |
           echo "📦 Building adapter: ${{ matrix.adapter }}"
@@ -222,6 +224,7 @@ jobs:
       - name: Run unit tests
         id: tests
         if: always()
+        timeout-minutes: 10
         continue-on-error: true
         run: |
           echo "🧪 Running unit tests for adapter: ${{ matrix.adapter }}"

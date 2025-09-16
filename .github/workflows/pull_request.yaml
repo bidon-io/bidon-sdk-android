@@ -58,7 +58,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Execute unit tests
-      - name: Unit Test
-        run: ./gradlew testProductionDebugUnitTest
+      # Execute unit tests for core SDK only
+      - name: Bidon SDK Unit Test
+        run: ./gradlew :bidon:testProductionReleaseUnitTest
 
