@@ -80,11 +80,9 @@ class CommonGradlePlugin : Plugin<Project> {
 
         dependencies {
             add("implementation", platform(Dependencies.Kotlin.bom))
-            add("implementation", Dependencies.Kotlin.reflect)
             add("implementation", platform(Dependencies.Kotlin.Coroutines.bom))
             add("implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesCore)
             add("implementation", Dependencies.Kotlin.Coroutines.KotlinxCoroutinesAndroid)
-            add("implementation", Dependencies.Android.CoreKtx)
             add("implementation", Dependencies.Android.Annotation)
 
             /**
@@ -99,8 +97,6 @@ class CommonGradlePlugin : Plugin<Project> {
             })
             add("testImplementation", "com.google.truth:truth:1.1.4")
             add("testImplementation", "org.json:json:20210307")
-            add("androidTestImplementation", "androidx.test.ext:junit:1.1.5")
-            add("androidTestImplementation", "androidx.test.espresso:espresso-core:3.5.1")
         }
     }
 }
