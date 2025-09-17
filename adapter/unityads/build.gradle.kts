@@ -1,24 +1,29 @@
 import ext.ADAPTER_VERSION
-import ext.Dependencies
 import ext.Versions
 
 plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "4.16.0"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "unityads-adapter"
-    versionName = Versions.PublishedAdapters.UnityAds
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.unityads"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.UnityAds
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.UnityAds)
+    implementation("com.unity3d.ads:unity-ads:$adapterSdkVersion")
 }

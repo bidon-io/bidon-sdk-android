@@ -1,24 +1,29 @@
 import ext.ADAPTER_VERSION
-import ext.Dependencies
 import ext.Versions
 
 plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "10.8.7"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "inmobi-adapter"
-    versionName = Versions.PublishedAdapters.Inmobi
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.inmobi"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.Inmobi
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.Inmobi)
+    implementation("com.inmobi.monetization:inmobi-ads-kotlin:$adapterSdkVersion")
 }

@@ -1,24 +1,29 @@
 import ext.ADAPTER_VERSION
-import ext.Dependencies
 import ext.Versions
 
 plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "7.15.0"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "yandex-adapter"
-    versionName = Versions.PublishedAdapters.Yandex
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.yandex"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.Yandex
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.Yandex)
+    implementation("com.yandex.android:mobileads:$adapterSdkVersion")
 }

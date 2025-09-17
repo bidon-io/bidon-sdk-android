@@ -1,24 +1,29 @@
 import ext.ADAPTER_VERSION
-import ext.Dependencies
 import ext.Versions
 
 plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "1.9.2"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "mobilefuse-adapter"
-    versionName = Versions.PublishedAdapters.MobileFuse
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.mobilefuse"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.MobileFuse
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.Mobilefuse)
+    implementation("com.mobilefuse.sdk:mobilefuse-sdk-core:$adapterSdkVersion")
 }
