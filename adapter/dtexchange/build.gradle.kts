@@ -6,20 +6,26 @@ plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "8.3.8"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "dtexchange-adapter"
-    versionName = Versions.PublishedAdapters.DTExchange
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.dtexchange"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.DTExchange
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.Dtexchange)
+    implementation("com.fyber:marketplace-sdk:$adapterSdkVersion")
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 }

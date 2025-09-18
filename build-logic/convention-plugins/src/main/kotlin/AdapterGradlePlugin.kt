@@ -1,4 +1,4 @@
-import ext.Versions.PublishedAdapters.SupportedCoreRange
+import ext.Versions.AdapterSupportedCoreRange
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.add
@@ -13,9 +13,9 @@ class AdapterGradlePlugin : Plugin<Project> {
         dependencies {
             add("implementation", "org.bidon:bidon-sdk") {
                 version {
-                    strictly("[${SupportedCoreRange.Min},${SupportedCoreRange.Max})")
+                    strictly("[${AdapterSupportedCoreRange.Min},${AdapterSupportedCoreRange.Max})")
                 }
-                because("${project.name} adapter is only compatible with bidon-sdk versions ${SupportedCoreRange.Min} to ${SupportedCoreRange.Max}. Please use a compatible version of bidon-sdk.")
+                because("${project.name} adapter is only compatible with bidon-sdk versions ${AdapterSupportedCoreRange.Min} to ${AdapterSupportedCoreRange.Max}. Please use a compatible version of bidon-sdk.")
             }
         }
 

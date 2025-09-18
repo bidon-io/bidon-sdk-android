@@ -6,20 +6,26 @@ plugins {
     id("adapter")
 }
 
+val adapterSdkVersion = "11.0.1"
+val adapterMinor = 0
+val adapterSemantic = Versions.semanticVersion
+
+val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
+
 publishAdapter {
     artifactId = "amazon-adapter"
-    versionName = Versions.PublishedAdapters.Amazon
+    versionName = adapterMainVersion
 }
 
 android {
     namespace = "org.bidon.amazon"
 
     defaultConfig {
-        ADAPTER_VERSION = Versions.PublishedAdapters.Amazon
+        ADAPTER_VERSION = adapterMainVersion
     }
 }
 
 dependencies {
-    implementation(Dependencies.Adapter.Amazon)
+    implementation("com.amazon.android:aps-sdk:$adapterSdkVersion")
     implementation(Dependencies.Others.IabTcfDecoder)
 }
