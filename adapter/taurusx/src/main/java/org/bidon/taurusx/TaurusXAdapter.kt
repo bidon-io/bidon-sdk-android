@@ -20,6 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.taurusx.ext.toTaurusXAdFormat
 import org.bidon.taurusx.impl.TaurusXBannerAuctionParams
 import org.bidon.taurusx.impl.TaurusXBannerImpl
 import org.bidon.taurusx.impl.TaurusXFullscreenAuctionParams
@@ -51,12 +52,15 @@ internal class TaurusXAdapter() :
 
     override suspend fun getToken(adTypeParam: AdTypeParam): String? =
         coroutineScope {
+            val adFormat = adTypeParam.toTaurusXAdFormat()
             JSONObject().apply {
-                placementIds.map { (adUnitId, _) ->
-                    async {
-                        adUnitId to adUnitId.getTokenAsync()
+                placementIds
+                    .filter { adFormat == it.adFormat }
+                    .map { (adUnitId, _) ->
+                        async {
+                            adUnitId to getTokenAsync(adUnitId)
+                        }
                     }
-                }
                     .awaitAll()
                     .forEach { (adUnitId, token) ->
                         put(adUnitId, token ?: "")
@@ -64,11 +68,12 @@ internal class TaurusXAdapter() :
             }.toString()
         }
 
-    private suspend fun String.getTokenAsync(): String? = suspendCoroutine { continuation ->
-        BidManager.getInstance().getToken(this) { token ->
-            continuation.resume(token)
+    private suspend fun getTokenAsync(adUnitId: String): String? =
+        suspendCoroutine { continuation ->
+            BidManager.getInstance().getToken(adUnitId) { token ->
+                continuation.resume(token)
+            }
         }
-    }
 
     override suspend fun init(
         context: Context,
@@ -112,7 +117,9 @@ internal class TaurusXAdapter() :
                     val placementObj = jsonArray.optJSONObject(index) ?: return@map null
                     TaurusXPlacement(
                         adUnitId = placementObj.optString("placement_id"),
-                        adFormat = placementObj.optString("format")
+                        adFormat = TaurusXAdFormat.fromString(
+                            placementObj.optString("format")
+                        )
                     )
                 }.filterNotNull()
             } ?: emptyList()

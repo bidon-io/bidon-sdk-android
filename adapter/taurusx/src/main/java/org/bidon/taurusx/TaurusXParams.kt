@@ -10,5 +10,25 @@ internal class TaurusXParams(
 
 internal data class TaurusXPlacement(
     val adUnitId: String,
-    val adFormat: String
+    val adFormat: TaurusXAdFormat
 )
+
+internal enum class TaurusXAdFormat(val format: String) {
+    Mrec("MREC"),
+    Banner("BANNER"),
+    Interstitial("INTERSTITIAL"),
+    Rewarded("REWARDED");
+
+    companion object {
+        fun fromString(value: String?): TaurusXAdFormat {
+            return requireNotNull(entries.firstOrNull {
+                it.format.equals(
+                    value,
+                    ignoreCase = true
+                )
+            }) {
+                "Unknown TaurusX ad format: $value"
+            }
+        }
+    }
+}
