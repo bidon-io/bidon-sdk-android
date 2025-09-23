@@ -20,9 +20,6 @@ import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for TaurusXAdapter
- */
 class TaurusXAdapterTest {
 
     private val context = mockk<Context>(relaxed = true)

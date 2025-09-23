@@ -87,6 +87,7 @@ class TaurusXRewardedImpl :
             logInfo(TAG, "Rewarded ad onRewardFailed: $this")
         }
     }
+
     override val isAdReadyToShow: Boolean
         get() = rewarded?.isReady == true
 

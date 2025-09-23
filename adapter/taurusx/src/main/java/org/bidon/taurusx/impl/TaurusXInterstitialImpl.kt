@@ -68,6 +68,7 @@ class TaurusXInterstitialImpl :
             emitEvent(AdEvent.ShowFailed(error.asBidonError()))
         }
     }
+
     override val isAdReadyToShow: Boolean
         get() = interstitial?.isReady == true
 

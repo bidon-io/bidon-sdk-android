@@ -12,7 +12,7 @@ class TaurusXFullscreenAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+    val adUnitId: String? = adUnit.extra?.getString("placement_id")
     val payload: String? = adUnit.extra?.optString("payload")
 }
 
@@ -22,7 +22,7 @@ class TaurusXBannerAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
-    val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+    val adUnitId: String? = adUnit.extra?.getString("placement_id")
     val payload: String? = adUnit.extra?.optString("payload")
     val bannerSize
         get() = when (bannerFormat) {
