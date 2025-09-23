@@ -35,6 +35,7 @@ dependencyResolutionManagement {
                 password = System.getenv("GPR_TOKEN")
             }
         }
+        maven(url = "https://bitbucket.org/sdkcenter/sdkcenter/raw/release")
     }
 }
 rootProject.name = "BidonSDK"
@@ -58,6 +59,7 @@ include(
     ":adapter:mintegral",
     ":adapter:mobilefuse",
     ":adapter:moloco",
+    ":adapter:taurusx",
     ":adapter:unityads",
     ":adapter:vkads",
     ":adapter:vungle",
