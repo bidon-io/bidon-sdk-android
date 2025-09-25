@@ -59,6 +59,7 @@ include(
     ":adapter:mobilefuse",
     ":adapter:moloco",
     ":adapter:unityads",
+    ":adapter:startio",
     ":adapter:vkads",
     ":adapter:vungle",
     ":adapter:yandex",

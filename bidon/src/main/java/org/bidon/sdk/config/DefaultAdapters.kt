@@ -21,6 +21,7 @@ enum class DefaultAdapters(val classPath: String) {
     MintegralAdapter(classPath = "org.bidon.mintegral.MintegralAdapter"),
     MobilefuseAdapter(classPath = "org.bidon.mobilefuse.MobileFuseAdapter"),
     MolocoAdapter(classPath = "org.bidon.moloco.MolocoAdapter"),
+    StartIoAdapter(classPath = "org.bidon.startio.StartIoAdapter"),
     UnityAdsAdapter(classPath = "org.bidon.unityads.UnityAdsAdapter"),
     VkAdsAdapter(classPath = "org.bidon.vkads.VkAdsAdapter"),
     VungleAdapter(classPath = "org.bidon.vungle.VungleAdapter"),

@@ -88,6 +88,7 @@ dependencies {
     implementation(projects.adapter.mobilefuse)
     implementation(projects.adapter.moloco)
     implementation(projects.adapter.unityads)
+    implementation(projects.adapter.startio)
     implementation(projects.adapter.vkads)
     implementation(projects.adapter.vungle)
     implementation(projects.adapter.yandex)
