@@ -35,7 +35,6 @@ dependencyResolutionManagement {
                 password = System.getenv("GPR_TOKEN")
             }
         }
-        maven(url = "https://bitbucket.org/sdkcenter/sdkcenter/raw/release")
     }
 }
 rootProject.name = "BidonSDK"

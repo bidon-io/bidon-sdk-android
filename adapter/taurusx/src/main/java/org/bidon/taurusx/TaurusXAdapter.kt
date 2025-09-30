@@ -6,6 +6,7 @@ import com.taurusx.tax.api.TaurusXAds
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.sdk.BuildConfig
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.Adapter
@@ -69,9 +70,11 @@ internal class TaurusXAdapter() :
         }
 
     private suspend fun getTokenAsync(adUnitId: String): String? =
-        suspendCoroutine { continuation ->
+        suspendCancellableCoroutine { continuation ->
             BidManager.getInstance().getToken(adUnitId) { token ->
-                continuation.resume(token)
+                if (continuation.isActive) {
+                    continuation.resume(token)
+                }
             }
         }
 
