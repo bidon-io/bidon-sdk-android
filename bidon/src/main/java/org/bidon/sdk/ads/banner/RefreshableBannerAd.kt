@@ -11,4 +11,4 @@ internal interface RefreshableBannerAd : BannerAd {
     fun stopAutoRefresh()
 }
 
-abstract class RefreshableBannerView : RefreshableBannerAd
+public abstract class RefreshableBannerView : RefreshableBannerAd

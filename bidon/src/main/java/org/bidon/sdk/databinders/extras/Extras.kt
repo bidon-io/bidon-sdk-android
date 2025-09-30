@@ -5,7 +5,7 @@ package org.bidon.sdk.databinders.extras
  *
  * Allows to collect extra data.
  */
-interface Extras {
+internal interface Extras {
     /**
      * @param key name of extra data
      * @param value value of extra data. Null removes data if exists.

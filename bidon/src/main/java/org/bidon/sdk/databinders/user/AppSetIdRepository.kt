@@ -1,6 +1,6 @@
 package org.bidon.sdk.databinders.user
 
-interface AppSetIdRepository {
+internal interface AppSetIdRepository {
     suspend fun getAppSetId(): String?
     suspend fun isDeveloperScope(): Boolean?
 }

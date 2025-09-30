@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.exclude
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 class CommonGradlePlugin : Plugin<Project> {
@@ -62,6 +63,9 @@ class CommonGradlePlugin : Plugin<Project> {
                     description = "No /config and /auction/* requests. Set it manually for tests"
                     dimension = "server"
                 }
+            }
+            extensions.configure<KotlinAndroidProjectExtension> {
+                explicitApi()
             }
         }
 

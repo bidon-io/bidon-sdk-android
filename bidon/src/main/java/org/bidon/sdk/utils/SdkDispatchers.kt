@@ -11,28 +11,28 @@ import kotlinx.coroutines.newSingleThreadContext
  */
 
 @VisibleForTesting
-var defaultDispatcherOverridden: CoroutineDispatcher? = null
+internal var defaultDispatcherOverridden: CoroutineDispatcher? = null
 
 @VisibleForTesting
-var ioDispatcherOverridden: CoroutineDispatcher? = null
+internal var ioDispatcherOverridden: CoroutineDispatcher? = null
 
 @VisibleForTesting
-var singleDispatcherOverridden: CoroutineDispatcher? = null
+internal var singleDispatcherOverridden: CoroutineDispatcher? = null
 
 @VisibleForTesting
-var mainDispatcherOverridden: CoroutineDispatcher? = null
+internal var mainDispatcherOverridden: CoroutineDispatcher? = null
 
-object SdkDispatchers {
+public object SdkDispatchers {
     @OptIn(DelicateCoroutinesApi::class)
-    val Bidon: CoroutineDispatcher
+    internal val Bidon: CoroutineDispatcher
         get() = singleDispatcherOverridden ?: newSingleThreadContext("Bidon")
 
-    val Main: CoroutineDispatcher
+    public val Main: CoroutineDispatcher
         get() = mainDispatcherOverridden ?: Dispatchers.Main
 
-    val Default: CoroutineDispatcher
+    internal val Default: CoroutineDispatcher
         get() = defaultDispatcherOverridden ?: Dispatchers.Default
 
-    val IO: CoroutineDispatcher
+    internal val IO: CoroutineDispatcher
         get() = ioDispatcherOverridden ?: Dispatchers.IO
 }
