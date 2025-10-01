@@ -12,7 +12,7 @@ public data class BannerRequest(
     @field:JsonName("format")
     val formatCode: String,
 ) : Serializable {
-    public enum class StatFormat(public val code: String) {
+    public enum class StatFormat(internal val code: String) {
         BANNER_320x50("BANNER"),
         LEADERBOARD_728x90("LEADERBOARD"),
         MREC_300x250("MREC"),

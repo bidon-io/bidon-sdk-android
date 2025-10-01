@@ -22,17 +22,17 @@ internal var singleDispatcherOverridden: CoroutineDispatcher? = null
 @VisibleForTesting
 internal var mainDispatcherOverridden: CoroutineDispatcher? = null
 
-public object SdkDispatchers {
+internal object SdkDispatchers {
     @OptIn(DelicateCoroutinesApi::class)
-    internal val Bidon: CoroutineDispatcher
+    val Bidon: CoroutineDispatcher
         get() = singleDispatcherOverridden ?: newSingleThreadContext("Bidon")
 
-    public val Main: CoroutineDispatcher
+    val Main: CoroutineDispatcher
         get() = mainDispatcherOverridden ?: Dispatchers.Main
 
-    internal val Default: CoroutineDispatcher
+    val Default: CoroutineDispatcher
         get() = defaultDispatcherOverridden ?: Dispatchers.Default
 
-    internal val IO: CoroutineDispatcher
+    val IO: CoroutineDispatcher
         get() = ioDispatcherOverridden ?: Dispatchers.IO
 }

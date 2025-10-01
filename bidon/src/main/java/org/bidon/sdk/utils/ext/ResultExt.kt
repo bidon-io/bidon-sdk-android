@@ -6,7 +6,7 @@ package org.bidon.sdk.utils.ext
 internal fun <T : Any> T.asSuccess(): Result<T> = Result.success(this)
 internal fun <T : Any> Throwable.asFailure(): Result<T> = Result.failure<T>(this)
 
-public inline fun <T> Result<T>.onAny(action: () -> Unit): Result<T> {
+internal inline fun <T> Result<T>.onAny(action: () -> Unit): Result<T> {
     action.invoke()
     return this
 }

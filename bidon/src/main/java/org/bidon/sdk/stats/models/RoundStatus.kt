@@ -25,7 +25,7 @@ public sealed class RoundStatus(public val code: String) {
     public object Successful : RoundStatus("INTERNAL_STATUS") // Internal status, its code should not be used
 }
 
-public fun Throwable.asRoundStatus(): RoundStatus = when (this as? BidonError) {
+internal fun Throwable.asRoundStatus(): RoundStatus = when (this as? BidonError) {
     is BidonError.AdFormatIsNotSupported -> RoundStatus.AdFormatNotSupported
     is BidonError.BidTimedOut -> RoundStatus.BidTimeoutReached
     is BidonError.FillTimedOut -> RoundStatus.FillTimeoutReached

@@ -16,7 +16,7 @@ public data class TokenInfo(
     @field:JsonName("status")
     val status: String,
 ) : Serializable {
-    public enum class Status(public val code: String) {
+    public enum class Status(internal val code: String) {
         SUCCESS("SUCCESS"),
         TIMEOUT_REACHED("TIMEOUT_REACHED"),
         NO_TOKEN("NO_TOKEN"),

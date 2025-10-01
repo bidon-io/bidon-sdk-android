@@ -9,6 +9,6 @@ internal interface JsonParser<T> {
     fun parseOrNull(jsonString: String): T?
 }
 
-public interface JsonSerializer<T> {
-    public fun serialize(data: T): JSONObject
+internal interface JsonSerializer<T> {
+    fun serialize(data: T): JSONObject
 }
