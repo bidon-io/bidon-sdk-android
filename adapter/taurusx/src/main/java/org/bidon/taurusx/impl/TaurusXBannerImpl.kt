@@ -19,7 +19,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.taurusx.ext.asBidonError
 
-class TaurusXBannerImpl : AdSource.Banner<TaurusXBannerAuctionParams>,
+internal class TaurusXBannerImpl : AdSource.Banner<TaurusXBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(), StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerAd: TaurusXBannerAds? = null

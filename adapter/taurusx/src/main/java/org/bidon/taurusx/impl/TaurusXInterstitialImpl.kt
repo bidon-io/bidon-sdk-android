@@ -19,7 +19,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.taurusx.ext.asBidonError
 
-class TaurusXInterstitialImpl :
+internal class TaurusXInterstitialImpl :
     AdSource.Interstitial<TaurusXFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

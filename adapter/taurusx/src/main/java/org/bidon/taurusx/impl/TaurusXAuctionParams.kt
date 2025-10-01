@@ -7,7 +7,7 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
-class TaurusXFullscreenAuctionParams(
+internal class TaurusXFullscreenAuctionParams(
     val context: Context,
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
@@ -16,7 +16,7 @@ class TaurusXFullscreenAuctionParams(
     val payload: String? = adUnit.extra?.optString("payload")
 }
 
-class TaurusXBannerAuctionParams(
+internal class TaurusXBannerAuctionParams(
     val activity: Activity,
     private val bannerFormat: BannerFormat,
     override val adUnit: AdUnit,
