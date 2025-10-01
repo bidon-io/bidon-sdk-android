@@ -14,7 +14,7 @@ internal class StartIoFullscreenAuctionParams(
     val payload: String? = adUnit.extra?.optString("payload")
 }
 
-class StartIoBannerAuctionParams(
+internal class StartIoBannerAuctionParams(
     val activity: Activity,
     val bannerFormat: BannerFormat,
     override val adUnit: AdUnit,
