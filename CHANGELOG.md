@@ -1,6 +1,7 @@
 # 0.12.0 (2025.**.**)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
+- [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
 - [BDN-1055](https://appodeal.atlassian.net/browse/BDN-1055) Integrated StartIo SDK 5.2.4 as ad adapter
 
 # 0.11.0 (2025.09.10)
