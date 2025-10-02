@@ -112,20 +112,23 @@ internal class TaurusXAdapter() :
 
     override fun parseConfigParam(json: String): TaurusXParams {
         val jsonObject = JSONObject(json)
+        val placementIds = buildList {
+            jsonObject.optJSONArray("placement_ids")?.let { jsonArray ->
+                repeat(jsonArray.length()) { index ->
+                    runCatching {
+                        val placementObj = jsonArray.getJSONObject(index)
+                        val adUnitId = placementObj.getString("placement_id")
+                        val format = placementObj.getString("format")
+                        val adFormat = TaurusXAdFormat.fromString(format)
+                        add(TaurusXPlacement(adUnitId = adUnitId, adFormat = adFormat))
+                    }
+                }
+            }
+        }
         return TaurusXParams(
             appId = jsonObject.optString("app_id"),
             channel = jsonObject.optString("channel"),
-            placementIds = jsonObject.optJSONArray("placement_ids")?.let { jsonArray ->
-                (0 until jsonArray.length()).map { index ->
-                    val placementObj = jsonArray.optJSONObject(index) ?: return@map null
-                    TaurusXPlacement(
-                        adUnitId = placementObj.optString("placement_id"),
-                        adFormat = TaurusXAdFormat.fromString(
-                            placementObj.optString("format")
-                        )
-                    )
-                }.filterNotNull()
-            } ?: emptyList()
+            placementIds = placementIds
         )
     }
 
