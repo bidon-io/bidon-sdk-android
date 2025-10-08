@@ -35,6 +35,7 @@ internal class TaurusXRewardedImpl :
         override fun onAdShown() {
             logInfo(TAG, "Rewarded ad shown successfully")
             getAd()?.let { ad ->
+                emitEvent(AdEvent.Shown(ad))
                 emitEvent(
                     AdEvent.PaidRevenue(
                         ad = ad,
