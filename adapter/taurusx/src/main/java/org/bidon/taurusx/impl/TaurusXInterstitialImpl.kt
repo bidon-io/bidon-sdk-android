@@ -35,6 +35,7 @@ internal class TaurusXInterstitialImpl :
         override fun onAdShown() {
             logInfo(TAG, "Interstitial ad shown successfully")
             getAd()?.let { ad ->
+                emitEvent(AdEvent.Shown(ad))
                 emitEvent(
                     AdEvent.PaidRevenue(
                         ad = ad,
