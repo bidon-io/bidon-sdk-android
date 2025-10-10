@@ -82,7 +82,7 @@ internal class StartIoAdapter :
     override fun parseConfigParam(json: String): StartIoParams {
         val jsonObject = JSONObject(json)
         return StartIoParams(
-            appId = jsonObject.optString("appId"),
+            appId = jsonObject.optString("app_id"),
         )
     }
 
