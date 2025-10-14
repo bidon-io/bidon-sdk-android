@@ -1,8 +1,10 @@
 package org.bidon.moloco.ext
 
 import com.moloco.sdk.publisher.Banner
+import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
 import com.moloco.sdk.publisher.MolocoAdError
+import org.bidon.moloco.EMPTY_MEDIATOR
 import org.bidon.moloco.EMPTY_WATERMARK
 import org.bidon.moloco.MolocoDemandId
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -43,13 +45,28 @@ internal fun Moloco.createBannerAd(
     try {
         when (bannerSize) {
             BannerFormat.Banner ->
-                Moloco.createBanner(adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createBanner(
+                    mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+                    watermarkString = EMPTY_WATERMARK,
+                    adUnitId = adUnitId,
+                    callback = sdkCallback
+                )
 
             BannerFormat.LeaderBoard ->
-                Moloco.createBannerTablet(adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createBannerTablet(
+                    mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+                    watermarkString = EMPTY_WATERMARK,
+                    adUnitId = adUnitId,
+                    callback = sdkCallback
+                )
 
             BannerFormat.MRec ->
-                Moloco.createMREC(adUnitId, EMPTY_WATERMARK, sdkCallback)
+                Moloco.createMREC(
+                    mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+                    watermarkString = EMPTY_WATERMARK,
+                    adUnitId = adUnitId,
+                    callback = sdkCallback
+                )
 
             BannerFormat.Adaptive -> {
                 callback(
