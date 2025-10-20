@@ -81,6 +81,7 @@ internal class StartIoBannerImpl :
         }.also {
             this.banner = it
         }
+        banner.adPreferences.adTag = adParams.tag
         banner.setBannerListener(loadListener)
         banner.loadAd(
             adParams.bannerSize.first,

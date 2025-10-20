@@ -11,6 +11,7 @@ internal class StartIoFullscreenAuctionParams(
     override val adUnit: AdUnit,
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
+    val tag: String? = adUnit.extra?.optString("tag_id")
     val payload: String? = adUnit.extra?.optString("payload")
 }
 
@@ -21,6 +22,7 @@ internal class StartIoBannerAuctionParams(
 ) : AdAuctionParams {
     override val price: Double = adUnit.pricefloor
     val payload: String? = adUnit.extra?.optString("payload")
+    val tag: String? = adUnit.extra?.optString("tag_id")
     val bannerSize
         get() = when (bannerFormat) {
             BannerFormat.MRec -> Pair(300, 250)

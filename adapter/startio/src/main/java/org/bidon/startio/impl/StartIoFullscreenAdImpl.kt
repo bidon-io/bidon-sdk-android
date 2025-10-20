@@ -5,6 +5,7 @@ import com.startapp.sdk.adsbase.Ad
 import com.startapp.sdk.adsbase.StartAppAd
 import com.startapp.sdk.adsbase.adlisteners.AdDisplayListener
 import com.startapp.sdk.adsbase.adlisteners.AdEventListener
+import com.startapp.sdk.adsbase.model.AdPreferences
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -24,6 +25,7 @@ internal abstract class StartIoFullscreenAdImpl :
 
     protected abstract val tag: String
     protected abstract val adMode: StartAppAd.AdMode
+    private val adPreferences: AdPreferences by lazy { AdPreferences() }
 
     open val isAdReadyToShow: Boolean
         get() = startAppAd?.state == Ad.AdState.READY
@@ -80,7 +82,7 @@ internal abstract class StartIoFullscreenAdImpl :
 
     open fun show(activity: Activity) {
         if (isAdReadyToShow) {
-            startAppAd?.showAd(showListener)
+            startAppAd?.showAd(adPreferences.adTag, showListener)
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
@@ -97,9 +99,13 @@ internal abstract class StartIoFullscreenAdImpl :
         }
         val startAppAd = StartAppAd(adParams.context).also {
             this.startAppAd = it
+
         }
+        adPreferences.adTag = adParams.tag
+        startAppAd
         startAppAd.loadAd(
             adMode,
+            adPreferences,
             loadListener,
             adParams.payload
         )
