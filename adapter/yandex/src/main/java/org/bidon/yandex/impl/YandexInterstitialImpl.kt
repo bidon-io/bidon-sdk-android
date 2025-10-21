@@ -18,6 +18,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.yandex.ext.asBidonAdValue
 import org.bidon.yandex.ext.asBidonError
 
@@ -48,7 +49,20 @@ internal class YandexInterstitialImpl :
         val adUnitId = adParams.adUnitId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
 
-        val adRequestConfiguration = AdRequestConfiguration.Builder(adUnitId).build()
+        val adRequestConfiguration = AdRequestConfiguration.Builder(adUnitId)
+            .apply {
+                when (adParams.adUnit.bidType) {
+                    BidType.RTB -> {
+                        val signalData = adParams.signalData
+                            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+                        setBiddingData(signalData)
+                    }
+
+                    BidType.CPM -> Unit
+                }
+            }
+            .build()
+
         val adLoadListener = object : InterstitialAdLoadListener {
             override fun onAdLoaded(interstitialAd: InterstitialAd) {
                 this@YandexInterstitialImpl.interstitialAd = interstitialAd
