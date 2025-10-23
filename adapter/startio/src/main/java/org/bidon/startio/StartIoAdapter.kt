@@ -3,8 +3,10 @@ package org.bidon.startio
 import android.annotation.SuppressLint
 import android.content.Context
 import com.startapp.sdk.adsbase.StartAppSDK
-import org.bidon.sdk.BuildConfig
 import org.bidon.sdk.adapter.AdProvider
+import org.bidon.sdk.adapter.AdSource.Banner
+import org.bidon.sdk.adapter.AdSource.Interstitial
+import org.bidon.sdk.adapter.AdSource.Rewarded
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
@@ -41,8 +43,7 @@ internal class StartIoAdapter :
     private val isInitialized = AtomicBoolean(false)
     private var context: Context? = null
 
-    override suspend fun getToken(adTypeParam: AdTypeParam) =
-        StartAppSDK.getBidToken()
+    override suspend fun getToken(adTypeParam: AdTypeParam) = StartAppSDK.getBidToken()
 
     override val demandId: DemandId = StartIoDemandId
 
@@ -56,11 +57,13 @@ internal class StartIoAdapter :
         configParams: StartIoParams
     ) = suspendCoroutine { continuation ->
         this.context = context
-        if (!isInitialized.compareAndSet(false, true)) {
+
+        if (isInitialized.get()) {
             logInfo(TAG, "StartIo SDK already initialized")
             continuation.resume(Unit)
             return@suspendCoroutine
         }
+
         if (configParams.appId.isBlank()) {
             val errorMessage = "Adapter(${StartIoDemandId.demandId}) app id is empty or blank"
             val error = IllegalArgumentException(errorMessage)
@@ -68,12 +71,15 @@ internal class StartIoAdapter :
             continuation.resumeWithException(error)
             return@suspendCoroutine
         }
+
         if (isTestMode) {
             StartAppSDK.setTestAdsEnabled(true)
         }
+
         StartAppSDK
             .initParams(context, configParams.appId)
             .setCallback {
+                isInitialized.set(true)
                 continuation.resume(Unit)
             }
             .init()
@@ -86,17 +92,18 @@ internal class StartIoAdapter :
         )
     }
 
-    @SuppressLint("UseKtx")
     override fun updateRegulation(regulation: Regulation) {
         context?.let { context ->
             if (regulation.gdprApplies) {
                 StartAppSDK.setUserConsent(
-                    context,
-                    "pas",
-                    System.currentTimeMillis(),
-                    regulation.hasGdprConsent
+                    /* context = */ context,
+                    /* consentType = */ "pas",
+                    /* timestamp = */ System.currentTimeMillis(),
+                    /* enabled = */ regulation.hasGdprConsent
                 )
-            } else if (regulation.ccpaApplies) {
+            }
+            if (regulation.ccpaApplies) {
+                @SuppressLint("UseKtx")
                 StartAppSDK.getExtras(context)
                     .edit()
                     .putString("IABUSPrivacy_String", regulation.usPrivacyString)
@@ -105,9 +112,9 @@ internal class StartIoAdapter :
         }
     }
 
-    override fun banner() = StartIoBannerImpl()
-    override fun interstitial() = StartIoInterstitialImpl()
-    override fun rewarded() = StartIoRewardedImpl()
+    override fun banner(): Banner<StartIoBannerAuctionParams> = StartIoBannerImpl()
+    override fun interstitial(): Interstitial<StartIoFullscreenAuctionParams> = StartIoInterstitialImpl()
+    override fun rewarded(): Rewarded<StartIoFullscreenAuctionParams> = StartIoRewardedImpl()
 }
 
 private const val TAG = "StartIoAdapter"

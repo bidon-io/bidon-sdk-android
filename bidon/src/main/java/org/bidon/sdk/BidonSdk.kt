@@ -18,7 +18,7 @@ import org.bidon.sdk.utils.networking.NetworkSettings
 public object BidonSdk {
 
     public const val DefaultPricefloor: Double = 0.0
-    public const val SdkVersion: String = BuildConfig.ADAPTER_VERSION
+    public const val SdkVersion: String = BuildConfig.BIDON_SDK_VERSION
 
     internal val bidon by lazy { Bidon() }
 

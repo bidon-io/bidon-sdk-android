@@ -8,7 +8,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bidon.sdk.BuildConfig
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdapterInfo

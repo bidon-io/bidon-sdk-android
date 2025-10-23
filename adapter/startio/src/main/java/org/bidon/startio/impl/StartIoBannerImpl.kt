@@ -5,6 +5,7 @@ import com.startapp.sdk.ads.banner.Banner
 import com.startapp.sdk.ads.banner.BannerListener
 import com.startapp.sdk.ads.banner.Mrec
 import com.startapp.sdk.ads.banner.bannerstandard.BannerStandard
+import com.startapp.sdk.adsbase.model.AdPreferences
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -40,7 +41,10 @@ internal class StartIoBannerImpl :
             logInfo(TAG, errorMessage)
             emitEvent(
                 AdEvent.LoadFailed(
-                    BidonError.Unspecified(StartIoDemandId, message = errorMessage)
+                    BidonError.Unspecified(
+                        StartIoDemandId,
+                        message = errorMessage
+                    )
                 )
             )
         }
@@ -56,7 +60,7 @@ internal class StartIoBannerImpl :
     }
 
     override val isAdReadyToShow: Boolean
-        get() = isLoaded
+        get() = banner != null && isLoaded
 
     override fun getAdView(): AdViewHolder? {
         return banner?.let { banner ->
@@ -66,28 +70,23 @@ internal class StartIoBannerImpl :
 
     override fun load(adParams: StartIoBannerAuctionParams) {
         if (adParams.payload == null) {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")
-                )
-            )
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
             return
         }
 
-        val banner = if (adParams.bannerFormat == BannerFormat.MRec) {
-            Mrec(adParams.activity)
+        val adPreferences = AdPreferences().apply { adTag = adParams.tag }
+        banner = if (adParams.bannerFormat == BannerFormat.MRec) {
+            Mrec(adParams.activity, adPreferences, loadListener)
         } else {
-            Banner(adParams.activity)
-        }.also {
-            this.banner = it
+            Banner(adParams.activity, adPreferences, loadListener)
+        }.also { banner ->
+            val (width, height) = adParams.bannerSize
+            banner.loadAd(
+                /* desirableWidthDp = */ width,
+                /* desirableHeightDp = */ height,
+                /* adm = */ adParams.payload
+            )
         }
-        banner.adPreferences.adTag = adParams.tag
-        banner.setBannerListener(loadListener)
-        banner.loadAd(
-            adParams.bannerSize.first,
-            adParams.bannerSize.second,
-            adParams.payload
-        )
     }
 
     override fun destroy() {

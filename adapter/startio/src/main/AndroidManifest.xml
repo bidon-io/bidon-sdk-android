@@ -8,5 +8,9 @@
             android:authorities="${applicationId}.startappinitprovider"
             tools:node="remove" />
 
+        <meta-data
+            android:name="com.startapp.sdk.SPLASH_ENABLED"
+            android:value="false" />
+
     </application>
 </manifest>
