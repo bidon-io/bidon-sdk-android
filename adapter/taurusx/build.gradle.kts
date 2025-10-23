@@ -5,19 +5,19 @@ plugins {
     id("adapter")
 }
 
-val adapterSdkVersion = "4.1.1"
+val adapterSdkVersion = "1.11.2"
 val adapterMinor = 0
 val adapterSemantic = Versions.semanticVersion
 
 val adapterMainVersion = "$adapterSdkVersion.$adapterMinor$adapterSemantic"
 
 publishAdapter {
-    artifactId = "moloco-adapter"
+    artifactId = "taurusx-adapter"
     versionName = adapterMainVersion
 }
 
 android {
-    namespace = "org.bidon.moloco"
+    namespace = "org.bidon.taurusx"
 
     defaultConfig {
         ADAPTER_VERSION = adapterMainVersion
@@ -25,5 +25,5 @@ android {
 }
 
 dependencies {
-    implementation("com.moloco.sdk:moloco-sdk:$adapterSdkVersion")
+    implementation("com.taurusx.tax:ads:$adapterSdkVersion")
 }
