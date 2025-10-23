@@ -4,6 +4,7 @@
 - [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
 - [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Added TaurusX SDK 3.12.0 as ad adapter
 - [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1058) Updated Moloco SDK to 4.1.1
+- [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
 
 # 0.11.0 (2025.09.10)
 ## Features:
