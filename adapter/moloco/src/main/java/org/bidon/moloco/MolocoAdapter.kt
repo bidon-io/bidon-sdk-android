@@ -57,7 +57,6 @@ internal class MolocoAdapter :
         suspendCancellableCoroutine { continuation ->
             logInfo(TAG, "Requesting bid token")
             Moloco.getBidToken(
-                MediationInfo(EMPTY_MEDIATOR),
                 adTypeParam.activity.applicationContext
             ) { bidToken: String, error: MolocoAdError.ErrorType? ->
                 if (error != null) {
