@@ -2,8 +2,9 @@
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
 - [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
-- [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Added TaurusX SDK 3.12.0 as ad adapter
-- [BDN-1055](https://appodeal.atlassian.net/browse/BDN-1055) Integrated StartIo SDK 5.2.4 as ad adapter
+- [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Integrated TaurusX SDK 3.12.0 (rtb and cpm) as ad adapter
+- [BDN-1055](https://appodeal.atlassian.net/browse/BDN-1055) Integrated StartIo SDK 5.2.4 (rtb) as ad adapter
+- [BDN-1079](https://appodeal.atlassian.net/browse/BDN-1079) Supported mediator and ad_unit_ids parameters for Applovin initialization
 
 # 0.11.0 (2025.09.10)
 ## Features:
