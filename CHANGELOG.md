@@ -5,6 +5,7 @@
 - [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Added TaurusX SDK 3.12.0 as ad adapter
 - [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1058) Updated Moloco SDK to 4.1.1
 - [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
+- [BDN-1055](https://appodeal.atlassian.net/browse/BDN-1055) Integrated StartIo SDK 5.2.4 as ad adapter
 
 # 0.11.0 (2025.09.10)
 ## Features:

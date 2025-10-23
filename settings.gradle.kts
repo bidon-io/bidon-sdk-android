@@ -60,6 +60,7 @@ include(
     ":adapter:moloco",
     ":adapter:taurusx",
     ":adapter:unityads",
+    ":adapter:startio",
     ":adapter:vkads",
     ":adapter:vungle",
     ":adapter:yandex",
