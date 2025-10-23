@@ -1,12 +1,8 @@
 package org.bidon.yandex.ext
 
-import android.content.Context
-import com.yandex.mobile.ads.banner.BannerAdSize
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
 import com.yandex.mobile.ads.common.MobileAds
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
@@ -19,17 +15,6 @@ import org.json.JSONObject
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = MobileAds.libraryVersion
-
-internal fun BannerFormat.toYandexBannerSize(context: Context): BannerAdSize = when (this) {
-    BannerFormat.Banner -> BannerAdSize.fixedSize(context, 320, 50)
-    BannerFormat.LeaderBoard -> BannerAdSize.fixedSize(context, 728, 90)
-    BannerFormat.MRec -> BannerAdSize.fixedSize(context, 300, 250)
-    BannerFormat.Adaptive -> if (DeviceInfo.isTablet) {
-        BannerAdSize.fixedSize(context, 728, 90)
-    } else {
-        BannerAdSize.fixedSize(context, 320, 50)
-    }
-}
 
 internal fun AdRequestError?.asBidonError() = when (this?.code) {
     AdRequestError.Code.INVALID_REQUEST -> BidonError.IncorrectAdUnit(YandexDemandId, "Invalid request")
@@ -49,7 +34,7 @@ internal fun ImpressionData?.asBidonAdValue(): AdValue {
         } else {
             JSONObject(jsonData).optString("revenueUSD").toDoubleOrNull()
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
         null
     }
     return AdValue(
