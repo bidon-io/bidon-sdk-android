@@ -23,7 +23,7 @@ on:
 jobs:
   publish:
     name: Release Bidon SDK Library
-    runs-on: ${{ inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.runner_type == 'self-hosted' && 'bidon-android-self-host' || 'ubuntu-latest' }}
     permissions:
       contents: write
 
