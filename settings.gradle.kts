@@ -35,6 +35,8 @@ dependencyResolutionManagement {
                 password = System.getenv("GPR_TOKEN")
             }
         }
+        // TODO: Remove this repository after remote mapping
+        maven(url = "https://bitbucket.org/sdkcenter/sdkcenter/raw/release")
     }
 }
 rootProject.name = "BidonSDK"
