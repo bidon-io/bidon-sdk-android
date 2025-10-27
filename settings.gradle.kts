@@ -25,8 +25,8 @@ dependencyResolutionManagement {
         maven(url = "https://artifactory.bidon.org/bidon")
         maven(url = "https://artifactory.bidon.org/artifactory/bidon-private/") {
             credentials {
-                username = System.getenv("BDN_USER")
-                password = System.getenv("BDN_PASSWORD")
+                username = System.getenv("BDN_USERNAME")
+                password = System.getenv("BDN_USERPASSWORD")
             }
         }
         maven(url = "https://maven.pkg.github.com/bidon-io/bidon-sdk-android") {
@@ -35,8 +35,6 @@ dependencyResolutionManagement {
                 password = System.getenv("GPR_TOKEN")
             }
         }
-        // TODO: Remove this repository after remote mapping
-        maven(url = "https://bitbucket.org/sdkcenter/sdkcenter/raw/release")
     }
 }
 rootProject.name = "BidonSDK"
