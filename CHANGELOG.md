@@ -1,3 +1,7 @@
+# 0.13.0 (2025.**.**)
+## Features:
+- [BDN-1076](https://appodeal.atlassian.net/browse/BDN-1076) Added support for IAB restriction parameters (bcat, badv, bapps) for BidMachine CPM ad units
+
 # 0.12.0 (2025.**.**)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
