@@ -11,19 +11,11 @@ on:
         options:
           - bidon-private
           - bidon
-      runner_type:
-        description: 'Runner type'
-        required: true
-        default: 'github-hosted'
-        type: choice
-        options:
-          - github-hosted
-          - self-hosted
 
 jobs:
   publish:
     name: Release Bidon SDK Library
-    runs-on: ${{ inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
