@@ -1,10 +1,15 @@
-# 0.12.0 (2025.**.**)
+# 0.13.0 (2025.*.*)
+## Features:
+- [BDN-1081](https://appodeal.atlassian.net/browse/BDN-1081) Fixed incorrect bid status marked as SUCCESSFUL when bid.price < pricefloor
+- [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
+
+# 0.12.0 (2025.11.03)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
 - [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
-- [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Added TaurusX SDK 3.12.0 as ad adapter
-- [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1058) Updated Moloco SDK to 4.1.1
-- [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
+- [BDN-1052](https://appodeal.atlassian.net/browse/BDN-1052) Integrated TaurusX SDK 1.11.2 (rtb and cpm) as ad adapter
+- [BDN-1055](https://appodeal.atlassian.net/browse/BDN-1055) Integrated StartIo SDK 5.2.4 (rtb) as ad adapter
+- [BDN-1079](https://appodeal.atlassian.net/browse/BDN-1079) Supported mediator and ad_unit_ids parameters for Applovin initialization
 
 # 0.11.0 (2025.09.10)
 ## Features:
