@@ -1,6 +1,7 @@
 # 0.13.0 (2025.*.*)
 ## Features:
 - [BDN-1081](https://appodeal.atlassian.net/browse/BDN-1081) Fixed incorrect bid status marked as SUCCESSFUL when bid.price < pricefloor
+- [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
 
 # 0.12.0 (2025.11.03)
 ## Features:

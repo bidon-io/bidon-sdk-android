@@ -17,7 +17,9 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.yandex.ext.asBidonAdValue
+import org.bidon.yandex.ext.toYandexBannerSize
 
 /**
  * Created by Aleksei Cherniaev on 17/09/2023.
@@ -47,8 +49,23 @@ internal class YandexBannerImpl :
         val adUnitId = adParams.adUnitId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
 
+        val adRequest = AdRequest.Builder()
+            .apply {
+                when (adParams.adUnit.bidType) {
+                    BidType.RTB -> {
+                        val signalData = adParams.signalData
+                            ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+                        setBiddingData(signalData)
+                    }
+
+                    BidType.CPM -> Unit
+                }
+            }
+            .build()
+
         val bannerView = BannerAdView(adParams.activity).also { this.bannerView = it }
-        bannerView.setAdSize(adParams.bannerSize)
+        val adSize = adParams.bannerFormat.toYandexBannerSize(adParams.activity)
+        bannerView.setAdSize(adSize)
         bannerView.setAdUnitId(adUnitId)
         bannerView.setBannerAdEventListener(
             object : BannerAdEventListener {
@@ -84,7 +101,7 @@ internal class YandexBannerImpl :
                 }
             }
         )
-        bannerView.loadAd(AdRequest.Builder().build())
+        bannerView.loadAd(adRequest)
     }
 
     override fun getAdView(): AdViewHolder? = bannerView?.let { AdViewHolder(it) }
