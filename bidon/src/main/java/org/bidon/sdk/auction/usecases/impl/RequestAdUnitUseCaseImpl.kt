@@ -58,7 +58,14 @@ internal class RequestAdUnitUseCaseImpl : RequestAdUnitUseCase {
             } ?: AdEvent.LoadFailed(BidonError.FillTimedOut(adSource.demandId))
 
             val requestStatus = when (adEvent) {
-                is AdEvent.Fill -> RoundStatus.Successful
+                is AdEvent.Fill -> {
+                    val loadedPrice = adEvent.ad.price
+                    when {
+                        loadedPrice >= priceFloor -> RoundStatus.Successful
+                        adUnit.bidType == BidType.RTB -> RoundStatus.Lose
+                        else -> RoundStatus.BelowPricefloor
+                    }
+                }
                 is AdEvent.Expired -> RoundStatus.NoFill
                 is AdEvent.LoadFailed -> adEvent.cause.asRoundStatus()
                 else -> error("unexpected: $adEvent")
