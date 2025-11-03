@@ -52,6 +52,7 @@ internal class BMBannerAdImpl(
                         BidType.CPM -> {
                             setNetworks("")
                             setPlacementId(adParams.placement)
+                            setTargetingParams(adParams.targetingParams)
                         }
 
                         BidType.RTB -> {

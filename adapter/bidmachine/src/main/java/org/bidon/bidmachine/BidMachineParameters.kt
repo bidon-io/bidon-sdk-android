@@ -3,6 +3,7 @@ package org.bidon.bidmachine
 import android.app.Activity
 import android.content.Context
 import io.bidmachine.CustomParams
+import io.bidmachine.TargetingParams
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
@@ -21,6 +22,7 @@ internal class BMBannerAuctionParams(
     val bannerFormat: BannerFormat,
     val timeout: Long,
     val customParameters: CustomParams,
+    val targetingParams: TargetingParams,
     val payload: String?,
     val placement: String?,
 ) : AdAuctionParams {
@@ -36,6 +38,7 @@ internal class BMFullscreenAuctionParams(
     val context: Context,
     val timeout: Long,
     val customParameters: CustomParams,
+    val targetingParams: TargetingParams,
     val payload: String?,
     val placement: String?,
 ) : AdAuctionParams {
