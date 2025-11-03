@@ -1,3 +1,7 @@
+# 0.13.0 (2025.*.*)
+## Features:
+- [BDN-1081](https://appodeal.atlassian.net/browse/BDN-1081) Fixed incorrect bid status marked as SUCCESSFUL when bid.price < pricefloor
+
 # 0.12.0 (2025.11.03)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
