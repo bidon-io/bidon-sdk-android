@@ -25,8 +25,8 @@ dependencyResolutionManagement {
         maven(url = "https://artifactory.bidon.org/bidon")
         maven(url = "https://artifactory.bidon.org/artifactory/bidon-private/") {
             credentials {
-                username = System.getenv("BDN_USER")
-                password = System.getenv("BDN_PASSWORD")
+                username = System.getenv("BDN_USERNAME")
+                password = System.getenv("BDN_USERPASSWORD")
             }
         }
         maven(url = "https://maven.pkg.github.com/bidon-io/bidon-sdk-android") {
