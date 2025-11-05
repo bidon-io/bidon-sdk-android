@@ -1,0 +1,379 @@
+version: 2
+updates:
+  # Google Adapters (admob + gam)
+  # Note: Dependabot cannot group updates from different directories
+  # These will create separate PRs, but they often need to be updated together
+  - package-ecosystem: "gradle"
+    directory: "/adapter/admob"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(admob)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "google-adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/gam"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(gam)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "google-adapter"
+
+  # Individual Adapters
+  - package-ecosystem: "gradle"
+    directory: "/adapter/amazon"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(amazon)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/applovin"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(applovin)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/appsflyer"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(appsflyer)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/bidmachine"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(bidmachine)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/bigoads"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(bigoads)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/chartboost"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(chartboost)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/dtexchange"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(dtexchange)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/fyber"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(fyber)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/inmobi"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(inmobi)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/ironsource"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(ironsource)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/meta"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(meta)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/mintegral"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(mintegral)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/mobilefuse"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(mobilefuse)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/moloco"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(moloco)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/startio"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(startio)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/taurusx"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(taurusx)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/unityads"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(unityads)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/vkads"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(vkads)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/vungle"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(vungle)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/yandex"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "copilot"
+    commit-message:
+      prefix: "chore(yandex)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "adapter"
