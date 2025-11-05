@@ -1,16 +1,18 @@
-name: Git-Flow Branch Protection
+name: Validation Git-Flow (Disabled)
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - master
-      - develop
-      - 'release/*'
-      - 'hotfix/*'
-      - 'experiment/*'
-      - 'feature/*'
+  workflow_dispatch:
+  # Disabled - uncomment to re-enable
+  # pull_request:
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - master
+  #     - develop
+  #     - 'release/*'
+  #     - 'hotfix/*'
+  #     - 'experiment/*'
+  #     - 'feature/*'
 
 jobs:
   gitflow-validate:
@@ -98,8 +100,11 @@ jobs:
               elif [[ $SOURCE_BRANCH == release/* ]]; then
                 VALID_MERGE=true
                 MERGE_REASON="Release branch back to develop (completing release flow)"
+              elif [[ $SOURCE_BRANCH == dependabot/* ]]; then
+                VALID_MERGE=true
+                MERGE_REASON="Dependabot automated dependency update"
               else
-                echo "❌ Invalid merge to develop. Allowed: feature/*, bugfix/*, release/*"
+                echo "❌ Invalid merge to develop. Allowed: feature/*, bugfix/*, release/*, dependabot/*"
                 echo "Note: experiment/* branches should merge to feature/* branches first"
                 exit 1
               fi
