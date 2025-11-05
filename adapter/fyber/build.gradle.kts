@@ -26,7 +26,7 @@ dependencies {
 
     val fyberMarketplaceVersion = "8.2.1"
 
-    implementation("com.fyber.omsdk:om-sdk:1.3.30")
+    implementation("com.fyber.omsdk:om-sdk:1.5.4")
     implementation("com.fyber:fairbid-sdk:3.28.1")
     implementation("com.fyber:marketplace-sdk:$fyberMarketplaceVersion")
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
