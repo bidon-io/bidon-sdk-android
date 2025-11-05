@@ -5,7 +5,7 @@ Automated dependency management for adapter SDK updates with automatic changelog
 ## Overview
 
 Dependabot automatically:
-- Checks for adapter SDK updates daily at 03:00 UTC
+- Checks for adapter SDK updates weekly at 03:00 UTC
 - Creates PRs to `develop` branch with dependency updates
 - Updates CHANGELOGs with version changes and vendor release notes links
 - Triggers build and test checks
@@ -15,7 +15,7 @@ Dependabot automatically:
 ## Complete Workflow
 
 ```
-Daily (03:00 UTC)
+Weekly (03:00 UTC)
   └─ Dependabot checks all 22 adapters for updates
       ↓
 Update Found (e.g., admob 24.5.0 → 24.6.0)
@@ -49,7 +49,7 @@ Automatic (after merge)
 Main Dependabot configuration:
 - Monitors all 22 adapter modules in `/adapter/`
 - Creates PRs against `develop` branch
-- Runs daily checks at 03:00 UTC
+- Runs weekly checks at 03:00 UTC
 - Auto-assigns reviewer: `bidon-android` team
 - Applies labels: `dependencies`, `adapter` (or `google-adapter` for admob/gam)
 - Limit: 10 open PRs per adapter
@@ -125,7 +125,7 @@ Add configuration for the new adapter:
   directory: "/adapter/new-adapter-name"
   target-branch: "develop"
   schedule:
-    interval: "daily"
+    interval: "weekly"
     time: "03:00"
     timezone: "UTC"
   open-pull-requests-limit: 10
