@@ -201,11 +201,11 @@ jobs:
             # Create changelog entry
             # Note: If Dependabot updates an existing PR (e.g., 24.5.0 -> 24.6.0 -> 24.7.0),
             # this will create multiple entries in CHANGELOG. You can manually clean them up before merging.
-            ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\\n### Changed\\n- Updated SDK dependency from $OLD_VERSION to $NEW_VERSION\\n"
+            ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_VERSION to $NEW_VERSION\n"
 
             # Add release notes link if available
             if [ -n "$RELEASE_NOTES_URL" ]; then
-              ENTRY="${ENTRY}- 📋 [View Release Notes]($RELEASE_NOTES_URL)\\n"
+              ENTRY="${ENTRY}- 📋 [View Release Notes]($RELEASE_NOTES_URL)\n"
             fi
 
             # Insert entry after [Unreleased] section

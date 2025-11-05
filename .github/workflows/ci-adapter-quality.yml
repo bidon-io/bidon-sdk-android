@@ -91,7 +91,7 @@ jobs:
 
       - name: Generate adapter matrix
         if: inputs.adapters == '' || inputs.adapters == '[]'
-        id: generate
+        id: matrix
         run: |
           echo "🔍 Detecting changed adapters dynamically..."
 
