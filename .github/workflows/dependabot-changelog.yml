@@ -1,0 +1,274 @@
+name: Update Adapter Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'adapter/*/build.gradle.kts'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to update (leave empty for current branch)'
+        required: false
+        type: number
+      test_mode:
+        description: 'Test mode (skip Dependabot check)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-changelog:
+    # Run for Dependabot PRs OR manual workflow dispatch
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Workflow info
+        run: |
+          echo "::notice::Workflow triggered by: ${{ github.event_name }}"
+          echo "::notice::Actor: ${{ github.actor }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::notice::Manual run - test mode: ${{ inputs.test_mode }}"
+            if [ -n "${{ inputs.pr_number }}" ]; then
+              echo "::notice::Target PR: #${{ inputs.pr_number }}"
+            fi
+          fi
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Determine base branch
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+          else
+            BASE_REF="develop"
+          fi
+
+          echo "Base branch: $BASE_REF"
+
+          # Get the list of changed build.gradle.kts files
+          git fetch origin "$BASE_REF"
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF"...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update changelogs
+        if: steps.changed-files.outputs.changed_files != ''
+        run: |
+          # Determine base branch
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+          else
+            BASE_REF="develop"
+          fi
+
+          UPDATES_COUNT=0
+          SUMMARY_FILE="${GITHUB_STEP_SUMMARY}"
+
+          echo "## Changelog Updates" >> "$SUMMARY_FILE"
+          echo "" >> "$SUMMARY_FILE"
+
+          # Process each changed build.gradle.kts file
+          echo "${{ steps.changed-files.outputs.changed_files }}" | while read -r file; do
+            if [ -z "$file" ]; then
+              continue
+            fi
+
+            echo "::group::Processing $file"
+
+            # Extract adapter name from path (e.g., adapter/admob/build.gradle.kts -> admob)
+            ADAPTER_DIR=$(dirname "$file")
+            ADAPTER_NAME=$(basename "$ADAPTER_DIR")
+            CHANGELOG="$ADAPTER_DIR/CHANGELOG.md"
+
+            if [ ! -f "$CHANGELOG" ]; then
+              echo "::warning::$CHANGELOG not found, skipping"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Get the old and new versions
+            # NOTE: The following extraction assumes the adapter version is stored in a variable named 'adapterSdkVersion'.
+            # All adapters must use: val adapterSdkVersion = "<version>"
+            OLD_VERSION=$(git show "origin/$BASE_REF":"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+            NEW_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+
+            if [ "$OLD_VERSION" = "unknown" ] || [ "$NEW_VERSION" = "unknown" ]; then
+              echo "::error::Could not extract version for $ADAPTER_NAME in $file. Ensure the version is defined as 'val adapterSdkVersion = \"<version>\"'"
+              echo "::endgroup::"
+              continue
+            fi
+
+            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+              echo "No version change detected for $ADAPTER_NAME"
+              echo "::endgroup::"
+              continue
+            fi
+
+            echo "::notice::Version change for $ADAPTER_NAME: $OLD_VERSION -> $NEW_VERSION"
+
+            # Get current date in YYYY-MM-DD format
+            CURRENT_DATE=$(date +%Y-%m-%d)
+
+            # Get release notes URL for the adapter
+            case "$ADAPTER_NAME" in
+              admob)
+                RELEASE_NOTES_URL="https://developers.google.com/admob/android/rel-notes"
+                ;;
+              gam)
+                RELEASE_NOTES_URL="https://developers.google.com/ad-manager/mobile-ads-sdk/android/rel-notes"
+                ;;
+              amazon)
+                RELEASE_NOTES_URL="https://aps.amazon.com/aps/solutions-for-mobile-app-developers/release-notes/"
+                ;;
+              applovin)
+                RELEASE_NOTES_URL="https://github.com/AppLovin/AppLovin-MAX-SDK-Android/releases"
+                ;;
+              appsflyer)
+                RELEASE_NOTES_URL="https://support.appsflyer.com/hc/en-us/articles/115001256006-SDK-release-notes"
+                ;;
+              bidmachine)
+                RELEASE_NOTES_URL="https://github.com/bidmachine/BidMachine-Android-SDK/releases"
+                ;;
+              bigoads)
+                RELEASE_NOTES_URL="https://www.bigossp.com/guide/sdk/android"
+                ;;
+              chartboost)
+                RELEASE_NOTES_URL="https://developers.chartboost.com/docs/android-release-notes"
+                ;;
+              dtexchange)
+                RELEASE_NOTES_URL="https://developer.digitalturbine.com/hc/en-us/articles/360010634298"
+                ;;
+              fyber)
+                RELEASE_NOTES_URL="https://developer.digitalturbine.com/hc/en-us/articles/360010634298"
+                ;;
+              inmobi)
+                RELEASE_NOTES_URL="https://support.inmobi.com/monetize/sdk-documentation/android-guidelines/sdk-changelog/"
+                ;;
+              ironsource)
+                RELEASE_NOTES_URL="https://developers.is.com/ironsource-mobile/android/android-sdk-release-notes/"
+                ;;
+              meta)
+                RELEASE_NOTES_URL="https://developers.facebook.com/docs/audience-network/android/releases"
+                ;;
+              mintegral)
+                RELEASE_NOTES_URL="https://dev.mintegral.com/doc/index.html?file=sdk-m_sdk-android&lang=en"
+                ;;
+              mobilefuse)
+                RELEASE_NOTES_URL="https://docs.mobilefuse.com/docs/android-sdk-changelog"
+                ;;
+              moloco)
+                RELEASE_NOTES_URL="https://docs.molocoads.com/docs/release-notes"
+                ;;
+              startio)
+                RELEASE_NOTES_URL="https://github.com/StartApp-SDK/android-sdk/releases"
+                ;;
+              taurusx)
+                RELEASE_NOTES_URL="https://docs.taurusx.com/android/release-notes"
+                ;;
+              unityads)
+                RELEASE_NOTES_URL="https://github.com/Unity-Technologies/unity-ads-android/releases"
+                ;;
+              vkads)
+                RELEASE_NOTES_URL="https://dev.vk.com/ru/sdk/vk-ads/release-notes"
+                ;;
+              vungle)
+                RELEASE_NOTES_URL="https://support.vungle.com/hc/en-us/articles/4408659401623"
+                ;;
+              yandex)
+                RELEASE_NOTES_URL="https://yandex.ru/dev/mobile-ads/doc/android/release-notes.html"
+                ;;
+              *)
+                RELEASE_NOTES_URL=""
+                ;;
+            esac
+
+            # Create changelog entry
+            # Note: If Dependabot updates an existing PR (e.g., 24.5.0 -> 24.6.0 -> 24.7.0),
+            # this will create multiple entries in CHANGELOG. You can manually clean them up before merging.
+            ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_VERSION to $NEW_VERSION\n"
+
+            # Add release notes link if available
+            if [ -n "$RELEASE_NOTES_URL" ]; then
+              ENTRY="${ENTRY}- 📋 [View Release Notes]($RELEASE_NOTES_URL)\n"
+            fi
+
+            # Insert entry after [Unreleased] section
+            awk -v entry="$ENTRY" '
+              /## \[Unreleased\]/ {
+                print $0
+                print ""
+                print entry
+                next
+              }
+              {print}
+            ' "$CHANGELOG" > "${CHANGELOG}.tmp"
+
+            mv "${CHANGELOG}.tmp" "$CHANGELOG"
+
+            echo "✅ Updated $CHANGELOG"
+            echo "- **$ADAPTER_NAME**: $OLD_VERSION → $NEW_VERSION" >> "$SUMMARY_FILE"
+
+            UPDATES_COUNT=$((UPDATES_COUNT + 1))
+            echo "::endgroup::"
+          done
+
+          if [ $UPDATES_COUNT -eq 0 ]; then
+            echo "No changelogs updated" >> "$SUMMARY_FILE"
+          else
+            echo "" >> "$SUMMARY_FILE"
+            echo "**Total updates: $UPDATES_COUNT**" >> "$SUMMARY_FILE"
+          fi
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add adapter/*/CHANGELOG.md
+          git commit -m "docs: update adapter changelogs for dependency updates"
+          git push
+          echo "::notice::Changes committed and pushed successfully"
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-changes.outputs.has_changes }}" = "true" ]; then
+            echo "✅ **Status**: Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **Status**: No changes to commit" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
