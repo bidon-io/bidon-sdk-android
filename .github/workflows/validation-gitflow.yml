@@ -1,16 +1,18 @@
-name: Git-Flow Branch Protection
+name: Validation Git-Flow (Disabled)
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - master
-      - develop
-      - 'release/*'
-      - 'hotfix/*'
-      - 'experiment/*'
-      - 'feature/*'
+  workflow_dispatch:
+  # Disabled - uncomment to re-enable
+  # pull_request:
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  #   branches:
+  #     - main
+  #     - master
+  #     - develop
+  #     - 'release/*'
+  #     - 'hotfix/*'
+  #     - 'experiment/*'
+  #     - 'feature/*'
 
 jobs:
   gitflow-validate:

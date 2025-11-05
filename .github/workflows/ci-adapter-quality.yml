@@ -1,17 +1,22 @@
-name: Adapter Quality Checks
+name: CI Adapter Quality
 
 on:
+  workflow_call:
+    inputs:
+      adapters:
+        description: 'JSON array of adapter names to check (optional, auto-detects if empty)'
+        required: false
+        type: string
+        default: ''
+
   pull_request:
-    types:
-      - opened
-      - synchronize
-    paths:
-      - 'adapter/**'
+    types: [opened, synchronize]
+    paths: ['adapter/**']
+
   push:
-    branches:
-      - develop
-    paths:
-      - 'adapter/**'
+    branches: [develop]
+    paths: ['adapter/**']
+
   workflow_dispatch:
 
 jobs:
@@ -22,8 +27,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Use provided adapters or discover
+        id: matrix
+        run: |
+          # If adapters were provided via workflow_call input, use them
+          if [ -n "${{ inputs.adapters }}" ] && [ "${{ inputs.adapters }}" != "[]" ]; then
+            echo "📦 Using provided adapters: ${{ inputs.adapters }}"
+            echo "adapters=${{ inputs.adapters }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "🔍 Auto-detecting changed adapters..."
 
       - name: Discover available adapters
+        if: inputs.adapters == '' || inputs.adapters == '[]'
         id: discover
         run: |
           echo "🔍 Discovering available adapters..."
@@ -60,6 +80,7 @@ jobs:
           echo "available_adapters=$json_array" >> $GITHUB_OUTPUT
 
       - name: Detect changed adapters
+        if: inputs.adapters == '' || inputs.adapters == '[]'
         uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -69,7 +90,8 @@ jobs:
               - 'adapter/**'
 
       - name: Generate adapter matrix
-        id: matrix
+        if: inputs.adapters == '' || inputs.adapters == '[]'
+        id: generate
         run: |
           echo "🔍 Detecting changed adapters dynamically..."
 
@@ -135,7 +157,7 @@ jobs:
       fail-fast: false
       matrix:
         adapter: ${{ fromJson(needs.detect-changes.outputs.adapters) }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
