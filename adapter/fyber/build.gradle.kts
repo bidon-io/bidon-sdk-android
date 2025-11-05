@@ -24,7 +24,7 @@ dependencies {
     compileOnly(projects.bidon)
     testImplementation(projects.bidon)
 
-    val fyberMarketplaceVersion = "8.2.1"
+    val fyberMarketplaceVersion = "8.4.0"
 
     implementation("com.fyber.omsdk:om-sdk:1.3.30")
     implementation("com.fyber:fairbid-sdk:3.28.1")
