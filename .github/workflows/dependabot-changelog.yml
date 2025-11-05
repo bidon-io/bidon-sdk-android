@@ -106,8 +106,16 @@ jobs:
             fi
 
             # Get the old and new versions
+            # NOTE: The following extraction assumes the adapter version is stored in a variable named 'adapterSdkVersion'.
+            # All adapters must use: val adapterSdkVersion = "<version>"
             OLD_VERSION=$(git show "origin/$BASE_REF":"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
             NEW_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+
+            if [ "$OLD_VERSION" = "unknown" ] || [ "$NEW_VERSION" = "unknown" ]; then
+              echo "::error::Could not extract version for $ADAPTER_NAME in $file. Ensure the version is defined as 'val adapterSdkVersion = \"<version>\"'"
+              echo "::endgroup::"
+              continue
+            fi
 
             if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
               echo "No version change detected for $ADAPTER_NAME"

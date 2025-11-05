@@ -105,6 +105,10 @@ jobs:
         id: version
         run: |
           VERSION=$(grep 'val adapterSdkVersion = ' adapter/${{ matrix.adapter }}/build.gradle.kts | sed 's/.*"\([^"]*\)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "❌ Failed to extract adapter version for ${{ matrix.adapter }}. Exiting."
+            exit 1
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Adapter: ${{ matrix.adapter }}"
           echo "🏷️  Version: $VERSION"
@@ -168,6 +172,10 @@ jobs:
         id: version
         run: |
           VERSION=$(grep 'val adapterSdkVersion = ' adapter/${{ matrix.adapter }}/build.gradle.kts | sed 's/.*"\([^"]*\)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "❌ Failed to extract adapter version for ${{ matrix.adapter }}. Exiting."
+            exit 1
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Adapter: ${{ matrix.adapter }}"
           echo "🏷️  Version: $VERSION"
