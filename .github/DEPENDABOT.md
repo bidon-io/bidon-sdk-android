@@ -32,7 +32,7 @@ Automatic (on PR creation)
       └─ Run unit tests
       ↓
 Manual Review
-  ├─ Reviewer (copilot) receives notification
+  ├─ Reviewer (bidon-android team) receives notification
   └─ Approves and merges to develop
       ↓
 Automatic (after merge)
@@ -50,7 +50,7 @@ Main Dependabot configuration:
 - Monitors all 22 adapter modules in `/adapter/`
 - Creates PRs against `develop` branch
 - Runs daily checks at 03:00 UTC
-- Auto-assigns reviewer: `copilot`
+- Auto-assigns reviewer: `bidon-android` team
 - Applies labels: `dependencies`, `adapter` (or `google-adapter` for admob/gam)
 - Limit: 10 open PRs per adapter
 
@@ -130,10 +130,9 @@ Add configuration for the new adapter:
     timezone: "UTC"
   open-pull-requests-limit: 10
   reviewers:
-    - "copilot"
+    - "bidon-android"
   commit-message:
-    prefix: "chore(new-adapter-name)"
-    include: "scope"
+    prefix: "⬆️"
   labels:
     - "dependencies"
     - "adapter"
@@ -241,7 +240,7 @@ After merging a Dependabot PR to `develop`, the updated adapter is automatically
 
 Dependabot uses:
 ```
-chore(adapter-name): bump dependency-name from X.Y.Z to A.B.C
+⬆️ bump dependency-name from X.Y.Z to A.B.C
 ```
 
 Changelog updater uses:

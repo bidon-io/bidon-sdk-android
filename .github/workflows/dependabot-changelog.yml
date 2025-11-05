@@ -11,11 +11,6 @@ on:
         description: 'PR number to update (leave empty for current branch)'
         required: false
         type: number
-      test_mode:
-        description: 'Test mode (skip Dependabot check)'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -33,7 +28,6 @@ jobs:
           echo "::notice::Workflow triggered by: ${{ github.event_name }}"
           echo "::notice::Actor: ${{ github.actor }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "::notice::Manual run - test mode: ${{ inputs.test_mode }}"
             if [ -n "${{ inputs.pr_number }}" ]; then
               echo "::notice::Target PR: #${{ inputs.pr_number }}"
             fi

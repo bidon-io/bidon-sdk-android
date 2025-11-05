@@ -12,10 +12,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(admob)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "google-adapter"
@@ -29,10 +28,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(gam)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "google-adapter"
@@ -47,10 +45,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(amazon)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -64,30 +61,28 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(applovin)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
 
-  - package-ecosystem: "gradle"
-    directory: "/adapter/appsflyer"
-    target-branch: "develop"
-    schedule:
-      interval: "daily"
-      time: "03:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "copilot"
-    commit-message:
-      prefix: "chore(appsflyer)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "adapter"
+#  - package-ecosystem: "gradle"
+#    directory: "/adapter/appsflyer"
+#    target-branch: "develop"
+#    schedule:
+#      interval: "daily"
+#      time: "03:00"
+#      timezone: "UTC"
+#    open-pull-requests-limit: 10
+#    reviewers:
+#      - "copilot"
+#    commit-message:
+#      prefix: "⬆️"
+#    labels:
+#      - "dependencies"
+#      - "adapter"
 
   - package-ecosystem: "gradle"
     directory: "/adapter/bidmachine"
@@ -98,10 +93,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(bidmachine)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -115,10 +109,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(bigoads)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -132,10 +125,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(chartboost)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -149,30 +141,28 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(dtexchange)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
 
-  - package-ecosystem: "gradle"
-    directory: "/adapter/fyber"
-    target-branch: "develop"
-    schedule:
-      interval: "daily"
-      time: "03:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "copilot"
-    commit-message:
-      prefix: "chore(fyber)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "adapter"
+#  - package-ecosystem: "gradle"
+#    directory: "/adapter/fyber"
+#    target-branch: "develop"
+#    schedule:
+#      interval: "daily"
+#      time: "03:00"
+#      timezone: "UTC"
+#    open-pull-requests-limit: 10
+#    reviewers:
+#      - "copilot"
+#    commit-message:
+#      prefix: "⬆️"
+#    labels:
+#      - "dependencies"
+#      - "adapter"
 
   - package-ecosystem: "gradle"
     directory: "/adapter/inmobi"
@@ -183,10 +173,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(inmobi)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -200,10 +189,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(ironsource)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -217,10 +205,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(meta)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -234,10 +221,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(mintegral)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -251,10 +237,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(mobilefuse)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -268,10 +253,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(moloco)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -285,10 +269,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(startio)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -302,10 +285,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(taurusx)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -319,10 +301,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(unityads)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -336,10 +317,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(vkads)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -353,10 +333,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(vungle)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
@@ -370,10 +349,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "copilot"
+      - "bidon-android"
     commit-message:
-      prefix: "chore(yandex)"
-      include: "scope"
+      prefix: "⬆️"
     labels:
       - "dependencies"
       - "adapter"
