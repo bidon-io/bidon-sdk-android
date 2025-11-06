@@ -1,9 +1,13 @@
 name: Automation Dependabot
 
+# WORKFLOW DISABLED: Automatic Dependabot handling is currently disabled
+# Manual CHANGELOG updates are preferred
+# Uncomment the triggers below to re-enable
+
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths: ['adapter/*/build.gradle.kts']
+  # pull_request:
+  #   types: [opened, synchronize]
+  #   paths: ['adapter/*/build.gradle.kts']
 
   workflow_dispatch:
     inputs:

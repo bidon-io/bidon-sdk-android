@@ -9,30 +9,25 @@
 - CHANGELOG update verification
 - Core SDK unit tests
 
-### `ci-adapter-quality.yml` - **CI Adapter Quality** (reusable)
-**Triggers**: Pull requests (adapter changes), push to develop, workflow_call, manual
+### `ci-adapter-quality.yml` - **CI Adapter Quality**
+**Triggers**: Pull requests (adapter changes), manual
 **Purpose**: Quality checks for adapters
+- Automatically detects changed adapters
 - Build adapter (`assembleProductionRelease`)
 - Check for deprecated code warnings
 - Run adapter unit tests (`testProductionReleaseUnitTest`)
-
-Can be called from other workflows with optional `adapters` input (JSON array).
 
 ---
 
 ## Automation Workflows
 
-### `automation-dependabot.yml` - **Automation Dependabot**
-**Triggers**: Pull requests (Dependabot only, adapter dependency updates), manual
-**Purpose**: Complete Dependabot automation workflow
+### `automation-dependabot.yml` - **Automation Dependabot** (DISABLED)
+**Status**: Currently disabled
+**Triggers**: Manual only (pull_request trigger disabled)
 
-**Flow:**
-1. Detects adapter version changes
-2. Updates CHANGELOG.md files with version changes and vendor release notes
-3. Commits CHANGELOG updates to PR
-4. Calls `ci-adapter-quality.yml` to run quality checks
-
-**Solves**: GITHUB_TOKEN workflow re-trigger limitation by running all steps in one workflow.
+**Purpose**: Was used for automatic CHANGELOG updates for Dependabot PRs
+- Currently disabled in favor of manual CHANGELOG management
+- To re-enable: Uncomment pull_request trigger in workflow file
 
 ### `automation-publish-adapters.yml` - **Automation Publish Adapters**
 **Triggers**: Push to develop (adapter build.gradle.kts changes)
@@ -102,13 +97,6 @@ Legacy repository synchronization workflow.
 
 ### Reusable Workflows
 
-Two workflows can be called by other workflows:
-
-**`ci-adapter-quality.yml`**
-- Called by: `automation-dependabot.yml`
-- Input: `adapters` (optional JSON array)
-- Purpose: Run quality checks on specific adapters
-
 **`release-adapter.yml`**
 - Called by: `automation-publish-adapters.yml`
 - Inputs: `adapter`, `repository`
@@ -117,10 +105,6 @@ Two workflows can be called by other workflows:
 ### Call Graph
 
 ```
-automation-dependabot.yml
-  └─► ci-adapter-quality.yml
-        └─► Runs quality checks for changed adapters
-
 automation-publish-adapters.yml
   ├─► release-adapter.yml (bidon-private)
   │     └─► Publishes to internal repository
@@ -137,20 +121,20 @@ automation-publish-adapters.yml
 - PRs created to `develop` branch
 - Custom Maven registries: Google Maven, Bidon Artifactory
 
-**Automated Process:**
+**Current Process:**
 1. Dependabot detects dependency update
 2. Opens PR to `develop` with updated build.gradle.kts
-3. `automation-dependabot.yml` triggers:
-   - Updates CHANGELOG.md with version change and vendor release notes
-   - Commits CHANGELOG to PR
+3. `ci-adapter-quality.yml` triggers automatically:
+   - Detects changed adapters
    - Runs quality checks (build, deprecated warnings, unit tests)
-4. Team reviews and approves PR
-5. After merge, `automation-publish-adapters.yml` triggers:
+4. **Manual step**: Update CHANGELOG.md for affected adapters
+5. Team reviews and approves PR
+6. After merge, `automation-publish-adapters.yml` triggers:
    - Publishes adapter to bidon-private
    - Publishes adapter to bidon (public)
    - Sends Slack notifications
 
-**All automated** - no manual intervention required except PR approval.
+**Note**: CHANGELOG updates currently require manual editing before merge.
 
 ---
 
@@ -174,12 +158,6 @@ automation-publish-adapters.yml
 1. Go to **Actions** → **CI Adapter Quality**
 2. Click **Run workflow**
 3. Will auto-detect changed adapters
-4. Run workflow
-
-### Update CHANGELOG Manually
-1. Go to **Actions** → **Automation Dependabot**
-2. Click **Run workflow**
-3. Optionally specify PR number
 4. Run workflow
 
 ---
