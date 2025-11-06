@@ -23,15 +23,15 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      adapters: ${{ steps.matrix.outputs.adapters }}
+      adapters: ${{ steps.set-output.outputs.adapters }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Use provided adapters or discover
-        id: matrix
+      - name: Use provided adapters
+        id: use-provided
         run: |
           # If adapters were provided via workflow_call input, use them
           if [ -n "${{ inputs.adapters }}" ] && [ "${{ inputs.adapters }}" != "[]" ]; then
@@ -144,6 +144,19 @@ jobs:
 
             echo "adapters=$json_array" >> $GITHUB_OUTPUT
             echo "📦 Changed adapters ($adapter_count): $sorted_changed"
+          fi
+
+      - name: Set final output
+        id: set-output
+        if: always()
+        run: |
+          # Use adapters from either use-provided or matrix step
+          if [ -n "${{ steps.use-provided.outputs.adapters }}" ]; then
+            echo "adapters=${{ steps.use-provided.outputs.adapters }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.matrix.outputs.adapters }}" ]; then
+            echo "adapters=${{ steps.matrix.outputs.adapters }}" >> $GITHUB_OUTPUT
+          else
+            echo "adapters=[]" >> $GITHUB_OUTPUT
           fi
 
   adapter-checks:
