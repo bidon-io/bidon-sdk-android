@@ -5,29 +5,17 @@ on:
     types: [opened, synchronize]
     paths: ['adapter/**']
 
-  workflow_run:
-    workflows: ["Automation Dependabot"]
-    types: [completed]
-
   workflow_dispatch:
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
-    # For workflow_run, only run if the triggering workflow succeeded
-    # For pull_request, skip if it's from Dependabot (will run via workflow_run instead)
-    if: |
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'pull_request' && github.actor != 'dependabot[bot]') ||
-      github.event_name == 'workflow_dispatch'
     outputs:
       adapters: ${{ steps.matrix.outputs.adapters }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          # For workflow_run, checkout the exact commit that triggered the workflow
-          ref: ${{ github.event.workflow_run.head_sha || github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Discover available adapters
