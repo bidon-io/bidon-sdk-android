@@ -1,21 +1,13 @@
 name: CI Adapter Quality
 
 on:
-  workflow_call:
-    inputs:
-      adapters:
-        description: 'JSON array of adapter names to check (optional, auto-detects if empty)'
-        required: false
-        type: string
-        default: ''
-
   pull_request:
     types: [opened, synchronize]
     paths: ['adapter/**']
 
-  push:
-    branches: [develop]
-    paths: ['adapter/**']
+  workflow_run:
+    workflows: ["Automation Dependabot"]
+    types: [completed]
 
   workflow_dispatch:
 
@@ -23,27 +15,16 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      adapters: ${{ steps.set-output.outputs.adapters }}
+      adapters: ${{ steps.matrix.outputs.adapters }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
+          # For workflow_run, checkout the PR branch that triggered the workflow
+          ref: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref }}
           fetch-depth: 0
 
-      - name: Use provided adapters
-        id: use-provided
-        run: |
-          # If adapters were provided via workflow_call input, use them
-          if [ -n "${{ inputs.adapters }}" ] && [ "${{ inputs.adapters }}" != "[]" ]; then
-            echo "📦 Using provided adapters: ${{ inputs.adapters }}"
-            echo "adapters=${{ inputs.adapters }}" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "🔍 Auto-detecting changed adapters..."
-
       - name: Discover available adapters
-        if: inputs.adapters == '' || inputs.adapters == '[]'
         id: discover
         run: |
           echo "🔍 Discovering available adapters..."
@@ -80,7 +61,6 @@ jobs:
           echo "available_adapters=$json_array" >> $GITHUB_OUTPUT
 
       - name: Detect changed adapters
-        if: inputs.adapters == '' || inputs.adapters == '[]'
         uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -90,7 +70,6 @@ jobs:
               - 'adapter/**'
 
       - name: Generate adapter matrix
-        if: inputs.adapters == '' || inputs.adapters == '[]'
         id: matrix
         run: |
           echo "🔍 Detecting changed adapters dynamically..."
@@ -144,19 +123,6 @@ jobs:
 
             echo "adapters=$json_array" >> $GITHUB_OUTPUT
             echo "📦 Changed adapters ($adapter_count): $sorted_changed"
-          fi
-
-      - name: Set final output
-        id: set-output
-        if: always()
-        run: |
-          # Use adapters from either use-provided or matrix step
-          if [ -n "${{ steps.use-provided.outputs.adapters }}" ]; then
-            echo "adapters=${{ steps.use-provided.outputs.adapters }}" >> $GITHUB_OUTPUT
-          elif [ -n "${{ steps.matrix.outputs.adapters }}" ]; then
-            echo "adapters=${{ steps.matrix.outputs.adapters }}" >> $GITHUB_OUTPUT
-          else
-            echo "adapters=[]" >> $GITHUB_OUTPUT
           fi
 
   adapter-checks:
