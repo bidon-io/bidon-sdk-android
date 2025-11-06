@@ -14,14 +14,16 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    # For workflow_run, only run if the triggering workflow succeeded
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     outputs:
       adapters: ${{ steps.matrix.outputs.adapters }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          # For workflow_run, checkout the PR branch that triggered the workflow
-          ref: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref }}
+          # For workflow_run, checkout the exact commit that triggered the workflow
+          ref: ${{ github.event.workflow_run.head_sha || github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Discover available adapters
