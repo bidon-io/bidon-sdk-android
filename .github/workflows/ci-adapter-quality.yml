@@ -15,7 +15,11 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     # For workflow_run, only run if the triggering workflow succeeded
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # For pull_request, skip if it's from Dependabot (will run via workflow_run instead)
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request' && github.actor != 'dependabot[bot]') ||
+      github.event_name == 'workflow_dispatch'
     outputs:
       adapters: ${{ steps.matrix.outputs.adapters }}
     steps:
