@@ -4,7 +4,7 @@
 - [BDN-1071](https://appodeal.atlassian.net/browse/BDN-1071) Implemented RTB mode for Yandex adapter
 - [BDN-1076](https://appodeal.atlassian.net/browse/BDN-1076) Added support for IAB restriction parameters (bcat, badv, bapps) for BidMachine CPM ad units
 
-# 0.12.0 (2025.11.03)
+# 0.12.0 (2025.11.07)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
 - [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
