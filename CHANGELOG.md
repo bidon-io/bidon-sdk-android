@@ -1,4 +1,4 @@
-# 0.12.0 (2025.11.03)
+# 0.12.0 (2025.11.07)
 ## Features:
 - [BDN-1011](https://appodeal.atlassian.net/browse/BDN-1011) Decoupled adapter version from sdk core version
 - [BDN-1048](https://appodeal.atlassian.net/browse/BDN-1048) Added explicitApi api compile strict mode
