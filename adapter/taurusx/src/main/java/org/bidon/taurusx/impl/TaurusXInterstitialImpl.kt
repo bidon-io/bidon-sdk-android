@@ -40,7 +40,7 @@ internal class TaurusXInterstitialImpl :
                     AdEvent.PaidRevenue(
                         ad = ad,
                         adValue = AdValue(
-                            adRevenue = interstitial?.price?.toDouble() ?: 0.0,
+                            adRevenue = interstitial?.price?.div(1000.0) ?: 0.0,
                             currency = AdValue.USD,
                             precision = Precision.Precise
                         )
