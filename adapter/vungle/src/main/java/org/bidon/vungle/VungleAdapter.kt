@@ -1,6 +1,7 @@
 package org.bidon.vungle
 
 import android.content.Context
+import com.vungle.ads.BidTokenCallback
 import com.vungle.ads.InitializationListener
 import com.vungle.ads.VungleAds
 import com.vungle.ads.VungleError
@@ -16,7 +17,9 @@ import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.adapter.SupportsTestMode
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.vungle.ext.adapterVersion
 import org.bidon.vungle.ext.sdkVersion
@@ -55,7 +58,22 @@ internal class VungleAdapter :
     )
 
     override suspend fun getToken(adTypeParam: AdTypeParam): String? =
-        VungleAds.getBiddingToken(adTypeParam.activity.applicationContext)
+        suspendCancellableCoroutine { continuation ->
+            VungleAds.getBiddingToken(
+                context = adTypeParam.activity.applicationContext,
+                callback = object : BidTokenCallback {
+                    override fun onBidTokenCollected(bidToken: String) {
+                        logInfo(TAG, "Loaded bid token")
+                        continuation.resume(bidToken)
+                    }
+
+                    override fun onBidTokenError(errorMessage: String) {
+                        logError(TAG, "Error while bid token: $errorMessage", BidonError.NoBid)
+                        continuation.resume(null)
+                    }
+                }
+            )
+        }
 
     override suspend fun init(context: Context, configParams: VungleParameters) =
         suspendCancellableCoroutine { continuation ->
