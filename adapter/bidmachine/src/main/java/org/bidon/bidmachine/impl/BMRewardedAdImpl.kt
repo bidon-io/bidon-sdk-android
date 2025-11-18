@@ -2,6 +2,8 @@ package org.bidon.bidmachine.impl
 
 import android.app.Activity
 import android.content.Context
+import io.bidmachine.AdContentType
+import io.bidmachine.AdPlacementConfig
 import io.bidmachine.AdRequest
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.rewarded.RewardedAd
@@ -50,12 +52,19 @@ internal class BMRewardedAdImpl(
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
-        val requestBuilder = RewardedRequest.Builder()
+
+        val adPlacementConfig = AdPlacementConfig.rewardedBuilder(AdContentType.All)
+            .apply {
+                adParams.placement?.let { withPlacementId(it) }
+                withCustomParams(adParams.customParameters)
+            }
+            .build()
+
+        val requestBuilder = RewardedRequest.Builder(adPlacementConfig)
             .apply {
                 when (bidType) {
                     BidType.CPM -> {
                         setNetworks("")
-                        setPlacementId(adParams.placement)
                         setTargetingParams(adParams.targetingParams)
                     }
 
@@ -74,7 +83,6 @@ internal class BMRewardedAdImpl(
                 }
             }
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
-            .setCustomParams(adParams.customParameters)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(
                 object : AdRequest.AdRequestListener<RewardedRequest> {
@@ -183,7 +191,12 @@ internal class BMRewardedAdImpl(
                     logInfo(TAG, "onAdShown: $this")
                     getAd()?.let {
                         emitEvent(AdEvent.Shown(it))
-                        emitEvent(AdEvent.PaidRevenue(it, rewardedAd.auctionResult.asBidonAdValue()))
+                        emitEvent(
+                            AdEvent.PaidRevenue(
+                                ad = it,
+                                adValue = rewardedAd.auctionResult.asBidonAdValue()
+                            )
+                        )
                     }
                 }
 
