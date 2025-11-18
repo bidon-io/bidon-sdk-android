@@ -74,8 +74,9 @@ internal class TaurusXBannerImpl : AdSource.Banner<TaurusXBannerAuctionParams>,
                 getAd()?.let { ad ->
                     emitEvent(
                         AdEvent.PaidRevenue(
-                            ad = ad, adValue = AdValue(
-                                adRevenue = bannerAd.price.toDouble(),
+                            ad = ad,
+                            adValue = AdValue(
+                                adRevenue = bannerAd.price.div(1000.0),
                                 currency = AdValue.USD,
                                 precision = Precision.Precise
                             )

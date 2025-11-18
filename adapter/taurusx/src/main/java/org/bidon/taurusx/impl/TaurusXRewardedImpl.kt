@@ -40,7 +40,7 @@ internal class TaurusXRewardedImpl :
                     AdEvent.PaidRevenue(
                         ad = ad,
                         adValue = AdValue(
-                            adRevenue = rewarded?.price?.toDouble() ?: 0.0,
+                            adRevenue = rewarded?.price?.div(1000.0) ?: 0.0,
                             currency = AdValue.USD,
                             precision = Precision.Precise
                         )
