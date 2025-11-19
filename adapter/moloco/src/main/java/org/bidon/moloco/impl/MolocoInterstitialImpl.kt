@@ -4,9 +4,12 @@ import android.app.Activity
 import com.moloco.sdk.publisher.AdLoad
 import com.moloco.sdk.publisher.InterstitialAd
 import com.moloco.sdk.publisher.InterstitialAdShowListener
+import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
 import com.moloco.sdk.publisher.MolocoAd
 import com.moloco.sdk.publisher.MolocoAdError
+import org.bidon.moloco.EMPTY_MEDIATOR
+import org.bidon.moloco.EMPTY_WATERMARK
 import org.bidon.moloco.MolocoDemandId
 import org.bidon.moloco.ext.toBidonLoadError
 import org.bidon.moloco.ext.toBidonShowError
@@ -109,7 +112,9 @@ internal class MolocoInterstitialImpl :
             return
         }
         Moloco.createInterstitial(
-            adUnitId = adParams.adUnitId
+            mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+            adUnitId = adParams.adUnitId,
+            watermarkString = EMPTY_WATERMARK
         ) { interstitial: InterstitialAd?, adCreateError: MolocoAdError.AdCreateError? ->
             if (interstitial != null) {
                 interstitialAd = interstitial

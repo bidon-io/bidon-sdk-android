@@ -4,7 +4,6 @@ import android.content.Context
 import com.moloco.sdk.publisher.Initialization
 import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
-import com.moloco.sdk.publisher.MolocoAdError
 import com.moloco.sdk.publisher.init.MolocoInitParams
 import com.moloco.sdk.publisher.privacy.MolocoPrivacy
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -57,17 +56,19 @@ internal class MolocoAdapter :
         suspendCancellableCoroutine { continuation ->
             logInfo(TAG, "Requesting bid token")
             Moloco.getBidToken(
-                adTypeParam.activity.applicationContext
-            ) { bidToken: String, error: MolocoAdError.ErrorType? ->
-                if (error != null) {
-                    logError(
-                        tag = TAG,
-                        message = "Failed to get bid token: ${error.name} - ${error.description} (code: ${error.errorCode})",
-                        error = null
-                    )
+                mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+                context = adTypeParam.activity.applicationContext,
+                listener = { bidToken, error ->
+                    if (error != null) {
+                        logError(
+                            tag = TAG,
+                            message = "Failed to get bid token: ${error.name} - ${error.description} (code: ${error.errorCode})",
+                            error = null
+                        )
+                    }
+                    continuation.resume(bidToken)
                 }
-                continuation.resume(bidToken)
-            }
+            )
         }
 
     override suspend fun init(
