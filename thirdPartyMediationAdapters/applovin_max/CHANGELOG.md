@@ -1,27 +1,29 @@
-# 0.13.0 (2025.*.*)
+# 0.13.0.0
 ## Features:
 - [BDN-1045](https://appodeal.atlassian.net/browse/BDN-1045) Updated Applovin SDK to 13.5.1 for BCAMAX SDK
 
-# 0.12.0 (2025.09.10)
+# 0.12.0.0
 ## Features:
 
-# 0.11.0 (2025.09.10)
+# 0.11.0.0
 ## Features:
 
-# 0.10.0 (2025.08.27)
+# 0.10.0.0
 ## Features:
 - [BDN-1005](https://appodeal.atlassian.net/browse/APDM-1005) Updated Applovin SDK to 13.3.1 for BCA-MAX SDK
 - [BDN-1024](https://appodeal.atlassian.net/browse/BDN-1024) Added win/loss notification support for BCA-MAX adapter to properly notify ads of auction results
 
-# 0.8.1.0 (2025.07.02)
+# 0.9.0.0
+
+# 0.8.1.0
 ## Features:
 - [APDM-1337](https://appodeal.atlassian.net/browse/APDM-1337) Added passing ImpressionLevelData to Max CA
 
-# 0.8.0.0 (2025.06.26)
+# 0.8.0.0
 ## Features:
 - [BDN-967](https://appodeal.atlassian.net/browse/BDN-967) Added support for the "should_load" field alongside "unicorn" for the BCAMAX adapter
 
-# 0.7.9.0 (2025.06.11)
+# 0.7.9.0
 ## Features:
 - [BDN-933](https://appodeal.atlassian.net/browse/BDN-933) Added BCA-MAX to Bidon Sdk repository and publish to Bidon artifactory
 - [BDN-949](https://appodeal.atlassian.net/browse/BDN-949) Modified BCA-MAX Ad Caching to Support Multiple MAX Ad Units
