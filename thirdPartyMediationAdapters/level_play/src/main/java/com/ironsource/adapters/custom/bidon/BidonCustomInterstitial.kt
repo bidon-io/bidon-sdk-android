@@ -28,14 +28,12 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.interstitial.InterstitialListener
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
-import java.lang.ref.WeakReference
 
 internal class BidonCustomInterstitial(
     networkSetting: NetworkSettings
 ) : BaseInterstitial<BidonCustomAdapter>(networkSetting), Logger by LevelPLaySdkLogger {
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private var weakActivity: WeakReference<Activity>? = null
     private var adInstance: InterstitialAdInstance? = null
 
     private var instanceName: String = "UNDEFINED"
@@ -159,8 +157,6 @@ internal class BidonCustomInterstitial(
         log(TAG, message)
         adInstance?.destroy()
         adInstance = null
-        weakActivity?.clear()
-        weakActivity = null
     }
 
     override fun isAdAvailable(adData: AdData) = adInstance?.isReady == true
