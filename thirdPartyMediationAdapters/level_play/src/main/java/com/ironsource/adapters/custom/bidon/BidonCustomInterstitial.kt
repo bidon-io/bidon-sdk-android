@@ -2,6 +2,7 @@ package com.ironsource.adapters.custom.bidon
 
 import android.app.Activity
 import android.content.Context
+import com.ironsource.adapters.custom.bidon.ext.ACTIVITY_IS_NULL_ERROR
 import com.ironsource.adapters.custom.bidon.ext.AD_IS_NULL_ERROR
 import com.ironsource.adapters.custom.bidon.ext.AD_NOT_READY_ERROR
 import com.ironsource.adapters.custom.bidon.ext.BIDON_SHOW_ERROR
@@ -45,6 +46,18 @@ internal class BidonCustomInterstitial(
     }
 
     override fun loadAd(adData: AdData, context: Context, listener: InterstitialAdListener) {
+        val activity = context as? Activity ?: run {
+            scope.launch {
+                listener.onAdLoadFailed(
+                    AdapterErrorType.ADAPTER_ERROR_TYPE_NO_FILL,
+                    ACTIVITY_IS_NULL_ERROR,
+                    "Context is not an Activity"
+                )
+            }
+            onDestroy()
+            return
+        }
+
         val configuration = adData.configuration
         val adUnitData = adData.adUnitData
 

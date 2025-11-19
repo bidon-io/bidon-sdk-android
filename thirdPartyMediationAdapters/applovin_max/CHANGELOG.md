@@ -1,4 +1,14 @@
-# 0.10.0.0-alpha.1 (2025.08.14)
+# 0.13.0 (2025.*.*)
+## Features:
+- [BDN-1045](https://appodeal.atlassian.net/browse/BDN-1045) Updated Applovin SDK to 13.5.1 for BCAMAX SDK
+
+# 0.12.0 (2025.09.10)
+## Features:
+
+# 0.11.0 (2025.09.10)
+## Features:
+
+# 0.10.0 (2025.08.27)
 ## Features:
 - [BDN-1005](https://appodeal.atlassian.net/browse/APDM-1005) Updated Applovin SDK to 13.3.1 for BCA-MAX SDK
 - [BDN-1024](https://appodeal.atlassian.net/browse/BDN-1024) Added win/loss notification support for BCA-MAX adapter to properly notify ads of auction results
