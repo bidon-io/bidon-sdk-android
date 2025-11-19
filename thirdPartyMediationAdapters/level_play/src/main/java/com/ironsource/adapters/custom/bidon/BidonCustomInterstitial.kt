@@ -1,7 +1,7 @@
 package com.ironsource.adapters.custom.bidon
 
 import android.app.Activity
-import com.ironsource.adapters.custom.bidon.ext.ACTIVITY_IS_NULL_ERROR
+import android.content.Context
 import com.ironsource.adapters.custom.bidon.ext.AD_IS_NULL_ERROR
 import com.ironsource.adapters.custom.bidon.ext.AD_NOT_READY_ERROR
 import com.ironsource.adapters.custom.bidon.ext.BIDON_SHOW_ERROR
@@ -44,8 +44,7 @@ internal class BidonCustomInterstitial(
         log(TAG, "Create instance $this")
     }
 
-    override fun loadAd(adData: AdData, activity: Activity, listener: InterstitialAdListener) {
-        this.weakActivity = WeakReference(activity)
+    override fun loadAd(adData: AdData, context: Context, listener: InterstitialAdListener) {
         val configuration = adData.configuration
         val adUnitData = adData.adUnitData
 
@@ -122,14 +121,10 @@ internal class BidonCustomInterstitial(
         }
     }
 
-    override fun showAd(adData: AdData, listener: InterstitialAdListener) {
+    override fun showAd(adData: AdData, activity: Activity, listener: InterstitialAdListener) {
         val adUnitId = adData.adUnitData["adUnitId"] as? String ?: "UNDEFINED"
-        log(
-            TAG,
-            "Showing interstitial ad: AdUnitId: $adUnitId, adInstance: $adInstance, InstanceName: $instanceName"
-        )
+        log(TAG, "Showing interstitial ad: AdUnitId: $adUnitId, adInstance: $adInstance, InstanceName: $instanceName")
         val adInstance = adInstance
-        val activity = this.weakActivity?.get()
         if (adInstance == null) {
             val message = "Interstitial ad display failed: Ad is null, InstanceName: $instanceName"
             log(TAG, message)
@@ -140,12 +135,6 @@ internal class BidonCustomInterstitial(
                 "Interstitial ad display failed: Ad is not ready, InstanceName: $instanceName"
             log(TAG, message)
             listener.onAdShowFailed(AD_NOT_READY_ERROR, message)
-            onDestroy()
-        } else if (activity == null) {
-            val message =
-                "Interstitial ad display failed: Activity is null, InstanceName: $instanceName"
-            log(TAG, message)
-            listener.onAdShowFailed(ACTIVITY_IS_NULL_ERROR, message)
             onDestroy()
         } else {
             adInstance.show(activity)
@@ -162,6 +151,10 @@ internal class BidonCustomInterstitial(
     }
 
     override fun isAdAvailable(adData: AdData) = adInstance?.isReady == true
+
+    override fun destroyAd(p0: AdData) {
+        onDestroy()
+    }
 
     private fun InterstitialAdListener.asBidonListener(adKeeper: AdKeeper<InterstitialAdInstance>): InterstitialListener {
         val levelPlayInterstitialCallback = this
@@ -227,7 +220,7 @@ internal class BidonCustomInterstitial(
             override fun onAdShown(ad: Ad) {
                 log(TAG, "Interstitial ad shown, InstanceName: $instanceName, ECPM: ${ad.price}")
                 levelPlayInterstitialCallback.onAdOpened()
-                levelPlayInterstitialCallback.onAdShowSuccess()
+                levelPlayInterstitialCallback.onAdStarted()
             }
 
             override fun onAdShowFailed(cause: BidonError) {
