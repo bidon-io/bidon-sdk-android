@@ -7,7 +7,7 @@ import java.util.UUID
 /**
  * Created by Bidon Team on 06/03/2023.
  */
-object ServerlessAuctionConfig {
+internal object ServerlessAuctionConfig {
 
     private var auctionResponse: AuctionResponse? = null
 
