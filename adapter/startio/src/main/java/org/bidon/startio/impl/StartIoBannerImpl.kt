@@ -15,6 +15,8 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -27,6 +29,7 @@ internal class StartIoBannerImpl :
 
     private var banner: BannerStandard? = null
     private var isLoaded: Boolean = false
+    private var price: Double = 0.0
 
     private var loadListener = object : BannerListener {
         override fun onReceiveAd(ad: View?) {
@@ -51,6 +54,18 @@ internal class StartIoBannerImpl :
 
         override fun onImpression(ad: View?) {
             logInfo(TAG, "Banner ad shown successfully")
+            getAd()?.let { bidonAd ->
+                emitEvent(
+                    AdEvent.PaidRevenue(
+                        ad = bidonAd,
+                        adValue = AdValue(
+                            adRevenue = price / 1000.0,
+                            precision = Precision.Estimated,
+                            currency = AdValue.USD,
+                        )
+                    )
+                )
+            }
         }
 
         override fun onClick(ad: View?) {
@@ -73,6 +88,7 @@ internal class StartIoBannerImpl :
             emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
             return
         }
+        this.price = adParams.price
 
         val adPreferences = AdPreferences().apply { adTag = adParams.tag }
         banner = if (adParams.bannerFormat == BannerFormat.MRec) {
