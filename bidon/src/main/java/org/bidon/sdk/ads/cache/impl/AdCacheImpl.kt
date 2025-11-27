@@ -68,8 +68,8 @@ internal class AdCacheImpl(
     }
 
     override fun clear() {
-        results.value.forEach { it.adSource.destroy() }
-        results.value = emptyList()
+        val adsToDestroy = results.getAndUpdate { emptyList() }
+        adsToDestroy.forEach { it.adSource.destroy() }
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "Ad is loading, cancel auction")
             auction?.cancel()
@@ -158,7 +158,8 @@ internal class AdCacheImpl(
         adsToDiscard.forEach { it.adSource.destroy() }
 
         // Destroy previously cached ads and update cache
-        results.getAndUpdate { adsToCache }.forEach { it.adSource.destroy() }
+        val previouslyCachedAds = results.getAndUpdate { adsToCache }
+        previouslyCachedAds.forEach { it.adSource.destroy() }
 
         // Subscribe to expiration events
         adsToCache.forEach { auctionResult ->
