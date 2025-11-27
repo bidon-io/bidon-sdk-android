@@ -152,11 +152,13 @@ internal class InterstitialImpl(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
+        logInfo(TAG, "Destroy ad")
         scope.launch(Dispatchers.Main.immediate) {
+            winner?.destroy()
+            winner = null
             adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
-            winner = null
         }
     }
 

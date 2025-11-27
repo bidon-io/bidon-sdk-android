@@ -263,6 +263,7 @@ public class BannerView @JvmOverloads constructor(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
+        logInfo(TAG, "Destroy ad")
         scope.launch(Dispatchers.Main.immediate) {
             adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
@@ -323,6 +324,7 @@ public class BannerView @JvmOverloads constructor(
                 val winner = winners.first().also {
                     winner = it
                 }
+                winners.drop(1).forEach { it.adSource.destroy() }
                 this.auctionInfo = auctionInfo
                 subscribeToWinner(winner.adSource)
                 adLifecycleFlow.value = AdLifecycle.Loaded

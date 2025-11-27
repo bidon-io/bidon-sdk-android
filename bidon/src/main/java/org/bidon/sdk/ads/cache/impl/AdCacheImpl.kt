@@ -68,6 +68,7 @@ internal class AdCacheImpl(
     }
 
     override fun clear() {
+        results.value.forEach { it.adSource.destroy() }
         results.value = emptyList()
         if (isLoading.getAndUpdate { false }) {
             logInfo(tag, "Ad is loading, cancel auction")
@@ -96,20 +97,17 @@ internal class AdCacheImpl(
                 ),
                 onSuccess = { winners, auctionInfo ->
                     scope.launch {
-                        results.update {
-                            resolver.sortWinners(winners).take(settings.cacheCapacity)
-                        }
-                        winners.intersect(results.value.toSet()).forEach { trackExpired(it) }
+                        val cachedAd = updateCache(winners)
                         logInfo(tag, "Auction completed: ${results.value.asString()}")
                         isLoading.value = false
-                        results.value.firstOrNull()?.let { onSuccess.invoke(it, auctionInfo) }
+                        cachedAd?.let { onSuccess.invoke(it, auctionInfo) }
                     }
                 },
                 onFailure = { auctionInfo, cause ->
                     scope.launch {
                         logInfo(tag, "Auction failed: ${results.value.asString()}")
-                        onFailure.invoke(auctionInfo, cause)
                         isLoading.value = false
+                        onFailure.invoke(auctionInfo, cause)
                     }
                 },
             )
@@ -142,12 +140,36 @@ internal class AdCacheImpl(
         }
     }
 
-    private fun trackExpired(actionResult: AuctionResult) {
-        actionResult.adSource.adEvent.onEach { event ->
-            if (event is AdEvent.Expired) {
-                results.update { it - actionResult }
-            }
-        }.launchIn(scope)
+    /**
+     * Updates cache with new auction winners.
+     * - Keeps only top [Cacheable.Settings.cacheCapacity] winners
+     * - Destroys ads that don't fit in cache
+     * - Destroys previously cached ads
+     * - Subscribes to expiration events for cached ads
+     *
+     * @return first cached ad or null if no ads were cached
+     */
+    private suspend fun updateCache(winners: List<AuctionResult>): AuctionResult? {
+        val sortedWinners = resolver.sortWinners(winners)
+        val adsToCache = sortedWinners.take(settings.cacheCapacity)
+        val adsToDiscard = sortedWinners - adsToCache.toSet()
+
+        // Destroy ads that don't fit in cache
+        adsToDiscard.forEach { it.adSource.destroy() }
+
+        // Destroy previously cached ads and update cache
+        results.getAndUpdate { adsToCache }.forEach { it.adSource.destroy() }
+
+        // Subscribe to expiration events
+        adsToCache.forEach { auctionResult ->
+            auctionResult.adSource.adEvent.onEach { event ->
+                if (event is AdEvent.Expired) {
+                    results.update { it - auctionResult }
+                }
+            }.launchIn(scope)
+        }
+
+        return adsToCache.firstOrNull()
     }
 
     private fun List<AuctionResult>.asString(): String {
