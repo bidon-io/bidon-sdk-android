@@ -1,4 +1,4 @@
-# 0.13.0 (2025.*.*)
+# 0.13.0 (2025.12.04)
 ## Features:
 - [BDN-1081](https://appodeal.atlassian.net/browse/BDN-1081) Fixed incorrect bid status marked as SUCCESSFUL when bid.price < pricefloor
 - [BDN-1095](https://appodeal.atlassian.net/browse/BDN-1095) Added proper destroy for ad instances in cache and auction losers to prevent memory leaks
