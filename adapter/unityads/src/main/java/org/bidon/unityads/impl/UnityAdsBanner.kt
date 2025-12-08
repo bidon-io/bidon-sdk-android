@@ -14,6 +14,8 @@ import org.bidon.sdk.ads.banner.ext.height
 import org.bidon.sdk.ads.banner.ext.width
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -59,6 +61,7 @@ internal class UnityAdsBanner :
             }
             adView.listener = object : BannerView.IListener {
                 override fun onBannerLoaded(bannerAdView: BannerView?) {
+                    logInfo(TAG, "onAdLoaded: $this")
                     this@UnityAdsBanner.bannerAdView = bannerAdView
                     isAdReadyToShow = true
                     getAd()?.let {
@@ -66,7 +69,21 @@ internal class UnityAdsBanner :
                     }
                 }
 
-                override fun onBannerShown(bannerAdView: BannerView?) {}
+                override fun onBannerShown(bannerAdView: BannerView?) {
+                    logInfo(TAG, "onAdShown: $this")
+                    getAd()?.let {
+                        emitEvent(
+                            AdEvent.PaidRevenue(
+                                ad = it,
+                                adValue = AdValue(
+                                    adRevenue = (adUnit?.pricefloor ?: 0.0) / 1000.0,
+                                    currency = AdValue.USD,
+                                    precision = Precision.Estimated
+                                )
+                            )
+                        )
+                    }
+                }
 
                 override fun onBannerClick(bannerAdView: BannerView?) {
                     logInfo(TAG, "onAdClicked: $this")
@@ -75,17 +92,13 @@ internal class UnityAdsBanner :
                     }
                 }
 
-                override fun onBannerFailedToLoad(
-                    bannerAdView: BannerView?,
-                    errorInfo: BannerErrorInfo?
-                ) {
+                override fun onBannerFailedToLoad(bannerAdView: BannerView?, errorInfo: BannerErrorInfo?) {
                     logInfo(TAG, "Error while loading ad: $errorInfo. $this")
                     isAdReadyToShow = false
                     emitEvent(AdEvent.LoadFailed(errorInfo.asBidonError()))
                 }
 
-                override fun onBannerLeftApplication(bannerView: BannerView?) {
-                }
+                override fun onBannerLeftApplication(bannerView: BannerView?) {}
             }
             adView.load()
         }

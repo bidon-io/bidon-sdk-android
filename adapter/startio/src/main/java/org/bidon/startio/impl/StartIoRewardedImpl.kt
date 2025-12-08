@@ -13,6 +13,8 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -24,6 +26,7 @@ internal class StartIoRewardedImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var startAppAd: StartAppAd? = null
+    private var price: Double = 0.0
 
     override val isAdReadyToShow: Boolean
         get() = startAppAd?.state == Ad.AdState.READY
@@ -49,7 +52,19 @@ internal class StartIoRewardedImpl :
 
         override fun adDisplayed(ad: Ad?) {
             logInfo(TAG, "adDisplayed")
-            getAd()?.let { emitEvent(AdEvent.Shown(it)) }
+            getAd()?.let { bidonAd ->
+                emitEvent(AdEvent.Shown(bidonAd))
+                emitEvent(
+                    AdEvent.PaidRevenue(
+                        ad = bidonAd,
+                        adValue = AdValue(
+                            adRevenue = price / 1000.0,
+                            precision = Precision.Estimated,
+                            currency = AdValue.USD,
+                        )
+                    )
+                )
+            }
         }
 
         override fun adClicked(ad: Ad?) {
@@ -66,7 +81,15 @@ internal class StartIoRewardedImpl :
 
     override fun show(activity: Activity) {
         if (isAdReadyToShow) {
-            startAppAd?.showAd(showListener)
+            startAppAd?.let { ad ->
+                ad.setVideoListener {
+                    logInfo(TAG, "onVideoCompleted")
+                    getAd()?.let { bidonAd ->
+                        emitEvent(AdEvent.OnReward(bidonAd, null))
+                    }
+                }
+                ad.showAd(showListener)
+            }
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
@@ -77,6 +100,7 @@ internal class StartIoRewardedImpl :
             emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "payload")))
             return
         }
+        this.price = adParams.price
         val startAppAd = StartAppAd(adParams.context)
             .also { this.startAppAd = it }
         startAppAd.loadAd(

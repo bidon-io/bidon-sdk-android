@@ -8,7 +8,7 @@ import org.json.JSONObject
 /**
  * Created by Bidon Team on 06/03/2023.
  */
-object ServerlessConfigSettings {
+internal object ServerlessConfigSettings {
 
     private var adaptersToInit = mapOf(
         DefaultAdapters.AdmobAdapter to true,

@@ -1,5 +1,6 @@
 package org.bidon.bidmachine.impl
 
+import io.bidmachine.AdPlacementConfig
 import io.bidmachine.AdRequest
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.banner.BannerListener
@@ -10,8 +11,8 @@ import org.bidon.bidmachine.BMAuctionResult
 import org.bidon.bidmachine.BMBannerAuctionParams
 import org.bidon.bidmachine.asBidonErrorOnBid
 import org.bidon.bidmachine.asBidonErrorOnFill
-import org.bidon.bidmachine.ext.asBidMachineBannerSize
 import org.bidon.bidmachine.ext.asBidonAdValue
+import org.bidon.bidmachine.ext.toBannerAdSize
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -46,12 +47,21 @@ internal class BMBannerAdImpl(
         adParams.activity.runOnUiThread {
             bannerView = BannerView(adParams.activity.applicationContext)
             val bidType = adParams.adUnit.bidType
-            val requestBuilder = BannerRequest.Builder()
+
+            val adPlacementConfig =
+                AdPlacementConfig.bannerBuilder(adParams.bannerFormat.toBannerAdSize())
+                    .apply {
+                        adParams.placement?.let { withPlacementId(it) }
+                        withCustomParams(adParams.customParameters)
+                    }
+                    .build()
+
+            val requestBuilder = BannerRequest.Builder(adPlacementConfig)
                 .apply {
                     when (bidType) {
                         BidType.CPM -> {
                             setNetworks("")
-                            setPlacementId(adParams.placement)
+                            setTargetingParams(adParams.targetingParams)
                         }
 
                         BidType.RTB -> {
@@ -68,9 +78,7 @@ internal class BMBannerAdImpl(
                         }
                     }
                 }
-                .setSize(adParams.bannerFormat.asBidMachineBannerSize())
                 .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
-                .setCustomParams(adParams.customParameters)
                 .setLoadingTimeOut(adParams.timeout.toInt())
                 .setListener(
                     object : AdRequest.AdRequestListener<BannerRequest> {

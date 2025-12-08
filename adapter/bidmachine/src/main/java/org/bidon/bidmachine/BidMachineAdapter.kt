@@ -1,11 +1,10 @@
 package org.bidon.bidmachine
 
 import android.content.Context
-import io.bidmachine.AdPlacementConfig
 import io.bidmachine.BidMachine
 import org.bidon.bidmachine.ext.adapterVersion
 import org.bidon.bidmachine.ext.sdkVersion
-import org.bidon.bidmachine.ext.toBidmachineAdFormat
+import org.bidon.bidmachine.ext.toAdPlacementConfig
 import org.bidon.bidmachine.impl.BMBannerAdImpl
 import org.bidon.bidmachine.impl.BMInterstitialAdImpl
 import org.bidon.bidmachine.impl.BMRewardedAdImpl
@@ -21,7 +20,6 @@ import kotlin.coroutines.suspendCoroutine
 
 internal val BidMachineDemandId = DemandId("bidmachine")
 
-internal typealias BidMachineBannerSize = io.bidmachine.banner.BannerSize
 internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 
 @Suppress("unused")
@@ -43,18 +41,10 @@ internal class BidMachineAdapter :
 
     private var placements: Map<String, String> = emptyMap()
 
-    override suspend fun getToken(adTypeParam: AdTypeParam): String? {
+    override suspend fun getToken(adTypeParam: AdTypeParam): String {
         val placementId = adTypeParam.auctionKey?.let { placements[it] }
-        val adPlacementConfig = AdPlacementConfig.Builder(adTypeParam.toBidmachineAdFormat())
-            .apply {
-                placementId?.let { withPlacementId(it) }
-            }
-            .build()
-
-        return BidMachine.getBidToken(
-            adTypeParam.activity.applicationContext,
-            adPlacementConfig
-        )
+        val adPlacementConfig = adTypeParam.toAdPlacementConfig(placementId)
+        return BidMachine.getBidToken(adTypeParam.activity.applicationContext, adPlacementConfig)
     }
 
     override suspend fun init(context: Context, configParams: BidMachineParameters): Unit =
@@ -103,15 +93,7 @@ internal class BidMachineAdapter :
         }
     }
 
-    override fun interstitial(): AdSource.Interstitial<BMFullscreenAuctionParams> {
-        return BMInterstitialAdImpl()
-    }
-
-    override fun rewarded(): AdSource.Rewarded<BMFullscreenAuctionParams> {
-        return BMRewardedAdImpl()
-    }
-
-    override fun banner(): AdSource.Banner<BMBannerAuctionParams> {
-        return BMBannerAdImpl()
-    }
+    override fun interstitial(): AdSource.Interstitial<BMFullscreenAuctionParams> = BMInterstitialAdImpl()
+    override fun rewarded(): AdSource.Rewarded<BMFullscreenAuctionParams> = BMRewardedAdImpl()
+    override fun banner(): AdSource.Banner<BMBannerAuctionParams> = BMBannerAdImpl()
 }

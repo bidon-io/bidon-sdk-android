@@ -8,6 +8,7 @@ import com.ironsource.mediationsdk.AdapterNetworkData
 import com.ironsource.mediationsdk.adunit.adapter.BaseAdapter
 import com.ironsource.mediationsdk.adunit.adapter.listener.NetworkInitializationListener
 import com.ironsource.mediationsdk.adunit.adapter.utility.AdData
+import com.unity3d.mediation.LevelPlay
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.logs.logging.Logger.Level.Off
 import org.bidon.sdk.logs.logging.Logger.Level.Verbose
@@ -69,6 +70,14 @@ public class BidonCustomAdapter : BaseAdapter(), Logger by LevelPLaySdkLogger {
                 }
             }
         }
+    }
+
+    /**
+     * Implementation Note: If network requires Activity during Load process, implement this method
+     * and return true to ensure Activity context is provided during ad loading.
+     */
+    override fun isUsingActivityBeforeImpression(adFormat: LevelPlay.AdFormat): Boolean {
+        return true
     }
 
     private fun updateRegulation(key: String, value: Boolean) {

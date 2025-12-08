@@ -1,0 +1,433 @@
+version: 2
+
+registries:
+  google-maven:
+    type: maven-repository
+    url: https://maven.google.com
+
+  bidon-public:
+    type: maven-repository
+    url: https://artifactory.bidon.org/bidon
+
+updates:
+  # Google Adapters (admob + gam)
+  # Note: Dependabot cannot group updates from different directories
+  # These will create separate PRs, but they often need to be updated together
+  - package-ecosystem: "gradle"
+    directory: "/adapter/admob"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "google-adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/gam"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "google-adapter"
+
+  # Individual Adapters
+  - package-ecosystem: "gradle"
+    directory: "/adapter/amazon"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/applovin"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+#  - package-ecosystem: "gradle"
+#    directory: "/adapter/appsflyer"
+#    target-branch: "develop"
+#    schedule:
+#      interval: "weekly"
+#      time: "03:00"
+#      timezone: "UTC"
+#    open-pull-requests-limit: 10
+#    registries:
+#      - google-maven
+#      - bidon-public
+#    reviewers:
+#      - "bidon-android"
+#    commit-message:
+#      prefix: "⬆️"
+#    labels:
+#      - "dependencies"
+#      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/bidmachine"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/bigoads"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/chartboost"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/dtexchange"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+#  - package-ecosystem: "gradle"
+#    directory: "/adapter/fyber"
+#    target-branch: "develop"
+#    schedule:
+#      interval: "weekly"
+#      time: "03:00"
+#      timezone: "UTC"
+#    open-pull-requests-limit: 10
+#    registries:
+#      - google-maven
+#      - bidon-public
+#    reviewers:
+#      - "bidon-android"
+#    commit-message:
+#      prefix: "⬆️"
+#    labels:
+#      - "dependencies"
+#      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/inmobi"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/ironsource"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/meta"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/mintegral"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/mobilefuse"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/moloco"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/startio"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/taurusx"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/unityads"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/vkads"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/vungle"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/yandex"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"

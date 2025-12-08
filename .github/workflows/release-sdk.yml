@@ -1,16 +1,14 @@
-name: Release
+name: Release Bidon SDK
 
 on:
   workflow_dispatch:
     inputs:
       ORG_GRADLE_PROJECT_repo:
-        description: 'Repository to publish'
+        description: 'Repository'
         required: true
-        default: 'bidon-private'
+        default: bidon-private
         type: choice
-        options:
-          - bidon-private
-          - bidon
+        options: [bidon-private, bidon]
 
 jobs:
   publish:

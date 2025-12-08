@@ -17,7 +17,7 @@ internal sealed interface GamBannerAuctionParams : AdAuctionParams {
     val activity: Activity
     val bannerFormat: BannerFormat
     val containerWidth: Float
-    val adSize: AdSize get() = bannerFormat.toGamAdSize(activity, containerWidth)
+    val adSize: AdSize get() = bannerFormat.toGamAdSize()
 
     class Network(
         override val activity: Activity,

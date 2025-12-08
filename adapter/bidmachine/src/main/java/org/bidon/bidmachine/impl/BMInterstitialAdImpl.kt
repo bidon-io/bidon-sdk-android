@@ -3,6 +3,7 @@ package org.bidon.bidmachine.impl
 import android.app.Activity
 import android.content.Context
 import io.bidmachine.AdContentType
+import io.bidmachine.AdPlacementConfig
 import io.bidmachine.AdRequest
 import io.bidmachine.PriceFloorParams
 import io.bidmachine.interstitial.InterstitialAd
@@ -51,12 +52,20 @@ internal class BMInterstitialAdImpl(
         logInfo(TAG, "Starting with $adParams: $this")
         context = adParams.context
         val bidType = adParams.adUnit.bidType
-        val requestBuilder = InterstitialRequest.Builder()
+
+        val adPlacementConfig = AdPlacementConfig.interstitialBuilder(AdContentType.All)
+            .apply {
+                adParams.placement?.let { withPlacementId(it) }
+                withCustomParams(adParams.customParameters)
+            }
+            .build()
+
+        val requestBuilder = InterstitialRequest.Builder(adPlacementConfig)
             .apply {
                 when (bidType) {
                     BidType.CPM -> {
                         setNetworks("")
-                        setPlacementId(adParams.placement)
+                        setTargetingParams(adParams.targetingParams)
                     }
 
                     BidType.RTB -> {
@@ -73,9 +82,7 @@ internal class BMInterstitialAdImpl(
                     }
                 }
             }
-            .setAdContentType(AdContentType.All)
             .setPriceFloorParams(PriceFloorParams().addPriceFloor(adParams.price))
-            .setCustomParams(adParams.customParameters)
             .setLoadingTimeOut(adParams.timeout.toInt())
             .setListener(
                 object : AdRequest.AdRequestListener<InterstitialRequest> {

@@ -23,8 +23,6 @@ import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
-import org.bidon.sdk.adapter.SupportsTestMode
-import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.json.JSONObject
@@ -35,7 +33,6 @@ internal val IronSourceDemandId = DemandId("ironsource")
 internal class IronSourceAdapter :
     Adapter.Network,
     SupportsRegulation,
-    SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Interstitial<IronSourceFullscreenAuctionParams>,
     AdProvider.Rewarded<IronSourceFullscreenAuctionParams>,
     AdProvider.Banner<IronSourceBannerAuctionParams>,
@@ -55,8 +52,6 @@ internal class IronSourceAdapter :
 
     override suspend fun init(context: Context, configParams: IronSourceParameters) =
         suspendCancellableCoroutine { continuation ->
-            IronSource.setAdaptersDebug(isTestMode)
-
             // Set the IronSource callbacks router
             IronSource.setISDemandOnlyInterstitialListener(ironSourceRouter)
             IronSource.setISDemandOnlyRewardedVideoListener(ironSourceRouter)
@@ -72,9 +67,8 @@ internal class IronSourceAdapter :
                 ).build()
 
             IronSourceAds.init(
-                context = context.applicationContext,
-                initRequest = initRequest,
-                initializationListener =
+                context.applicationContext,
+                initRequest,
                 object : InitListener {
                     override fun onInitSuccess() {
                         logInfo(TAG, "IronSource SDK initialized successfully")
@@ -93,7 +87,7 @@ internal class IronSourceAdapter :
     override fun updateRegulation(regulation: Regulation) {
         // GDPR – Managing Consent
         if (regulation.gdprApplies) {
-            IronSource.setConsent(regulation.hasGdprConsent)
+            IronSourceAds.setConsent(regulation.hasGdprConsent)
         }
 
         // US Privacy compliance
@@ -101,13 +95,13 @@ internal class IronSourceAdapter :
             // we invert the value because IronSource expects `true` to indicate that the user
             // has opted out of “sale” or “sharing” of personal information
             val isDoNotSell: Boolean = regulation.hasCcpaConsent.not()
-            IronSource.setMetaData("do_not_sell", isDoNotSell.toString())
+            IronSourceAds.setMetaData("do_not_sell", isDoNotSell.toString())
         }
 
         // User-Level Settings for Child-Directed Apps with Age Gates
         val isAgeRestrictedUser: Boolean = regulation.coppaApplies
-        IronSource.setMetaData("is_deviceid_optout", isAgeRestrictedUser.toString())
-        IronSource.setMetaData("is_child_directed", isAgeRestrictedUser.toString())
+        IronSourceAds.setMetaData("is_deviceid_optout", isAgeRestrictedUser.toString())
+        IronSourceAds.setMetaData("is_child_directed", isAgeRestrictedUser.toString())
     }
 
     override fun interstitial(): AdSource.Interstitial<IronSourceFullscreenAuctionParams> {

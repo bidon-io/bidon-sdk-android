@@ -1,0 +1,9 @@
+# Changelog
+
+All notable changes to the Start.io adapter will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [5.2.4.1]
+- [BDN-1094](https://appodeal.atlassian.net/browse/BDN-1094) `AdEvent.PaidRevenue` callback for Banner, Interstitial, and Rewarded ad types
+- [BDN-1094](https://appodeal.atlassian.net/browse/BDN-1094) `AdEvent.OnReward` callback for Rewarded Video when video completes
