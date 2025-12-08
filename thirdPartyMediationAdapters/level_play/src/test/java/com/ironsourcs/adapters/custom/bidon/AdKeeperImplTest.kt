@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.ironsource.adapters.custom.bidon.keeper.AdInstance
 import com.ironsource.adapters.custom.bidon.keeper.AdKeeperImpl
 import com.ironsource.adapters.custom.bidon.keeper.DEFAULT_DEMAND_ID
-import com.ironsource.adapters.custom.bidon.logger.LevelPLaySdkLogger
+import com.ironsource.adapters.custom.bidon.logger.LevelPlaySdkLogger
 import com.ironsource.adapters.custom.bidon.logger.Logger
 import io.mockk.Runs
 import io.mockk.every
@@ -23,8 +23,8 @@ class AdKeeperImplTest {
     @Before
     fun setup() {
         mockLogger = mockk()
-        mockkObject(LevelPLaySdkLogger)
-        every { LevelPLaySdkLogger.log(any(), any()) } just Runs
+        mockkObject(LevelPlaySdkLogger)
+        every { LevelPlaySdkLogger.log(any(), any()) } just Runs
         adKeeper = AdKeeperImpl("Test")
     }
 
