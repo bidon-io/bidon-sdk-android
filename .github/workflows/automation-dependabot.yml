@@ -1,20 +1,9 @@
 name: Automation Dependabot
 
-# WORKFLOW DISABLED: Automatic Dependabot handling is currently disabled
-# Manual CHANGELOG updates are preferred
-# Uncomment the triggers below to re-enable
-
 on:
-  # pull_request:
-  #   types: [opened, synchronize]
-  #   paths: ['adapter/*/build.gradle.kts']
-
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'PR number to update (optional)'
-        required: false
-        type: number
+  pull_request:
+    types: [opened, synchronize]
+    paths: ['adapter/*/build.gradle.kts']
 
 permissions:
   contents: write
@@ -23,44 +12,25 @@ permissions:
 jobs:
   update-changelog:
     name: Update CHANGELOG
-    # Run for Dependabot PRs OR manual workflow dispatch
-    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
+    if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
-    outputs:
-      has_changes: ${{ steps.check-changes.outputs.has_changes }}
 
     steps:
-      - name: Workflow info
-        run: |
-          echo "::notice::Workflow triggered by: ${{ github.event_name }}"
-          echo "::notice::Actor: ${{ github.actor }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ -n "${{ inputs.pr_number }}" ]; then
-              echo "::notice::Target PR: #${{ inputs.pr_number }}"
-            fi
-          fi
-
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
-          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # PAT is required to trigger CI workflows on push (GITHUB_TOKEN doesn't trigger workflows)
+          token: ${{ secrets.DEPENDABOT_PAT }}
           fetch-depth: 0
 
       - name: Get changed files
         id: changed-files
         run: |
-          # Determine base branch
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_REF="${{ github.event.pull_request.base.ref }}"
-          else
-            BASE_REF="develop"
-          fi
-
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
           echo "Base branch: $BASE_REF"
 
-          # Get the list of changed build.gradle.kts files
           git fetch origin "$BASE_REF"
           CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF"...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
 
@@ -74,20 +44,12 @@ jobs:
       - name: Update changelogs
         if: steps.changed-files.outputs.changed_files != ''
         run: |
-          # Determine base branch
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_REF="${{ github.event.pull_request.base.ref }}"
-          else
-            BASE_REF="develop"
-          fi
-
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
           UPDATES_COUNT=0
-          SUMMARY_FILE="${GITHUB_STEP_SUMMARY}"
 
-          echo "## Changelog Updates" >> "$SUMMARY_FILE"
-          echo "" >> "$SUMMARY_FILE"
+          echo "## Changelog Updates" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # Process each changed build.gradle.kts file
           echo "${{ steps.changed-files.outputs.changed_files }}" | while read -r file; do
             if [ -z "$file" ]; then
               continue
@@ -95,7 +57,6 @@ jobs:
 
             echo "::group::Processing $file"
 
-            # Extract adapter name from path (e.g., adapter/admob/build.gradle.kts -> admob)
             ADAPTER_DIR=$(dirname "$file")
             ADAPTER_NAME=$(basename "$ADAPTER_DIR")
             CHANGELOG="$ADAPTER_DIR/CHANGELOG.md"
@@ -106,14 +67,11 @@ jobs:
               continue
             fi
 
-            # Get the old and new versions
-            # NOTE: The following extraction assumes the adapter version is stored in a variable named 'adapterSdkVersion'.
-            # All adapters must use: val adapterSdkVersion = "<version>"
             OLD_VERSION=$(git show "origin/$BASE_REF":"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
             NEW_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
 
             if [ "$OLD_VERSION" = "unknown" ] || [ "$NEW_VERSION" = "unknown" ]; then
-              echo "::error::Could not extract version for $ADAPTER_NAME in $file. Ensure the version is defined as 'val adapterSdkVersion = \"<version>\"'"
+              echo "::error::Could not extract version for $ADAPTER_NAME"
               echo "::endgroup::"
               continue
             fi
@@ -126,7 +84,6 @@ jobs:
 
             echo "::notice::Version change for $ADAPTER_NAME: $OLD_VERSION -> $NEW_VERSION"
 
-            # Get current date in YYYY-MM-DD format
             CURRENT_DATE=$(date +%Y-%m-%d)
 
             # Get release notes URL for the adapter
@@ -143,9 +100,9 @@ jobs:
               applovin)
                 RELEASE_NOTES_URL="https://github.com/AppLovin/AppLovin-MAX-SDK-Android/releases"
                 ;;
-              appsflyer)
-                RELEASE_NOTES_URL="https://support.appsflyer.com/hc/en-us/articles/115001256006-SDK-release-notes"
-                ;;
+              # appsflyer)
+              #   RELEASE_NOTES_URL="https://support.appsflyer.com/hc/en-us/articles/115001256006-SDK-release-notes"
+              #   ;;
               bidmachine)
                 RELEASE_NOTES_URL="https://github.com/bidmachine/BidMachine-Android-SDK/releases"
                 ;;
@@ -158,9 +115,9 @@ jobs:
               dtexchange)
                 RELEASE_NOTES_URL="https://developer.digitalturbine.com/hc/en-us/articles/360010634298"
                 ;;
-              fyber)
-                RELEASE_NOTES_URL="https://developer.digitalturbine.com/hc/en-us/articles/360010634298"
-                ;;
+              # fyber)
+              #   RELEASE_NOTES_URL="https://developer.digitalturbine.com/hc/en-us/articles/360010634298"
+              #   ;;
               inmobi)
                 RELEASE_NOTES_URL="https://support.inmobi.com/monetize/sdk-documentation/android-guidelines/sdk-changelog/"
                 ;;
@@ -182,9 +139,9 @@ jobs:
               startio)
                 RELEASE_NOTES_URL="https://github.com/StartApp-SDK/android-sdk/releases"
                 ;;
-              taurusx)
-                RELEASE_NOTES_URL="https://docs.taurusx.com/android/release-notes"
-                ;;
+              # taurusx)
+              #   RELEASE_NOTES_URL="https://docs.taurusx.com/android/release-notes"
+              #   ;;
               unityads)
                 RELEASE_NOTES_URL="https://github.com/Unity-Technologies/unity-ads-android/releases"
                 ;;
@@ -203,13 +160,10 @@ jobs:
             esac
 
             # Create changelog entry
-            # Note: If Dependabot updates an existing PR (e.g., 24.5.0 -> 24.6.0 -> 24.7.0),
-            # this will create multiple entries in CHANGELOG. You can manually clean them up before merging.
             ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_VERSION to $NEW_VERSION\n"
 
-            # Add release notes link if available
             if [ -n "$RELEASE_NOTES_URL" ]; then
-              ENTRY="${ENTRY}- 📋 [View Release Notes]($RELEASE_NOTES_URL)\n"
+              ENTRY="${ENTRY}- [View Release Notes]($RELEASE_NOTES_URL)\n"
             fi
 
             # Insert entry after [Unreleased] section
@@ -225,19 +179,12 @@ jobs:
 
             mv "${CHANGELOG}.tmp" "$CHANGELOG"
 
-            echo "✅ Updated $CHANGELOG"
-            echo "- **$ADAPTER_NAME**: $OLD_VERSION → $NEW_VERSION" >> "$SUMMARY_FILE"
+            echo "Updated $CHANGELOG"
+            echo "- **$ADAPTER_NAME**: $OLD_VERSION -> $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
 
             UPDATES_COUNT=$((UPDATES_COUNT + 1))
             echo "::endgroup::"
           done
-
-          if [ $UPDATES_COUNT -eq 0 ]; then
-            echo "No changelogs updated" >> "$SUMMARY_FILE"
-          else
-            echo "" >> "$SUMMARY_FILE"
-            echo "**Total updates: $UPDATES_COUNT**" >> "$SUMMARY_FILE"
-          fi
 
       - name: Check for changes
         id: check-changes
@@ -258,18 +205,13 @@ jobs:
           git push
           echo "::notice::Changes committed and pushed successfully"
 
-      - name: Workflow summary
+      - name: Job Summary
         if: always()
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.check-changes.outputs.has_changes }}" = "true" ]; then
-            echo "✅ **Status**: Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-changes.outputs.has_changes }}" == "true" ]; then
+            echo ":white_check_mark: Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "ℹ️ **Status**: No changes to commit" >> $GITHUB_STEP_SUMMARY
+            echo ":information_source: No changes to commit" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Actor**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
