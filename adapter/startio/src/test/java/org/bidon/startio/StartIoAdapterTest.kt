@@ -50,7 +50,7 @@ class StartIoAdapterTest {
 
     @Test
     fun `parseConfigParam should parse appId correctly`() {
-        val json = """{"appId": "test_app_id_123"}"""
+        val json = """{"app_id": "test_app_id_123"}"""
 
         val result = testee.parseConfigParam(json)
 
