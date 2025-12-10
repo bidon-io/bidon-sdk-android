@@ -209,7 +209,7 @@ jobs:
     if: |
       always() &&
       needs._detect-changes.outputs.adapters != '[]' &&
-      needs.build.result != 'cancelled'
+      needs.build.result == 'success'
     strategy:
       fail-fast: false
       matrix:
