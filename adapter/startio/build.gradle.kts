@@ -5,7 +5,7 @@ plugins {
     id("adapter")
 }
 
-val adapterSdkVersion = "5.2.4"
+val adapterSdkVersion = "5.2.5"
 val adapterMinor = 1
 val adapterSemantic = Versions.semanticVersion
 
