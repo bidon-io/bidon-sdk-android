@@ -4,6 +4,8 @@ All notable changes to the Unity Ads adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+📋 [Release Notes](https://github.com/Unity-Technologies/unity-ads-android/releases)
+
 ## [Unreleased]
 
 ## [4.16.4.1]

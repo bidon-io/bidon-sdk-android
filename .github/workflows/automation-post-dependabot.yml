@@ -1,0 +1,144 @@
+name: Automation post dependabot
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths: ['adapter/*/build.gradle.kts']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-changelog:
+    name: Update CHANGELOG
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # PAT is required to trigger CI workflows on push (GITHUB_TOKEN doesn't trigger workflows)
+          token: ${{ secrets.DEPENDABOT_PAT }}
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          echo "Base branch: $BASE_REF"
+
+          git fetch origin "$BASE_REF"
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF"...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update changelogs
+        if: steps.changed-files.outputs.changed_files != ''
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          UPDATES_COUNT=0
+
+          echo "## Changelog Updates" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            echo "::group::Processing $file"
+
+            ADAPTER_DIR=$(dirname "$file")
+            ADAPTER_NAME=$(basename "$ADAPTER_DIR")
+            CHANGELOG="$ADAPTER_DIR/CHANGELOG.md"
+
+            if [ ! -f "$CHANGELOG" ]; then
+              echo "::warning::$CHANGELOG not found, skipping"
+              echo "::endgroup::"
+              continue
+            fi
+
+            OLD_SDK_VERSION=$(git show "origin/$BASE_REF":"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+            NEW_SDK_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+
+            if [ "$OLD_SDK_VERSION" = "unknown" ] || [ "$NEW_SDK_VERSION" = "unknown" ]; then
+              echo "::error::Could not extract version for $ADAPTER_NAME"
+              echo "::endgroup::"
+              continue
+            fi
+
+            if [ "$OLD_SDK_VERSION" = "$NEW_SDK_VERSION" ]; then
+              echo "No version change detected for $ADAPTER_NAME"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Reset adapterMinor to 0 for new SDK version
+            sed -i 's/val adapterMinor = [0-9]*/val adapterMinor = 0/' "$file"
+
+            # Full adapter version: SDK version + .0 (minor resets on SDK update)
+            ADAPTER_VERSION="${NEW_SDK_VERSION}.0"
+
+            echo "::notice::Version change for $ADAPTER_NAME: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (adapter version: $ADAPTER_VERSION)"
+
+            CURRENT_DATE=$(date +%Y-%m-%d)
+
+            # Create changelog entry (Release Notes link is already in CHANGELOG header)
+            ENTRY="## [$ADAPTER_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_SDK_VERSION to $NEW_SDK_VERSION\n"
+
+            # Insert entry after [Unreleased] section
+            awk -v entry="$ENTRY" '
+              /## \[Unreleased\]/ {
+                print $0
+                print ""
+                print entry
+                next
+              }
+              {print}
+            ' "$CHANGELOG" > "${CHANGELOG}.tmp"
+
+            mv "${CHANGELOG}.tmp" "$CHANGELOG"
+
+            echo "Updated $CHANGELOG"
+            echo "- **$ADAPTER_NAME**: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (v$ADAPTER_VERSION)" >> "$GITHUB_STEP_SUMMARY"
+
+            UPDATES_COUNT=$((UPDATES_COUNT + 1))
+            echo "::endgroup::"
+          done <<< "${{ steps.changed-files.outputs.changed_files }}"
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add adapter/*/CHANGELOG.md adapter/*/build.gradle.kts
+          git commit -m "chore: update adapters for dependency updates"
+          git push
+          echo "::notice::Changes committed and pushed successfully"
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-changes.outputs.has_changes }}" == "true" ]; then
+            echo ":white_check_mark: Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo ":information_source: No changes to commit" >> $GITHUB_STEP_SUMMARY
+          fi
