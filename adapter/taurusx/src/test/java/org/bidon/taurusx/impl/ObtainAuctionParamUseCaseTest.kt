@@ -27,7 +27,7 @@ class ObtainAuctionParamUseCaseTest {
                 label = "test_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_interstitial_id"
+                    "placement_id" hasValue "test_interstitial_id"
                     "payload" hasValue "test_payload_data"
                 }.toString(),
                 timeout = 5000,
@@ -85,7 +85,7 @@ class ObtainAuctionParamUseCaseTest {
                 label = "test_banner_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_banner_id"
+                    "placement_id" hasValue "test_banner_id"
                     "payload" hasValue "test_banner_payload"
                 }.toString(),
                 timeout = 3000,
@@ -116,7 +116,7 @@ class ObtainAuctionParamUseCaseTest {
                 label = "test_mrec_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_mrec_id"
+                    "placement_id" hasValue "test_mrec_id"
                     "payload" hasValue "test_mrec_payload"
                 }.toString(),
                 timeout = 3000,
