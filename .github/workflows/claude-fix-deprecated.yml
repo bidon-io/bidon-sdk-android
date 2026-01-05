@@ -150,8 +150,6 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--max-turns 40 --dangerously-skip-permissions"
-          comment_on_pr: true
-          pr_number: ${{ needs.check-deprecated.outputs.pr_number }}
           prompt: |
             ## Task: Fix deprecated code in adapter/${{ matrix.adapter }}
 
