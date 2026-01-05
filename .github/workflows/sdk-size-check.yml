@@ -2,12 +2,17 @@ name: SDK Size Check
 
 on:
   pull_request:
+    types: [opened, reopened]
     paths:
       - 'adapter/*/build.gradle.kts'
   push:
     branches: [develop]
     paths:
       - 'adapter/*/build.gradle.kts'
+
+concurrency:
+  group: sdk-size-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   # Cache develop APK on each push to develop
