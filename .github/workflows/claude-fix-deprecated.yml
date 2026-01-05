@@ -1,0 +1,216 @@
+name: Claude Fix Deprecated
+
+on:
+  workflow_run:
+    workflows: ["CI Adapter Quality"]
+    types: [completed]
+
+jobs:
+  # Check if there are deprecated warnings to fix
+  check-deprecated:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_deprecated: ${{ steps.check.outputs.has_deprecated }}
+      adapters: ${{ steps.check.outputs.adapters }}
+      pr_number: ${{ steps.pr.outputs.number }}
+      pr_branch: ${{ steps.pr.outputs.branch }}
+    steps:
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id
+            });
+
+            // Find deprecated warnings artifacts
+            const deprecatedArtifacts = artifacts.data.artifacts.filter(
+              a => a.name.startsWith('deprecated-warnings-')
+            );
+
+            if (deprecatedArtifacts.length === 0) {
+              core.setOutput('has_deprecated', 'false');
+              return;
+            }
+
+            // Get PR number from workflow run
+            const run = context.payload.workflow_run;
+            const prNumber = run.pull_requests[0]?.number;
+            const prBranch = run.head_branch;
+
+            if (!prNumber) {
+              console.log('Could not determine PR number');
+              core.setOutput('has_deprecated', 'false');
+              return;
+            }
+
+            core.setOutput('number', prNumber);
+            core.setOutput('branch', prBranch);
+
+      - name: Download deprecated artifacts
+        uses: actions/github-script@v7
+        id: check
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id
+            });
+
+            const deprecatedArtifacts = artifacts.data.artifacts.filter(
+              a => a.name.startsWith('deprecated-warnings-')
+            );
+
+            if (deprecatedArtifacts.length === 0) {
+              core.setOutput('has_deprecated', 'false');
+              return;
+            }
+
+            // Extract adapter names
+            const adapters = deprecatedArtifacts.map(a =>
+              a.name.replace('deprecated-warnings-', '')
+            );
+
+            console.log(`Found deprecated warnings for adapters: ${adapters.join(', ')}`);
+            core.setOutput('has_deprecated', 'true');
+            core.setOutput('adapters', JSON.stringify(adapters));
+
+  # Fix deprecated code for each adapter
+  fix-deprecated:
+    needs: check-deprecated
+    if: needs.check-deprecated.outputs.has_deprecated == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        adapter: ${{ fromJson(needs.check-deprecated.outputs.adapters) }}
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-deprecated.outputs.pr_branch }}
+          fetch-depth: 0
+
+      - name: Download deprecated warnings artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deprecated-warnings-${{ matrix.adapter }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Extract Release Notes URL
+        id: changelog
+        run: |
+          CHANGELOG_FILE="adapter/${{ matrix.adapter }}/CHANGELOG.md"
+          if [ -f "$CHANGELOG_FILE" ]; then
+            # Extract URL from line like: 📋 [Release Notes](https://...)
+            RELEASE_NOTES_URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1)
+            echo "release_notes_url=$RELEASE_NOTES_URL" >> $GITHUB_OUTPUT
+            echo "📋 Release Notes URL: $RELEASE_NOTES_URL"
+          else
+            echo "⚠️ CHANGELOG.md not found for ${{ matrix.adapter }}"
+            echo "release_notes_url=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read deprecated warnings
+        id: warnings
+        run: |
+          if [ -f deprecated_warnings.txt ]; then
+            # Read warnings and escape for use in prompt
+            WARNINGS=$(cat deprecated_warnings.txt | head -50)
+            echo "warnings<<EOF" >> $GITHUB_OUTPUT
+            echo "$WARNINGS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "warnings=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fix deprecated with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: "Edit,Read,Glob,Grep,WebFetch,Bash(git:*)"
+          direct_prompt: |
+            ## Task: Fix deprecated code in adapter/${{ matrix.adapter }}
+
+            ### Deprecated warnings found:
+            ```
+            ${{ steps.warnings.outputs.warnings }}
+            ```
+
+            ### Release Notes URL:
+            ${{ steps.changelog.outputs.release_notes_url }}
+
+            ### Instructions:
+            1. Read the deprecated warnings above carefully
+            2. If Release Notes URL is available, fetch it to find migration guide
+            3. For each deprecated usage in adapter/${{ matrix.adapter }}/:
+               - Find the deprecated code
+               - Replace with non-deprecated alternative
+               - Make sure the fix compiles and maintains same functionality
+            4. After fixing, commit changes with message format:
+               fix(${{ matrix.adapter }}): migrate deprecated API X to Y
+
+            ### Important:
+            - Only fix deprecated code in adapter/${{ matrix.adapter }}/ directory
+            - Do not change other adapters or core SDK
+            - Each fix should be a separate commit
+            - Keep the same functionality, just update deprecated APIs
+            - If unsure about migration, leave a TODO comment
+
+      - name: Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git push origin HEAD:${{ needs.check-deprecated.outputs.pr_branch }}
+
+  # Comment on PR with summary
+  comment-summary:
+    needs: [check-deprecated, fix-deprecated]
+    if: always() && needs.check-deprecated.outputs.has_deprecated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ needs.check-deprecated.outputs.pr_number }};
+            const adapters = ${{ needs.check-deprecated.outputs.adapters }};
+            const success = '${{ needs.fix-deprecated.result }}' === 'success';
+
+            let body = '';
+            if (success) {
+              body = `## 🤖 Claude Fixed Deprecated Code
+
+            Fixed deprecated warnings in the following adapter(s):
+            ${adapters.map(a => `- \`${a}\``).join('\n')}
+
+            Please review the changes and re-run CI to verify the fixes.
+
+            ---
+            *Automated by [Claude Code](https://claude.ai/code)*`;
+            } else {
+              body = `## ⚠️ Claude Could Not Fix All Deprecated Code
+
+            Attempted to fix deprecated warnings in:
+            ${adapters.map(a => `- \`${a}\``).join('\n')}
+
+            Some issues may require manual intervention. Please check the workflow logs for details.
+
+            ---
+            *Automated by [Claude Code](https://claude.ai/code)*`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: body
+            });

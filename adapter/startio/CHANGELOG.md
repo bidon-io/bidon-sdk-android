@@ -4,7 +4,7 @@ All notable changes to the Start.io adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://github.com/StartApp-SDK/android-sdk/releases)
+📋 [Release Notes](https://support.start.io/hc/en-us/articles/5813405015442-Android-SDK-Change-Log)
 
 ## [Unreleased]
 

@@ -4,7 +4,7 @@ All notable changes to the BidMachine adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://github.com/bidmachine/BidMachine-Android-SDK/releases)
+📋 [Release Notes](https://developers.bidmachine.io/sdk/general/android/android-changelog)
 
 ## [Unreleased]
 
