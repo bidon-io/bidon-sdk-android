@@ -5,13 +5,17 @@ on:
     workflows: ["CI Adapter Quality"]
     types: [completed]
 
+concurrency:
+  group: claude-fix-deprecated-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
 jobs:
   # Check if there are deprecated warnings to fix
   check-deprecated:
     if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
-      has_deprecated: ${{ steps.check.outputs.has_deprecated }}
+      should_run: ${{ steps.gate.outputs.should_run }}
       adapters: ${{ steps.check.outputs.adapters }}
       pr_number: ${{ steps.pr.outputs.number }}
       pr_branch: ${{ steps.pr.outputs.branch }}
@@ -21,39 +25,50 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.payload.workflow_run.id
-            });
-
-            // Find deprecated warnings artifacts
-            const deprecatedArtifacts = artifacts.data.artifacts.filter(
-              a => a.name.startsWith('deprecated-warnings-')
-            );
-
-            if (deprecatedArtifacts.length === 0) {
-              core.setOutput('has_deprecated', 'false');
-              return;
-            }
-
-            // Get PR number from workflow run
             const run = context.payload.workflow_run;
             const prNumber = run.pull_requests[0]?.number;
             const prBranch = run.head_branch;
 
             if (!prNumber) {
               console.log('Could not determine PR number');
-              core.setOutput('has_deprecated', 'false');
+              core.setOutput('has_pr', 'false');
               return;
             }
 
+            core.setOutput('has_pr', 'true');
             core.setOutput('number', prNumber);
             core.setOutput('branch', prBranch);
 
-      - name: Download deprecated artifacts
+      - name: Check for label (prevent infinite loop)
+        id: gate
+        if: steps.pr.outputs.has_pr == 'true'
         uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
+            const LABEL = 'claude:deprecated-attempted';
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            const labels = (pr.labels || []).map(l => l.name);
+            const alreadyAttempted = labels.includes(LABEL);
+
+            if (alreadyAttempted) {
+              console.log(`⏭️ Label '${LABEL}' found - Claude already attempted, skipping`);
+              core.setOutput('should_run', 'false');
+            } else {
+              console.log(`✅ No '${LABEL}' label - will run Claude`);
+              core.setOutput('should_run', 'true');
+            }
+
+      - name: Check for deprecated artifacts
         id: check
+        if: steps.gate.outputs.should_run == 'true'
+        uses: actions/github-script@v7
         with:
           script: |
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -67,11 +82,11 @@ jobs:
             );
 
             if (deprecatedArtifacts.length === 0) {
+              console.log('No deprecated warnings artifacts found');
               core.setOutput('has_deprecated', 'false');
               return;
             }
 
-            // Extract adapter names
             const adapters = deprecatedArtifacts.map(a =>
               a.name.replace('deprecated-warnings-', '')
             );
@@ -83,7 +98,7 @@ jobs:
   # Fix deprecated code for each adapter
   fix-deprecated:
     needs: check-deprecated
-    if: needs.check-deprecated.outputs.has_deprecated == 'true'
+    if: needs.check-deprecated.outputs.should_run == 'true' && needs.check-deprecated.outputs.adapters != ''
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -110,7 +125,6 @@ jobs:
         run: |
           CHANGELOG_FILE="adapter/${{ matrix.adapter }}/CHANGELOG.md"
           if [ -f "$CHANGELOG_FILE" ]; then
-            # Extract URL from line like: 📋 [Release Notes](https://...)
             RELEASE_NOTES_URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1)
             echo "release_notes_url=$RELEASE_NOTES_URL" >> $GITHUB_OUTPUT
             echo "📋 Release Notes URL: $RELEASE_NOTES_URL"
@@ -123,7 +137,6 @@ jobs:
         id: warnings
         run: |
           if [ -f deprecated_warnings.txt ]; then
-            # Read warnings and escape for use in prompt
             WARNINGS=$(cat deprecated_warnings.txt | head -50)
             echo "warnings<<EOF" >> $GITHUB_OUTPUT
             echo "$WARNINGS" >> $GITHUB_OUTPUT
@@ -136,8 +149,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          allowed_tools: "Edit,Read,Glob,Grep,WebFetch,Bash(git:*)"
-          direct_prompt: |
+          claude_args: "--max-turns 40 --dangerously-skip-permissions"
+          comment_on_pr: true
+          pr_number: ${{ needs.check-deprecated.outputs.pr_number }}
+          prompt: |
             ## Task: Fix deprecated code in adapter/${{ matrix.adapter }}
 
             ### Deprecated warnings found:
@@ -155,13 +170,13 @@ jobs:
                - Find the deprecated code
                - Replace with non-deprecated alternative
                - Make sure the fix compiles and maintains same functionality
-            4. After fixing, commit changes with message format:
+            4. Run `./gradlew ktlintFormat` to format code
+            5. Commit changes with message format:
                fix(${{ matrix.adapter }}): migrate deprecated API X to Y
 
             ### Important:
             - Only fix deprecated code in adapter/${{ matrix.adapter }}/ directory
             - Do not change other adapters or core SDK
-            - Each fix should be a separate commit
             - Keep the same functionality, just update deprecated APIs
             - If unsure about migration, leave a TODO comment
 
@@ -171,41 +186,119 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git push origin HEAD:${{ needs.check-deprecated.outputs.pr_branch }}
 
-  # Comment on PR with summary
-  comment-summary:
+  # Add label and comment on PR
+  finalize:
     needs: [check-deprecated, fix-deprecated]
-    if: always() && needs.check-deprecated.outputs.has_deprecated == 'true'
+    if: always() && needs.check-deprecated.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-deprecated.outputs.pr_branch }}
+
+      - name: Download deprecated warnings artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: deprecated-warnings-*
+          path: warnings
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Collect warnings and release notes
+        id: collect
+        run: |
+          adapters='${{ needs.check-deprecated.outputs.adapters }}'
+
+          # Build markdown content for each adapter
+          CONTENT=""
+          for adapter in $(echo "$adapters" | jq -r '.[]'); do
+            CONTENT="$CONTENT### \`$adapter\`\n\n"
+
+            # Get release notes URL
+            CHANGELOG="adapter/$adapter/CHANGELOG.md"
+            if [ -f "$CHANGELOG" ]; then
+              URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG" | sed 's/\[Release Notes\](//' | head -1)
+              if [ -n "$URL" ]; then
+                CONTENT="$CONTENT📋 [Release Notes]($URL)\n\n"
+              fi
+            fi
+
+            # Get deprecated warnings
+            WARNINGS_FILE="warnings/deprecated-warnings-$adapter/deprecated_warnings.txt"
+            if [ -f "$WARNINGS_FILE" ]; then
+              CONTENT="$CONTENT<details>\n<summary>Deprecated warnings found</summary>\n\n\`\`\`\n"
+              CONTENT="$CONTENT$(cat "$WARNINGS_FILE" | head -30)\n"
+              CONTENT="$CONTENT\`\`\`\n</details>\n\n"
+            else
+              CONTENT="$CONTENT_No warnings file found_\n\n"
+            fi
+          done
+
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Add label to prevent re-run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = ${{ needs.check-deprecated.outputs.pr_number }};
+            const label = {
+              name: 'claude:deprecated-attempted',
+              color: '0e8a16',
+              description: 'Claude attempted to fix deprecated warnings'
+            };
+
+            // Create label if not exists
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label.name });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner, repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            // Add label to PR
+            await github.rest.issues.addLabels({
+              owner, repo,
+              issue_number: prNumber,
+              labels: [label.name]
+            });
+
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = ${{ needs.check-deprecated.outputs.pr_number }};
-            const adapters = ${{ needs.check-deprecated.outputs.adapters }};
             const success = '${{ needs.fix-deprecated.result }}' === 'success';
+            const details = `${{ steps.collect.outputs.content }}`;
 
             let body = '';
             if (success) {
               body = `## 🤖 Claude Fixed Deprecated Code
 
-            Fixed deprecated warnings in the following adapter(s):
-            ${adapters.map(a => `- \`${a}\``).join('\n')}
-
-            Please review the changes and re-run CI to verify the fixes.
+            ${details}
 
             ---
-            *Automated by [Claude Code](https://claude.ai/code)*`;
+            ✅ **Changes pushed.** Please review the commits and re-run CI to verify.`;
             } else {
               body = `## ⚠️ Claude Could Not Fix All Deprecated Code
 
-            Attempted to fix deprecated warnings in:
-            ${adapters.map(a => `- \`${a}\``).join('\n')}
-
-            Some issues may require manual intervention. Please check the workflow logs for details.
+            ${details}
 
             ---
-            *Automated by [Claude Code](https://claude.ai/code)*`;
+            ❌ **Manual intervention required.** Check the warnings above and release notes for migration guide.`;
             }
 
             await github.rest.issues.createComment({
