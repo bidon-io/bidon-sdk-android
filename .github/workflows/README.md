@@ -14,12 +14,32 @@
 **Purpose**: Quality checks for adapters
 - Automatically detects changed adapters
 - Build adapter (`assembleProductionRelease`)
-- Check for deprecated code warnings
+- Check for deprecated code warnings (uploads artifact for Claude fix)
 - Run adapter unit tests (`testProductionReleaseUnitTest`)
+
+### `sdk-size-check.yml` - **SDK Size Check**
+**Triggers**: Pull requests (adapter build.gradle.kts changes), push to develop
+**Purpose**: Compare APK size impact of adapter updates
+- Caches develop branch APK on push to develop
+- Compares PR APK size vs develop APK size
+- Posts size diff comment on PR (runs only once per PR)
+- Alerts on significant size increases (>5MB or >10%)
 
 ---
 
 ## Automation Workflows
+
+### `claude-fix-deprecated.yml` - **Claude Fix Deprecated**
+**Triggers**: workflow_run (after CI Adapter Quality fails)
+**Purpose**: Automatically fix deprecated code using Claude AI
+- Downloads deprecated warnings artifacts from CI
+- Extracts Release Notes URL from adapter CHANGELOG
+- Calls Claude to fix deprecated APIs
+- Pushes fixes to PR branch
+- Comments on PR with fix summary
+
+**Requirements:**
+- `ANTHROPIC_API_KEY` secret must be configured
 
 ### `automation-dependabot.yml` - **Automation Dependabot** (DISABLED)
 **Status**: Currently disabled
@@ -105,6 +125,13 @@ Legacy repository synchronization workflow.
 ### Call Graph
 
 ```
+ci-adapter-quality.yml
+  └─► claude-fix-deprecated.yml (on failure)
+        └─► Fixes deprecated code and pushes to PR
+
+sdk-size-check.yml
+  └─► Comments size diff on PR
+
 automation-publish-adapters.yml
   ├─► release-adapter.yml (bidon-private)
   │     └─► Publishes to internal repository
@@ -124,12 +151,19 @@ automation-publish-adapters.yml
 **Current Process:**
 1. Dependabot detects dependency update
 2. Opens PR to `develop` with updated build.gradle.kts
-3. `ci-adapter-quality.yml` triggers automatically:
+3. `sdk-size-check.yml` triggers automatically:
+   - Compares APK size with develop branch
+   - Posts size impact comment on PR
+4. `ci-adapter-quality.yml` triggers automatically:
    - Detects changed adapters
    - Runs quality checks (build, deprecated warnings, unit tests)
-4. **Manual step**: Update CHANGELOG.md for affected adapters
-5. Team reviews and approves PR
-6. After merge, `automation-publish-adapters.yml` triggers:
+5. If deprecated warnings found, `claude-fix-deprecated.yml` triggers:
+   - Reads Release Notes from CHANGELOG
+   - Fixes deprecated code automatically
+   - Pushes fixes to PR branch
+6. **Manual step**: Update CHANGELOG.md for affected adapters
+7. Team reviews and approves PR
+8. After merge, `automation-publish-adapters.yml` triggers:
    - Publishes adapter to bidon-private
    - Publishes adapter to bidon (public)
    - Sends Slack notifications
@@ -183,3 +217,14 @@ automation-publish-adapters.yml
 - Verify file paths match trigger patterns
 - Check branch matches trigger configuration
 - Ensure workflow file is in `.github/workflows/` (not a subdirectory)
+
+### Claude fix not working
+- Verify `ANTHROPIC_API_KEY` secret is configured
+- Check if deprecated warnings artifact was uploaded
+- Review Claude action logs for API errors
+- Ensure CHANGELOG has valid Release Notes URL
+
+### Size check not running
+- Verify PR changes `adapter/*/build.gradle.kts`
+- Check if size comment already exists (runs once per PR)
+- Ensure develop cache exists (created on push to develop)

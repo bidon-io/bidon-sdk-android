@@ -1,5 +1,6 @@
 # 0.14.0 (2026.*.*)
 - [BDN-1112](https://appodeal.atlassian.net/browse/BDN-1112) Improved CI workflows and enable Changelog logic for Dependabot automation
+- [BDN-1125](https://appodeal.atlassian.net/browse/BDN-1125) Added SDK size check and Claude AI auto-fix deprecated workflows
 
 # 0.13.0 (2025.12.04)
 ## Features:

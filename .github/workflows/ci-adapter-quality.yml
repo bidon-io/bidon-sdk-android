@@ -230,6 +230,7 @@ jobs:
           if [ ! -f build_output.log ]; then
             echo "⚠️ Build output not found, skipping deprecated check"
             echo "deprecated_status=skipped" >> $GITHUB_OUTPUT
+            echo "has_deprecated=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -252,18 +253,30 @@ jobs:
             echo "   2. Replace it with non-deprecated alternatives"
             echo "   3. Remove any @Deprecated annotations from adapter code"
             echo "deprecated_status=failure" >> $GITHUB_OUTPUT
+            echo "has_deprecated=true" >> $GITHUB_OUTPUT
 
-            # Save warnings for summary
-            echo "$ADAPTER_DEPRECATED" > /tmp/deprecated_warnings.txt
-
-            exit 1
+            # Save warnings for artifact upload
+            echo "$ADAPTER_DEPRECATED" > deprecated_warnings.txt
           else
             if grep -q "is deprecated" build_output.log; then
               echo "ℹ️ Found deprecated warnings in dependencies, but none in adapter ${{ matrix.adapter }} itself"
             fi
             echo "✅ No deprecated code warnings found in adapter"
             echo "deprecated_status=success" >> $GITHUB_OUTPUT
+            echo "has_deprecated=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Upload deprecated warnings
+        if: steps.deprecated.outputs.has_deprecated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deprecated-warnings-${{ matrix.adapter }}
+          path: deprecated_warnings.txt
+          retention-days: 7
+
+      - name: Fail if deprecated found
+        if: steps.deprecated.outputs.has_deprecated == 'true'
+        run: exit 1
 
       - name: Job Summary
         if: always()
@@ -279,8 +292,8 @@ jobs:
             echo ":x: Found deprecated code warnings:" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            if [ -f /tmp/deprecated_warnings.txt ]; then
-              cat /tmp/deprecated_warnings.txt >> $GITHUB_STEP_SUMMARY
+            if [ -f deprecated_warnings.txt ]; then
+              cat deprecated_warnings.txt >> $GITHUB_STEP_SUMMARY
             else
               grep "is deprecated" build_output.log | grep "adapter/${{ matrix.adapter }}/" >> $GITHUB_STEP_SUMMARY || echo "See logs for details" >> $GITHUB_STEP_SUMMARY
             fi

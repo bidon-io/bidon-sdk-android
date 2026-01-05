@@ -4,7 +4,7 @@ All notable changes to the Chartboost adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://developers.chartboost.com/docs/android-release-notes)
+📋 [Release Notes](https://docs.chartboost.com/en/monetization/integrate/android/changelog/)
 
 ## [Unreleased]
 

@@ -4,7 +4,7 @@ All notable changes to the DTExchange adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://developer.digitalturbine.com/hc/en-us/articles/360010634298)
+📋 [Release Notes](https://developer.digitalturbine.com/hc/en-us/articles/360010834177-DT-Exchange-Android-Changelog)
 
 ## [Unreleased]
 

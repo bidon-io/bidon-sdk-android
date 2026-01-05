@@ -4,7 +4,7 @@ All notable changes to the AppLovin adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://github.com/AppLovin/AppLovin-MAX-SDK-Android/releases)
+📋 [Release Notes](https://github.com/AppLovin/AppLovin-MAX-SDK-Android/releases) | [Changelog](https://support.axon.ai/en/max/android/changelog)
 
 ## [Unreleased]
 
