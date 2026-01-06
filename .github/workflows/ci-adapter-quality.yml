@@ -272,7 +272,7 @@ jobs:
         with:
           name: deprecated-warnings-${{ matrix.adapter }}
           path: deprecated_warnings.txt
-          retention-days: 7
+          retention-days: 1
 
       - name: Fail if deprecated found
         if: steps.deprecated.outputs.has_deprecated == 'true'
@@ -352,6 +352,16 @@ jobs:
             echo "test_status=failure" >> $GITHUB_OUTPUT
             exit $TEST_EXIT_CODE
           fi
+
+      - name: Upload test failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failures-${{ matrix.adapter }}
+          path: |
+            adapter/${{ matrix.adapter }}/build/reports/tests/
+            adapter/${{ matrix.adapter }}/build/test-results/
+          retention-days: 1
 
       - name: Job Summary
         if: always()

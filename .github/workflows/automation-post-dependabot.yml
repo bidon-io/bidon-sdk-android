@@ -1,144 +1,266 @@
 name: Automation post dependabot
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths: ['adapter/*/build.gradle.kts']
+  workflow_run:
+    workflows: ["CI Adapter Quality"]
+    types: [completed]
+
+concurrency:
+  group: automation-dependabot-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
   pull-requests: write
+  issues: write
+  actions: read
 
 jobs:
-  update-changelog:
-    name: Update CHANGELOG
-    if: github.actor == 'dependabot[bot]'
+  # Check PR state and determine what needs to be done
+  check-state:
+    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
-
+    outputs:
+      should_run: ${{ steps.pr.outputs.should_run }}
+      pr_number: ${{ steps.pr.outputs.number }}
+      pr_branch: ${{ steps.pr.outputs.branch }}
+      is_dependabot: ${{ steps.pr.outputs.is_dependabot }}
+      build_failed: ${{ steps.status.outputs.build_failed }}
+      deprecated_failed: ${{ steps.status.outputs.deprecated_failed }}
+      tests_failed: ${{ steps.status.outputs.tests_failed }}
+      changelog_done: ${{ steps.labels.outputs.changelog_done }}
+      build_attempted: ${{ steps.labels.outputs.build_attempted }}
+      deprecated_attempted: ${{ steps.labels.outputs.deprecated_attempted }}
+      tests_attempted: ${{ steps.labels.outputs.tests_attempted }}
+      adapters: ${{ steps.artifacts.outputs.adapters }}
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v7
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          # PAT is required to trigger CI workflows on push (GITHUB_TOKEN doesn't trigger workflows)
-          token: ${{ secrets.DEPENDABOT_PAT }}
-          fetch-depth: 0
+          script: |
+            const run = context.payload.workflow_run;
+            const prNumber = run.pull_requests[0]?.number;
+            const prBranch = run.head_branch;
 
-      - name: Get changed files
-        id: changed-files
-        run: |
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          echo "Base branch: $BASE_REF"
+            if (!prNumber) {
+              console.log('Could not determine PR number');
+              core.setOutput('should_run', 'false');
+              return;
+            }
 
-          git fetch origin "$BASE_REF"
-          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF"...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
+            // Get PR details to check actor
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
 
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
+            const isDependabot = pr.user.login === 'dependabot[bot]';
 
-          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+            console.log(`PR #${prNumber} by ${pr.user.login}`);
+            console.log(`Branch: ${prBranch}`);
+            console.log(`Is Dependabot: ${isDependabot}`);
 
-      - name: Update changelogs
-        if: steps.changed-files.outputs.changed_files != ''
-        run: |
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          UPDATES_COUNT=0
+            core.setOutput('should_run', 'true');
+            core.setOutput('number', prNumber);
+            core.setOutput('branch', prBranch);
+            core.setOutput('is_dependabot', isDependabot ? 'true' : 'false');
 
-          echo "## Changelog Updates" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check labels
+        id: labels
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
 
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
 
-            echo "::group::Processing $file"
+            const labels = (pr.labels || []).map(l => l.name);
+            console.log(`Labels: ${labels.join(', ')}`);
 
-            ADAPTER_DIR=$(dirname "$file")
-            ADAPTER_NAME=$(basename "$ADAPTER_DIR")
-            CHANGELOG="$ADAPTER_DIR/CHANGELOG.md"
+            core.setOutput('changelog_done', labels.includes('bot:changelog-updated') ? 'true' : 'false');
+            core.setOutput('build_attempted', labels.includes('bot:build-attempted') ? 'true' : 'false');
+            core.setOutput('deprecated_attempted', labels.includes('bot:deprecated-attempted') ? 'true' : 'false');
+            core.setOutput('tests_attempted', labels.includes('bot:tests-attempted') ? 'true' : 'false');
 
-            if [ ! -f "$CHANGELOG" ]; then
-              echo "::warning::$CHANGELOG not found, skipping"
-              echo "::endgroup::"
-              continue
-            fi
+      - name: Check CI job statuses
+        id: status
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
 
-            OLD_SDK_VERSION=$(git show "origin/$BASE_REF":"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
-            NEW_SDK_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+            // Get jobs from the triggering workflow run
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
 
-            if [ "$OLD_SDK_VERSION" = "unknown" ] || [ "$NEW_SDK_VERSION" = "unknown" ]; then
-              echo "::error::Could not extract version for $ADAPTER_NAME"
-              echo "::endgroup::"
-              continue
-            fi
+            let buildFailed = false;
+            let deprecatedFailed = false;
+            let testsFailed = false;
 
-            if [ "$OLD_SDK_VERSION" = "$NEW_SDK_VERSION" ]; then
-              echo "No version change detected for $ADAPTER_NAME"
-              echo "::endgroup::"
-              continue
-            fi
+            for (const job of jobs.jobs) {
+              console.log(`Job: ${job.name} - ${job.conclusion}`);
 
-            # Reset adapterMinor to 0 for new SDK version
-            sed -i 's/val adapterMinor = [0-9]*/val adapterMinor = 0/' "$file"
-
-            # Full adapter version: SDK version + .0 (minor resets on SDK update)
-            ADAPTER_VERSION="${NEW_SDK_VERSION}.0"
-
-            echo "::notice::Version change for $ADAPTER_NAME: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (adapter version: $ADAPTER_VERSION)"
-
-            CURRENT_DATE=$(date +%Y-%m-%d)
-
-            # Create changelog entry (Release Notes link is already in CHANGELOG header)
-            ENTRY="## [$ADAPTER_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_SDK_VERSION to $NEW_SDK_VERSION\n"
-
-            # Insert entry after [Unreleased] section
-            awk -v entry="$ENTRY" '
-              /## \[Unreleased\]/ {
-                print $0
-                print ""
-                print entry
-                next
+              if (job.name.startsWith('build') && job.conclusion === 'failure') {
+                buildFailed = true;
               }
-              {print}
-            ' "$CHANGELOG" > "${CHANGELOG}.tmp"
+              if (job.name.startsWith('deprecated-check') && job.conclusion === 'failure') {
+                deprecatedFailed = true;
+              }
+              if (job.name.startsWith('unit-tests') && job.conclusion === 'failure') {
+                testsFailed = true;
+              }
+            }
 
-            mv "${CHANGELOG}.tmp" "$CHANGELOG"
+            console.log(`Build failed: ${buildFailed}`);
+            console.log(`Deprecated failed: ${deprecatedFailed}`);
+            console.log(`Tests failed: ${testsFailed}`);
 
-            echo "Updated $CHANGELOG"
-            echo "- **$ADAPTER_NAME**: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (v$ADAPTER_VERSION)" >> "$GITHUB_STEP_SUMMARY"
+            core.setOutput('build_failed', buildFailed ? 'true' : 'false');
+            core.setOutput('deprecated_failed', deprecatedFailed ? 'true' : 'false');
+            core.setOutput('tests_failed', testsFailed ? 'true' : 'false');
 
-            UPDATES_COUNT=$((UPDATES_COUNT + 1))
-            echo "::endgroup::"
-          done <<< "${{ steps.changed-files.outputs.changed_files }}"
+      - name: List available artifacts
+        id: artifacts
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
 
-      - name: Check for changes
-        id: check-changes
-        run: |
-          if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          fi
+            const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
 
-      - name: Commit and push changes
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add adapter/*/CHANGELOG.md adapter/*/build.gradle.kts
-          git commit -m "chore: update adapters for dependency updates"
-          git push
-          echo "::notice::Changes committed and pushed successfully"
+            // Find adapters with issues
+            const adaptersWithIssues = new Set();
 
+            for (const artifact of data.artifacts || []) {
+              console.log(`Artifact: ${artifact.name}`);
+
+              // Extract adapter name from artifact names like:
+              // build-output-admob, deprecated-warnings-admob, test-failures-admob
+              const match = artifact.name.match(/^(build-output|deprecated-warnings|test-failures)-(.+)$/);
+              if (match) {
+                adaptersWithIssues.add(match[2]);
+              }
+            }
+
+            const adapters = Array.from(adaptersWithIssues);
+            console.log(`Adapters with artifacts: ${adapters.join(', ')}`);
+
+            if (adapters.length > 0) {
+              core.setOutput('adapters', JSON.stringify(adapters));
+            } else {
+              core.setOutput('adapters', '[]');
+            }
+
+  # Update CHANGELOG (always runs for Dependabot PRs, doesn't restart CI)
+  update-changelog:
+    needs: check-state
+    if: |
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.is_dependabot == 'true' &&
+      needs.check-state.outputs.changelog_done != 'true'
+    uses: ./.github/workflows/claude/fix-changelog.yml
+    with:
+      pr_number: ${{ needs.check-state.outputs.pr_number }}
+      pr_branch: ${{ needs.check-state.outputs.pr_branch }}
+    secrets: inherit
+
+  # Fix build errors (if build failed and not already attempted)
+  fix-build:
+    needs: [check-state, update-changelog]
+    if: |
+      always() &&
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed == 'true' &&
+      needs.check-state.outputs.build_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    uses: ./.github/workflows/claude/fix-build.yml
+    with:
+      pr_number: ${{ needs.check-state.outputs.pr_number }}
+      pr_branch: ${{ needs.check-state.outputs.pr_branch }}
+      adapters: ${{ needs.check-state.outputs.adapters }}
+      triggering_run_id: ${{ github.event.workflow_run.id }}
+    secrets: inherit
+
+  # Fix deprecated code (if build OK but deprecated failed and not already attempted)
+  fix-deprecated:
+    needs: [check-state, update-changelog]
+    if: |
+      always() &&
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed == 'true' &&
+      needs.check-state.outputs.deprecated_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    uses: ./.github/workflows/claude/fix-deprecated.yml
+    with:
+      pr_number: ${{ needs.check-state.outputs.pr_number }}
+      pr_branch: ${{ needs.check-state.outputs.pr_branch }}
+      adapters: ${{ needs.check-state.outputs.adapters }}
+      triggering_run_id: ${{ github.event.workflow_run.id }}
+    secrets: inherit
+
+  # Fix test failures (if build OK, deprecated OK, but tests failed and not already attempted)
+  fix-tests:
+    needs: [check-state, update-changelog]
+    if: |
+      always() &&
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed != 'true' &&
+      needs.check-state.outputs.tests_failed == 'true' &&
+      needs.check-state.outputs.tests_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    uses: ./.github/workflows/claude/fix-tests.yml
+    with:
+      pr_number: ${{ needs.check-state.outputs.pr_number }}
+      pr_branch: ${{ needs.check-state.outputs.pr_branch }}
+      adapters: ${{ needs.check-state.outputs.adapters }}
+      triggering_run_id: ${{ github.event.workflow_run.id }}
+    secrets: inherit
+
+  # Summary job
+  summary:
+    needs: [check-state, update-changelog, fix-build, fix-deprecated, fix-tests]
+    if: always() && needs.check-state.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
       - name: Job Summary
-        if: always()
         run: |
+          echo "## Automation Post-Dependabot Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.check-changes.outputs.has_changes }}" == "true" ]; then
-            echo ":white_check_mark: Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo ":information_source: No changes to commit" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| PR Number | #${{ needs.check-state.outputs.pr_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Is Dependabot | ${{ needs.check-state.outputs.is_dependabot }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Failed | ${{ needs.check-state.outputs.build_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deprecated Failed | ${{ needs.check-state.outputs.deprecated_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Failed | ${{ needs.check-state.outputs.tests_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Labels" >> $GITHUB_STEP_SUMMARY
+          echo "| Label | Present |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:changelog-updated | ${{ needs.check-state.outputs.changelog_done }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:build-attempted | ${{ needs.check-state.outputs.build_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:deprecated-attempted | ${{ needs.check-state.outputs.deprecated_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:tests-attempted | ${{ needs.check-state.outputs.tests_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Adapters" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo '${{ needs.check-state.outputs.adapters }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

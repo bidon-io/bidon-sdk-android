@@ -1,0 +1,201 @@
+name: Claude Fix Tests
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      pr_branch:
+        required: true
+        type: string
+      adapters:
+        required: true
+        type: string
+      triggering_run_id:
+        required: true
+        type: string
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        adapter: ${{ fromJson(inputs.adapters) }}
+    env:
+      ORG_GRADLE_PROJECT_uname: ${{ secrets.ARTIFACTORY_USER }}
+      ORG_GRADLE_PROJECT_upassword: ${{ secrets.ARTIFACTORY_PASSWORD }}
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.pr_branch }}
+          token: ${{ secrets.DEPENDABOT_PAT }}
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Download test failures artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-failures-${{ matrix.adapter }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.triggering_run_id }}
+        continue-on-error: true
+
+      - name: Extract Release Notes URL
+        id: changelog
+        run: |
+          CHANGELOG_FILE="adapter/${{ matrix.adapter }}/CHANGELOG.md"
+          if [ -f "$CHANGELOG_FILE" ]; then
+            RELEASE_NOTES_URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1)
+            echo "release_notes_url=$RELEASE_NOTES_URL" >> $GITHUB_OUTPUT
+            echo "Release Notes URL: $RELEASE_NOTES_URL"
+          else
+            echo "CHANGELOG.md not found for ${{ matrix.adapter }}"
+            echo "release_notes_url=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read test failures
+        id: failures
+        run: |
+          # Look for test report XML files (downloaded from artifact)
+          # Artifact preserves directory structure: adapter/{adapter}/build/test-results/
+          ADAPTER="${{ matrix.adapter }}"
+          TEST_RESULTS_DIR="adapter/$ADAPTER/build/test-results"
+          REPORTS_DIR="adapter/$ADAPTER/build/reports/tests"
+
+          echo "Looking for test results in: $TEST_RESULTS_DIR"
+          echo "Looking for reports in: $REPORTS_DIR"
+
+          # Find XML test reports in test-results directory
+          XML_FILES=""
+          if [ -d "$TEST_RESULTS_DIR" ]; then
+            XML_FILES=$(find "$TEST_RESULTS_DIR" -name "*.xml" 2>/dev/null | head -10)
+          fi
+
+          if [ -n "$XML_FILES" ]; then
+            echo "Found XML files: $XML_FILES"
+            echo "failures<<EOF" >> $GITHUB_OUTPUT
+            for f in $XML_FILES; do
+              if grep -q "failures=\"[1-9]" "$f" 2>/dev/null || grep -q "errors=\"[1-9]" "$f" 2>/dev/null; then
+                echo "=== $(basename $f) ===" >> $GITHUB_OUTPUT
+                # Extract failed test cases
+                grep -A5 "failure message=" "$f" 2>/dev/null | head -50 >> $GITHUB_OUTPUT
+                grep -A5 "error message=" "$f" 2>/dev/null | head -50 >> $GITHUB_OUTPUT
+              fi
+            done
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "No test report XML files found"
+            # Try to find any useful info from HTML reports
+            if [ -d "$REPORTS_DIR" ]; then
+              echo "failures=Test failures found but no XML details available. Check CI logs." >> $GITHUB_OUTPUT
+            else
+              echo "failures=No detailed test failures found" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Fix with Claude
+        if: |
+          steps.failures.outputs.failures != '' &&
+          !contains(steps.failures.outputs.failures, 'No detailed test failures found') &&
+          !contains(steps.failures.outputs.failures, 'no XML details available')
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.DEPENDABOT_PAT }}
+          timeout_minutes: 30
+          claude_args: "--model claude-sonnet-4-5-20250929 --max-turns 40 --dangerously-skip-permissions"
+          prompt: |
+            ## Task: Fix test failures in adapter/${{ matrix.adapter }}
+
+            ### Test failures:
+            ```
+            ${{ steps.failures.outputs.failures }}
+            ```
+
+            ### Release Notes URL:
+            ${{ steps.changelog.outputs.release_notes_url }}
+
+            ### Instructions:
+            1. Read the test failures above carefully
+            2. If Release Notes URL is available, fetch it to understand API changes
+            3. Fix each failing test in adapter/${{ matrix.adapter }}/src/test/
+            4. Run `./gradlew :adapter:${{ matrix.adapter }}:testProductionReleaseUnitTest` to verify
+            5. Run `./gradlew ktlintFormat` to format code
+            6. Commit changes with message format:
+               fix(${{ matrix.adapter }}): fix unit tests
+
+            ### IMPORTANT:
+            - Only fix code in adapter/${{ matrix.adapter }}/ directory
+            - Do not change other adapters or core SDK
+            - Focus on updating tests to match new API, not changing adapter implementation
+            - If test expectation changed due to API change, update the test
+            - If unsure about migration, leave a TODO comment
+            - Do NOT add "Generated with Claude Code" footer to commits
+            - Do NOT add "Co-Authored-By" line to commits
+
+      - name: Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git push origin HEAD:${{ inputs.pr_branch }}
+          else
+            echo "No changes to push"
+          fi
+
+  add-label:
+    needs: fix
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add attempted label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          script: |
+            const label = {
+              name: 'bot:tests-attempted',
+              color: '5319e7',
+              description: 'Claude attempted to fix test failures'
+            };
+
+            // Create label if not exists
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name
+              });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            // Add label to PR
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ inputs.pr_number }},
+              labels: [label.name]
+            });
