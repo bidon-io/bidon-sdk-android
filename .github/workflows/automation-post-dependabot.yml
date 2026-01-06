@@ -174,7 +174,7 @@ jobs:
       needs.check-state.outputs.should_run == 'true' &&
       needs.check-state.outputs.is_dependabot == 'true' &&
       needs.check-state.outputs.changelog_done != 'true'
-    uses: ./.github/workflows/claude/fix-changelog.yml
+    uses: ./.github/workflows/claude-fix-changelog.yml
     with:
       pr_number: ${{ needs.check-state.outputs.pr_number }}
       pr_branch: ${{ needs.check-state.outputs.pr_branch }}
@@ -189,7 +189,7 @@ jobs:
       needs.check-state.outputs.build_failed == 'true' &&
       needs.check-state.outputs.build_attempted != 'true' &&
       needs.check-state.outputs.adapters != '[]'
-    uses: ./.github/workflows/claude/fix-build.yml
+    uses: ./.github/workflows/claude-fix-build.yml
     with:
       pr_number: ${{ needs.check-state.outputs.pr_number }}
       pr_branch: ${{ needs.check-state.outputs.pr_branch }}
@@ -207,7 +207,7 @@ jobs:
       needs.check-state.outputs.deprecated_failed == 'true' &&
       needs.check-state.outputs.deprecated_attempted != 'true' &&
       needs.check-state.outputs.adapters != '[]'
-    uses: ./.github/workflows/claude/fix-deprecated.yml
+    uses: ./.github/workflows/claude-fix-deprecated.yml
     with:
       pr_number: ${{ needs.check-state.outputs.pr_number }}
       pr_branch: ${{ needs.check-state.outputs.pr_branch }}
@@ -226,7 +226,7 @@ jobs:
       needs.check-state.outputs.tests_failed == 'true' &&
       needs.check-state.outputs.tests_attempted != 'true' &&
       needs.check-state.outputs.adapters != '[]'
-    uses: ./.github/workflows/claude/fix-tests.yml
+    uses: ./.github/workflows/claude-fix-tests.yml
     with:
       pr_number: ${{ needs.check-state.outputs.pr_number }}
       pr_branch: ${{ needs.check-state.outputs.pr_branch }}

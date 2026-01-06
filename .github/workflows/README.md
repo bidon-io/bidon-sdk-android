@@ -67,9 +67,7 @@
 
 ## Claude Reusable Workflows
 
-Located in `.github/workflows/claude/` directory.
-
-### `claude/fix-changelog.yml`
+### `claude-fix-changelog.yml`
 **Triggers**: workflow_call
 **Purpose**: Update CHANGELOG.md for Dependabot dependency updates
 - Detects version changes in build.gradle.kts
@@ -77,7 +75,7 @@ Located in `.github/workflows/claude/` directory.
 - Creates changelog entry with date and version info
 - Commits and pushes changes
 
-### `claude/fix-build.yml`
+### `claude-fix-build.yml`
 **Triggers**: workflow_call
 **Purpose**: Use Claude AI to fix build errors
 - Downloads `build-output-{adapter}` artifact
@@ -85,7 +83,7 @@ Located in `.github/workflows/claude/` directory.
 - Calls Claude Sonnet 4.5 to fix compilation errors
 - Runs ktlintFormat and commits changes
 
-### `claude/fix-deprecated.yml`
+### `claude-fix-deprecated.yml`
 **Triggers**: workflow_call
 **Purpose**: Use Claude AI to fix deprecated API warnings
 - Downloads `deprecated-warnings-{adapter}` artifact
@@ -93,7 +91,7 @@ Located in `.github/workflows/claude/` directory.
 - Calls Claude Sonnet 4.5 to migrate deprecated APIs
 - Runs ktlintFormat and commits changes
 
-### `claude/fix-tests.yml`
+### `claude-fix-tests.yml`
 **Triggers**: workflow_call
 **Purpose**: Use Claude AI to fix failing unit tests
 - Downloads `test-failures-{adapter}` artifact
@@ -164,22 +162,22 @@ Legacy repository synchronization workflow.
 - Inputs: `adapter`, `repository`
 - Purpose: Publish single adapter to Artifactory
 
-**`claude/fix-changelog.yml`**
+**`claude-fix-changelog.yml`**
 - Called by: `automation-post-dependabot.yml`
 - Inputs: `pr_number`, `pr_branch`
 - Purpose: Update CHANGELOG for dependency updates
 
-**`claude/fix-build.yml`**
+**`claude-fix-build.yml`**
 - Called by: `automation-post-dependabot.yml`
 - Inputs: `pr_number`, `pr_branch`, `adapters`, `triggering_run_id`
 - Purpose: Fix build errors with Claude AI
 
-**`claude/fix-deprecated.yml`**
+**`claude-fix-deprecated.yml`**
 - Called by: `automation-post-dependabot.yml`
 - Inputs: `pr_number`, `pr_branch`, `adapters`, `triggering_run_id`
 - Purpose: Fix deprecated code with Claude AI
 
-**`claude/fix-tests.yml`**
+**`claude-fix-tests.yml`**
 - Called by: `automation-post-dependabot.yml`
 - Inputs: `pr_number`, `pr_branch`, `adapters`, `triggering_run_id`
 - Purpose: Fix test failures with Claude AI
@@ -189,10 +187,10 @@ Legacy repository synchronization workflow.
 ```
 ci-adapter-quality.yml
   └─► automation-post-dependabot.yml (workflow_run)
-        ├─► claude/fix-changelog.yml (always for Dependabot)
-        ├─► claude/fix-build.yml (if build failed)
-        ├─► claude/fix-deprecated.yml (if deprecated check failed)
-        └─► claude/fix-tests.yml (if unit tests failed)
+        ├─► claude-fix-changelog.yml (always for Dependabot)
+        ├─► claude-fix-build.yml (if build failed)
+        ├─► claude-fix-deprecated.yml (if deprecated check failed)
+        └─► claude-fix-tests.yml (if unit tests failed)
 
 sdk-size-check.yml
   └─► Comments size diff on PR
