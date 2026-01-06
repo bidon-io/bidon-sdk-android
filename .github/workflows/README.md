@@ -34,12 +34,13 @@
 **Purpose**: Automatically fix deprecated code using Claude AI
 - Downloads deprecated warnings artifacts from CI
 - Extracts Release Notes URL from adapter CHANGELOG
-- Calls Claude to fix deprecated APIs
+- Calls Claude to fix deprecated APIs (Claude posts its own comment)
 - Pushes fixes to PR branch
-- Comments on PR with fix summary
+- Adds `claude:deprecated-attempted` label to prevent infinite loops
 
 **Requirements:**
 - `ANTHROPIC_API_KEY` secret must be configured
+- `DEPENDABOT_PAT` secret for PR operations on Dependabot PRs
 
 ### `automation-dependabot.yml` - **Automation Dependabot** (DISABLED)
 **Status**: Currently disabled

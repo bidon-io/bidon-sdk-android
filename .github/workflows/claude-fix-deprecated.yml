@@ -9,6 +9,12 @@ concurrency:
   group: claude-fix-deprecated-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
 jobs:
   # Check if there are deprecated warnings to fix
   check-deprecated:
@@ -185,63 +191,16 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git push origin HEAD:${{ needs.check-deprecated.outputs.pr_branch }}
 
-  # Add label and comment on PR
+  # Add label to prevent infinite loop
   finalize:
     needs: [check-deprecated, fix-deprecated]
     if: always() && needs.check-deprecated.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.check-deprecated.outputs.pr_branch }}
-
-      - name: Download deprecated warnings artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: deprecated-warnings-*
-          path: warnings
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
-        continue-on-error: true
-
-      - name: Collect warnings and release notes
-        id: collect
-        run: |
-          adapters='${{ needs.check-deprecated.outputs.adapters }}'
-
-          # Build markdown content for each adapter
-          CONTENT=""
-          for adapter in $(echo "$adapters" | jq -r '.[]'); do
-            CONTENT="$CONTENT### \`$adapter\`\n\n"
-
-            # Get release notes URL
-            CHANGELOG="adapter/$adapter/CHANGELOG.md"
-            if [ -f "$CHANGELOG" ]; then
-              URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG" | sed 's/\[Release Notes\](//' | head -1)
-              if [ -n "$URL" ]; then
-                CONTENT="$CONTENT📋 [Release Notes]($URL)\n\n"
-              fi
-            fi
-
-            # Get deprecated warnings
-            WARNINGS_FILE="warnings/deprecated-warnings-$adapter/deprecated_warnings.txt"
-            if [ -f "$WARNINGS_FILE" ]; then
-              CONTENT="$CONTENT<details>\n<summary>Deprecated warnings found</summary>\n\n\`\`\`\n"
-              CONTENT="$CONTENT$(cat "$WARNINGS_FILE" | head -30)\n"
-              CONTENT="$CONTENT\`\`\`\n</details>\n\n"
-            else
-              CONTENT="$CONTENT_No warnings file found_\n\n"
-            fi
-          done
-
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$CONTENT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Add label to prevent re-run
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.DEPENDABOT_PAT }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -273,36 +232,4 @@ jobs:
               owner, repo,
               issue_number: prNumber,
               labels: [label.name]
-            });
-
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = ${{ needs.check-deprecated.outputs.pr_number }};
-            const success = '${{ needs.fix-deprecated.result }}' === 'success';
-            const details = `${{ steps.collect.outputs.content }}`;
-
-            let body = '';
-            if (success) {
-              body = `## 🤖 Claude Fixed Deprecated Code
-
-            ${details}
-
-            ---
-            ✅ **Changes pushed.** Please review the commits and re-run CI to verify.`;
-            } else {
-              body = `## ⚠️ Claude Could Not Fix All Deprecated Code
-
-            ${details}
-
-            ---
-            ❌ **Manual intervention required.** Check the warnings above and release notes for migration guide.`;
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: body
             });

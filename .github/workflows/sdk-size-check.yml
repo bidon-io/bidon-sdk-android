@@ -14,6 +14,10 @@ concurrency:
   group: sdk-size-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   # Cache develop APK on each push to develop
   cache-develop:
