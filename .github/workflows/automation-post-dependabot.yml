@@ -157,132 +157,128 @@ jobs:
               core.setOutput('adapters', '[]');
             }
 
-  # Update CHANGELOG (inline)
-  update-changelog:
-    needs: check-state
+  # Trigger Claude to update changelog (after all fixes done and CI passes)
+  trigger-changelog:
+    needs: [check-state, trigger-fix-build, trigger-fix-deprecated, trigger-fix-tests]
     if: |
+      always() &&
       needs.check-state.outputs.should_run == 'true' &&
-      needs.check-state.outputs.changelog_done != 'true'
+      needs.check-state.outputs.changelog_done != 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed != 'true' &&
+      needs.check-state.outputs.tests_failed != 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout
         uses: actions/checkout@v5
         with:
           ref: ${{ needs.check-state.outputs.pr_branch }}
-          token: ${{ secrets.DEPENDABOT_PAT }}
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changed-files
+      - name: Get version changes
+        id: versions
         run: |
           git fetch origin develop
-          CHANGED_FILES=$(git diff --name-only origin/develop...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
-          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          VERSION_CHANGES=""
+          ADAPTERS_LIST=""
+          RELEASE_NOTES=""
 
-      - name: Update changelogs
-        if: steps.changed-files.outputs.changed_files != ''
-        run: |
-          echo "## Changelog Updates" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          CHANGED_FILES=$(git diff --name-only origin/develop...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
 
           while IFS= read -r file; do
             [ -z "$file" ] && continue
 
-            echo "::group::Processing $file"
-
             ADAPTER_DIR=$(dirname "$file")
             ADAPTER_NAME=$(basename "$ADAPTER_DIR")
-            CHANGELOG="$ADAPTER_DIR/CHANGELOG.md"
 
-            if [ ! -f "$CHANGELOG" ]; then
-              echo "::warning::$CHANGELOG not found, skipping"
-              echo "::endgroup::"
-              continue
+            OLD_VER=$(git show origin/develop:"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+            NEW_VER=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+
+            if [ "$OLD_VER" != "$NEW_VER" ] && [ "$OLD_VER" != "unknown" ]; then
+              VERSION_CHANGES="${VERSION_CHANGES}- **${ADAPTER_NAME}**: ${OLD_VER} -> ${NEW_VER}\n"
+              ADAPTERS_LIST="${ADAPTERS_LIST}${ADAPTER_NAME}, "
+
+              # Get release notes URL
+              CHANGELOG_FILE="adapter/$ADAPTER_NAME/CHANGELOG.md"
+              if [ -f "$CHANGELOG_FILE" ]; then
+                URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1 || true)
+                if [ -n "$URL" ]; then
+                  RELEASE_NOTES="${RELEASE_NOTES}- **${ADAPTER_NAME}**: ${URL}\n"
+                fi
+              fi
             fi
+          done <<< "$CHANGED_FILES"
 
-            OLD_SDK_VERSION=$(git show origin/develop:"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
-            NEW_SDK_VERSION=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+          ADAPTERS_LIST=$(echo "$ADAPTERS_LIST" | sed 's/, $//')
 
-            if [ "$OLD_SDK_VERSION" = "unknown" ] || [ "$NEW_SDK_VERSION" = "unknown" ]; then
-              echo "::error::Could not extract version for $ADAPTER_NAME"
-              echo "::endgroup::"
-              continue
-            fi
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$VERSION_CHANGES" > /tmp/version_changes.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
 
-            if [ "$OLD_SDK_VERSION" = "$NEW_SDK_VERSION" ]; then
-              echo "No version change detected for $ADAPTER_NAME"
-              echo "::endgroup::"
-              continue
-            fi
-
-            # Reset adapterMinor to 0 for new SDK version
-            sed -i 's/val adapterMinor = [0-9]*/val adapterMinor = 0/' "$file"
-
-            # Full adapter version: SDK version + .0 (minor resets on SDK update)
-            ADAPTER_VERSION="${NEW_SDK_VERSION}.0"
-
-            echo "::notice::Version change for $ADAPTER_NAME: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (adapter version: $ADAPTER_VERSION)"
-
-            CURRENT_DATE=$(date +%Y-%m-%d)
-
-            # Create changelog entry
-            ENTRY="## [$ADAPTER_VERSION] - $CURRENT_DATE\n### Changed\n- Updated SDK dependency from $OLD_SDK_VERSION to $NEW_SDK_VERSION\n"
-
-            # Insert entry after [Unreleased] section
-            awk -v entry="$ENTRY" '
-              /## \[Unreleased\]/ {
-                print $0
-                print ""
-                print entry
-                next
-              }
-              {print}
-            ' "$CHANGELOG" > "${CHANGELOG}.tmp"
-
-            mv "${CHANGELOG}.tmp" "$CHANGELOG"
-
-            echo "Updated $CHANGELOG"
-            echo "- **$ADAPTER_NAME**: $OLD_SDK_VERSION -> $NEW_SDK_VERSION (v$ADAPTER_VERSION)" >> "$GITHUB_STEP_SUMMARY"
-
-            echo "::endgroup::"
-          done <<< "${{ steps.changed-files.outputs.changed_files }}"
-
-      - name: Check for changes
-        id: check-changes
-        run: |
-          if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          else
+          if [ -n "$ADAPTERS_LIST" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push changes
-        if: steps.check-changes.outputs.has_changes == 'true'
+      - name: Determine AI fixes
+        id: ai-fixes
         env:
-          BUILD_FAILED: ${{ needs.check-state.outputs.build_failed }}
-          DEPRECATED_FAILED: ${{ needs.check-state.outputs.deprecated_failed }}
-          TESTS_FAILED: ${{ needs.check-state.outputs.tests_failed }}
+          BUILD_ATTEMPTED: ${{ needs.check-state.outputs.build_attempted }}
+          DEPRECATED_ATTEMPTED: ${{ needs.check-state.outputs.deprecated_attempted }}
+          TESTS_ATTEMPTED: ${{ needs.check-state.outputs.tests_attempted }}
         run: |
-          # Add [skip ci] only if Claude will make another push later (to avoid extra CI runs)
-          SKIP_CI=""
-          if [ "$BUILD_FAILED" == "true" ] || \
-             [ "$DEPRECATED_FAILED" == "true" ] || \
-             [ "$TESTS_FAILED" == "true" ]; then
-            SKIP_CI=" [skip ci]"
-            echo "::notice::Adding [skip ci] - Claude will push fixes later"
+          AI_FIXES=""
+          if [ "$DEPRECATED_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- deprecated-fix: yes\n"
+          fi
+          if [ "$BUILD_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- build-fix: yes\n"
+          fi
+          if [ "$TESTS_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- tests-fix: yes\n"
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add adapter/*/CHANGELOG.md adapter/*/build.gradle.kts
-          git commit -m "chore: update adapters for dependency updates${SKIP_CI}"
-          git push origin HEAD:${{ needs.check-state.outputs.pr_branch }}
-          echo "::notice::Changes committed and pushed successfully"
+          if [ -z "$AI_FIXES" ]; then
+            AI_FIXES="None"
+          fi
+
+          echo -e "$AI_FIXES" > /tmp/ai_fixes.txt
+
+      - name: Render prompt
+        if: steps.versions.outputs.has_changes == 'true'
+        run: |
+          PROMPT=$(cat .github/claude-prompts/update-changelog.md)
+
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          VERSION_CHANGES=$(cat /tmp/version_changes.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
+          AI_FIXES=$(cat /tmp/ai_fixes.txt)
+
+          PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
+          PROMPT="${PROMPT//\{\{VERSION_CHANGES\}\}/$VERSION_CHANGES}"
+          PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
+          PROMPT="${PROMPT//\{\{AI_FIXES\}\}/$AI_FIXES}"
+
+          echo "$PROMPT" > /tmp/prompt.txt
+
+      - name: Post @claude comment
+        if: steps.versions.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          script: |
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              body: `@claude\n\n${prompt}`
+            });
 
       - name: Add changelog label
-        if: always()
+        if: steps.versions.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.DEPENDABOT_PAT }}
@@ -293,7 +289,6 @@ jobs:
               description: 'CHANGELOG automatically updated'
             };
 
-            // Create label if not exists
             try {
               await github.rest.issues.getLabel({
                 owner: context.repo.owner,
@@ -314,7 +309,6 @@ jobs:
               }
             }
 
-            // Add label to PR
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -324,9 +318,8 @@ jobs:
 
   # Trigger Claude to fix build errors
   trigger-fix-build:
-    needs: [check-state, update-changelog]
+    needs: [check-state]
     if: |
-      always() &&
       needs.check-state.outputs.should_run == 'true' &&
       needs.check-state.outputs.build_failed == 'true' &&
       needs.check-state.outputs.build_attempted != 'true' &&
@@ -502,9 +495,8 @@ jobs:
 
   # Trigger Claude to fix deprecated code
   trigger-fix-deprecated:
-    needs: [check-state, update-changelog]
+    needs: [check-state]
     if: |
-      always() &&
       needs.check-state.outputs.should_run == 'true' &&
       needs.check-state.outputs.build_failed != 'true' &&
       needs.check-state.outputs.deprecated_failed == 'true' &&
@@ -681,9 +673,8 @@ jobs:
 
   # Trigger Claude to fix test failures
   trigger-fix-tests:
-    needs: [check-state, update-changelog]
+    needs: [check-state]
     if: |
-      always() &&
       needs.check-state.outputs.should_run == 'true' &&
       needs.check-state.outputs.build_failed != 'true' &&
       needs.check-state.outputs.deprecated_failed != 'true' &&
@@ -869,7 +860,7 @@ jobs:
 
   # Summary job
   summary:
-    needs: [check-state, update-changelog, trigger-fix-build, trigger-fix-deprecated, trigger-fix-tests]
+    needs: [check-state, trigger-changelog, trigger-fix-build, trigger-fix-deprecated, trigger-fix-tests]
     if: always() && needs.check-state.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
