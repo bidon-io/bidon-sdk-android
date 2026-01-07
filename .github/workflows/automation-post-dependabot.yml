@@ -260,11 +260,24 @@ jobs:
 
       - name: Commit and push changes
         if: steps.check-changes.outputs.has_changes == 'true'
+        env:
+          BUILD_FAILED: ${{ needs.check-state.outputs.build_failed }}
+          DEPRECATED_FAILED: ${{ needs.check-state.outputs.deprecated_failed }}
+          TESTS_FAILED: ${{ needs.check-state.outputs.tests_failed }}
         run: |
+          # Add [skip ci] only if Claude will make another push later (to avoid extra CI runs)
+          SKIP_CI=""
+          if [ "$BUILD_FAILED" == "true" ] || \
+             [ "$DEPRECATED_FAILED" == "true" ] || \
+             [ "$TESTS_FAILED" == "true" ]; then
+            SKIP_CI=" [skip ci]"
+            echo "::notice::Adding [skip ci] - Claude will push fixes later"
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add adapter/*/CHANGELOG.md adapter/*/build.gradle.kts
-          git commit -m "chore: update adapters for dependency updates"
+          git commit -m "chore: update adapters for dependency updates${SKIP_CI}"
           git push origin HEAD:${{ needs.check-state.outputs.pr_branch }}
           echo "::notice::Changes committed and pushed successfully"
 
@@ -405,47 +418,43 @@ jobs:
           # Remove trailing comma and space
           ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
 
-          echo "adapters_list=$ADAPTERS_LIST" >> $GITHUB_OUTPUT
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
 
-          echo "issues<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$ISSUES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Read prompt template and render
         id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
         run: |
           PROMPT=$(cat .github/claude-prompts/fix-build.md)
 
-          # Create temp files for replacement
-          echo "${{ steps.collect.outputs.adapters_list }}" > /tmp/adapters
-          echo "${{ steps.collect.outputs.issues }}" > /tmp/issues
-          echo "${{ steps.collect.outputs.release_notes }}" > /tmp/release_notes
-
-          ADAPTERS=$(cat /tmp/adapters)
-          ISSUES=$(cat /tmp/issues)
-          RELEASE_NOTES=$(cat /tmp/release_notes)
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
 
           PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
           PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
           PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
 
-          echo "prompt<<EOF" >> $GITHUB_OUTPUT
-          echo "$PROMPT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
 
       - name: Post @claude comment
-        if: steps.collect.outputs.issues != ''
+        if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
-        env:
-          PROMPT: ${{ steps.prompt.outputs.prompt }}
         with:
           github-token: ${{ secrets.DEPENDABOT_PAT }}
           script: |
-            const prompt = process.env.PROMPT;
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -588,46 +597,43 @@ jobs:
           # Remove trailing comma and space
           ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
 
-          echo "adapters_list=$ADAPTERS_LIST" >> $GITHUB_OUTPUT
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
 
-          echo "issues<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$ISSUES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Read prompt template and render
         id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
         run: |
           PROMPT=$(cat .github/claude-prompts/fix-deprecated.md)
 
-          echo "${{ steps.collect.outputs.adapters_list }}" > /tmp/adapters
-          echo "${{ steps.collect.outputs.issues }}" > /tmp/issues
-          echo "${{ steps.collect.outputs.release_notes }}" > /tmp/release_notes
-
-          ADAPTERS=$(cat /tmp/adapters)
-          ISSUES=$(cat /tmp/issues)
-          RELEASE_NOTES=$(cat /tmp/release_notes)
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
 
           PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
           PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
           PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
 
-          echo "prompt<<EOF" >> $GITHUB_OUTPUT
-          echo "$PROMPT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
 
       - name: Post @claude comment
-        if: steps.collect.outputs.issues != ''
+        if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
-        env:
-          PROMPT: ${{ steps.prompt.outputs.prompt }}
         with:
           github-token: ${{ secrets.DEPENDABOT_PAT }}
           script: |
-            const prompt = process.env.PROMPT;
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -779,46 +785,43 @@ jobs:
           # Remove trailing comma and space
           ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
 
-          echo "adapters_list=$ADAPTERS_LIST" >> $GITHUB_OUTPUT
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
 
-          echo "issues<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$ISSUES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Read prompt template and render
         id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
         run: |
           PROMPT=$(cat .github/claude-prompts/fix-tests.md)
 
-          echo "${{ steps.collect.outputs.adapters_list }}" > /tmp/adapters
-          echo "${{ steps.collect.outputs.issues }}" > /tmp/issues
-          echo "${{ steps.collect.outputs.release_notes }}" > /tmp/release_notes
-
-          ADAPTERS=$(cat /tmp/adapters)
-          ISSUES=$(cat /tmp/issues)
-          RELEASE_NOTES=$(cat /tmp/release_notes)
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
 
           PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
           PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
           PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
 
-          echo "prompt<<EOF" >> $GITHUB_OUTPUT
-          echo "$PROMPT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
 
       - name: Post @claude comment
-        if: steps.collect.outputs.issues != ''
+        if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
-        env:
-          PROMPT: ${{ steps.prompt.outputs.prompt }}
         with:
           github-token: ${{ secrets.DEPENDABOT_PAT }}
           script: |
-            const prompt = process.env.PROMPT;
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
