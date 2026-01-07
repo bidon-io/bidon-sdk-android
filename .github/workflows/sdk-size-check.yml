@@ -20,10 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect changes
+      - name: Detect changes in this commit
         uses: dorny/paths-filter@v3
         id: changes
         with:
+          base: 'HEAD~1'
           filters: |
             adapters:
               - 'adapter/*/build.gradle.kts'
@@ -32,7 +33,7 @@ jobs:
         if: steps.changes.outputs.adapters == 'true'
         id: adapter
         run: |
-          ADAPTER=$(git diff --name-only origin/${{ github.base_ref }} | grep 'adapter/.*/build.gradle.kts' | head -1 | sed 's|adapter/||;s|/build.gradle.kts||')
+          ADAPTER=$(git diff --name-only HEAD~1 HEAD | grep 'adapter/.*/build.gradle.kts' | head -1 | sed 's|adapter/||;s|/build.gradle.kts||')
           echo "name=$ADAPTER" >> $GITHUB_OUTPUT
           echo "📦 Changed adapter: $ADAPTER"
 

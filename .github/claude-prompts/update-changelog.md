@@ -35,15 +35,26 @@
 
 3. **Update CHANGELOG.md:**
    - For each adapter, update `adapter/{name}/CHANGELOG.md`
+   - First, check git diff for the adapter to understand what was actually changed:
+     ```bash
+     git diff origin/develop -- adapter/{name}/
+     ```
    - Add entry after `## [Unreleased]` section with format:
      ```markdown
      ## [{NEW_VERSION}.0] - {TODAY_DATE}
      ### Changed
      - Updated SDK dependency from {OLD_VERSION} to {NEW_VERSION}
      ```
-   - If AI fixed deprecated code, add: `- Migrated deprecated APIs`
-   - If AI fixed build errors, add: `- Fixed build compatibility issues`
-   - If AI fixed tests, add: `- Fixed unit tests`
+   - **If AI fixed deprecated code**: Add SPECIFIC entries describing what was migrated, NOT generic "Migrated deprecated APIs". Examples:
+     - `- Migrated from deprecated \`isCached()\` to \`isReady()\` API`
+     - `- Replaced deprecated \`setUserId()\` with \`setUserConsent()\``
+     - `- Updated ad loading to use new \`load(AdRequest)\` signature`
+   - **If AI fixed build errors**: Describe the specific fix:
+     - `- Fixed compilation error due to removed \`AdListener.onAdClicked()\` method`
+     - `- Updated constructor parameters for \`BannerAdView\` class`
+   - **If AI fixed tests**: Describe what was fixed:
+     - `- Updated mock setup for changed \`AdCallback\` interface`
+     - `- Fixed test assertions for new response format`
 
 4. **Commit and push:**
    ```bash
@@ -58,3 +69,4 @@
 - Date format: YYYY-MM-DD
 - Do NOT add "Generated with Claude Code" footer to commits
 - Do NOT add "Co-Authored-By" line to commits
+- NEVER use generic changelog entries like "Migrated deprecated APIs" - always check the actual code changes and describe SPECIFICALLY what was migrated or fixed
