@@ -35,7 +35,7 @@ internal class ChartboostRewardedAdImpl :
     private var rewardedAd: Rewarded? = null
 
     override val isAdReadyToShow: Boolean
-        get() = rewardedAd?.isCached() == true
+        get() = rewardedAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -109,14 +109,8 @@ internal class ChartboostRewardedAdImpl :
             callback = callback,
             mediation = adParams.mediation
         ).also { rewardedAd = it }
-        if (rewardedAd.isCached()) {
-            logInfo(TAG, "Ad is available already")
-            val ad = getAd() ?: return
-            emitEvent(AdEvent.Fill(ad))
-        } else {
-            logInfo(TAG, "Ad is not available, caching")
-            rewardedAd.cache()
-        }
+        logInfo(TAG, "Caching ad")
+        rewardedAd.cache()
     }
 
     override fun show(activity: Activity) {

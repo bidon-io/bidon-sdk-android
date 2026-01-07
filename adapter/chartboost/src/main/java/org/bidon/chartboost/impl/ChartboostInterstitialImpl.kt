@@ -34,7 +34,7 @@ internal class ChartboostInterstitialImpl :
     private var interstitialAd: Interstitial? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd?.isCached() == true
+        get() = interstitialAd != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -102,14 +102,8 @@ internal class ChartboostInterstitialImpl :
             callback = callback,
             mediation = adParams.mediation
         ).also { interstitialAd = it }
-        if (interstitialAd.isCached()) {
-            logInfo(TAG, "Ad is available already")
-            val ad = getAd() ?: return
-            emitEvent(AdEvent.Fill(ad))
-        } else {
-            logInfo(TAG, "Ad is not available, caching")
-            interstitialAd.cache()
-        }
+        logInfo(TAG, "Caching ad")
+        interstitialAd.cache()
     }
 
     override fun show(activity: Activity) {

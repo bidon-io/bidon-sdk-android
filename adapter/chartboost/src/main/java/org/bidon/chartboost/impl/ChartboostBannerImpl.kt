@@ -32,7 +32,7 @@ internal class ChartboostBannerImpl :
     private var adView: Banner? = null
 
     override val isAdReadyToShow: Boolean
-        get() = adView?.isCached() == true
+        get() = adView != null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -99,14 +99,8 @@ internal class ChartboostBannerImpl :
             callback = callback,
             mediation = adParams.mediation
         ).also { adView = it }
-        if (adView.isCached()) {
-            logInfo(TAG, "Ad is available already")
-            val ad = getAd() ?: return
-            emitEvent(AdEvent.Fill(ad))
-        } else {
-            logInfo(TAG, "Ad is not available, caching")
-            adView.cache()
-        }
+        logInfo(TAG, "Caching ad")
+        adView.cache()
     }
 
     override fun getAdView(): AdViewHolder? = adView?.let { AdViewHolder(it) }
