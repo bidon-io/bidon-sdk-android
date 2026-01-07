@@ -84,8 +84,11 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.DEPENDABOT_PAT }}
-          timeout_minutes: 30
-          claude_args: "--model claude-sonnet-4-5-20250929 --max-turns 40 --dangerously-skip-permissions"
+          show_full_output: true
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
+            --max-turns 40
+            --dangerously-skip-permissions
           prompt: |
             ## Task: Fix build errors in adapter/${{ matrix.adapter }}
 
@@ -103,26 +106,19 @@ jobs:
             3. Fix each build error in adapter/${{ matrix.adapter }}/
             4. Run `./gradlew :adapter:${{ matrix.adapter }}:assembleProductionRelease` to verify fix
             5. Run `./gradlew ktlintFormat` to format code
-            6. Commit changes with message format:
-               fix(${{ matrix.adapter }}): resolve build errors
+            6. Commit and push changes:
+               git add -A
+               git commit -m "fix(${{ matrix.adapter }}): <describe what was fixed>"
+               git push
 
             ### IMPORTANT:
             - Only fix code in adapter/${{ matrix.adapter }}/ directory
             - Do not change other adapters or core SDK
             - Focus on fixing compilation errors
-            - If unsure about migration, leave a TODO comment
+            - If you cannot fix an issue, do NOT make partial changes - just report what you found
             - Do NOT add "Generated with Claude Code" footer to commits
             - Do NOT add "Co-Authored-By" line to commits
-
-      - name: Push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet; then
-            git push origin HEAD:${{ inputs.pr_branch }}
-          else
-            echo "No changes to push"
-          fi
+            - Write descriptive commit message explaining what was actually fixed
 
   add-label:
     needs: fix
