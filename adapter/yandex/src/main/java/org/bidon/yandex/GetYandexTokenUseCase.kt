@@ -17,39 +17,44 @@ import kotlin.coroutines.resume
 internal class GetYandexTokenUseCase {
     suspend operator fun invoke(adTypeParam: AdTypeParam): String? =
         suspendCancellableCoroutine { continuation ->
-            val adType = when (adTypeParam) {
-                is AdTypeParam.Banner -> AdType.BANNER
-                is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
-                is AdTypeParam.Rewarded -> AdType.REWARDED
-            }
-
-            val requestBuilder = BidderTokenRequestConfiguration.Builder(adType)
             val context = adTypeParam.activity.applicationContext
-
-            if (adTypeParam is AdTypeParam.Banner) {
-                val bannerFormat = adTypeParam.bannerFormat
-                val bannerAdSize = bannerFormat.toYandexBannerSize(context)
-                requestBuilder.setBannerAdSize(bannerAdSize)
-            }
 
             val requestParameters = mapOf(
                 "adapter_network_name" to "Bidon",
                 "adapter_version" to MobileAds.libraryVersion,
                 "adapter_network_sdk_version" to BidonSdk.SdkVersion
             )
-            requestBuilder.setParameters(requestParameters)
+
+            val requestConfiguration = when (adTypeParam) {
+                is AdTypeParam.Banner -> {
+                    val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
+                    BidderTokenRequestConfiguration.banner(bannerAdSize, requestParameters)
+                }
+                is AdTypeParam.Interstitial -> {
+                    BidderTokenRequestConfiguration.interstitial(requestParameters)
+                }
+                is AdTypeParam.Rewarded -> {
+                    BidderTokenRequestConfiguration.rewarded(requestParameters)
+                }
+            }
+
+            val adTypeForLogging = when (adTypeParam) {
+                is AdTypeParam.Banner -> AdType.BANNER
+                is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
+                is AdTypeParam.Rewarded -> AdType.REWARDED
+            }
 
             BidderTokenLoader.loadBidderToken(
                 context = context,
-                bidderTokenRequestConfiguration = requestBuilder.build(),
+                bidderTokenRequestConfiguration = requestConfiguration,
                 listener = object : BidderTokenLoadListener {
                     override fun onBidderTokenLoaded(bidderToken: String) {
-                        logInfo(TAG, "Loaded bidder token for $adType")
+                        logInfo(TAG, "Loaded bidder token for $adTypeForLogging")
                         continuation.resume(bidderToken)
                     }
 
                     override fun onBidderTokenFailedToLoad(failureReason: String) {
-                        logError(TAG, "Error while loading bidder token for $adType: $failureReason", BidonError.NoBid)
+                        logError(TAG, "Error while loading bidder token for $adTypeForLogging: $failureReason", BidonError.NoBid)
                         continuation.resume(null)
                     }
                 })
