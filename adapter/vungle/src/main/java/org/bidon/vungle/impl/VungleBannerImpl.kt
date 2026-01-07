@@ -1,8 +1,8 @@
 package org.bidon.vungle.impl
 
-import com.vungle.ads.BannerAd
 import com.vungle.ads.BaseAd
 import com.vungle.ads.BaseAdListener
+import com.vungle.ads.VungleBannerView
 import com.vungle.ads.VungleError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -29,7 +29,7 @@ internal class VungleBannerImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var banner: BannerAd? = null
+    private var banner: VungleBannerView? = null
 
     override val isAdReadyToShow: Boolean
         get() = banner?.canPlayAd() == true
@@ -50,7 +50,7 @@ internal class VungleBannerImpl :
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
 
         adParams.activity.runOnUiThread {
-            val banner = BannerAd(adParams.activity, placementId, adParams.bannerSize)
+            val banner = VungleBannerView(adParams.activity, placementId, adParams.bannerSize)
                 .also { banner = it }
             banner.adListener = object : BaseAdListener {
                 override fun onAdLoaded(baseAd: BaseAd) {
@@ -114,7 +114,7 @@ internal class VungleBannerImpl :
         }
     }
 
-    override fun getAdView(): AdViewHolder? = banner?.getBannerView()?.let { AdViewHolder(it) }
+    override fun getAdView(): AdViewHolder? = banner?.let { AdViewHolder(it) }
 
     override fun destroy() {
         banner?.finishAd()
