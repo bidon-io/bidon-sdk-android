@@ -25,7 +25,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -44,7 +44,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -64,7 +64,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -83,7 +83,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -102,7 +102,7 @@ updates:
 #      - google-maven
 #      - bidon-public
 #    reviewers:
-#      - "bidon-android"
+#      - "bidon-io/bidon-android"
 #    commit-message:
 #      prefix: "⬆️"
 #    labels:
@@ -121,7 +121,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -140,7 +140,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -159,7 +159,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -178,7 +178,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -197,7 +197,7 @@ updates:
 #      - google-maven
 #      - bidon-public
 #    reviewers:
-#      - "bidon-android"
+#      - "bidon-io/bidon-android"
 #    commit-message:
 #      prefix: "⬆️"
 #    labels:
@@ -216,7 +216,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -235,7 +235,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -254,7 +254,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -273,7 +273,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -292,7 +292,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -311,7 +311,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -330,7 +330,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -349,7 +349,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -368,7 +368,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -387,7 +387,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -406,7 +406,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
@@ -425,7 +425,7 @@ updates:
       - google-maven
       - bidon-public
     reviewers:
-      - "bidon-android"
+      - "bidon-io/bidon-android"
     commit-message:
       prefix: "⬆️"
     labels:
