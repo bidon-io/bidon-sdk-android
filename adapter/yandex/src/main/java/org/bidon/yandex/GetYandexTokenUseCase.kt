@@ -25,18 +25,23 @@ internal class GetYandexTokenUseCase {
                 "adapter_network_sdk_version" to BidonSdk.SdkVersion
             )
 
-            val requestConfiguration = when (adTypeParam) {
-                is AdTypeParam.Banner -> {
-                    val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
-                    BidderTokenRequestConfiguration.banner(bannerAdSize, requestParameters)
-                }
-                is AdTypeParam.Interstitial -> {
-                    BidderTokenRequestConfiguration.interstitial(requestParameters)
-                }
-                is AdTypeParam.Rewarded -> {
-                    BidderTokenRequestConfiguration.rewarded(requestParameters)
-                }
+            val adType = when (adTypeParam) {
+                is AdTypeParam.Banner -> AdType.BANNER
+                is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
+                is AdTypeParam.Rewarded -> AdType.REWARDED
             }
+
+            @Suppress("DEPRECATION")
+            val requestBuilder = BidderTokenRequestConfiguration.Builder(adType)
+
+            if (adTypeParam is AdTypeParam.Banner) {
+                val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
+                requestBuilder.setBannerAdSize(bannerAdSize)
+            }
+
+            val requestConfiguration = requestBuilder
+                .setParameters(requestParameters)
+                .build()
 
             val adTypeForLogging = when (adTypeParam) {
                 is AdTypeParam.Banner -> AdType.BANNER
