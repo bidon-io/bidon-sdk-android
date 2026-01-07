@@ -1,7 +1,7 @@
 package org.bidon.vungle.impl
 
+import com.vungle.ads.BannerAdListener
 import com.vungle.ads.BaseAd
-import com.vungle.ads.BaseAdListener
 import com.vungle.ads.VungleBannerView
 import com.vungle.ads.VungleError
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -30,9 +30,10 @@ internal class VungleBannerImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var banner: VungleBannerView? = null
+    private var isAdLoaded: Boolean = false
 
     override val isAdReadyToShow: Boolean
-        get() = banner?.canPlayAd() == true
+        get() = banner != null && isAdLoaded
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return auctionParamsScope {
@@ -52,9 +53,10 @@ internal class VungleBannerImpl :
         adParams.activity.runOnUiThread {
             val banner = VungleBannerView(adParams.activity, placementId, adParams.bannerSize)
                 .also { banner = it }
-            banner.adListener = object : BaseAdListener {
+            banner.adListener = object : BannerAdListener {
                 override fun onAdLoaded(baseAd: BaseAd) {
                     logInfo(TAG, "onAdLoaded placementId=${baseAd.placementId}. $this")
+                    isAdLoaded = true
                     val ad = getAd() ?: return
                     emitEvent(AdEvent.Fill(ad))
                 }
@@ -120,6 +122,7 @@ internal class VungleBannerImpl :
         banner?.finishAd()
         banner?.adListener = null
         banner = null
+        isAdLoaded = false
     }
 }
 
