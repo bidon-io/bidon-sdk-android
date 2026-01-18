@@ -93,6 +93,7 @@ dependencies {
     implementation(projects.adapter.vkads)
     implementation(projects.adapter.vungle)
     implementation(projects.adapter.yandex)
+    implementation(projects.adapter.zmaticoo)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 

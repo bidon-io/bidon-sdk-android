@@ -27,4 +27,5 @@ public enum class DefaultAdapters(public val classPath: String) {
     VkAdsAdapter(classPath = "org.bidon.vkads.VkAdsAdapter"),
     VungleAdapter(classPath = "org.bidon.vungle.VungleAdapter"),
     YandexAdapter(classPath = "org.bidon.yandex.YandexAdapter"),
+    ZmaticooAdapter(classPath = "org.bidon.zmaticoo.ZmaticooAdapter"),
 }
