@@ -20,6 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.zmaticoo.ext.adapterVersion
+import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.zmaticoo.ext.sdkVersion
 import org.bidon.zmaticoo.impl.ZmaticooBannerAuctionParams
 import org.bidon.zmaticoo.impl.ZmaticooBannerImpl
@@ -100,7 +101,7 @@ internal class ZmaticooAdapter :
                 }
 
                 override fun onError(error: ComponentError?) {
-                    val throwable = Exception("Zmaticoo init failed: $error")
+                    val throwable = Exception("Zmaticoo init failed: ${error.asBidonError()}")
                     logError(TAG, throwable.message.orEmpty(), throwable)
                     continuation.resumeWithException(throwable)
                 }

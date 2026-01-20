@@ -18,6 +18,7 @@ import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
@@ -89,7 +90,7 @@ internal class ZmaticooBannerImpl :
                     error: ComponentError?
                 ) {
                     logInfo(TAG, "onBannerAdFailed: $error")
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    emitEvent(AdEvent.LoadFailed(error.asBidonError()))
                 }
 
                 override fun onBannerAdShow(adId: MaticooIds?) {
@@ -115,7 +116,7 @@ internal class ZmaticooBannerImpl :
                     error: ComponentError?
                 ) {
                     logInfo(TAG, "onBannerAdShowFailed: $error")
-                    emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
+                    emitEvent(AdEvent.ShowFailed(error.asBidonError()))
                 }
 
                 override fun onBannerAdClicked(adId: MaticooIds?) {

@@ -18,6 +18,7 @@ import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
@@ -77,8 +78,8 @@ internal class ZmaticooRewardedImpl :
                     maticooIds: MaticooIds,
                     error: ComponentError
                 ) {
-                    logInfo(TAG, "onRewardedVideoAdLoadFailed")
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    logInfo(TAG, "onRewardedVideoAdLoadFailed: $error")
+                    emitEvent(AdEvent.LoadFailed(error.asBidonError()))
                 }
 
                 override fun onRewardedVideoAdShowed(adId: MaticooIds?) {
@@ -99,8 +100,8 @@ internal class ZmaticooRewardedImpl :
                 }
 
                 public override fun onRewardedVideoAdShowFailed(maticooIds: MaticooIds, error: ComponentError) {
-                    logInfo(TAG, "onRewardedVideoAdShowFailed")
-                    emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
+                    logInfo(TAG, "onRewardedVideoAdShowFailed: $error")
+                    emitEvent(AdEvent.ShowFailed(error.asBidonError()))
                 }
 
                 public override fun onRewardedVideoAdStarted(adId: MaticooIds?) {

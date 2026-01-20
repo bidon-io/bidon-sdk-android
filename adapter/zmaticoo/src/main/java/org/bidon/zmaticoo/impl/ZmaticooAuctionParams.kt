@@ -15,6 +15,10 @@ internal class ZmaticooFullscreenAuctionParams(
     override val price: Double = adUnit.pricefloor
     val placementId: String? = adUnit.extra?.getString("placement_id")
     val payload: String? = adUnit.extra?.optString("payload")
+
+    override fun toString(): String {
+        return "ZmaticooFullscreenAuctionParams(placementId=$placementId, payload=$payload, price=$price)"
+    }
 }
 
 internal class ZmaticooBannerAuctionParams(
@@ -25,4 +29,8 @@ internal class ZmaticooBannerAuctionParams(
     override val price: Double = adUnit.pricefloor
     val placementId: String? = adUnit.extra?.getString("placement_id")
     val payload: String? = adUnit.extra?.optString("payload")
+
+    override fun toString(): String {
+        return "ZmaticooBannerAuctionParams(placementId=$placementId, payload=$payload, bannerFormat=$bannerFormat, price=$price)"
+    }
 }

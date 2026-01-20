@@ -16,6 +16,7 @@ import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
@@ -72,11 +73,11 @@ internal class ZmaticooInterstitialImpl :
                 }
 
                 override fun onAdLoadFailed(
-                    p0: MaticooIds,
-                    p1: ComponentError
+                    maticooIds: MaticooIds,
+                    componentError: ComponentError
                 ) {
-                    logInfo(TAG, "onAdLoadFailed")
-                    emitEvent(AdEvent.LoadFailed(BidonError.NoFill(demandId)))
+                    logInfo(TAG, "onAdLoadFailed with error: $componentError")
+                    emitEvent(AdEvent.LoadFailed(componentError.asBidonError()))
                 }
 
                 override fun onAdDisplayed(adId: MaticooIds?) {
@@ -98,11 +99,11 @@ internal class ZmaticooInterstitialImpl :
                 }
 
                 override fun onAdDisplayFailed(
-                    p0: MaticooIds,
-                    p1: ComponentError
+                    maticooIds: MaticooIds,
+                    componentError: ComponentError
                 ) {
-                    logInfo(TAG, "onAdDisplayFailed")
-                    emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
+                    logInfo(TAG, "onAdDisplayFailed with error: $componentError")
+                    emitEvent(AdEvent.ShowFailed(componentError.asBidonError()))
                 }
 
                 override fun onAdClicked(adId: MaticooIds?) {
