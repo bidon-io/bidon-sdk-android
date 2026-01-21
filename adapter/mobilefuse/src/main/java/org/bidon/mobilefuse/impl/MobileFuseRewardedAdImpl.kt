@@ -39,28 +39,23 @@ internal class MobileFuseRewardedAdImpl :
 
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        adParams.placementId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
-                )
-            )
+        val placementId = adParams.placementId
+        if (placementId == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
-        if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.signalData ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")
-                    )
-                )
-                return
-            }
+        if (adParams.adUnit.bidType != BidType.RTB) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "Only RTB is supported")))
+            return
+        }
+        val signalData = adParams.signalData
+        if (signalData == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+            return
         }
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val rewardedAd = MobileFuseRewardedAd(adParams.activity, adParams.placementId).also {
-            rewardedAd = it
-        }
+        val rewardedAd = MobileFuseRewardedAd(adParams.activity, placementId)
+            .also { rewardedAd = it }
         rewardedAd.setListener(object : MobileFuseRewardedAd.Listener {
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
@@ -147,7 +142,7 @@ internal class MobileFuseRewardedAdImpl :
                 }
             }
         })
-        rewardedAd.loadAdFromBiddingToken(adParams.signalData ?: "")
+        rewardedAd.loadAdFromBiddingToken(signalData)
     }
 
     override fun show(activity: Activity) {

@@ -39,28 +39,23 @@ internal class MobileFuseInterstitialImpl :
 
     override fun load(adParams: MobileFuseFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        adParams.placementId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
-                )
-            )
+        val placementId = adParams.placementId
+        if (placementId == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
-        if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.signalData ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")
-                    )
-                )
-                return
-            }
+        if (adParams.adUnit.bidType != BidType.RTB) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "Only RTB is supported")))
+            return
+        }
+        val signalData = adParams.signalData
+        if (signalData == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+            return
         }
         // placementId should be configured in the mediation platform UI and passed back to this method:
-        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, adParams.placementId).also {
-            interstitialAd = it
-        }
+        val interstitialAd = MobileFuseInterstitialAd(adParams.activity, placementId)
+            .also { interstitialAd = it }
         interstitialAd.setListener(object : MobileFuseInterstitialAd.Listener {
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
@@ -140,7 +135,7 @@ internal class MobileFuseInterstitialImpl :
                 this@MobileFuseInterstitialImpl.interstitialAd = null
             }
         })
-        interstitialAd.loadAdFromBiddingToken(adParams.signalData ?: "")
+        interstitialAd.loadAdFromBiddingToken(signalData)
     }
 
     override fun show(activity: Activity) {
