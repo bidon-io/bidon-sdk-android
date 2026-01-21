@@ -147,7 +147,7 @@ internal class MobileFuseRewardedAdImpl :
                 }
             }
         })
-        rewardedAd.loadAdFromBiddingToken(adParams.signalData)
+        rewardedAd.loadAdFromBiddingToken(adParams.signalData ?: "")
     }
 
     override fun show(activity: Activity) {

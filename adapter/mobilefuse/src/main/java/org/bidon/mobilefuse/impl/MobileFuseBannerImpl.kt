@@ -149,7 +149,7 @@ internal class MobileFuseBannerImpl :
             override fun onAdExpanded() {}
             override fun onAdCollapsed() {}
         })
-        bannerAd.loadAdFromBiddingToken(adParams.signalData)
+        bannerAd.loadAdFromBiddingToken(adParams.signalData ?: "")
     }
 
     override fun getAdView(): AdViewHolder? = fuseBannerAd?.let { AdViewHolder(it) }

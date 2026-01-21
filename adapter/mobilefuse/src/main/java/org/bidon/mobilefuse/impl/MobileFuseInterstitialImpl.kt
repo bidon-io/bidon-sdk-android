@@ -140,7 +140,7 @@ internal class MobileFuseInterstitialImpl :
                 this@MobileFuseInterstitialImpl.interstitialAd = null
             }
         })
-        interstitialAd.loadAdFromBiddingToken(adParams.signalData)
+        interstitialAd.loadAdFromBiddingToken(adParams.signalData ?: "")
     }
 
     override fun show(activity: Activity) {
