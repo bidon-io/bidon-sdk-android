@@ -31,7 +31,6 @@ internal class GetYandexTokenUseCase {
                 is AdTypeParam.Rewarded -> AdType.REWARDED
             }
 
-            @Suppress("DEPRECATION")
             val requestBuilder = BidderTokenRequestConfiguration.Builder(adType)
 
             if (adTypeParam is AdTypeParam.Banner) {
@@ -43,23 +42,17 @@ internal class GetYandexTokenUseCase {
                 .setParameters(requestParameters)
                 .build()
 
-            val adTypeForLogging = when (adTypeParam) {
-                is AdTypeParam.Banner -> AdType.BANNER
-                is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
-                is AdTypeParam.Rewarded -> AdType.REWARDED
-            }
-
             BidderTokenLoader.loadBidderToken(
                 context = context,
                 bidderTokenRequestConfiguration = requestConfiguration,
                 listener = object : BidderTokenLoadListener {
                     override fun onBidderTokenLoaded(bidderToken: String) {
-                        logInfo(TAG, "Loaded bidder token for $adTypeForLogging")
+                        logInfo(TAG, "Loaded bidder token for $adType")
                         continuation.resume(bidderToken)
                     }
 
                     override fun onBidderTokenFailedToLoad(failureReason: String) {
-                        logError(TAG, "Error while loading bidder token for $adTypeForLogging: $failureReason", BidonError.NoBid)
+                        logError(TAG, "Error while loading bidder token for $adType: $failureReason", BidonError.NoBid)
                         continuation.resume(null)
                     }
                 })
