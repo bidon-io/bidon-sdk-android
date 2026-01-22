@@ -99,25 +99,25 @@ internal class ZmaticooRewardedImpl :
                     }
                 }
 
-                public override fun onRewardedVideoAdShowFailed(maticooIds: MaticooIds, error: ComponentError) {
+                override fun onRewardedVideoAdShowFailed(maticooIds: MaticooIds, error: ComponentError) {
                     logInfo(TAG, "onRewardedVideoAdShowFailed: $error")
                     emitEvent(AdEvent.ShowFailed(error.asBidonError()))
                 }
 
-                public override fun onRewardedVideoAdStarted(adId: MaticooIds?) {
+                override fun onRewardedVideoAdStarted(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdStarted")
                 }
 
-                public override fun onRewardedVideoAdCompleted(adId: MaticooIds?) {
+                override fun onRewardedVideoAdCompleted(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdCompleted")
                 }
 
-                public override fun onRewardedVideoAdClicked(adId: MaticooIds?) {
+                override fun onRewardedVideoAdClicked(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdClicked")
                     emitEvent(AdEvent.Clicked(getAd() ?: return))
                 }
 
-                public override fun onRewardedVideoAdRewarded(
+                override fun onRewardedVideoAdRewarded(
                     p0: MaticooIds,
                     p1: MaticooRewardInfo
                 ) {
@@ -133,7 +133,7 @@ internal class ZmaticooRewardedImpl :
                     )
                 }
 
-                public override fun onRewardedVideoAdClosed(adId: MaticooIds?) {
+                override fun onRewardedVideoAdClosed(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdClosed")
                     emitEvent(AdEvent.Closed(getAd() ?: return))
                 }
