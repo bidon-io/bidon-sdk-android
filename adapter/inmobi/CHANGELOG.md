@@ -8,5 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [11.1.1.0] - 2026-01-28
+### Changed
+- Updated SDK dependency from 11.1.0 to 11.1.1
+
 ## [11.1.0.0]
 - Updated InMobi SDK to 11.1.0
