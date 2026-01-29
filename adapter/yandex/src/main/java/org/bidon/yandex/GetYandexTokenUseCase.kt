@@ -1,5 +1,6 @@
 package org.bidon.yandex
 
+import com.yandex.mobile.ads.common.AdType
 import com.yandex.mobile.ads.common.BidderTokenLoadListener
 import com.yandex.mobile.ads.common.BidderTokenLoader
 import com.yandex.mobile.ads.common.BidderTokenRequestConfiguration
@@ -14,6 +15,7 @@ import org.bidon.yandex.ext.toYandexBannerSize
 import kotlin.coroutines.resume
 
 internal class GetYandexTokenUseCase {
+    @Suppress("DEPRECATION")
     suspend operator fun invoke(adTypeParam: AdTypeParam): String? =
         suspendCancellableCoroutine { continuation ->
             val context = adTypeParam.activity.applicationContext
@@ -24,42 +26,34 @@ internal class GetYandexTokenUseCase {
                 "adapter_network_sdk_version" to BidonSdk.SdkVersion
             )
 
-            val adTypeString = when (adTypeParam) {
-                is AdTypeParam.Banner -> "BANNER"
-                is AdTypeParam.Interstitial -> "INTERSTITIAL"
-                is AdTypeParam.Rewarded -> "REWARDED"
+            val adType = when (adTypeParam) {
+                is AdTypeParam.Banner -> AdType.BANNER
+                is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
+                is AdTypeParam.Rewarded -> AdType.REWARDED
             }
 
-            val requestConfiguration = when (adTypeParam) {
-                is AdTypeParam.Banner -> {
-                    val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
-                    BidderTokenRequestConfiguration.Builder.forBanner(bannerAdSize)
-                        .setParameters(requestParameters)
-                        .build()
-                }
-                is AdTypeParam.Interstitial -> {
-                    BidderTokenRequestConfiguration.Builder.forInterstitial()
-                        .setParameters(requestParameters)
-                        .build()
-                }
-                is AdTypeParam.Rewarded -> {
-                    BidderTokenRequestConfiguration.Builder.forRewarded()
-                        .setParameters(requestParameters)
-                        .build()
-                }
+            val requestBuilder = BidderTokenRequestConfiguration.Builder(adType)
+
+            if (adTypeParam is AdTypeParam.Banner) {
+                val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
+                requestBuilder.setBannerAdSize(bannerAdSize)
             }
+
+            val requestConfiguration = requestBuilder
+                .setParameters(requestParameters)
+                .build()
 
             BidderTokenLoader.loadBidderToken(
                 context = context,
                 bidderTokenRequestConfiguration = requestConfiguration,
                 listener = object : BidderTokenLoadListener {
                     override fun onBidderTokenLoaded(bidderToken: String) {
-                        logInfo(TAG, "Loaded bidder token for $adTypeString")
+                        logInfo(TAG, "Loaded bidder token for $adType")
                         continuation.resume(bidderToken)
                     }
 
                     override fun onBidderTokenFailedToLoad(failureReason: String) {
-                        logError(TAG, "Error while loading bidder token for $adTypeString: $failureReason", BidonError.NoBid)
+                        logError(TAG, "Error while loading bidder token for $adType: $failureReason", BidonError.NoBid)
                         continuation.resume(null)
                     }
                 })
