@@ -1,0 +1,19 @@
+name: Sync TaurusX Artifacts
+
+on:
+  schedule:
+    - cron: '0 1 * * 3'  # Weekly on Wednesday at 01:00 UTC (2h before dependabot)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync TaurusX Artifacts
+        env:
+          BDN_USERNAME: ${{ secrets.ARTIFACTORY_USER }}
+          BDN_USERPASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: ./adapter/taurusx/migrate-taurusx.sh
