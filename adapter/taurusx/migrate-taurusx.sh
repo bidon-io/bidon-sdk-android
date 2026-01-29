@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
 TAURUSX_BUILD_FILE="${SCRIPT_DIR}/build.gradle.kts"
-BITBUCKET_REPO="https://bitbucket.org/sdkcenter/sdkcenter/raw/release"
+BITBUCKET_REPO="https://api.bitbucket.org/2.0/repositories/sdkcenter/sdkcenter/src/release"
 ARTIFACTORY_URL="https://artifactory.bidon.org/artifactory/remote-taurusx"
 TEMP_DIR="$(mktemp -d)"
 
