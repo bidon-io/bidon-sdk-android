@@ -148,14 +148,14 @@ migrate_all_versions() {
 
         # Migrate POM first, then AAR
         if migrate_artifact "$group_id" "$artifact_id" "$version" "pom"; then
-            ((success++))
+            success=$((success + 1))
         fi
-        ((total++))
+        total=$((total + 1))
 
         if migrate_artifact "$group_id" "$artifact_id" "$version" "aar"; then
-            ((success++))
+            success=$((success + 1))
         fi
-        ((total++))
+        total=$((total + 1))
     done
 
     log_info "Completed ${group_id}:${artifact_id}: $success/$total files uploaded"
