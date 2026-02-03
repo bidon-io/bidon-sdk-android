@@ -11,7 +11,7 @@ import org.bidon.sdk.auction.models.AuctionResult
 /**
  * V2 implementation of AdCache with configurable behavior.
  */
-internal class AdCacheV2Impl(
+internal class AdCacheDenisImpl(
     override val demandAd: DemandAd,
     private val resolver: AuctionResolver,
 ) : AdCache {
