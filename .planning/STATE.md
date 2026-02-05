@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Быстрый onAdLoaded callback (<1-3 сек вместо 3-15 сек) при сохранении или повышении revenue за счет умного переиспользования кэшированных bid responses и параллельной загрузки рекламы
-**Current focus:** Phase 4 - Lifecycle Management
+**Current focus:** Phase 5 - Entry Point & Integration
 
 ## Current Position
 
-Phase: 4 of 5 (Lifecycle Management)
-Plan: 5 of 5 in current phase
-Status: Complete - verified with human checklist
-Last activity: 2026-02-05 — Phase 4 verified and complete
+Phase: 5 of 5 (Entry Point & Integration)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-05 — Completed 05-01-PLAN.md (AdCacheDenisImpl entry point)
 
-Progress: [█████████░] 96%
+Progress: [█████████▓] 97%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 2.1 min
-- Total execution time: 0.6 hours
+- Total plans completed: 17
+- Average duration: 2.5 min
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [█████████░] 96%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
+| 5. Entry Point & Integration | 1 | 8 min | 8.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (1 min), 04-03 (3 min), 04-04 (3 min), 04-05 (4 min)
-- Trend: Consistent fast execution (1-4 min per plan)
+- Last 5 plans: 04-03 (3 min), 04-04 (3 min), 04-05 (4 min), 05-01 (8 min)
+- Trend: 05-01 slower due to DI discovery + callback architecture debugging
 
 *Updated after each plan completion*
 
@@ -96,6 +97,12 @@ Recent decisions affecting current work:
 - Auction job launched on lifecycleManager.getScope() for cancellation support (04-05)
 - AuctionId generated before job launch for proper tracking (04-05)
 - onAuctionCompleted() in finally block guarantees state cleanup (04-05)
+- AdCacheDenisImpl acts as facade over Phase 1-4 components (05-01)
+- resolver parameter kept but unused in V2 for API compatibility (05-01)
+- clear() is NO-OP in V2 (TTL-based eviction only) (05-01)
+- poll() returns immediately from cache state, not suspending (05-01)
+- CoordinationLayer and LifecycleManager created per ad instance in factory (05-01)
+- CallbackCoordinator created with no-op callbacks (temporary limitation) (05-01)
 
 ### Pending Todos
 
@@ -146,8 +153,18 @@ All lifecycle infrastructure complete and functional:
 - ⏳ Sweep job stop on destroyAd() (requires Phase 5 AdCache.destroyAd())
 - ⏳ showAd() cancels auction (requires Phase 5 AdCache.showAd())
 
-**Ready for Phase 5: Entry Point & Integration**
-All lifecycle components properly wired and ready for AdCache interface implementation.
+**Phase 5 Progress:**
+- ✅ AdCacheDenisImpl entry point: Complete facade implementation (05-01)
+- ✅ DI wiring: GetAuctionRequestUseCase registered, factory dependencies injected (05-01)
+- ⬜ Factory integration: Enable V2 via AdCacheVersion configuration (05-02 pending)
+
+**Phase 5 Known Issues:**
+- 🔴 CRITICAL: CallbackCoordinator created with no-op callbacks (shared orchestrator pattern broken)
+  - **Impact:** Multiple cache() calls won't fire callbacks correctly
+  - **Root cause:** Orchestrator is instance-scoped but callbacks are request-scoped
+  - **Solution needed:** Create orchestrator per-auction with actual callbacks
+  - **Workaround:** V2 works for single auction per instance (warm start bypasses orchestrator)
+  - **Priority:** HIGH - blocks multi-auction scenarios
 
 ## Session Continuity
 
