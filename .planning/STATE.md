@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 5 (Entry Point & Integration)
-Plan: 5 of 5 in current phase
+Plan: 6 of 6 in current phase
 Status: Phase complete
-Last activity: 2026-02-05 — Completed 05-05-PLAN.md (Callback architecture fix)
+Last activity: 2026-02-05 — Completed 05-06-PLAN.md (E2E test infrastructure for V2)
 
 Progress: [█████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 2.4 min
 - Total execution time: 0.9 hours
 
@@ -31,10 +31,10 @@ Progress: [█████████████] 100%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
-| 5. Entry Point & Integration | 5 | 18 min | 3.6 min |
+| 5. Entry Point & Integration | 6 | 21 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-02 (2 min), 05-03 (2 min), 05-04 (4 min), 05-05 (2 min)
+- Last 5 plans: 05-03 (2 min), 05-04 (4 min), 05-05 (2 min), 05-06 (3 min)
 - Trend: Gap closure plans maintain consistent 2-4 min duration
 
 *Updated after each plan completion*
@@ -116,6 +116,9 @@ Recent decisions affecting current work:
 - ParallelAuctionOrchestrator created per-auction with fresh CallbackCoordinator (05-05)
 - Factory creates only processors (shared), orchestrator created per-auction (05-05)
 - CoordinationLayer constructor receives processors (not orchestrator) (05-05)
+- Test-specific composable isolates test concerns from production code (05-06)
+- Check standard callbacks (onAdLoaded) instead of V1-specific auction events (05-06)
+- Keep V1 tests unchanged to validate both versions during coexistence (05-06)
 
 ### Pending Todos
 
@@ -175,15 +178,20 @@ All lifecycle infrastructure complete and functional:
 - ✅ API contract fixes: poll() suspends (V1 semantics), withSettings() is NO-OP (05-03)
 - ✅ Interface isolation: GetTokensUseCase reverted, V2 skip logic in wrapper (05-04)
 - ✅ Callback architecture fix: Per-auction orchestrator with actual callbacks (05-05)
+- ✅ E2E test infrastructure: TestInterstitialScreen with cache version configuration (05-06)
 
 **Phase 5 Known Issues: ALL RESOLVED**
 - ✅ CRITICAL issue resolved (05-05): CallbackCoordinator now created per-auction with actual callbacks
   - Multiple cache() calls fire their own callbacks correctly
   - Per-auction orchestrator pattern eliminates shared no-op pattern
   - Factory simplified to create only shared processors
+- ✅ E2E test gap resolved (05-06): V2 testing now possible via TestInterstitialScreen
+  - Tests can set cache_size extra before loadAd()
+  - V2-specific test cases validate AdCacheDenisImpl cold start flow
+  - Both V1 and V2 implementations validated in E2E tests
 
 ## Session Continuity
 
-Last session: 2026-02-05 21:57:38 UTC
-Stopped at: Completed 05-05-PLAN.md - Callback architecture fix (all Phase 5 plans complete)
+Last session: 2026-02-05 23:05:21 UTC
+Stopped at: Completed 05-06-PLAN.md - E2E test infrastructure for V2 (Phase 5 complete with all 6 gap closure plans)
 Resume file: None
