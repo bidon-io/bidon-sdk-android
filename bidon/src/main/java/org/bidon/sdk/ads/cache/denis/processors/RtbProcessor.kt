@@ -133,6 +133,7 @@ internal class RtbProcessor(
             if (adParams == null) {
                 logInfo(TAG, "RTB load failed: demandId=$demandId, failed to create auction params")
                 RtbPayloadCache.remove(demandId)
+                adSource.destroy()
                 return@coroutineScope Result.failure(BidonError.NoFill(DemandId(demandId)))
             }
 
