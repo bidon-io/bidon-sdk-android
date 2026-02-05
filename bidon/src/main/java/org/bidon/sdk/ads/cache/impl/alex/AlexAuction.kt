@@ -133,6 +133,7 @@ internal class AlexAuction(
                         }
                         rtbResults
                             .filter { it.roundStatus == RoundStatus.Successful }
+                            .sortedByDescending { it.adSource.getStats().price }
                             .forEach { auctionResult ->
                                 logInfo(
                                     TAG,
@@ -229,19 +230,21 @@ internal class AlexAuction(
         rtbResultsCollector.serverBiddingStarted()
         rtbResultsCollector.serverBiddingFinished(rtbAdUnits)
 
-        executeAuction(
-            auctionId = auctionData.auctionId,
-            auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
-            auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
-            externalWinNotificationsEnabled = auctionData.externalWinNotificationsEnabled,
-            auctionTimeout = auctionData.auctionTimeout,
-            pricefloor = auctionData.pricefloor,
-            demandAd = demandAd,
-            adTypeParam = adTypeParam,
-            adUnits = rtbAdUnits,
-            resultsCollector = rtbResultsCollector,
-            tokens = tokens,
-        )
+        rtbAdUnits.map { adUnit ->
+            executeAuction(
+                auctionId = auctionData.auctionId,
+                auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
+                auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
+                externalWinNotificationsEnabled = auctionData.externalWinNotificationsEnabled,
+                auctionTimeout = auctionData.auctionTimeout,
+                pricefloor = auctionData.pricefloor,
+                demandAd = demandAd,
+                adTypeParam = adTypeParam,
+                adUnits = listOf(adUnit),
+                resultsCollector = rtbResultsCollector,
+                tokens = tokens,
+            )
+        }
 
         val roundResults = rtbResultsCollector.getRoundResults()
         val biddingResult = (roundResults as? RoundResult.Results)?.biddingResult
