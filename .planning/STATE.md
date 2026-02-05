@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Быстрый onAdLoaded callback (<1-3 сек вместо 3-15 сек) при сохранении или повышении revenue за счет умного переиспользования кэшированных bid responses и параллельной загрузки рекламы
-**Current focus:** Phase 2 - Parallel Processing
+**Current focus:** Phase 3 - Coordination Layer
 
 ## Current Position
 
-Phase: 2 of 5 (Parallel Processing)
-Plan: 5 of 5 in current phase
-Status: Phase complete — verified and passed
-Last activity: 2026-02-05 — Completed gap closure plan 02-05, phase verified
+Phase: 3 of 5 (Coordination Layer)
+Plan: 2 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-05 — Completed 03-02-PLAN.md (Token Collection Skip)
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 1.6 min
+- Total plans completed: 9
+- Average duration: 1.5 min
 - Total execution time: 0.2 hours
 
 **By Phase:**
@@ -29,10 +29,11 @@ Progress: [████████░░] 82%
 |-------|-------|-------|----------|
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
+| 3. Coordination Layer | 2 | 1 min | 0.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (4 min), 02-03 (2 min), 02-04 (4 min), 02-05 (2 min)
-- Trend: Consistent fast execution (2-4 min per plan)
+- Last 5 plans: 02-03 (2 min), 02-04 (4 min), 02-05 (2 min), 03-02 (1 min)
+- Trend: Accelerating execution (1-2 min recent plans)
 
 *Updated after each plan completion*
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - loadSuccess flag pattern for conditional AdSource cleanup (prevent destroying successfully loaded ads) (02-05)
 - Remove RTB payload only when load is attempted (not on early failures like adapter not found) (02-05)
 - RTB retry: iterate all payloads until success or exhaustion (not single-attempt) (02-05)
+- Default emptySet() parameter for backward compatibility (03-02)
+- Split filtering: all bidding → filter cached → apply regulation (03-02)
+- Log skipped adapter count + individual demand IDs for debugging (03-02)
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-05 15:39:45 UTC
-Stopped at: Completed 02-05-PLAN.md (RTB Cleanup & Retry) - Phase 2 gap closure complete
+Last session: 2026-02-05 16:30:40 UTC
+Stopped at: Completed 03-02-PLAN.md (Token Collection Skip)
 Resume file: None
