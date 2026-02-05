@@ -1,6 +1,16 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
+import org.bidon.sdk.adapter.AdaptersSource
+import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
+import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
@@ -17,10 +27,20 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * - Calculate dynamic pricefloor with safety margin
  * - Provide state to parallel processors (Phase 2)
  *
+ * CRITICAL: coordinateAuction() returns AuctionCompletionType to signal warm start.
+ * When AuctionCompletionType.WarmStartServed is returned, the caller MUST NOT
+ * invoke coordinateAuction() again. This enforces the decision:
+ * "No background refresh on warm start (serve cached ad only, no async auction to replenish)"
+ *
  * Thread-safety: Reads from singleton caches (thread-safe via ConcurrentHashMap).
  * Warm start path is synchronous (no async operations for <1s callback requirement).
  */
-internal class CoordinationLayer {
+internal class CoordinationLayer(
+    private val adaptersSource: AdaptersSource,
+    private val getTokens: GetTokensUseCase,
+    private val getAuctionRequest: GetAuctionRequestUseCase,
+    private val orchestrator: ParallelAuctionOrchestrator,
+) {
     /**
      * Determine auction start state based on cache contents.
      *
@@ -106,7 +126,202 @@ internal class CoordinationLayer {
         )
     }
 
+    /**
+     * Orchestrate complete auction flow.
+     *
+     * @return AuctionCompletionType indicating how auction completed:
+     *   - WarmStartServed: cached ad served immediately, caller MUST NOT start another auction
+     *   - ColdStartInProgress: cold start auction ongoing, results via callbacks
+     */
+    suspend fun coordinateAuction(
+        adTypeParam: AdTypeParam,
+        demandAd: DemandAd,
+        tokenTimeout: Long,
+        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onFailure: (AuctionInfo?, BidonError) -> Unit,
+    ): AuctionCompletionType {
+        val userPricefloor = adTypeParam.pricefloor
+        val (startState, snapshot) = determineStartState(userPricefloor)
+
+        return when (startState) {
+            is AuctionStartState.WarmStart -> {
+                handleWarmStart(startState.bestAd, onSuccess)
+                AuctionCompletionType.WarmStartServed // Signals: DO NOT start another auction
+            }
+            is AuctionStartState.ColdStartWithCache -> {
+                handleColdStart(
+                    skipDemandIds = startState.cachedDemandIds,
+                    snapshot = snapshot,
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
+                )
+                AuctionCompletionType.ColdStartInProgress
+            }
+            is AuctionStartState.PureColdStart -> {
+                handleColdStart(
+                    skipDemandIds = emptySet(),
+                    snapshot = snapshot,
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
+                )
+                AuctionCompletionType.ColdStartInProgress
+            }
+        }
+    }
+
+    /**
+     * Handle warm start: serve cached ad immediately.
+     *
+     * Fires onSuccess callback with best ad from cache.
+     * No auction is started - cached ad served directly.
+     */
+    private fun handleWarmStart(
+        bestAd: CacheEntry<AuctionResult>,
+        onSuccess: (AuctionResult, AuctionInfo) -> Unit
+    ) {
+        logInfo(TAG, "Warm start: serving cached ad (demandId=${bestAd.demandId}, ecpm=${bestAd.ecpm})")
+
+        // Build AuctionInfo from cached entry
+        // Note: Warm start uses cached auctionId from when ad was originally loaded
+        val auctionResult = bestAd.value
+        val auctionInfo = AuctionInfo(
+            auctionId = bestAd.auctionId,
+            auctionConfigurationId = null, // Not stored in cache entry
+            auctionConfigurationUid = null, // Not stored in cache entry
+            auctionTimeout = 0L, // Not relevant for cached ad
+            auctionPricefloor = bestAd.ecpm, // Use cached eCPM
+            noBids = null,
+            adUnits = null,
+        )
+
+        // Fire callback immediately
+        onSuccess(auctionResult, auctionInfo)
+    }
+
+    /**
+     * Handle cold start: token collection, auction request, waterfall splitting, parallel processing.
+     *
+     * CRITICAL PRICEFLOOR WIRING:
+     * The dynamic pricefloor must be passed to the auction request.
+     * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
+     * we create a modified version that replaces the pricefloor.
+     */
+    private suspend fun handleColdStart(
+        skipDemandIds: Set<String>,
+        snapshot: CacheStateSnapshot,
+        adTypeParam: AdTypeParam,
+        demandAd: DemandAd,
+        tokenTimeout: Long,
+        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onFailure: (AuctionInfo?, BidonError) -> Unit,
+    ) {
+        val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
+        logInfo(TAG, "Cold start: dynamicPricefloor=$dynamicPricefloor (user=${adTypeParam.pricefloor}), skipDemandIds=${skipDemandIds.size}")
+
+        // Create adTypeParam with dynamic pricefloor for auction request
+        // This ensures the backend receives the dynamic pricefloor, not the original
+        val adTypeParamWithDynamicPricefloor = adTypeParam.withPricefloor(dynamicPricefloor)
+
+        // Step 1: Collect tokens (with skip optimization)
+        val tokens = getTokens(
+            adTypeParam = adTypeParam, // Original for token collection
+            adaptersSource = adaptersSource,
+            tokenTimeout = tokenTimeout,
+            skipDemandIds = skipDemandIds,
+        )
+
+        // Step 2: Request auction WITH DYNAMIC PRICEFLOOR
+        val auctionId = java.util.UUID.randomUUID().toString()
+        val auctionResponse = getAuctionRequest.request(
+            adTypeParam = adTypeParamWithDynamicPricefloor, // <-- Dynamic pricefloor used here
+            auctionId = auctionId,
+            demandAd = demandAd,
+            adapters = adaptersSource.adapters.associate {
+                it.demandId.demandId to it.adapterInfo
+            },
+            tokens = tokens,
+        )
+
+        // Step 3: Handle auction response - split waterfall and execute parallel auction
+        auctionResponse.fold(
+            onSuccess = { response ->
+                // Step 3a: Split waterfall into RTB and CPM groups using WaterfallSplitter
+                val adUnits = response.adUnits ?: emptyList()
+                val splitWaterfall = WaterfallSplitter.split(
+                    adUnits = adUnits,
+                    adaptersSource = adaptersSource
+                )
+
+                logInfo(TAG, "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size}, cpm=${splitWaterfall.cpmAdUnits.size}")
+
+                // Build AuctionInfo for callbacks
+                val auctionInfo = AuctionInfo(
+                    auctionId = auctionId,
+                    auctionConfigurationId = response.auctionConfigurationId,
+                    auctionConfigurationUid = response.auctionConfigurationUid,
+                    auctionTimeout = response.auctionTimeout,
+                    auctionPricefloor = response.pricefloor,
+                    noBids = null,
+                    adUnits = null,
+                )
+
+                // Step 3b: Execute parallel auction via ParallelAuctionOrchestrator
+                orchestrator.executeParallelAuction(
+                    rtbPayloadsAvailable = !RtbPayloadCache.isEmpty(), // Check if RTB payloads are cached
+                    cpmAdUnits = splitWaterfall.cpmAdUnits,           // CPM group from split
+                    adTypeParam = adTypeParamWithDynamicPricefloor,   // Use dynamic pricefloor
+                    demandAd = demandAd,
+                    auctionId = auctionId,
+                    auctionConfigurationId = response.auctionConfigurationId ?: 0L,
+                    auctionConfigurationUid = response.auctionConfigurationUid ?: "",
+                    externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
+                    pricefloor = dynamicPricefloor,
+                    auctionInfo = auctionInfo,
+                )
+            },
+            onFailure = { error ->
+                // Auction request failed - notify via failure callback
+                logInfo(TAG, "Auction request failed: ${error.message}")
+                onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
+            }
+        )
+    }
+
     companion object {
         private const val TAG = "CoordinationLayer"
     }
+}
+
+/**
+ * Extension function to create AdTypeParam with modified pricefloor.
+ *
+ * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
+ * we recreate the specific subtype with the new pricefloor value.
+ *
+ * This is a file-private extension function in CoordinationLayer.kt.
+ */
+private fun AdTypeParam.withPricefloor(pricefloor: Double): AdTypeParam = when (this) {
+    is AdTypeParam.Banner -> AdTypeParam.Banner(
+        activity = activity,
+        pricefloor = pricefloor,
+        auctionKey = auctionKey,
+        bannerFormat = bannerFormat,
+        containerWidth = containerWidth,
+    )
+    is AdTypeParam.Interstitial -> AdTypeParam.Interstitial(
+        activity = activity,
+        pricefloor = pricefloor,
+        auctionKey = auctionKey,
+    )
+    is AdTypeParam.Rewarded -> AdTypeParam.Rewarded(
+        activity = activity,
+        pricefloor = pricefloor,
+        auctionKey = auctionKey,
+    )
 }
