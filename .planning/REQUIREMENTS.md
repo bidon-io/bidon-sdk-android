@@ -31,25 +31,25 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### RTB Processing
 
-- [ ] **RTB-01**: Загрузить только первый RTB adUnit (highest priority)
-- [ ] **RTB-02**: Остальные RTB adUnits сохранить payload → RTB_PAYLOAD cache
-- [ ] **RTB-03**: Если первый RTB fail → попробовать следующий, остальные в кэш
-- [ ] **RTB-04**: Success RTB → READY_TO_SHOW cache
-- [ ] **RTB-05**: Invalid payload handling — удалять из RTB_PAYLOAD при ошибке load()
+- [x] **RTB-01**: Загрузить только первый RTB adUnit (highest priority)
+- [x] **RTB-02**: Остальные RTB adUnits сохранить payload → RTB_PAYLOAD cache
+- [x] **RTB-03**: Если первый RTB fail → попробовать следующий, остальные в кэш
+- [x] **RTB-04**: Success RTB → READY_TO_SHOW cache
+- [x] **RTB-05**: Invalid payload handling — удалять из RTB_PAYLOAD при ошибке load()
 
 ### CPM Processing
 
-- [ ] **CPM-01**: Последовательная загрузка CPM adUnits (один за другим)
-- [ ] **CPM-02**: Каждый success CPM → READY_TO_SHOW cache
-- [ ] **CPM-03**: Fail CPM → skip, продолжить следующий
-- [ ] **CPM-04**: Базовая Weight Model — сортировка CPM по fill rate/eCPM из кэша
+- [x] **CPM-01**: Последовательная загрузка CPM adUnits (один за другим)
+- [x] **CPM-02**: Каждый success CPM → READY_TO_SHOW cache
+- [x] **CPM-03**: Fail CPM → skip, продолжить следующий
+- [x] **CPM-04**: Базовая Weight Model — сортировка CPM по fill rate/eCPM из кэша
 
 ### Parallel Execution
 
-- [ ] **PARALLEL-01**: RTB processing и CPM processing запускаются параллельно (async)
-- [ ] **PARALLEL-02**: Использование Kotlin Coroutines (async/await, SupervisorJob)
-- [ ] **PARALLEL-03**: onAdLoaded callback ровно один раз при первом fill (AtomicBoolean)
-- [ ] **PARALLEL-04**: Cancellation policy — отменить CPM processing при showAd()
+- [x] **PARALLEL-01**: RTB processing и CPM processing запускаются параллельно (async)
+- [x] **PARALLEL-02**: Использование Kotlin Coroutines (async/await, SupervisorJob)
+- [x] **PARALLEL-03**: onAdLoaded callback ровно один раз при первом fill (AtomicBoolean)
+- [ ] **PARALLEL-04**: Cancellation policy — отменить CPM processing при showAd() (deferred to Phase 4)
 
 ### Lifecycle Management
 
@@ -79,8 +79,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SAFETY-01**: Monotonic time source для TTL (SystemClock.elapsedRealtime вместо currentTimeMillis)
 - [x] **SAFETY-02**: Synchronized blocks для compound cache operations (put + notify)
-- [ ] **SAFETY-03**: Proper CoroutineScope injection (no GlobalScope)
-- [ ] **SAFETY-04**: Mutex для coroutine-friendly critical sections (вместо synchronized где возможно)
+- [x] **SAFETY-03**: Proper CoroutineScope injection (no GlobalScope)
+- [x] **SAFETY-04**: Mutex для coroutine-friendly critical sections (вместо synchronized где возможно)
 
 ## v2 Requirements
 
