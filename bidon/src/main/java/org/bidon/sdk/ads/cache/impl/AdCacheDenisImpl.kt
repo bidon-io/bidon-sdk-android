@@ -107,17 +107,22 @@ internal class AdCacheDenisImpl(
     }
 
     /**
-     * Remove and return best ad immediately or throw if cache empty.
+     * Remove and return best ad, suspending until one is available.
      *
-     * V2 behavior: Returns immediately from current cache state (non-blocking).
-     * V1 behavior: Suspended waiting for results.first() (blocking).
+     * Preserves V1 behavior: suspends until cache has an ad,
+     * then returns it with removal (pop semantics).
+     * Cooperates with coroutine cancellation via delay checkpoints.
      *
-     * @return AuctionResult with highest eCPM
-     * @throws NoSuchElementException if cache is empty
+     * @return AuctionResult with highest eCPM (never null, suspends until available)
      */
     override suspend fun poll(): AuctionResult {
-        val result = pop()
-        return result ?: throw NoSuchElementException("Cache is empty")
+        // V1 semantics: suspend until cache has an ad
+        while (true) {
+            val result = pop()
+            if (result != null) return result
+            // Wait briefly before checking again
+            kotlinx.coroutines.delay(100)
+        }
     }
 
     /**
@@ -131,13 +136,19 @@ internal class AdCacheDenisImpl(
     }
 
     /**
-     * Configure cache settings.
+     * Configure cache settings - NO-OP per design decision.
      *
-     * @param settings Cache configuration (capacity, etc.)
+     * V2 design: Uses application-wide singleton cache with fixed capacity.
+     * Calling setCapacity() on one instance would affect all instances.
+     * Per user decision: withSettings should not be active in V2.
+     *
+     * @param settings Cache configuration (ignored)
      */
     override fun withSettings(settings: Cacheable.Settings) {
-        ReadyToShowCache.setCapacity(settings.cacheCapacity)
-        logInfo(TAG, "Cache settings applied: capacity=${settings.cacheCapacity}")
+        // NO-OP: V2 uses application-wide singleton cache with fixed capacity.
+        // Calling setCapacity() on one instance would affect all instances.
+        // Per user decision: withSettings should not be active in V2.
+        logInfo(TAG, "withSettings() called - NO-OP in V2 (singleton cache, capacity managed globally)")
     }
 
     companion object {
