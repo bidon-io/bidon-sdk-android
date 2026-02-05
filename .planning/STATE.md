@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 5 (Entry Point & Integration)
-Plan: 3 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 05-03-PLAN.md (V2 factory isolation & API contract fixes)
+Last activity: 2026-02-05 — Completed 05-04-PLAN.md (GetTokensUseCase interface isolation)
 
-Progress: [███████████░] 92%
+Progress: [████████████] 96%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 2.4 min
-- Total execution time: 0.7 hours
+- Total plans completed: 20
+- Average duration: 2.5 min
+- Total execution time: 0.8 hours
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [███████████░] 92%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
-| 5. Entry Point & Integration | 3 | 12 min | 4.0 min |
+| 5. Entry Point & Integration | 4 | 16 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-05 (4 min), 05-01 (8 min), 05-02 (2 min), 05-03 (2 min)
-- Trend: 05-03 fast (refactoring + simple fixes), gap closure plans are quick
+- Last 5 plans: 05-01 (8 min), 05-02 (2 min), 05-03 (2 min), 05-04 (4 min)
+- Trend: Gap closure plans maintain consistent 2-4 min duration
 
 *Updated after each plan completion*
 
@@ -108,6 +108,10 @@ Recent decisions affecting current work:
 - poll() uses delay-based loop (100ms) for V1 suspending semantics (05-03)
 - withSettings() is NO-OP in V2 (no global singleton mutation) (05-03)
 - Factory delegation keeps AdCacheFactoryImpl constructor unchanged (05-03)
+- Wrapper pattern for V2 skip logic isolation (GetTokensWithSkipUseCase) (05-04)
+- FilteredAdaptersSource created as private class in wrapper file (05-04)
+- Wrapper created locally in factory, not via DI (V2-specific component) (05-04)
+- GetTokensUseCase reverted to original 3-param interface (no V2 pollution) (05-04)
 
 ### Pending Todos
 
@@ -165,6 +169,7 @@ All lifecycle infrastructure complete and functional:
 - ✅ Build validation: Both production and serverless variants compile successfully (05-02)
 - ✅ Factory isolation: AdCacheDenisFactory extracts V2 logic from AdCacheFactoryImpl (05-03)
 - ✅ API contract fixes: poll() suspends (V1 semantics), withSettings() is NO-OP (05-03)
+- ✅ Interface isolation: GetTokensUseCase reverted, V2 skip logic in wrapper (05-04)
 
 **Phase 5 Known Issues:**
 - 🔴 CRITICAL: CallbackCoordinator created with no-op callbacks (shared orchestrator pattern broken)
@@ -176,6 +181,6 @@ All lifecycle infrastructure complete and functional:
 
 ## Session Continuity
 
-Last session: 2026-02-05 21:41:41 UTC
-Stopped at: Completed 05-03-PLAN.md - V2 factory isolation and API contract fixes
+Last session: 2026-02-05 22:50:49 UTC
+Stopped at: Completed 05-04-PLAN.md - GetTokensUseCase interface isolation via wrapper pattern
 Resume file: None
