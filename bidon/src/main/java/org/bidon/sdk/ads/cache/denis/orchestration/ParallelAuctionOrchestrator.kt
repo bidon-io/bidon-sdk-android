@@ -93,7 +93,7 @@ internal class ParallelAuctionOrchestrator(
                 }
                 // supervisorScope isolates RTB failures (doesn't cancel CPM)
                 supervisorScope {
-                    logInfo(TAG, "RTB branch starting")
+                    logInfo(TAG, "RTB branch starting (auctionId=$auctionId)")
                     val result = rtbProcessor.loadBestPayload(
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
@@ -103,7 +103,12 @@ internal class ParallelAuctionOrchestrator(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
                     )
-                    logInfo(TAG, "RTB branch completed: success=${result.isSuccess}")
+                    val cacheSize = ReadyToShowCache.size()
+                    logInfo(
+                        TAG,
+                        "RTB branch completed: success=${result.isSuccess}, " +
+                            "cache_size=$cacheSize, error=${result.exceptionOrNull()?.message}"
+                    )
                     result
                 }
             }
@@ -116,7 +121,7 @@ internal class ParallelAuctionOrchestrator(
                 }
                 // supervisorScope isolates CPM failures (doesn't cancel RTB)
                 supervisorScope {
-                    logInfo(TAG, "CPM branch starting")
+                    logInfo(TAG, "CPM branch starting (auctionId=$auctionId, adUnits=${cpmAdUnits.size})")
                     val result = cpmProcessor.loadWaterfall(
                         adUnits = cpmAdUnits,
                         adTypeParam = adTypeParam,
@@ -127,10 +132,11 @@ internal class ParallelAuctionOrchestrator(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
                     )
+                    val cacheSize = ReadyToShowCache.size()
                     logInfo(
                         TAG,
                         "CPM branch completed: success=${result.successCount}, " +
-                            "failure=${result.failureCount}"
+                            "failure=${result.failureCount}, cache_size=$cacheSize"
                     )
                     result
                 }
@@ -168,6 +174,8 @@ internal class ParallelAuctionOrchestrator(
      * - If cache transitioned from empty to non-empty: fire onAdLoaded with best ad
      * - If both branches failed AND cache still empty: fire onAdLoadFailed
      * - Otherwise: no callback (cache was already non-empty, warm start scenario)
+     *
+     * This implements the "first ad cached" event that triggers onAdLoaded callback.
      */
     private fun checkAndNotifyCallback(
         rtbSuccess: Boolean,
@@ -177,28 +185,55 @@ internal class ParallelAuctionOrchestrator(
         auctionInfo: AuctionInfo,
         cacheWasEmpty: Boolean
     ) {
+        // Get current cache state for detailed logging
+        val cacheSize = ReadyToShowCache.size()
+        val cacheIsEmpty = ReadyToShowCache.isEmpty()
+
+        logInfo(
+            TAG,
+            "Cache observation: was_empty=$cacheWasEmpty, current_size=$cacheSize, " +
+                "current_empty=$cacheIsEmpty, rtb_success=$rtbSuccess, cpm_success=$cpmSuccess"
+        )
+
         // Check if ANY success occurred
         if (rtbSuccess || cpmSuccess) {
             // At least one branch succeeded
             // Check if cache transitioned from empty to non-empty
-            if (cacheWasEmpty && !ReadyToShowCache.isEmpty()) {
+            if (cacheWasEmpty && !cacheIsEmpty) {
                 // Cache populated - fire callback with best ad
                 ReadyToShowCache.getBest()?.let { entry ->
                     logInfo(
                         TAG,
-                        "Cache populated (was empty): firing onAdLoaded with " +
-                            "demandId=${entry.demandId}, ecpm=${entry.ecpm}"
+                        "Cache transitioned empty -> non-empty: firing onAdLoaded " +
+                            "(demandId=${entry.demandId}, ecpm=${entry.ecpm}, cache_size=$cacheSize)"
                     )
                     callbackCoordinator.notifySuccess(entry.value, auctionInfo)
+                } ?: run {
+                    // Unexpected: cache not empty but getBest() returned null
+                    logInfo(TAG, "Warning: cache not empty but getBest() returned null")
                 }
             } else if (!cacheWasEmpty) {
-                logInfo(TAG, "Cache was already non-empty: no callback needed (warm start)")
+                // Warm start scenario: cache already had ads
+                logInfo(
+                    TAG,
+                    "Warm start: cache was already non-empty, no callback fired " +
+                        "(cache_size=$cacheSize, new_ads_added=${if (rtbSuccess) "RTB" else ""}${if (cpmSuccess) "CPM" else ""})"
+                )
             } else {
-                logInfo(TAG, "Success but cache still empty: unexpected state")
+                // Unexpected: success reported but cache still empty
+                logInfo(
+                    TAG,
+                    "Warning: branch success but cache still empty " +
+                        "(rtb=$rtbSuccess, cpm=$cpmSuccess)"
+                )
             }
         } else {
             // Both branches failed
-            logInfo(TAG, "Both RTB and CPM branches failed")
+            logInfo(
+                TAG,
+                "Both RTB and CPM branches failed (cache_was_empty=$cacheWasEmpty, " +
+                    "cache_size=$cacheSize)"
+            )
             // CallbackCoordinator checks if cache was empty before firing failure
             callbackCoordinator.notifyFailure(auctionInfo, BidonError.NoFill(DemandId("auction")))
         }
