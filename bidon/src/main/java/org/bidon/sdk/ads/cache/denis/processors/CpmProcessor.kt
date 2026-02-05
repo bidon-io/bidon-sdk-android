@@ -13,6 +13,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
@@ -246,9 +247,10 @@ internal class CpmProcessor(
             logInfo(TAG, "CPM load exception: demandId=${adUnit.demandId}, exception=${e.message}")
             Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
         } finally {
-            // Destroy AdSource if not ready to show (cleanup on failure)
-            if (adSource?.isAdReadyToShow != true) {
-                adSource?.destroy()
+            // Guaranteed cleanup even if cancelled (LIFE-06)
+            // Only destroy if not successfully loaded into cache
+            if (adSource != null && adSource.isAdReadyToShow != true) {
+                CleanupCoordinator.destroyAdSource(adSource, adUnit.demandId)
             }
         }
     }
