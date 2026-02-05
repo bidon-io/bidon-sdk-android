@@ -69,20 +69,21 @@ internal class PeriodicSweepJob(
      * Sweeps both ReadyToShowCache and RtbPayloadCache.
      * Failures are logged but don't propagate (SupervisorJob isolation).
      */
-    private fun performSweep() {
+    private suspend fun performSweep() {
         logInfo(TAG, "Starting periodic sweep")
 
         try {
-            // Sweep ReadyToShowCache
+            // Step 1: Sweep expired entries from caches
             val readyRemoved = ReadyToShowCache.sweep()
-
-            // Sweep RtbPayloadCache
             val rtbRemoved = RtbPayloadCache.sweep()
+
+            // Step 2: Validate WeakReferences and remove invalid entries (LIFE-07)
+            val contextInvalid = WeakContextValidator.validateAndCleanup()
 
             logInfo(
                 TAG,
-                "Sweep completed: ReadyToShow removed=$readyRemoved (size=${ReadyToShowCache.size()}), " +
-                    "RtbPayload removed=$rtbRemoved (size=${RtbPayloadCache.size()})"
+                "Sweep completed: expired=$readyRemoved+$rtbRemoved, contextInvalid=$contextInvalid, " +
+                    "ReadyToShow size=${ReadyToShowCache.size()}, RtbPayload size=${RtbPayloadCache.size()}"
             )
         } catch (e: Exception) {
             // Log but don't propagate - SupervisorJob prevents crash
