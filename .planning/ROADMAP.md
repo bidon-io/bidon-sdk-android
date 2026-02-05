@@ -131,15 +131,16 @@ Plans:
   6. AuctionId tracking uses the winning ad's auctionId (not the most recent auction)
   7. destroyAd() does not clear application-wide caches (only instance-scoped cleanup)
 
-**Plans**: 6 plans
+**Plans**: 7 plans
 
 Plans:
 - [x] 05-01-PLAN.md — AdCacheDenisImpl implementation with CoordinationLayer delegation
 - [x] 05-02-PLAN.md — Factory wiring and dependency injection integration
-- [ ] 05-03-PLAN.md — Gap closure: Factory isolation to denis package + poll()/withSettings() fixes
-- [ ] 05-04-PLAN.md — Gap closure: Revert GetTokensUseCase and create wrapper in denis package
-- [ ] 05-05-PLAN.md — Gap closure: Per-auction CallbackCoordinator with actual callbacks
-- [ ] 05-06-PLAN.md — Gap closure: E2E test infrastructure for V2 cache testing
+- [x] 05-03-PLAN.md — Gap closure: Factory isolation to denis package + poll()/withSettings() fixes
+- [x] 05-04-PLAN.md — Gap closure: Revert GetTokensUseCase and create wrapper in denis package
+- [x] 05-05-PLAN.md — Gap closure: Per-auction CallbackCoordinator with actual callbacks
+- [x] 05-06-PLAN.md — Gap closure: E2E test infrastructure for V2 cache testing
+- [ ] 05-07-PLAN.md — Gap closure: Demo app V2 cache version selector and factory logging
 
 ## Progress
 
@@ -152,4 +153,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Parallel Processing | 5/5 | Complete | 2026-02-05 |
 | 3. Coordination Layer | 0/3 | Not started | - |
 | 4. Lifecycle Management | 5/5 | Complete | 2026-02-05 |
-| 5. Entry Point & Integration | 2/6 | Gap closure | - |
+| 5. Entry Point & Integration | 6/7 | Gap closure | - |
