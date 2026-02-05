@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git stash:*)",
+      "Bash(gh:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:mvnrepository.com)",
+      "WebFetch(domain:developer.android.com)",
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:kotlinlang.org)",
+
+      "WebFetch(domain:appodeal.atlassian.net)",
+      "WebFetch(domain:artifactory.bidon.org)",
+      "WebFetch(domain:bitbucket.org)",
+
+      "WebFetch(domain:developers.bidmachine.io)",
+      "WebFetch(domain:www.mintegral.com)",
+      "WebFetch(domain:developer.digitalturbine.com)",
+      "WebFetch(domain:support.inmobi.com)",
+      "WebFetch(domain:docs.mobilefuse.com)",
+      "WebFetch(domain:developers.is.com)",
+      "WebFetch(domain:docs.unity.com)",
+      "WebFetch(domain:docs.taurusx.com)",
+      "WebFetch(domain:moloco.github.io)",
+      "WebFetch(domain:docs.chartboost.com)",
+      "WebFetch(domain:ads.vk.com)",
+      "WebFetch(domain:aps.amazon.com)",
+      "WebFetch(domain:support.appsflyer.com)",
+      "WebFetch(domain:ads.yandex.com)",
+      "WebFetch(domain:www.bigossp.com)",
+      "WebFetch(domain:dash.applovin.com)",
+      "WebFetch(domain:support.axon.ai)",
+      "WebFetch(domain:support.start.io)",
+      "WebFetch(domain:support.vungle.com)",
+      "WebFetch(domain:developers.facebook.com)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(**/*.keystore)",
+      "Read(**/keystore.properties)",
+      "Read(**/local.properties)",
+      "Read(**/github.properties)",
+      "Read(**/secrets/**)",
+      "Bash(rm -rf:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $CLAUDE_PROJECT_DIR && git diff --name-only 2>/dev/null | grep -q .kt$ && ./gradlew ktlintFormat -q 2>/dev/null; exit 0"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude needs attention\" with title \"Claude Code\" sound name \"Ping\"'"
+          }
+        ]
+      }
+    ]
+  }
+}
+
