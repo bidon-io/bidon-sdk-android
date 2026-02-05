@@ -58,13 +58,14 @@ Plans:
   5. Invalid RTB payloads are removed from cache on load failure
   6. All AdSource instances are destroyed in finally blocks even when coroutines are cancelled
 
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — WeightModel singleton for CPM fill rate tracking
-- [ ] 02-02-PLAN.md — RtbProcessor for RTB payload loading from cache
-- [ ] 02-03-PLAN.md — CpmProcessor for sequential CPM waterfall loading
-- [ ] 02-04-PLAN.md — CallbackCoordinator and ParallelAuctionOrchestrator
+- [x] 02-01-PLAN.md — WeightModel singleton for CPM fill rate tracking
+- [x] 02-02-PLAN.md — RtbProcessor for RTB payload loading from cache
+- [x] 02-03-PLAN.md — CpmProcessor for sequential CPM waterfall loading
+- [x] 02-04-PLAN.md — CallbackCoordinator and ParallelAuctionOrchestrator
+- [ ] 02-05-PLAN.md — Gap closure: RtbProcessor retry logic and finally block cleanup
 
 ### Phase 3: Coordination Layer
 
