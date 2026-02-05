@@ -58,10 +58,13 @@ Plans:
   5. Invalid RTB payloads are removed from cache on load failure
   6. All AdSource instances are destroyed in finally blocks even when coroutines are cancelled
 
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD
+- [ ] 02-01-PLAN.md — WeightModel singleton for CPM fill rate tracking
+- [ ] 02-02-PLAN.md — RtbProcessor for RTB payload loading from cache
+- [ ] 02-03-PLAN.md — CpmProcessor for sequential CPM waterfall loading
+- [ ] 02-04-PLAN.md — CallbackCoordinator and ParallelAuctionOrchestrator
 
 ### Phase 3: Coordination Layer
 
@@ -134,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation (Cache Stores) | 3/3 | Complete | 2026-02-05 |
-| 2. Parallel Processing | 0/TBD | Not started | - |
+| 2. Parallel Processing | 0/4 | Not started | - |
 | 3. Coordination Layer | 0/TBD | Not started | - |
 | 4. Lifecycle Management | 0/TBD | Not started | - |
 | 5. Entry Point & Integration | 0/TBD | Not started | - |
