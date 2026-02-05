@@ -48,7 +48,7 @@ internal class AdCacheAlexImpl(
                     AdTypeParam.Interstitial(
                         activity = adTypeParam.activity,
                         pricefloor = userFlow.getAveragePrice(demandAd.adType) * 0.5f,
-                        auctionKey = "1O16GQT380000"//adTypeParam.auctionKey,
+                        auctionKey = "1O16GQT380000" // adTypeParam.auctionKey,
                     ).also {
                         logInfo(
                             TAG,
