@@ -25,8 +25,10 @@ import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxPriceAuctionResolver
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
+import org.bidon.sdk.auction.impl.GetAuctionRequestUseCaseImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
+import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.AuctionStatImpl
@@ -213,6 +215,13 @@ internal object DI {
                     regulation = get(),
                 )
             }
+            factory<GetAuctionRequestUseCase> {
+                GetAuctionRequestUseCaseImpl(
+                    createRequestBody = get(),
+                    getOrientation = get(),
+                    segmentSynchronizer = get(),
+                )
+            }
 
             /**
              * Requests
@@ -292,7 +301,14 @@ internal object DI {
             }
             factory { CalculateAdContainerParamsUseCase() }
             factory<AdCacheFactory> {
-                AdCacheFactoryImpl(resolver = get())
+                AdCacheFactoryImpl(
+                    resolver = get(),
+                    adaptersSource = get(),
+                    getTokens = get(),
+                    getAuctionRequest = get(),
+                    biddingConfig = get(),
+                    regulation = get(),
+                )
             }
             factoryWithParams<AdCache> { (demandAd) ->
                 get<AdCacheFactory>().create(demandAd as DemandAd)
