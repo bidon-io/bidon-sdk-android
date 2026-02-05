@@ -131,10 +131,11 @@ Plans:
   6. AuctionId tracking uses the winning ad's auctionId (not the most recent auction)
   7. destroyAd() does not clear application-wide caches (only instance-scoped cleanup)
 
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD
+- [ ] 05-01-PLAN.md — AdCacheDenisImpl implementation with CoordinationLayer delegation
+- [ ] 05-02-PLAN.md — Factory wiring and dependency injection integration
 
 ## Progress
 
@@ -147,4 +148,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Parallel Processing | 5/5 | Complete | 2026-02-05 |
 | 3. Coordination Layer | 0/3 | Not started | - |
 | 4. Lifecycle Management | 5/5 | Complete | 2026-02-05 |
-| 5. Entry Point & Integration | 0/TBD | Not started | - |
+| 5. Entry Point & Integration | 0/2 | Not started | - |
