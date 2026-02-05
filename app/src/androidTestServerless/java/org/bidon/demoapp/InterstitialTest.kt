@@ -145,6 +145,51 @@ class InterstitialTest {
             checkTextOnScreen("onAdClosed")
         }
     }
+
+    @Test
+    fun interstitial_V2_OneRoundAdmob() {
+        ServerlessConfigSettings.useAdapters("admob")
+        ServerlessAuctionConfig.setLocalAuctionResponse(
+            pricefloor = 0.0,
+            adUnits = listOf(
+                AdUnit(
+                    demandId = "admob",
+                    label = "admob",
+                    pricefloor = 0.01,
+                    uid = "uid123",
+                    bidType = BidType.CPM,
+                    timeout = 5000,
+                    ext = jsonObject {
+                        "adUnitId" hasValue "ca-app-pub-3940256099942544/1033173712"
+                    }.toString()
+                )
+            )
+        )
+        rule.setContent {
+            AppTheme {
+                TestInterstitialScreen(cacheVersion = 2)
+            }
+        }
+        with(rule) {
+            StepSdkInitialization.perform(activity)
+            clickOnComposeButton("LOAD")
+
+            // V2 uses AdCacheDenisImpl with CoordinationLayer
+            // Cold start path: token collection -> auction request -> parallel processing
+            // Wait for auction to complete
+            checkTextOnScreen("onAdLoaded")
+
+            Thread.sleep(1000)
+            clickOnComposeButton("SHOW")
+
+            Thread.sleep(1000)
+            clickOnXmlButton(buttonDescription = AdmobInterstitialCloseButtonDescription)
+
+            checkTextOnScreen("onRevenuePaid")
+            checkTextOnScreen("onAdShown")
+            checkTextOnScreen("onAdClosed")
+        }
+    }
 }
 
 private const val AdmobInterstitialCloseButtonDescription = "Interstitial close button"
