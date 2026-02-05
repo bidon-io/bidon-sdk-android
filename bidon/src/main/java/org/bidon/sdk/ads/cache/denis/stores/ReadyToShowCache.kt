@@ -150,6 +150,67 @@ internal object ReadyToShowCache {
     }
 
     /**
+     * Peek at ad by demandId without removing it.
+     *
+     * Non-destructive read for checking cache state.
+     *
+     * @param demandId Demand network identifier
+     * @return Cached AuctionResult or null if not found/expired
+     */
+    fun peek(demandId: String): AuctionResult? {
+        val entry = cache[demandId] ?: return null
+        return if (entry.isExpired()) {
+            cache.remove(demandId)
+            null
+        } else {
+            entry.value
+        }
+    }
+
+    /**
+     * Peek at best ad without removing it.
+     *
+     * Non-destructive read for checking best available ad.
+     *
+     * @return AuctionResult with highest eCPM or null if empty
+     */
+    fun peekBest(): AuctionResult? = getBest()?.value
+
+    /**
+     * Remove and return best ad (highest eCPM).
+     *
+     * Used in showAd() flow to atomically remove winner ad from cache.
+     *
+     * @return Entry with highest eCPM or null if empty
+     */
+    fun popBest(): CacheEntry<AuctionResult>? {
+        evictExpired()
+        val best = cache.entries.maxByOrNull { it.value.ecpm }
+        return best?.let {
+            cache.remove(it.key)
+            it.value
+        }
+    }
+
+    /**
+     * Check if ad exists in cache without retrieving it.
+     *
+     * Quick existence check with expiration validation.
+     *
+     * @param demandId Demand network identifier
+     * @return true if valid (non-expired) entry exists
+     */
+    fun contains(demandId: String): Boolean {
+        val entry = cache[demandId] ?: return false
+        return if (entry.isExpired()) {
+            cache.remove(demandId)
+            false
+        } else {
+            true
+        }
+    }
+
+    /**
      * Clear all entries from cache.
      */
     fun clear() {
@@ -163,12 +224,11 @@ internal object ReadyToShowCache {
      */
     private fun evictExpired() {
         val now = TtlConfig.now()
-        val removed = cache.entries.removeIf { (_, entry) -> now > entry.expiresAt }
-        if (removed) {
-            val count = cache.entries.count { now > it.value.expiresAt }
-            if (count > 0) {
-                logInfo(TAG, "ReadyToShowCache evicted expired entries")
-            }
+        val sizeBefore = cache.size
+        cache.entries.removeIf { (_, entry) -> now > entry.expiresAt }
+        val removed = sizeBefore - cache.size
+        if (removed > 0) {
+            logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
         }
     }
 
