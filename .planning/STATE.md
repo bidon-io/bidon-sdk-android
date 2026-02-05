@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Быстрый onAdLoaded callback (<1-3 сек вместо 3-15 сек) при сохранении или повышении revenue за счет умного переиспользования кэшированных bid responses и параллельной загрузки рекламы
-**Current focus:** Phase 3 - Coordination Layer
+**Current focus:** Phase 4 - Lifecycle Management
 
 ## Current Position
 
-Phase: 3 of 5 (Coordination Layer)
-Plan: 3 of 4 in current phase
+Phase: 4 of 5 (Lifecycle Management)
+Plan: 1 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 03-03-PLAN.md (Waterfall Splitting & Full Orchestration)
+Last activity: 2026-02-05 — Completed 04-01-PLAN.md (Periodic Sweep Infrastructure)
 
-Progress: [████████░░] 85%
+Progress: [████████░░] 87%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 1.7 min
-- Total execution time: 0.3 hours
+- Total plans completed: 12
+- Average duration: 1.8 min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [████████░░] 85%
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
+| 4. Lifecycle Management | 1 | 2 min | 2.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-05 (2 min), 03-01 (3 min), 03-02 (1 min), 03-03 (4 min)
+- Last 5 plans: 03-01 (3 min), 03-02 (1 min), 03-03 (4 min), 04-01 (2 min)
 - Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
@@ -79,6 +80,10 @@ Recent decisions affecting current work:
 - AuctionCompletionType.WarmStartServed signals caller MUST NOT start another auction (03-03)
 - Dynamic pricefloor wired via file-private withPricefloor() extension function (03-03)
 - Pass only CPM adUnits to ParallelAuctionOrchestrator (RTB via cache lookup) (03-03)
+- SupervisorJob for periodic sweep: failures don't crash ad instance (04-01)
+- Delay-first sweep pattern: first sweep after 5 minutes, not immediately (04-01)
+- while(isActive) + delay() for cooperative cancellation on scope destroy (04-01)
+- Public sweep() API on caches returns removal count for telemetry (04-01)
 
 ### Pending Todos
 
@@ -114,8 +119,13 @@ None yet.
 - 🛑 RtbProcessor and CpmProcessor are unreachable until 03-04 factory wiring
 - Phase 2 + 3 deliver zero value until factory integration completes
 
+**Phase 4 Progress:**
+- ✅ Periodic sweep infrastructure: AdInstanceScope + PeriodicSweepJob (04-01)
+- ⬜ Cancellation management: showAd() triggers + Job.cancel() handling (04-02 pending)
+- ⬜ Cleanup coordination: NonCancellable context + parallel AdSource.destroy() (04-03 pending)
+
 ## Session Continuity
 
-Last session: 2026-02-05 16:39:15 UTC
-Stopped at: Completed 03-03-PLAN.md (Waterfall Splitting & Full Orchestration)
+Last session: 2026-02-05 17:12:40 UTC
+Stopped at: Completed 04-01-PLAN.md (Periodic Sweep Infrastructure)
 Resume file: None
