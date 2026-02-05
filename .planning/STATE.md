@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 5 (Entry Point & Integration)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-05 — Completed 05-02-PLAN.md (Factory wiring and DI validation)
+Plan: 3 of 5 in current phase
+Status: In progress
+Last activity: 2026-02-05 — Completed 05-03-PLAN.md (V2 factory isolation & API contract fixes)
 
-Progress: [██████████] 100%
+Progress: [███████████░] 92%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 2.4 min
 - Total execution time: 0.7 hours
 
@@ -31,11 +31,11 @@ Progress: [██████████] 100%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
-| 5. Entry Point & Integration | 2 | 10 min | 5.0 min |
+| 5. Entry Point & Integration | 3 | 12 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-04 (3 min), 04-05 (4 min), 05-01 (8 min), 05-02 (2 min)
-- Trend: 05-02 fast (fix only), 05-01 slower (DI discovery + callback debugging)
+- Last 5 plans: 04-05 (4 min), 05-01 (8 min), 05-02 (2 min), 05-03 (2 min)
+- Trend: 05-03 fast (refactoring + simple fixes), gap closure plans are quick
 
 *Updated after each plan completion*
 
@@ -100,11 +100,14 @@ Recent decisions affecting current work:
 - AdCacheDenisImpl acts as facade over Phase 1-4 components (05-01)
 - resolver parameter kept but unused in V2 for API compatibility (05-01)
 - clear() is NO-OP in V2 (TTL-based eviction only) (05-01)
-- poll() returns immediately from cache state, not suspending (05-01)
 - CoordinationLayer and LifecycleManager created per ad instance in factory (05-01)
 - CallbackCoordinator created with no-op callbacks (temporary limitation) (05-01)
 - GetAuctionRequestUseCase registration belongs in FlavoredDI, not main DI.kt (05-02)
 - Duplicate DI registrations break build variants with different constructors (05-02)
+- AdCacheDenisFactory is object (not class) - stateless factory (05-03)
+- poll() uses delay-based loop (100ms) for V1 suspending semantics (05-03)
+- withSettings() is NO-OP in V2 (no global singleton mutation) (05-03)
+- Factory delegation keeps AdCacheFactoryImpl constructor unchanged (05-03)
 
 ### Pending Todos
 
@@ -155,11 +158,13 @@ All lifecycle infrastructure complete and functional:
 - ⏳ Sweep job stop on destroyAd() (requires Phase 5 AdCache.destroyAd())
 - ⏳ showAd() cancels auction (requires Phase 5 AdCache.showAd())
 
-**Phase 5 Complete:**
+**Phase 5 Progress:**
 - ✅ AdCacheDenisImpl entry point: Complete facade implementation (05-01)
 - ✅ DI wiring: GetAuctionRequestUseCase registered, factory dependencies injected (05-01)
 - ✅ Factory integration: AdCacheFactoryImpl creates fully-wired V2 instances (05-02)
 - ✅ Build validation: Both production and serverless variants compile successfully (05-02)
+- ✅ Factory isolation: AdCacheDenisFactory extracts V2 logic from AdCacheFactoryImpl (05-03)
+- ✅ API contract fixes: poll() suspends (V1 semantics), withSettings() is NO-OP (05-03)
 
 **Phase 5 Known Issues:**
 - 🔴 CRITICAL: CallbackCoordinator created with no-op callbacks (shared orchestrator pattern broken)
@@ -171,6 +176,6 @@ All lifecycle infrastructure complete and functional:
 
 ## Session Continuity
 
-Last session: 2026-02-05 20:02:42 UTC
-Stopped at: Phase 5 complete - AdCache V2 implementation ready for integration testing
+Last session: 2026-02-05 21:41:41 UTC
+Stopped at: Completed 05-03-PLAN.md - V2 factory isolation and API contract fixes
 Resume file: None
