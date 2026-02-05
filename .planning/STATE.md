@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 2 of 5 (Parallel Processing)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 02-01-PLAN.md (WeightModel)
+Last activity: 2026-02-05 — Completed 02-02-PLAN.md (RtbProcessor)
 
-Progress: [█████░░░░░] 57%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 1.3 min
+- Total plans completed: 5
+- Average duration: 1.4 min
 - Total execution time: 0.1 hours
 
 **By Phase:**
@@ -28,11 +28,11 @@ Progress: [█████░░░░░] 57%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
-| 2. Parallel Processing | 1 | 1 min | 1.0 min |
+| 2. Parallel Processing | 2 | 5 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (2 min), 01-03 (1 min), 02-01 (1 min)
-- Trend: Consistent fast execution (1-2 min per plan)
+- Last 5 plans: 01-02 (2 min), 01-03 (1 min), 02-01 (1 min), 02-02 (4 min)
+- Trend: Mostly fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
 
@@ -54,6 +54,9 @@ Recent decisions affecting current work:
 - Weight bounds 1-20 with default 10 for predictable behavior (02-01)
 - Multiplicative scoring (eCPM × weight/10) instead of additive for intuitive scaling (02-01)
 - In-memory only weight storage (resets on app restart) - no persistence needed (02-01)
+- Load only highest-eCPM RTB payload per auction (single attempt, not waterfall) (02-02)
+- Remove payload from cache only on failure to prevent retry of broken bids (02-02)
+- AdSource destroyed only on failure - success stores in cache for later show (02-02)
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-05 14:53:09 UTC
-Stopped at: Completed 02-01-PLAN.md (WeightModel implementation)
+Last session: 2026-02-05 14:57:57 UTC
+Stopped at: Completed 02-02-PLAN.md (RtbProcessor implementation)
 Resume file: None
