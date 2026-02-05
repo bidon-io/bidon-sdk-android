@@ -23,6 +23,7 @@ import org.bidon.sdk.ads.InitAwaiter
 import org.bidon.sdk.ads.InitAwaiterImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.databinders.extras.Extras
@@ -72,7 +73,7 @@ internal class InterstitialImpl(
                         adTypeParam = AdTypeParam.Interstitial(
                             activity = activity,
                             pricefloor = pricefloor,
-                            auctionKey = auctionKey,
+                            auctionKey = "1O16GQT380000",
                         ),
                         onSuccess = { auctionResult, auctionInfo ->
                             subscribeToWinner(auctionInfo, auctionResult.adSource)

@@ -4,15 +4,16 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.impl.alex.AdCacheAlexStorage
+import org.bidon.sdk.ads.cache.impl.alex.AdCacheStorage
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
-
-internal typealias AuctionKey = String
+import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * V2 implementation of AdCache with configurable behavior.
+ * V5 implementation of AdCache with two-bucket caching strategy:
+ * - FillEntry for BidType.CPM - loaded ads ready to show
+ * - BidEntry for BidType.RTB - raw bids with payload, not yet filled (30min TTL)
  */
 internal class AdCacheAlexImpl(
     override val demandAd: DemandAd,
@@ -20,43 +21,54 @@ internal class AdCacheAlexImpl(
 ) : AdCache {
 
     private var adCache: AdCache? = null
+    private var winner: AuctionResult? = null
 
     override fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
-        val auctionKeyForTest: AuctionKey = "1O16JOGPG0400" // don't use adTypeParam.auctionKey
-        adCache = AdCacheAlexStorage.getCache(
-            auctionKey = auctionKeyForTest,
-            demandAd = demandAd,
-            resolver = resolver
-        )
-        adCache?.cache(
-            adTypeParam,
-            onSuccess,
-            onFailure
+        logInfo(TAG, "Cache started $adTypeParam")
+        val adCache = AdCacheStorage.getCache(
+            auctionKey = adTypeParam.auctionKey ?: "default",
+            resolver = resolver,
+            demandAd = demandAd
+        ).also {
+            adCache = it
+        }
+        adCache.cache(
+            adTypeParam = adTypeParam,
+            onSuccess = { auctionResult, auctionInfo ->
+                winner = auctionResult
+                onSuccess(auctionResult, auctionInfo)
+            },
+            onFailure = onFailure
         )
     }
 
     override fun peek(): AuctionResult? {
-        return adCache?.peek()
+        return winner
     }
 
     override fun pop(): AuctionResult? {
-        return adCache?.pop()
+        val winner = winner
+        this.winner = null
+        return winner
     }
 
     override suspend fun poll(): AuctionResult {
-        return adCache?.poll() ?: throw IllegalStateException("AdCache is not initialized")
+        error("No one is using this method yet, we can implement it when needed")
     }
 
     override fun clear() {
-        adCache?.clear()
+        winner = null
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
-        adCache?.withSettings(settings)
+        // Currently no settings to apply
     }
 
+    companion object {
+        private const val TAG = "AdCacheAlex"
+    }
 }
