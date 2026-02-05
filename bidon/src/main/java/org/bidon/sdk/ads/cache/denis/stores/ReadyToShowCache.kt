@@ -218,6 +218,22 @@ internal object ReadyToShowCache {
     }
 
     /**
+     * Remove all expired entries from cache (periodic sweep).
+     * Called by PeriodicSweepJob every 5 minutes.
+     *
+     * @return Number of entries removed
+     */
+    fun sweep(): Int {
+        val sizeBefore = cache.size
+        evictExpired()
+        val removed = sizeBefore - cache.size
+        if (removed > 0) {
+            logInfo(TAG, "ReadyToShowCache sweep: removed $removed expired entries")
+        }
+        return removed
+    }
+
+    /**
      * Remove all expired entries from cache (lazy eviction).
      *
      * Called internally before query operations to ensure clean state.
