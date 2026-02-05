@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 5 (Entry Point & Integration)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-05 — Completed 05-01-PLAN.md (AdCacheDenisImpl entry point)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-05 — Completed 05-02-PLAN.md (Factory wiring and DI validation)
 
-Progress: [█████████▓] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
-- Average duration: 2.5 min
+- Total plans completed: 18
+- Average duration: 2.4 min
 - Total execution time: 0.7 hours
 
 **By Phase:**
@@ -31,11 +31,11 @@ Progress: [█████████▓] 97%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
-| 5. Entry Point & Integration | 1 | 8 min | 8.0 min |
+| 5. Entry Point & Integration | 2 | 10 min | 5.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-03 (3 min), 04-04 (3 min), 04-05 (4 min), 05-01 (8 min)
-- Trend: 05-01 slower due to DI discovery + callback architecture debugging
+- Last 5 plans: 04-04 (3 min), 04-05 (4 min), 05-01 (8 min), 05-02 (2 min)
+- Trend: 05-02 fast (fix only), 05-01 slower (DI discovery + callback debugging)
 
 *Updated after each plan completion*
 
@@ -103,6 +103,8 @@ Recent decisions affecting current work:
 - poll() returns immediately from cache state, not suspending (05-01)
 - CoordinationLayer and LifecycleManager created per ad instance in factory (05-01)
 - CallbackCoordinator created with no-op callbacks (temporary limitation) (05-01)
+- GetAuctionRequestUseCase registration belongs in FlavoredDI, not main DI.kt (05-02)
+- Duplicate DI registrations break build variants with different constructors (05-02)
 
 ### Pending Todos
 
@@ -153,10 +155,11 @@ All lifecycle infrastructure complete and functional:
 - ⏳ Sweep job stop on destroyAd() (requires Phase 5 AdCache.destroyAd())
 - ⏳ showAd() cancels auction (requires Phase 5 AdCache.showAd())
 
-**Phase 5 Progress:**
+**Phase 5 Complete:**
 - ✅ AdCacheDenisImpl entry point: Complete facade implementation (05-01)
 - ✅ DI wiring: GetAuctionRequestUseCase registered, factory dependencies injected (05-01)
-- ⬜ Factory integration: Enable V2 via AdCacheVersion configuration (05-02 pending)
+- ✅ Factory integration: AdCacheFactoryImpl creates fully-wired V2 instances (05-02)
+- ✅ Build validation: Both production and serverless variants compile successfully (05-02)
 
 **Phase 5 Known Issues:**
 - 🔴 CRITICAL: CallbackCoordinator created with no-op callbacks (shared orchestrator pattern broken)
@@ -168,6 +171,6 @@ All lifecycle infrastructure complete and functional:
 
 ## Session Continuity
 
-Last session: 2026-02-05 18:40:00 UTC
-Stopped at: Phase 4 verification complete - ready for Phase 5
+Last session: 2026-02-05 20:02:42 UTC
+Stopped at: Phase 5 complete - AdCache V2 implementation ready for integration testing
 Resume file: None
