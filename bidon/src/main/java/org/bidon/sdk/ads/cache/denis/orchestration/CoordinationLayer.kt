@@ -5,6 +5,8 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
+import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
@@ -41,7 +43,8 @@ internal class CoordinationLayer(
     private val adaptersSource: AdaptersSource,
     private val getTokensWithSkip: GetTokensWithSkipUseCase,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val orchestrator: ParallelAuctionOrchestrator,
+    private val rtbProcessor: RtbProcessor,
+    private val cpmProcessor: CpmProcessor,
     private val lifecycleManager: LifecycleManager,
 ) {
     /**
@@ -290,7 +293,18 @@ internal class CoordinationLayer(
                         adUnits = null,
                     )
 
-                    // Step 3b: Execute parallel auction via ParallelAuctionOrchestrator
+                    // Step 3b: Create per-auction orchestrator with ACTUAL callbacks
+                    val callbackCoordinator = CallbackCoordinator(
+                        onAdLoaded = onSuccess,
+                        onAdLoadFailed = { info, error -> onFailure(info, error) },
+                    )
+                    val orchestrator = ParallelAuctionOrchestrator(
+                        rtbProcessor = rtbProcessor,
+                        cpmProcessor = cpmProcessor,
+                        callbackCoordinator = callbackCoordinator,
+                    )
+
+                    // Execute parallel auction via per-auction orchestrator
                     orchestrator.executeParallelAuction(
                         rtbPayloadsAvailable = !RtbPayloadCache.isEmpty(), // Check if RTB payloads are cached
                         cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split

@@ -4,9 +4,7 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
-import org.bidon.sdk.ads.cache.denis.orchestration.CallbackCoordinator
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
-import org.bidon.sdk.ads.cache.denis.orchestration.ParallelAuctionOrchestrator
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
@@ -31,11 +29,13 @@ internal object AdCacheDenisFactory {
      *
      * Creates and assembles:
      * - LifecycleManager (instance-scoped for ad lifecycle)
-     * - RtbProcessor and CpmProcessor (load processing)
-     * - CallbackCoordinator (temporary no-op callbacks)
-     * - ParallelAuctionOrchestrator (RTB + CPM parallel execution)
-     * - CoordinationLayer (warm/cold start orchestration)
+     * - RtbProcessor and CpmProcessor (shared processors for load operations)
+     * - CoordinationLayer (warm/cold start orchestration, creates orchestrator per-auction)
      * - AdCacheDenisImpl (facade entry point)
+     *
+     * Note: CallbackCoordinator and ParallelAuctionOrchestrator are created per-auction
+     * inside CoordinationLayer.handleColdStart() with actual callbacks from cache() call.
+     * This ensures multiple cache() calls fire their own callbacks correctly.
      *
      * @param demandAd Ad instance configuration
      * @param resolver Auction resolver (V1 compatibility - unused in V2)
@@ -58,7 +58,7 @@ internal object AdCacheDenisFactory {
         // Create instance-scoped lifecycle manager
         val lifecycleManager = LifecycleManager()
 
-        // Create processors with dependencies
+        // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
             regulation = regulation,
@@ -68,30 +68,16 @@ internal object AdCacheDenisFactory {
             regulation = regulation,
         )
 
-        // Create callback coordinator with no-op callbacks
-        // NOTE: This is a temporary limitation - orchestrator should be created
-        // per-auction with actual callbacks, not shared across auctions
-        val callbackCoordinator = CallbackCoordinator(
-            onAdLoaded = { _, _ -> }, // No-op: callbacks handled elsewhere
-            onAdLoadFailed = { _, _ -> }, // No-op: callbacks handled elsewhere
-        )
-
-        // Create parallel auction orchestrator
-        val orchestrator = ParallelAuctionOrchestrator(
-            rtbProcessor = rtbProcessor,
-            cpmProcessor = cpmProcessor,
-            callbackCoordinator = callbackCoordinator,
-        )
-
         // Create V2-specific token wrapper that filters cached demand IDs
         val getTokensWithSkip = GetTokensWithSkipUseCase(delegate = getTokens)
 
-        // Create coordination layer with all dependencies
+        // Create coordination layer with processors (orchestrator created per-auction)
         val coordinationLayer = CoordinationLayer(
             adaptersSource = adaptersSource,
             getTokensWithSkip = getTokensWithSkip,
             getAuctionRequest = getAuctionRequest,
-            orchestrator = orchestrator,
+            rtbProcessor = rtbProcessor,
+            cpmProcessor = cpmProcessor,
             lifecycleManager = lifecycleManager,
         )
 
