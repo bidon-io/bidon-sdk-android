@@ -119,17 +119,16 @@ internal class AdCacher(
     }
 
     private fun addResult(result: AuctionResult) {
-        val price = result.adSource.getStats().price
         _results.update { list ->
-            val newList = list.toMutableList()
-            // Find insertion point to maintain descending price order
-            val insertIndex = newList.indexOfFirst { it.adSource.getStats().price < price }
-            if (insertIndex == -1) {
-                newList.add(result)
-            } else {
-                newList.add(insertIndex, result)
+            val source = list + result
+            val results = source
+                .sortedByDescending { it.adSource.getStats().price }
+                .distinctBy { it.adSource.demandId }
+            (source - results.toSet()).onEach {
+                logInfo(TAG, "Destroying duplicate ad from ${it.adSource.demandId.demandId}")
+                it.adSource.destroy()
             }
-            newList
+            results
         }
         logInfo(
             TAG,

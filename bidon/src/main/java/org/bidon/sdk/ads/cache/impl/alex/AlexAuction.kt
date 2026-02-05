@@ -91,9 +91,7 @@ internal class AlexAuction(
                         adTypeParam = adTypeParam,
                         adaptersSource = adaptersSource,
                         tokenTimeout = biddingConfig.tokenTimeout
-                    ).filterKeys {
-                        it in filteredAdapterSources.map { adapter -> adapter.demandId.demandId }
-                    }
+                    )
                     logInfo(TAG, "Tokens available: ${tokens.keys}")
 
                     // Request auction
