@@ -105,10 +105,13 @@ Plans:
   4. Cleanup code in finally blocks completes even when coroutines are cancelled (NonCancellable context)
   5. Activity context references are weak to prevent memory leaks from singleton caches
 
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD
+- [ ] 04-01-PLAN.md — Periodic sweep infrastructure (AdInstanceScope, PeriodicSweepJob)
+- [ ] 04-02-PLAN.md — Cancellation manager for showAd()-triggered cancellation
+- [ ] 04-03-PLAN.md — NonCancellable cleanup with CleanupCoordinator
+- [ ] 04-04-PLAN.md — WeakReference validation for Activity context leak prevention
 
 ### Phase 5: Entry Point & Integration
 
@@ -142,5 +145,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation (Cache Stores) | 3/3 | Complete | 2026-02-05 |
 | 2. Parallel Processing | 5/5 | Complete | 2026-02-05 |
 | 3. Coordination Layer | 0/3 | Not started | - |
-| 4. Lifecycle Management | 0/TBD | Not started | - |
+| 4. Lifecycle Management | 0/4 | Not started | - |
 | 5. Entry Point & Integration | 0/TBD | Not started | - |
