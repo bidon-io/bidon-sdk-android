@@ -83,10 +83,12 @@ Plans:
   5. Waterfall is split into RTB group and CPM group before parallel processing
   6. Existing SDK adapters work without modifications (AdSource interface compatibility)
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD
+- [ ] 03-01-PLAN.md — Core coordination layer with cold/warm start state machine and pricefloor calculation
+- [ ] 03-02-PLAN.md — GetTokensUseCase extension with skipDemandIds parameter
+- [ ] 03-03-PLAN.md — Waterfall splitting and full auction flow integration
 
 ### Phase 4: Lifecycle Management
 
@@ -139,6 +141,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation (Cache Stores) | 3/3 | Complete | 2026-02-05 |
 | 2. Parallel Processing | 5/5 | Complete | 2026-02-05 |
-| 3. Coordination Layer | 0/TBD | Not started | - |
+| 3. Coordination Layer | 0/3 | Not started | - |
 | 4. Lifecycle Management | 0/TBD | Not started | - |
 | 5. Entry Point & Integration | 0/TBD | Not started | - |
