@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 3 of 5 (Coordination Layer)
-Plan: 1 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 03-01-PLAN.md (Coordination Layer Foundation)
+Last activity: 2026-02-05 — Completed 03-03-PLAN.md (Waterfall Splitting & Full Orchestration)
 
-Progress: [████████░░] 82%
+Progress: [████████░░] 85%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 1.6 min
-- Total execution time: 0.2 hours
+- Total plans completed: 11
+- Average duration: 1.7 min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [████████░░] 82%
 |-------|-------|-------|----------|
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
-| 3. Coordination Layer | 1 | 3 min | 3.0 min |
+| 3. Coordination Layer | 3 | 8 min | 2.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (4 min), 02-05 (2 min), 03-01 (3 min)
-- Trend: Consistent fast execution (2-4 min per plan)
+- Last 5 plans: 02-05 (2 min), 03-01 (3 min), 03-02 (1 min), 03-03 (4 min)
+- Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
 
@@ -73,6 +73,12 @@ Recent decisions affecting current work:
 - Single cache state snapshot at auction start (no re-validation during processing) (03-01)
 - 0.9 safety margin allows slightly better bids while protecting cached value (03-01)
 - CoordinationLayer returns Pair(state, snapshot) for pricefloor calculation (03-01)
+- Default emptySet() parameter for skipDemandIds ensures backward compatibility (03-02)
+- Split filtering logic: all bidding → filter cached → apply regulation (03-02)
+- Waterfall splitting by filterIsInstance<Adapter.Bidding>() interface check (03-03)
+- AuctionCompletionType.WarmStartServed signals caller MUST NOT start another auction (03-03)
+- Dynamic pricefloor wired via file-private withPricefloor() extension function (03-03)
+- Pass only CPM adUnits to ParallelAuctionOrchestrator (RTB via cache lookup) (03-03)
 
 ### Pending Todos
 
@@ -97,13 +103,19 @@ None yet.
 - TTL clock skew with System.currentTimeMillis (use SystemClock.elapsedRealtime)
 - Duplicate demandId detection not atomic (ConcurrentHashMap.compute() required)
 
+**Phase 3 Progress:**
+- ✅ CoordinationLayer foundation: state detection, pricefloor calculation (03-01)
+- ✅ Token collection skip: skipDemandIds parameter added to GetTokensUseCase (03-02)
+- ✅ Full orchestration: waterfall splitting, coordinateAuction() complete (03-03)
+- ⬜ Factory integration: wire CoordinationLayer to AdCache.cache() API (03-04 pending)
+
 **Phase 3 Critical Dependency:**
-- 🛑 ParallelAuctionOrchestrator is completely orphaned (no SDK integration)
-- 🛑 RtbProcessor and CpmProcessor are unreachable until orchestrator is wired to SDK
-- Phase 2 delivers zero value until Phase 3 integration completes
+- 🛑 CoordinationLayer complete but still orphaned (no SDK integration)
+- 🛑 RtbProcessor and CpmProcessor are unreachable until 03-04 factory wiring
+- Phase 2 + 3 deliver zero value until factory integration completes
 
 ## Session Continuity
 
-Last session: 2026-02-05 16:31:03 UTC
-Stopped at: Completed 03-01-PLAN.md (Coordination Layer Foundation)
+Last session: 2026-02-05 16:39:15 UTC
+Stopped at: Completed 03-03-PLAN.md (Waterfall Splitting & Full Orchestration)
 Resume file: None
