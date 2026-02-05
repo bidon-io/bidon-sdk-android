@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 5 (Entry Point & Integration)
-Plan: 4 of 5 in current phase
-Status: In progress
-Last activity: 2026-02-05 — Completed 05-04-PLAN.md (GetTokensUseCase interface isolation)
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-02-05 — Completed 05-05-PLAN.md (Callback architecture fix)
 
-Progress: [████████████] 96%
+Progress: [█████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
-- Average duration: 2.5 min
-- Total execution time: 0.8 hours
+- Total plans completed: 21
+- Average duration: 2.4 min
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [████████████] 96%
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
 | 4. Lifecycle Management | 5 | 13 min | 2.6 min |
-| 5. Entry Point & Integration | 4 | 16 min | 4.0 min |
+| 5. Entry Point & Integration | 5 | 18 min | 3.6 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (8 min), 05-02 (2 min), 05-03 (2 min), 05-04 (4 min)
+- Last 5 plans: 05-02 (2 min), 05-03 (2 min), 05-04 (4 min), 05-05 (2 min)
 - Trend: Gap closure plans maintain consistent 2-4 min duration
 
 *Updated after each plan completion*
@@ -112,6 +112,10 @@ Recent decisions affecting current work:
 - FilteredAdaptersSource created as private class in wrapper file (05-04)
 - Wrapper created locally in factory, not via DI (V2-specific component) (05-04)
 - GetTokensUseCase reverted to original 3-param interface (no V2 pollution) (05-04)
+- CallbackCoordinator created per-auction inside handleColdStart() with actual callbacks (05-05)
+- ParallelAuctionOrchestrator created per-auction with fresh CallbackCoordinator (05-05)
+- Factory creates only processors (shared), orchestrator created per-auction (05-05)
+- CoordinationLayer constructor receives processors (not orchestrator) (05-05)
 
 ### Pending Todos
 
@@ -162,25 +166,24 @@ All lifecycle infrastructure complete and functional:
 - ⏳ Sweep job stop on destroyAd() (requires Phase 5 AdCache.destroyAd())
 - ⏳ showAd() cancels auction (requires Phase 5 AdCache.showAd())
 
-**Phase 5 Progress:**
+**Phase 5 Complete:**
 - ✅ AdCacheDenisImpl entry point: Complete facade implementation (05-01)
-- ✅ DI wiring: GetAuctionRequestUseCase registered, factory dependencies injected (05-01)
+- ✅ DI wiring: GetAuctionRequestUseCase registered, factory dependencies injected (05-02)
 - ✅ Factory integration: AdCacheFactoryImpl creates fully-wired V2 instances (05-02)
 - ✅ Build validation: Both production and serverless variants compile successfully (05-02)
 - ✅ Factory isolation: AdCacheDenisFactory extracts V2 logic from AdCacheFactoryImpl (05-03)
 - ✅ API contract fixes: poll() suspends (V1 semantics), withSettings() is NO-OP (05-03)
 - ✅ Interface isolation: GetTokensUseCase reverted, V2 skip logic in wrapper (05-04)
+- ✅ Callback architecture fix: Per-auction orchestrator with actual callbacks (05-05)
 
-**Phase 5 Known Issues:**
-- 🔴 CRITICAL: CallbackCoordinator created with no-op callbacks (shared orchestrator pattern broken)
-  - **Impact:** Multiple cache() calls won't fire callbacks correctly
-  - **Root cause:** Orchestrator is instance-scoped but callbacks are request-scoped
-  - **Solution needed:** Create orchestrator per-auction with actual callbacks
-  - **Workaround:** V2 works for single auction per instance (warm start bypasses orchestrator)
-  - **Priority:** HIGH - blocks multi-auction scenarios
+**Phase 5 Known Issues: ALL RESOLVED**
+- ✅ CRITICAL issue resolved (05-05): CallbackCoordinator now created per-auction with actual callbacks
+  - Multiple cache() calls fire their own callbacks correctly
+  - Per-auction orchestrator pattern eliminates shared no-op pattern
+  - Factory simplified to create only shared processors
 
 ## Session Continuity
 
-Last session: 2026-02-05 22:50:49 UTC
-Stopped at: Completed 05-04-PLAN.md - GetTokensUseCase interface isolation via wrapper pattern
+Last session: 2026-02-05 21:57:38 UTC
+Stopped at: Completed 05-05-PLAN.md - Callback architecture fix (all Phase 5 plans complete)
 Resume file: None
