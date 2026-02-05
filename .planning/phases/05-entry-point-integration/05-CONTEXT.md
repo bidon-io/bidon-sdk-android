@@ -15,8 +15,8 @@ Integrate the v2 cache implementation into the SDK by implementing the AdCache i
 
 ### Factory selection behavior
 - Factory has switch between old and v2 implementations (both coexist)
-- Switch is hardcoded to v2 for now: `private const val USE_V2 = true` in AdCacheFactory companion object
-- No config parsing or JSON - direct implementation selection
+- Version selection uses existing AdCacheVersion.fromInt() mechanism via demandAd extras
+- No new switch logic needed - existing mechanism works
 - Structure allows future config-based selection without refactoring
 
 ### pop() as primary method (no separate getBest)
@@ -28,7 +28,7 @@ Integrate the v2 cache implementation into the SDK by implementing the AdCache i
 ### AdCache method mapping
 - peek() - returns best ad WITHOUT removal (peek semantics)
 - pop() - returns best ad WITH removal (highest eCPM selection + automatic removal)
-- poll() - same as peek() (non-destructive read)
+- poll() - suspending version of pop() that throws NoSuchElementException if cache empty (matches V1 behavior pattern, adapted for V2 cache structure)
 - clear() - NO-OP (cache clears only through expired mechanism, not manual)
 - cache() - identical signature and flow to existing implementation
 
