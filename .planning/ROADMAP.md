@@ -12,7 +12,7 @@ This roadmap transforms the Bidon SDK's ad loading pipeline from a fully-blockin
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation (Cache Stores)** - Thread-safe storage with TTL and eviction policies
+- [x] **Phase 1: Foundation (Cache Stores)** - Thread-safe storage with TTL and eviction policies
 - [ ] **Phase 2: Parallel Processing** - RTB/CPM processors with coroutine orchestration
 - [ ] **Phase 3: Coordination Layer** - Auction flow state machine and warm start optimization
 - [ ] **Phase 4: Lifecycle Management** - Periodic sweeps and cancellation handling
@@ -38,9 +38,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Cache entry model and TTL configuration with monotonic time
-- [ ] 01-02-PLAN.md — ReadyToShowCache singleton for loaded ads
-- [ ] 01-03-PLAN.md — RtbPayloadCache singleton with atomic duplicate detection
+- [x] 01-01-PLAN.md — Cache entry model and TTL configuration with monotonic time
+- [x] 01-02-PLAN.md — ReadyToShowCache singleton for loaded ads
+- [x] 01-03-PLAN.md — RtbPayloadCache singleton with atomic duplicate detection
 
 ### Phase 2: Parallel Processing
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation (Cache Stores) | 0/3 | Planned | - |
+| 1. Foundation (Cache Stores) | 3/3 | Complete | 2026-02-05 |
 | 2. Parallel Processing | 0/TBD | Not started | - |
 | 3. Coordination Layer | 0/TBD | Not started | - |
 | 4. Lifecycle Management | 0/TBD | Not started | - |

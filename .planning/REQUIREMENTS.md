@@ -9,16 +9,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Cache Stores
 
-- [ ] **CACHE-01**: Implement ReadyToShowCache — thread-safe хранилище loaded ads ready to show
-- [ ] **CACHE-02**: Implement RtbPayloadCache — thread-safe хранилище RTB bid responses для переиспользования
-- [ ] **CACHE-03**: Application-wide scope через singleton objects для обоих кэшей
-- [ ] **CACHE-04**: TTL 30 минут для записей в обоих кэшах (фиксированный)
-- [ ] **CACHE-05**: Lazy eviction — проверка TTL при каждом доступе (peek/pop/poll)
+- [x] **CACHE-01**: Implement ReadyToShowCache — thread-safe хранилище loaded ads ready to show
+- [x] **CACHE-02**: Implement RtbPayloadCache — thread-safe хранилище RTB bid responses для переиспользования
+- [x] **CACHE-03**: Application-wide scope через singleton objects для обоих кэшей
+- [x] **CACHE-04**: TTL 30 минут для записей в обоих кэшах (фиксированный)
+- [x] **CACHE-05**: Lazy eviction — проверка TTL при каждом доступе (peek/pop/poll)
 - [ ] **CACHE-06**: Periodic sweep — фоновая корутина каждые 5 минут для очистки expired entries
-- [ ] **CACHE-07**: Duplicate demandId policy — заменять только если новый eCPM выше
-- [ ] **CACHE-08**: Thread-safety через ConcurrentHashMap + atomic operations
-- [ ] **CACHE-09**: Memory-aware capacity limits (1-3 ads READY_TO_SHOW, 5-10 RTB_PAYLOAD)
-- [ ] **CACHE-10**: Graceful degradation — empty cache не ломает load flow
+- [x] **CACHE-07**: Duplicate demandId policy — заменять только если новый eCPM выше
+- [x] **CACHE-08**: Thread-safety через ConcurrentHashMap + atomic operations
+- [x] **CACHE-09**: Memory-aware capacity limits (1-3 ads READY_TO_SHOW, 5-10 RTB_PAYLOAD)
+- [x] **CACHE-10**: Graceful degradation — empty cache не ломает load flow
 
 ### Auction Flow
 
@@ -77,8 +77,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Thread Safety & Correctness
 
-- [ ] **SAFETY-01**: Monotonic time source для TTL (SystemClock.elapsedRealtime вместо currentTimeMillis)
-- [ ] **SAFETY-02**: Synchronized blocks для compound cache operations (put + notify)
+- [x] **SAFETY-01**: Monotonic time source для TTL (SystemClock.elapsedRealtime вместо currentTimeMillis)
+- [x] **SAFETY-02**: Synchronized blocks для compound cache operations (put + notify)
 - [ ] **SAFETY-03**: Proper CoroutineScope injection (no GlobalScope)
 - [ ] **SAFETY-04**: Mutex для coroutine-friendly critical sections (вместо synchronized где возможно)
 
@@ -125,16 +125,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CACHE-01 | Phase 1 | Pending |
-| CACHE-02 | Phase 1 | Pending |
-| CACHE-03 | Phase 1 | Pending |
-| CACHE-04 | Phase 1 | Pending |
-| CACHE-05 | Phase 1 | Pending |
+| CACHE-01 | Phase 1 | Complete |
+| CACHE-02 | Phase 1 | Complete |
+| CACHE-03 | Phase 1 | Complete |
+| CACHE-04 | Phase 1 | Complete |
+| CACHE-05 | Phase 1 | Complete |
 | CACHE-06 | Phase 1, Phase 4 | Pending |
-| CACHE-07 | Phase 1 | Pending |
-| CACHE-08 | Phase 1 | Pending |
-| CACHE-09 | Phase 1 | Pending |
-| CACHE-10 | Phase 1 | Pending |
+| CACHE-07 | Phase 1 | Complete |
+| CACHE-08 | Phase 1 | Complete |
+| CACHE-09 | Phase 1 | Complete |
+| CACHE-10 | Phase 1 | Complete |
 | AUCTION-01 | Phase 3 | Pending |
 | AUCTION-02 | Phase 3 | Pending |
 | AUCTION-03 | Phase 3 | Pending |
@@ -169,8 +169,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-01 | Phase 5 | Pending |
 | STAT-02 | Phase 5 | Pending |
 | STAT-03 | Phase 5 | Pending |
-| SAFETY-01 | Phase 1 | Pending |
-| SAFETY-02 | Phase 1 | Pending |
+| SAFETY-01 | Phase 1 | Complete |
+| SAFETY-02 | Phase 1 | Complete |
 | SAFETY-03 | Phase 2 | Pending |
 | SAFETY-04 | Phase 2 | Pending |
 
