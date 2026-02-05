@@ -5,7 +5,6 @@ import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.lang.ref.WeakReference
 
