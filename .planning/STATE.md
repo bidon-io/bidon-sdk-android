@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 1 of 5 (Foundation - Cache Stores)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-05 — Completed 01-02-PLAN.md (ReadyToShowCache)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-05 — Completed 01-03-PLAN.md (RtbPayloadCache)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 1.5 min
+- Total plans completed: 3
+- Average duration: 1.3 min
 - Total execution time: 0.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation (Cache Stores) | 2 | 3 min | 1.5 min |
+| 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (2 min)
-- Trend: Consistent fast execution
+- Last 5 plans: 01-01 (1 min), 01-02 (2 min), 01-03 (1 min)
+- Trend: Consistent fast execution (1-2 min per plan)
 
 *Updated after each plan completion*
 
@@ -47,6 +47,9 @@ Recent decisions affecting current work:
 - Factory pattern для интеграции (легко переключаться между версиями)
 - Kotlin Coroutines вместо RxJava (современный подход в Android)
 - TTL 30 минут фиксированный (баланс между актуальностью и fill rate)
+- Atomic compute() for duplicate detection (prevents race conditions, SAFETY-02)
+- Higher eCPM always wins in duplicate scenarios (CACHE-07)
+- Default capacity 10 for RTB_PAYLOAD cache (upper bound of 5-10 range)
 
 ### Pending Todos
 
@@ -68,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-05 14:09:05 UTC
-Stopped at: Completed 01-02-PLAN.md (ReadyToShowCache implementation)
+Last session: 2026-02-05 14:10:15 UTC
+Stopped at: Completed 01-03-PLAN.md (RtbPayloadCache implementation) - Phase 1 complete
 Resume file: None
