@@ -63,7 +63,13 @@ internal class AdCacheAlexImpl(
                 winner = auctionResult
                 onSuccess(auctionResult, auctionInfo)
             },
-            onFailure = onFailure
+            onFailure = { a, t ->
+                userFlow.recordImpression(
+                    demandAd.adType,
+                    userFlow.getAveragePrice(demandAd.adType) * 0.5f
+                )
+                onFailure(a, t)
+            }
         )
     }
 
