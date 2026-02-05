@@ -5,7 +5,7 @@ source:
   - 05-01-SUMMARY.md
   - 05-02-SUMMARY.md
 started: 2026-02-05T20:15:00Z
-updated: 2026-02-05T20:28:00Z
+updated: 2026-02-05T20:30:00Z
 ---
 
 ## Current Test
@@ -74,7 +74,7 @@ severity: major
 
 total: 12
 passed: 8
-issues: 4
+issues: 6
 pending: 0
 skipped: 0
 
@@ -107,6 +107,22 @@ skipped: 0
 - truth: "GetTokensUseCase interface should not be modified - V2 logic must be isolated in .denis package"
   status: failed
   reason: "User reported: мы переделали get token а это общая часть мы не должны были или надо было создать новую логику именно для denis пакета не трогать основную логику"
+  severity: major
+  test: 12
+  artifacts: []
+  missing: []
+
+- truth: "CallbackCoordinator should be created per-auction with actual callbacks, not shared with no-ops"
+  status: failed
+  reason: "Known issue from SUMMARY.md: CallbackCoordinator created with no-op callbacks at factory time, orchestrator shared across auctions. Multiple cache() calls won't fire callbacks correctly."
+  severity: major
+  test: 12
+  artifacts: []
+  missing: []
+
+- truth: "E2E tests need hardcoded configuration for V2 testing"
+  status: failed
+  reason: "User reported: @docs/testing/E2E_TEST_REPORT.md тут еще проблема в тесатах надо захардкодить для тестов"
   severity: major
   test: 12
   artifacts: []
