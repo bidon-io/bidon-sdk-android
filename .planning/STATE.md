@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 4 of 5 (Lifecycle Management)
-Plan: 4 of 4 in current phase
-Status: Gaps found - integration layer missing
-Last activity: 2026-02-05 — Completed Phase 4 execution with gaps
+Plan: 5 of 5 in current phase
+Status: Phase complete - all infrastructure wired
+Last activity: 2026-02-05 — Completed 04-05-PLAN.md (Lifecycle Integration)
 
-Progress: [████████░░] 92%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: 2.0 min
-- Total execution time: 0.5 hours
+- Total plans completed: 16
+- Average duration: 2.1 min
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [████████░░] 92%
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
-| 4. Lifecycle Management | 4 | 9 min | 2.2 min |
+| 4. Lifecycle Management | 5 | 13 min | 2.6 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (2 min), 04-02 (1 min), 04-03 (3 min), 04-04 (3 min)
-- Trend: Consistent fast execution (1-3 min per plan)
+- Last 5 plans: 04-02 (1 min), 04-03 (3 min), 04-04 (3 min), 04-05 (4 min)
+- Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
 
@@ -92,6 +92,10 @@ Recent decisions affecting current work:
 - Log failures but don't propagate exceptions from cleanup (resilience) (04-03)
 - Parallel AdSource destruction with coroutineScope + launch for speed (04-03)
 - Keep loadSuccess flag pattern from Phase 2 (separation of concerns) (04-03)
+- LifecycleManager is instance-scoped, not singleton (one per ad instance) (04-05)
+- Auction job launched on lifecycleManager.getScope() for cancellation support (04-05)
+- AuctionId generated before job launch for proper tracking (04-05)
+- onAuctionCompleted() in finally block guarantees state cleanup (04-05)
 
 ### Pending Todos
 
@@ -127,16 +131,25 @@ None yet.
 - 🛑 RtbProcessor and CpmProcessor are unreachable until 03-04 factory wiring
 - Phase 2 + 3 deliver zero value until factory integration completes
 
-**Phase 4 Progress:**
+**Phase 4 Complete:**
 - ✅ Periodic sweep infrastructure: AdInstanceScope + PeriodicSweepJob (04-01)
 - ✅ Cancellation management: CancellationManager with Job.cancel() handling (04-02)
 - ✅ Cleanup coordination: NonCancellable context + parallel AdSource.destroy() (04-03)
+- ✅ WeakReference validation: WeakContextValidator for Activity context cleanup (04-04)
+- ✅ Lifecycle integration: LifecycleManager facade wired into CoordinationLayer (04-05)
 
-**Phase 4 Complete:**
-All lifecycle management infrastructure implemented and ready for Phase 5 integration.
+**Phase 4 Verification Gaps Closed:**
+All lifecycle components are now instantiated and wired:
+- ✅ PeriodicSweepJob starts when coordinateAuction() is first called
+- ✅ Sweep job runs every 5 minutes (first sweep after 5 minutes)
+- ✅ CancellationManager receives auction registrations during cold start
+- ✅ Auction jobs launched on lifecycle-managed scope (proper cancellation support)
+- ✅ lifecycleManager.stop() cancels scope and stops all background tasks
+
+**Ready for Phase 5: Factory Integration**
 
 ## Session Continuity
 
-Last session: 2026-02-05 17:18:26 UTC
-Stopped at: Completed 04-03-PLAN.md (Cleanup Coordination)
+Last session: 2026-02-05 17:23:00 UTC
+Stopped at: Completed 04-05-PLAN.md (Lifecycle Integration) - Phase 4 complete
 Resume file: None
