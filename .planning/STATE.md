@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 2 of 5 (Parallel Processing)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-05 — Completed 02-03-PLAN.md (CpmProcessor)
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-05 — Completed 02-04-PLAN.md (Parallel Orchestration)
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 1.5 min
+- Total plans completed: 7
+- Average duration: 1.6 min
 - Total execution time: 0.2 hours
 
 **By Phase:**
@@ -28,10 +28,10 @@ Progress: [███████░░░] 70%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
-| 2. Parallel Processing | 3 | 7 min | 2.3 min |
+| 2. Parallel Processing | 4 | 11 min | 2.8 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (1 min), 02-01 (1 min), 02-02 (4 min), 02-03 (2 min)
+- Last 5 plans: 02-01 (1 min), 02-02 (4 min), 02-03 (2 min), 02-04 (4 min)
 - Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
@@ -60,6 +60,11 @@ Recent decisions affecting current work:
 - Continue entire CPM waterfall (don't stop on first success) to fill ReadyToShowCache with multiple ads (02-03)
 - Record fill/no-fill for every CPM attempt (builds weight model for future optimizations) (02-03)
 - Sequential CPM loading (one at a time) to maintain waterfall ordering discipline (02-03)
+- AtomicBoolean for exactly-once semantics (lock-free, no contention) (02-04)
+- supervisorScope isolates failures between RTB and CPM branches (02-04)
+- Callback fires when cache transitions empty -> non-empty (first ad cached) (02-04)
+- Failure callback only fires if cache was empty AND both branches failed (02-04)
+- Both branches always run to completion (no early termination) (02-04)
 
 ### Pending Todos
 
@@ -81,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-05 16:10:40 UTC
-Stopped at: Completed 02-03-PLAN.md (CpmProcessor implementation)
+Last session: 2026-02-05 15:11:27 UTC
+Stopped at: Completed 02-04-PLAN.md (Parallel Orchestration) - Phase 2 complete
 Resume file: None
