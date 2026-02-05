@@ -166,7 +166,6 @@ internal class AlexAuction(
                                 onResult(auctionResult, auctionInfo)
                             }
 
-
                         // Process stats
                         val statResult = proceedRoundResults()
                         val auctionInfo = getAuctionInfo(auctionData, statResult)
