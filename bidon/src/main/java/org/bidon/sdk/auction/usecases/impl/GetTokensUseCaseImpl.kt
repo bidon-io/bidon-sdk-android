@@ -22,11 +22,26 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         adTypeParam: AdTypeParam,
         adaptersSource: AdaptersSource,
         tokenTimeout: Long,
+        skipDemandIds: Set<String> = emptySet(),
     ): Map<String, TokenInfo> = withContext(SdkDispatchers.Default) {
-        // Filter and apply regulations to adapters
-        val biddingAdapters = adaptersSource.adapters
+        // Filter bidding adapters AND skip cached ones
+        val allBiddingAdapters = adaptersSource.adapters
             .filterIsInstance<Adapter.Bidding>()
+
+        val biddingAdapters = allBiddingAdapters
+            .filter { it.demandId.demandId !in skipDemandIds }
             .onEach(Adapter::applyRegulation)
+
+        // Log skipped adapters for debugging (per 03-CONTEXT.md decision)
+        val skippedCount = allBiddingAdapters.size - biddingAdapters.size
+        if (skippedCount > 0) {
+            logInfo(TAG, "Token collection: ${biddingAdapters.size} adapters, $skippedCount skipped (cached RTB payloads)")
+            skipDemandIds.forEach { demandId ->
+                logInfo(TAG, "Skipped token collection for demandId=$demandId (cached payload)")
+            }
+        } else {
+            logInfo(TAG, "Token collection: ${biddingAdapters.size} adapters, 0 skipped")
+        }
 
         // Fetch tokens concurrently, handling failures with supervisorScope
         supervisorScope {
