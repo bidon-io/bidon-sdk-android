@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 2 of 5 (Parallel Processing)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 02-02-PLAN.md (RtbProcessor)
+Last activity: 2026-02-05 — Completed 02-03-PLAN.md (CpmProcessor)
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 1.4 min
-- Total execution time: 0.1 hours
+- Total plans completed: 6
+- Average duration: 1.5 min
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
-| 2. Parallel Processing | 2 | 5 min | 2.5 min |
+| 2. Parallel Processing | 3 | 7 min | 2.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (2 min), 01-03 (1 min), 02-01 (1 min), 02-02 (4 min)
-- Trend: Mostly fast execution (1-4 min per plan)
+- Last 5 plans: 01-03 (1 min), 02-01 (1 min), 02-02 (4 min), 02-03 (2 min)
+- Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
 
@@ -57,6 +57,9 @@ Recent decisions affecting current work:
 - Load only highest-eCPM RTB payload per auction (single attempt, not waterfall) (02-02)
 - Remove payload from cache only on failure to prevent retry of broken bids (02-02)
 - AdSource destroyed only on failure - success stores in cache for later show (02-02)
+- Continue entire CPM waterfall (don't stop on first success) to fill ReadyToShowCache with multiple ads (02-03)
+- Record fill/no-fill for every CPM attempt (builds weight model for future optimizations) (02-03)
+- Sequential CPM loading (one at a time) to maintain waterfall ordering discipline (02-03)
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-05 14:57:57 UTC
-Stopped at: Completed 02-02-PLAN.md (RtbProcessor implementation)
+Last session: 2026-02-05 16:10:40 UTC
+Stopped at: Completed 02-03-PLAN.md (CpmProcessor implementation)
 Resume file: None
