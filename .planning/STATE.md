@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 4 of 5 (Lifecycle Management)
-Plan: 2 of 3 in current phase
+Plan: 4 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-05 — Completed 04-02-PLAN.md (Cancellation Manager)
+Last activity: 2026-02-05 — Completed 04-04-PLAN.md (WeakReference Validation)
 
-Progress: [████████░░] 89%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 1.7 min
 - Total execution time: 0.4 hours
 
@@ -30,10 +30,10 @@ Progress: [████████░░] 89%
 | 1. Foundation (Cache Stores) | 3 | 4 min | 1.3 min |
 | 2. Parallel Processing | 5 | 13 min | 2.6 min |
 | 3. Coordination Layer | 3 | 8 min | 2.7 min |
-| 4. Lifecycle Management | 2 | 3 min | 1.5 min |
+| 4. Lifecycle Management | 3 | 6 min | 2.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (1 min), 03-03 (4 min), 04-01 (2 min), 04-02 (1 min)
+- Last 5 plans: 03-03 (4 min), 04-01 (2 min), 04-02 (1 min), 04-04 (3 min)
 - Trend: Consistent fast execution (1-4 min per plan)
 
 *Updated after each plan completion*
@@ -88,6 +88,10 @@ Recent decisions affecting current work:
 - Idempotent cancellation via state clearing (safe to call cancelIfMatching twice) (04-02)
 - Synchronized blocks for thread-safe atomic state updates (04-02)
 - Job.cancel() for coroutine cancellation signaling (04-02)
+- WeakReference validation during sweep only (not on every cache access) (04-04)
+- ContextAware interface is optional for AdSource implementations (04-04)
+- Invalid Activity references trigger AdSource destruction before cache removal (04-04)
+- performSweep() changed to suspend function to support validation coroutine (04-04)
 
 ### Pending Todos
 
@@ -106,9 +110,9 @@ None yet.
 - Coroutine upgrade from 1.6.0 to 1.10.2 should be validated for existing SDK compatibility
 
 **Known Critical Pitfalls (from research):**
-- Activity context retained by singleton cache (WeakReference pattern required)
+- ✅ Activity context retained by singleton cache (WeakReference pattern implemented 04-04)
 - Race condition between put + notify operations (Mutex.withLock for compound operations)
-- Coroutine cancellation cleanup failures (NonCancellable context in finally blocks)
+- ✅ Coroutine cancellation cleanup failures (NonCancellable context implemented 04-03)
 - TTL clock skew with System.currentTimeMillis (use SystemClock.elapsedRealtime)
 - Duplicate demandId detection not atomic (ConcurrentHashMap.compute() required)
 
@@ -126,10 +130,11 @@ None yet.
 **Phase 4 Progress:**
 - ✅ Periodic sweep infrastructure: AdInstanceScope + PeriodicSweepJob (04-01)
 - ✅ Cancellation management: CancellationManager with Job.cancel() handling (04-02)
-- ⬜ Cleanup coordination: NonCancellable context + parallel AdSource.destroy() (04-03 pending)
+- ✅ Cleanup coordination: NonCancellable context + parallel AdSource.destroy() (04-03)
+- ✅ WeakReference validation: Memory leak prevention for Activity context (04-04)
 
 ## Session Continuity
 
-Last session: 2026-02-05 17:13:31 UTC
-Stopped at: Completed 04-02-PLAN.md (Cancellation Manager)
+Last session: 2026-02-05 17:18:09 UTC
+Stopped at: Completed 04-04-PLAN.md (WeakReference Validation)
 Resume file: None
