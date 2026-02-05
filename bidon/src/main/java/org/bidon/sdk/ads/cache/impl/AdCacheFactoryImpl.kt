@@ -16,7 +16,7 @@ internal class AdCacheFactoryImpl(
 ) : AdCacheFactory {
 
     override fun create(demandAd: DemandAd): AdCache {
-        val version = AdCacheVersion.fromInt(demandAd.getExtras()["cache_size"] as? Int)
+        val version = AdCacheVersion.fromInt(demandAd.getExtras()["strategy_version"] as? Int)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,
