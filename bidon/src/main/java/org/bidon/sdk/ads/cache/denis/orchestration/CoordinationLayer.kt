@@ -1,8 +1,10 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
+import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
@@ -40,6 +42,7 @@ internal class CoordinationLayer(
     private val getTokens: GetTokensUseCase,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val orchestrator: ParallelAuctionOrchestrator,
+    private val lifecycleManager: LifecycleManager,
 ) {
     /**
      * Determine auction start state based on cache contents.
@@ -140,6 +143,9 @@ internal class CoordinationLayer(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
     ): AuctionCompletionType {
+        // Start lifecycle management (idempotent, safe to call multiple times)
+        lifecycleManager.start()
+
         val userPricefloor = adTypeParam.pricefloor
         val (startState, snapshot) = determineStartState(userPricefloor)
 
@@ -149,27 +155,39 @@ internal class CoordinationLayer(
                 AuctionCompletionType.WarmStartServed // Signals: DO NOT start another auction
             }
             is AuctionStartState.ColdStartWithCache -> {
-                handleColdStart(
-                    skipDemandIds = startState.cachedDemandIds,
-                    snapshot = snapshot,
-                    adTypeParam = adTypeParam,
-                    demandAd = demandAd,
-                    tokenTimeout = tokenTimeout,
-                    onSuccess = onSuccess,
-                    onFailure = onFailure,
-                )
+                // Launch cold start on lifecycle-managed scope and register job
+                val auctionId = java.util.UUID.randomUUID().toString()
+                val job = lifecycleManager.getScope().launch {
+                    handleColdStart(
+                        auctionId = auctionId,
+                        skipDemandIds = startState.cachedDemandIds,
+                        snapshot = snapshot,
+                        adTypeParam = adTypeParam,
+                        demandAd = demandAd,
+                        tokenTimeout = tokenTimeout,
+                        onSuccess = onSuccess,
+                        onFailure = onFailure,
+                    )
+                }
+                lifecycleManager.registerAuction(auctionId, job)
                 AuctionCompletionType.ColdStartInProgress
             }
             is AuctionStartState.PureColdStart -> {
-                handleColdStart(
-                    skipDemandIds = emptySet(),
-                    snapshot = snapshot,
-                    adTypeParam = adTypeParam,
-                    demandAd = demandAd,
-                    tokenTimeout = tokenTimeout,
-                    onSuccess = onSuccess,
-                    onFailure = onFailure,
-                )
+                // Launch cold start on lifecycle-managed scope and register job
+                val auctionId = java.util.UUID.randomUUID().toString()
+                val job = lifecycleManager.getScope().launch {
+                    handleColdStart(
+                        auctionId = auctionId,
+                        skipDemandIds = emptySet(),
+                        snapshot = snapshot,
+                        adTypeParam = adTypeParam,
+                        demandAd = demandAd,
+                        tokenTimeout = tokenTimeout,
+                        onSuccess = onSuccess,
+                        onFailure = onFailure,
+                    )
+                }
+                lifecycleManager.registerAuction(auctionId, job)
                 AuctionCompletionType.ColdStartInProgress
             }
         }
@@ -213,6 +231,7 @@ internal class CoordinationLayer(
      * we create a modified version that replaces the pricefloor.
      */
     private suspend fun handleColdStart(
+        auctionId: String,
         skipDemandIds: Set<String>,
         snapshot: CacheStateSnapshot,
         adTypeParam: AdTypeParam,
@@ -221,76 +240,80 @@ internal class CoordinationLayer(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
     ) {
-        val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
-        logInfo(TAG, "Cold start: dynamicPricefloor=$dynamicPricefloor (user=${adTypeParam.pricefloor}), skipDemandIds=${skipDemandIds.size}")
+        try {
+            val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
+            logInfo(TAG, "Cold start: dynamicPricefloor=$dynamicPricefloor (user=${adTypeParam.pricefloor}), skipDemandIds=${skipDemandIds.size}")
 
-        // Create adTypeParam with dynamic pricefloor for auction request
-        // This ensures the backend receives the dynamic pricefloor, not the original
-        val adTypeParamWithDynamicPricefloor = adTypeParam.withPricefloor(dynamicPricefloor)
+            // Create adTypeParam with dynamic pricefloor for auction request
+            // This ensures the backend receives the dynamic pricefloor, not the original
+            val adTypeParamWithDynamicPricefloor = adTypeParam.withPricefloor(dynamicPricefloor)
 
-        // Step 1: Collect tokens (with skip optimization)
-        val tokens = getTokens(
-            adTypeParam = adTypeParam, // Original for token collection
-            adaptersSource = adaptersSource,
-            tokenTimeout = tokenTimeout,
-            skipDemandIds = skipDemandIds,
-        )
+            // Step 1: Collect tokens (with skip optimization)
+            val tokens = getTokens(
+                adTypeParam = adTypeParam, // Original for token collection
+                adaptersSource = adaptersSource,
+                tokenTimeout = tokenTimeout,
+                skipDemandIds = skipDemandIds,
+            )
 
-        // Step 2: Request auction WITH DYNAMIC PRICEFLOOR
-        val auctionId = java.util.UUID.randomUUID().toString()
-        val auctionResponse = getAuctionRequest.request(
-            adTypeParam = adTypeParamWithDynamicPricefloor, // <-- Dynamic pricefloor used here
-            auctionId = auctionId,
-            demandAd = demandAd,
-            adapters = adaptersSource.adapters.associate {
-                it.demandId.demandId to it.adapterInfo
-            },
-            tokens = tokens,
-        )
+            // Step 2: Request auction WITH DYNAMIC PRICEFLOOR
+            val auctionResponse = getAuctionRequest.request(
+                adTypeParam = adTypeParamWithDynamicPricefloor, // <-- Dynamic pricefloor used here
+                auctionId = auctionId,
+                demandAd = demandAd,
+                adapters = adaptersSource.adapters.associate {
+                    it.demandId.demandId to it.adapterInfo
+                },
+                tokens = tokens,
+            )
 
-        // Step 3: Handle auction response - split waterfall and execute parallel auction
-        auctionResponse.fold(
-            onSuccess = { response ->
-                // Step 3a: Split waterfall into RTB and CPM groups using WaterfallSplitter
-                val adUnits = response.adUnits ?: emptyList()
-                val splitWaterfall = WaterfallSplitter.split(
-                    adUnits = adUnits,
-                    adaptersSource = adaptersSource
-                )
+            // Step 3: Handle auction response - split waterfall and execute parallel auction
+            auctionResponse.fold(
+                onSuccess = { response ->
+                    // Step 3a: Split waterfall into RTB and CPM groups using WaterfallSplitter
+                    val adUnits = response.adUnits ?: emptyList()
+                    val splitWaterfall = WaterfallSplitter.split(
+                        adUnits = adUnits,
+                        adaptersSource = adaptersSource
+                    )
 
-                logInfo(TAG, "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size}, cpm=${splitWaterfall.cpmAdUnits.size}")
+                    logInfo(TAG, "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size}, cpm=${splitWaterfall.cpmAdUnits.size}")
 
-                // Build AuctionInfo for callbacks
-                val auctionInfo = AuctionInfo(
-                    auctionId = auctionId,
-                    auctionConfigurationId = response.auctionConfigurationId,
-                    auctionConfigurationUid = response.auctionConfigurationUid,
-                    auctionTimeout = response.auctionTimeout,
-                    auctionPricefloor = response.pricefloor,
-                    noBids = null,
-                    adUnits = null,
-                )
+                    // Build AuctionInfo for callbacks
+                    val auctionInfo = AuctionInfo(
+                        auctionId = auctionId,
+                        auctionConfigurationId = response.auctionConfigurationId,
+                        auctionConfigurationUid = response.auctionConfigurationUid,
+                        auctionTimeout = response.auctionTimeout,
+                        auctionPricefloor = response.pricefloor,
+                        noBids = null,
+                        adUnits = null,
+                    )
 
-                // Step 3b: Execute parallel auction via ParallelAuctionOrchestrator
-                orchestrator.executeParallelAuction(
-                    rtbPayloadsAvailable = !RtbPayloadCache.isEmpty(), // Check if RTB payloads are cached
-                    cpmAdUnits = splitWaterfall.cpmAdUnits,           // CPM group from split
-                    adTypeParam = adTypeParamWithDynamicPricefloor,   // Use dynamic pricefloor
-                    demandAd = demandAd,
-                    auctionId = auctionId,
-                    auctionConfigurationId = response.auctionConfigurationId ?: 0L,
-                    auctionConfigurationUid = response.auctionConfigurationUid ?: "",
-                    externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
-                    pricefloor = dynamicPricefloor,
-                    auctionInfo = auctionInfo,
-                )
-            },
-            onFailure = { error ->
-                // Auction request failed - notify via failure callback
-                logInfo(TAG, "Auction request failed: ${error.message}")
-                onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
-            }
-        )
+                    // Step 3b: Execute parallel auction via ParallelAuctionOrchestrator
+                    orchestrator.executeParallelAuction(
+                        rtbPayloadsAvailable = !RtbPayloadCache.isEmpty(), // Check if RTB payloads are cached
+                        cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
+                        adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
+                        demandAd = demandAd,
+                        auctionId = auctionId,
+                        auctionConfigurationId = response.auctionConfigurationId ?: 0L,
+                        auctionConfigurationUid = response.auctionConfigurationUid ?: "",
+                        externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
+                        pricefloor = dynamicPricefloor,
+                        auctionInfo = auctionInfo,
+                    )
+                },
+                onFailure = { error ->
+                    // Auction request failed - notify via failure callback
+                    logInfo(TAG, "Auction request failed: ${error.message}")
+                    onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
+                }
+            )
+        } finally {
+            // Clear auction state after completion (success or failure)
+            lifecycleManager.onAuctionCompleted(auctionId)
+        }
     }
 
     companion object {
