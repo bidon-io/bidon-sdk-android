@@ -22,7 +22,7 @@ internal class GetTokensUseCaseImpl : GetTokensUseCase {
         adTypeParam: AdTypeParam,
         adaptersSource: AdaptersSource,
         tokenTimeout: Long,
-        skipDemandIds: Set<String> = emptySet(),
+        skipDemandIds: Set<String>
     ): Map<String, TokenInfo> = withContext(SdkDispatchers.Default) {
         // Filter bidding adapters AND skip cached ones
         val allBiddingAdapters = adaptersSource.adapters
