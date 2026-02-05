@@ -8,10 +8,10 @@ import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
+import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -39,7 +39,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  */
 internal class CoordinationLayer(
     private val adaptersSource: AdaptersSource,
-    private val getTokens: GetTokensUseCase,
+    private val getTokensWithSkip: GetTokensWithSkipUseCase,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val orchestrator: ParallelAuctionOrchestrator,
     private val lifecycleManager: LifecycleManager,
@@ -249,7 +249,7 @@ internal class CoordinationLayer(
             val adTypeParamWithDynamicPricefloor = adTypeParam.withPricefloor(dynamicPricefloor)
 
             // Step 1: Collect tokens (with skip optimization)
-            val tokens = getTokens(
+            val tokens = getTokensWithSkip(
                 adTypeParam = adTypeParam, // Original for token collection
                 adaptersSource = adaptersSource,
                 tokenTimeout = tokenTimeout,

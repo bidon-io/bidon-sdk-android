@@ -9,6 +9,7 @@ import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.orchestration.ParallelAuctionOrchestrator
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
+import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -82,10 +83,13 @@ internal object AdCacheDenisFactory {
             callbackCoordinator = callbackCoordinator,
         )
 
+        // Create V2-specific token wrapper that filters cached demand IDs
+        val getTokensWithSkip = GetTokensWithSkipUseCase(delegate = getTokens)
+
         // Create coordination layer with all dependencies
         val coordinationLayer = CoordinationLayer(
             adaptersSource = adaptersSource,
-            getTokens = getTokens,
+            getTokensWithSkip = getTokensWithSkip,
             getAuctionRequest = getAuctionRequest,
             orchestrator = orchestrator,
             lifecycleManager = lifecycleManager,
