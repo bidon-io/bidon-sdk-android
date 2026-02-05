@@ -14,6 +14,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
@@ -197,9 +198,10 @@ internal class RtbProcessor(
                 RtbPayloadCache.remove(demandId)
                 // Continue to next payload (retry)
             } finally {
-                // Destroy AdSource if not successfully loaded (cleanup on failure)
-                if (!loadSuccess) {
-                    adSource.destroy()
+                // Guaranteed cleanup even if cancelled (LIFE-06)
+                // Only destroy if load was not successful
+                if (!loadSuccess && adSource != null) {
+                    CleanupCoordinator.destroyAdSource(adSource, demandId)
                 }
             }
         }
