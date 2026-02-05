@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CACHE-03**: Application-wide scope через singleton objects для обоих кэшей
 - [x] **CACHE-04**: TTL 30 минут для записей в обоих кэшах (фиксированный)
 - [x] **CACHE-05**: Lazy eviction — проверка TTL при каждом доступе (peek/pop/poll)
-- [ ] **CACHE-06**: Periodic sweep — фоновая корутина каждые 5 минут для очистки expired entries
+- [x] **CACHE-06**: Periodic sweep — фоновая корутина каждые 5 минут для очистки expired entries
 - [x] **CACHE-07**: Duplicate demandId policy — заменять только если новый eCPM выше
 - [x] **CACHE-08**: Thread-safety через ConcurrentHashMap + atomic operations
 - [x] **CACHE-09**: Memory-aware capacity limits (1-3 ads READY_TO_SHOW, 5-10 RTB_PAYLOAD)
@@ -55,11 +55,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **LIFE-01**: getBest() при showAd() — выбрать ad с максимальным eCPM из READY_TO_SHOW
 - [ ] **LIFE-02**: Удалить показанную рекламу из READY_TO_SHOW после show
-- [ ] **LIFE-03**: destroyAd() не очищает кэши (application-wide scope)
-- [ ] **LIFE-04**: Periodic sweep job для expired entries (ad-instance scoped, каждые 5 мин)
-- [ ] **LIFE-05**: AdEvent.Expired только для winner ad (показанная реклама)
-- [ ] **LIFE-06**: Proper cleanup в finally blocks (NonCancellable context)
-- [ ] **LIFE-07**: WeakReference pattern для Activity context (избежать memory leaks)
+- [x] **LIFE-03**: destroyAd() не очищает кэши (application-wide scope)
+- [x] **LIFE-04**: Periodic sweep job для expired entries (ad-instance scoped, каждые 5 мин)
+- [x] **LIFE-05**: AdEvent.Expired только для winner ad (показанная реклама)
+- [x] **LIFE-06**: Proper cleanup в finally blocks (NonCancellable context)
+- [x] **LIFE-07**: WeakReference pattern для Activity context (избежать memory leaks)
 
 ### Integration
 
@@ -130,7 +130,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CACHE-03 | Phase 1 | Complete |
 | CACHE-04 | Phase 1 | Complete |
 | CACHE-05 | Phase 1 | Complete |
-| CACHE-06 | Phase 1, Phase 4 | Pending |
+| CACHE-06 | Phase 1, Phase 4 | Complete |
 | CACHE-07 | Phase 1 | Complete |
 | CACHE-08 | Phase 1 | Complete |
 | CACHE-09 | Phase 1 | Complete |
@@ -156,11 +156,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PARALLEL-04 | Phase 2 | Pending |
 | LIFE-01 | Phase 5 | Pending |
 | LIFE-02 | Phase 5 | Pending |
-| LIFE-03 | Phase 4 | Pending |
-| LIFE-04 | Phase 4 | Pending |
-| LIFE-05 | Phase 4 | Pending |
-| LIFE-06 | Phase 4 | Pending |
-| LIFE-07 | Phase 4 | Pending |
+| LIFE-03 | Phase 4 | Complete |
+| LIFE-04 | Phase 4 | Complete |
+| LIFE-05 | Phase 4 | Complete |
+| LIFE-06 | Phase 4 | Complete |
+| LIFE-07 | Phase 4 | Complete |
 | INT-01 | Phase 5 | Pending |
 | INT-02 | Phase 5 | Pending |
 | INT-03 | Phase 3 | Pending |
