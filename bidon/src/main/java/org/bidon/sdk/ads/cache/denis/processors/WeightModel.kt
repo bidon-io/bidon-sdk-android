@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.denis.processors
 
 import org.bidon.sdk.auction.models.AdUnit
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Thread-safe singleton for tracking CPM fill rate weights per demandId.
@@ -33,7 +32,7 @@ internal object WeightModel {
     /**
      * Thread-safe storage: demandId -> weight
      */
-    private val weights = ConcurrentHashMap<String, AtomicInteger>()
+    private val weights = ConcurrentHashMap<String, Int>()
 
     /**
      * Record successful fill for demandId.
@@ -43,17 +42,9 @@ internal object WeightModel {
      * @param demandId Demand network identifier
      */
     fun recordFill(demandId: String) {
-        // Synchronized to ensure getOrPut is atomic (prevents race condition)
-        val atomicWeight = synchronized(weights) {
-            weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        }
-        // CAS loop instead of updateAndGet() for API 23 compatibility
-        while (true) {
-            val current = atomicWeight.get()
-            val next = (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
-            if (atomicWeight.compareAndSet(current, next)) {
-                break
-            }
+        synchronized(weights) {
+            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            weights[demandId] = (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
 
@@ -65,17 +56,9 @@ internal object WeightModel {
      * @param demandId Demand network identifier
      */
     fun recordNoFill(demandId: String) {
-        // Synchronized to ensure getOrPut is atomic (prevents race condition)
-        val atomicWeight = synchronized(weights) {
-            weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        }
-        // CAS loop instead of updateAndGet() for API 23 compatibility
-        while (true) {
-            val current = atomicWeight.get()
-            val next = (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
-            if (atomicWeight.compareAndSet(current, next)) {
-                break
-            }
+        synchronized(weights) {
+            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            weights[demandId] = (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
 
@@ -88,7 +71,9 @@ internal object WeightModel {
      * @return Current weight (1-20)
      */
     fun getWeight(demandId: String): Int {
-        return weights[demandId]?.get() ?: DEFAULT_WEIGHT
+        return synchronized(weights) {
+            weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+        }
     }
 
     /**
