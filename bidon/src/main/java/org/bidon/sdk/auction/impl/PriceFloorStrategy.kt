@@ -86,7 +86,7 @@ internal class PriceFloorStrategy {
     )
 
     companion object {
-        private const val MIN_SAMPLES = 20
+        private const val MIN_SAMPLES = 5
         private const val EXPLORATION_RATE = 0.1
         private const val FILL_RATE_DROP_THRESHOLD = 0.20
         private const val COOLDOWN_MS = 15 * 60 * 1000L

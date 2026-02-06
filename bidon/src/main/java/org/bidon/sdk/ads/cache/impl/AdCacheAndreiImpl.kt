@@ -121,13 +121,13 @@ internal class AdCacheAndreiImpl(
                 statsRepository = get(),
                 cachedRtbBids = rtbAdUnits,
                 stopCondition =
-                object : AuctionStopCondition {
-                    override fun shouldStop(
-                        successCount: Int,
-                        lastResult: AuctionResult,
-                        next: AdUnit?
-                    ): Boolean = successCount >= 1
-                },
+                    object : AuctionStopCondition {
+                        override fun shouldStop(
+                            successCount: Int,
+                            lastResult: AuctionResult,
+                            next: AdUnit?
+                        ): Boolean = successCount >= 1
+                    },
             )
         _auction =
             AuctionImpl(
@@ -157,15 +157,15 @@ internal class AdCacheAndreiImpl(
                         adType = adType,
                         originalFloor = originalFloor,
                         recentFillRate =
-                        demandStatsRepository.getRecentFillRate(
-                            adType,
-                            windowMinutes = 10
-                        ),
+                            demandStatsRepository.getRecentFillRate(
+                                adType,
+                                windowMinutes = 10
+                            ),
                         bidDistribution =
-                        demandStatsRepository.getBidDistribution(
-                            adType,
-                            windowDays = 3
-                        ),
+                            demandStatsRepository.getBidDistribution(
+                                adType,
+                                windowDays = 3
+                            ),
                     )
                 }.also { demandStatsRepository.savePriceFloor(adType, it) }
 
@@ -248,14 +248,13 @@ internal class AdCacheAndreiImpl(
         }
     }
 
-    private fun AdTypeParam.copy(priceFloor: Double): AdTypeParam {
-        val auctionKey = "1O16GQT380000"
-        return when (val param = this) {
+    private fun AdTypeParam.copy(priceFloor: Double): AdTypeParam =
+        when (val param = this) {
             is AdTypeParam.Banner -> {
                 AdTypeParam.Banner(
                     activity = param.activity,
                     pricefloor = priceFloor,
-                    auctionKey = auctionKey,
+                    auctionKey = param.auctionKey,
                     bannerFormat = param.bannerFormat,
                     containerWidth = param.containerWidth,
                 )
@@ -265,7 +264,7 @@ internal class AdCacheAndreiImpl(
                 AdTypeParam.Interstitial(
                     activity = param.activity,
                     pricefloor = priceFloor,
-                    auctionKey = auctionKey,
+                    auctionKey = param.auctionKey,
                 )
             }
 
@@ -273,11 +272,10 @@ internal class AdCacheAndreiImpl(
                 AdTypeParam.Rewarded(
                     activity = param.activity,
                     pricefloor = priceFloor,
-                    auctionKey = auctionKey,
+                    auctionKey = param.auctionKey,
                 )
             }
         }
-    }
 
     private fun List<AuctionResult>.asString(): String =
         "(${this.size}) " +
