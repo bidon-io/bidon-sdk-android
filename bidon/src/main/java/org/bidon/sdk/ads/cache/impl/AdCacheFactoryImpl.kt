@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.AdCache
@@ -31,7 +32,7 @@ internal class AdCacheFactoryImpl(
             )
         }
 
-        val version = AdCacheVersion.fromInt(demandAd.getExtras()["cache_size"] as? Int)
+        val version = extractStrategyVersion(demandAd)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,
@@ -63,5 +64,31 @@ internal class AdCacheFactoryImpl(
                 )
             }
         }
+    }
+
+    private fun extractStrategyVersion(demandAd: DemandAd): AdCacheVersion {
+        // Try to read from global BidonSdk extras
+        val globalExtras = BidonSdk.getExtras()
+        val cacheSettings = globalExtras["cache_settings"] as? Map<*, *>
+
+        if (cacheSettings != null) {
+            val adTypeKey = when (demandAd.adType) {
+                AdType.Interstitial -> "interstitial"
+                AdType.Banner -> "banner"
+                AdType.Rewarded -> "rewarded_video"
+            }
+
+            val adTypeSettings = cacheSettings[adTypeKey] as? Map<*, *>
+            val strategyVersion = adTypeSettings?.get("strategy_version") as? String
+
+            if (strategyVersion != null) {
+                return AdCacheVersion.fromString(strategyVersion)
+            }
+        }
+
+        // Fallback to old approach for backward compatibility
+        val demandExtras = demandAd.getExtras()
+        val cacheSize = demandExtras["cache_size"] as? String
+        return AdCacheVersion.fromString(cacheSize)
     }
 }
