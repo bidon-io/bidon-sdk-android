@@ -37,18 +37,20 @@ internal object RtbPayloadCache {
         var wasInserted = false
 
         // ATOMIC operation - prevents race condition (SAFETY-02)
-        cache.compute(demandId) { _, existing ->
+        // Using synchronized instead of compute() for API 23 compatibility
+        synchronized(cache) {
+            val existing = cache[demandId]
             if (existing == null || existing.isExpired() || newEcpm > existing.ecpm) {
                 wasInserted = true
-                CacheEntry.create(
+                val newEntry = CacheEntry.create(
                     value = payload,
                     ecpm = newEcpm,
                     demandId = demandId,
                     auctionId = payload.auctionId
                 )
-            } else {
-                existing // Keep existing if higher eCPM
+                cache[demandId] = newEntry
             }
+            // else: Keep existing if higher eCPM
         }
 
         logInfo(TAG, "RtbPayloadCache.putIfHigherEcpm: demandId=$demandId, ecpm=$newEcpm, inserted=$wasInserted")
@@ -192,8 +194,16 @@ internal object RtbPayloadCache {
      */
     private fun evictExpired() {
         val now = TtlConfig.now()
-        val removed = cache.entries.count { now > it.value.expiresAt }
-        cache.entries.removeIf { (_, entry) -> now > entry.expiresAt }
+        var removed = 0
+        // Using iterator instead of removeIf() for API 23 compatibility
+        val iterator = cache.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now > entry.value.expiresAt) {
+                iterator.remove()
+                removed++
+            }
+        }
         if (removed > 0) {
             logInfo(TAG, "RtbPayloadCache evicted $removed expired entries")
         }

@@ -220,9 +220,16 @@ internal object ReadyToShowCache {
      */
     private fun evictExpired() {
         val now = TtlConfig.now()
-        val sizeBefore = cache.size
-        cache.entries.removeIf { (_, entry) -> now > entry.expiresAt }
-        val removed = sizeBefore - cache.size
+        var removed = 0
+        // Using iterator instead of removeIf() for API 23 compatibility
+        val iterator = cache.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now > entry.value.expiresAt) {
+                iterator.remove()
+                removed++
+            }
+        }
         if (removed > 0) {
             logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
         }

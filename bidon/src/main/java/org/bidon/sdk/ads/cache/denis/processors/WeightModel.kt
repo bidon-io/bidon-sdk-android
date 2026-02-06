@@ -43,9 +43,17 @@ internal object WeightModel {
      * @param demandId Demand network identifier
      */
     fun recordFill(demandId: String) {
-        val atomicWeight = weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        atomicWeight.updateAndGet { current ->
-            (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
+        // Synchronized to ensure getOrPut is atomic (prevents race condition)
+        val atomicWeight = synchronized(weights) {
+            weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
+        }
+        // CAS loop instead of updateAndGet() for API 23 compatibility
+        while (true) {
+            val current = atomicWeight.get()
+            val next = (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
+            if (atomicWeight.compareAndSet(current, next)) {
+                break
+            }
         }
     }
 
@@ -57,9 +65,17 @@ internal object WeightModel {
      * @param demandId Demand network identifier
      */
     fun recordNoFill(demandId: String) {
-        val atomicWeight = weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        atomicWeight.updateAndGet { current ->
-            (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
+        // Synchronized to ensure getOrPut is atomic (prevents race condition)
+        val atomicWeight = synchronized(weights) {
+            weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
+        }
+        // CAS loop instead of updateAndGet() for API 23 compatibility
+        while (true) {
+            val current = atomicWeight.get()
+            val next = (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
+            if (atomicWeight.compareAndSet(current, next)) {
+                break
+            }
         }
     }
 
