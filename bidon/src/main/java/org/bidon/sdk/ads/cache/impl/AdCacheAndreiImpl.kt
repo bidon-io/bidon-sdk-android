@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.impl
 
 import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.launchIn
@@ -10,7 +9,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
@@ -123,13 +121,13 @@ internal class AdCacheAndreiImpl(
                 statsRepository = get(),
                 cachedRtbBids = rtbAdUnits,
                 stopCondition =
-                    object : AuctionStopCondition {
-                        override fun shouldStop(
-                            successCount: Int,
-                            lastResult: AuctionResult,
-                            next: AdUnit?
-                        ): Boolean = successCount >= 1
-                    },
+                object : AuctionStopCondition {
+                    override fun shouldStop(
+                        successCount: Int,
+                        lastResult: AuctionResult,
+                        next: AdUnit?
+                    ): Boolean = successCount >= 1
+                },
             )
         _auction =
             AuctionImpl(
@@ -159,15 +157,15 @@ internal class AdCacheAndreiImpl(
                         adType = adType,
                         originalFloor = originalFloor,
                         recentFillRate =
-                            demandStatsRepository.getRecentFillRate(
-                                adType,
-                                windowMinutes = 10
-                            ),
+                        demandStatsRepository.getRecentFillRate(
+                            adType,
+                            windowMinutes = 10
+                        ),
                         bidDistribution =
-                            demandStatsRepository.getBidDistribution(
-                                adType,
-                                windowDays = 3
-                            ),
+                        demandStatsRepository.getBidDistribution(
+                            adType,
+                            windowDays = 3
+                        ),
                     )
                 }.also { demandStatsRepository.savePriceFloor(adType, it) }
 

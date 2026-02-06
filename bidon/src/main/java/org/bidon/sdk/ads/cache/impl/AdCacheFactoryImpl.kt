@@ -7,8 +7,8 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
-import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
+import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
 

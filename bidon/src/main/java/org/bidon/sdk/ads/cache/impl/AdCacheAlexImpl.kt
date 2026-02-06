@@ -63,7 +63,7 @@ internal class AdCacheAlexImpl(
                         } else {
                             userFlow.getAveragePrice(demandAd.adType) * 0.5f
                         },
-                        auctionKey = adTypeParam.auctionKey,//"1O16GQT380000" // adTypeParam.auctionKey,
+                        auctionKey = adTypeParam.auctionKey, // "1O16GQT380000" // adTypeParam.auctionKey,
                     ).also {
                         logInfo(
                             TAG,
