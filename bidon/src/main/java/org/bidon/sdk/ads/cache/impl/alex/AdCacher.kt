@@ -16,6 +16,7 @@ import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
 
 /**
  * AdCache implementation that stores AuctionResults directly.
@@ -69,7 +70,19 @@ internal class AdCacher(
             auction?.start(
                 demandAd = demandAd,
                 existingResults = _results.value,
-                adTypeParam = adTypeParam,
+                adTypeParam = when (adTypeParam) {
+                    is AdTypeParam.Banner -> TODO("Not implemented yet")
+                    is AdTypeParam.Interstitial -> AdTypeParam.Interstitial(
+                        activity = adTypeParam.activity,
+                        pricefloor = max(
+                            a = adTypeParam.pricefloor, // a - average price from UserFlow
+                            b = _results.value.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
+                        ),
+                        auctionKey = adTypeParam.auctionKey,
+                    )
+
+                    is AdTypeParam.Rewarded -> TODO("Not implemented yet")
+                },
                 onResult = { auctionResult, auctionInfo ->
                     logInfo(TAG, "Result received: ${auctionResult.adSource.getStats().demandId}")
                     // Notify success for first result only

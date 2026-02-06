@@ -78,7 +78,7 @@ internal class AlexAuction(
             val filteredAdapterSources = filterAdapters(existingResults)
             job = scope.launch {
                 runCatching {
-                    logInfo(TAG, "Auction started $this")
+                    logInfo(TAG, "Auction started ${adTypeParam.auctionKey} with ${adTypeParam.pricefloor}")
                     resultsCollector.startRound(adTypeParam.pricefloor)
                     resultsCollector.serverBiddingStarted()
 

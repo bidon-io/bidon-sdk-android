@@ -9,6 +9,7 @@ import org.bidon.sdk.ads.cache.impl.alex.UserFlow
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 
@@ -33,6 +34,16 @@ internal class AdCacheAlexImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
+        if (adCache != null) {
+            logInfo(TAG, "Loading has been already started for this ad instance.")
+            onFailure(
+                null, BidonError.Unspecified(
+                    demandId = null,
+                    message = "Loading has been already started for this ad instance."
+                )
+            )
+            return
+        }
         logInfo(TAG, "Cache started ${adTypeParam.auctionKey} for ${demandAd.adType}")
         val adCache = AdCacheStorage.getCache(
             auctionKey = adTypeParam.auctionKey ?: "default",
