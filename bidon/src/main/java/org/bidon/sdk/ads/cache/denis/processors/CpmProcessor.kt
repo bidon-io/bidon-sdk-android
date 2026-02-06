@@ -1,6 +1,9 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -28,9 +31,9 @@ import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
- * CPM waterfall processor for sequential ad loading with dynamic weight model.
+ * CPM waterfall processor for parallel ad loading with dynamic weight model.
  *
- * Loads CPM adUnits sequentially (one at a time) in weighted eCPM order.
+ * Loads CPM adUnits in parallel chunks of 2 in weighted eCPM order.
  * Each successful load goes to ReadyToShowCache.
  * Fill/no-fill feedback updates WeightModel for future optimizations.
  *
@@ -79,43 +82,58 @@ internal class CpmProcessor(
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
 
-        logInfo(TAG, "CPM waterfall loading: ${sortedAdUnits.size} ad units")
+        logInfo(TAG, "CPM waterfall loading: ${sortedAdUnits.size} ad units (parallel chunks of 2)")
 
-        for (adUnit in sortedAdUnits) {
-            // Check cancellation before each load
+        // Load in parallel chunks of 2
+        sortedAdUnits.chunked(2).forEach { chunk ->
+            // Check cancellation before each chunk
             kotlinx.coroutines.coroutineScope {
                 ensureActive()
             }
 
-            val weight = weightModel.getWeight(adUnit.demandId)
-            val score = weightModel.calculateScore(adUnit)
-            logInfo(TAG, "CPM loading: demandId=${adUnit.demandId}, ecpm=${adUnit.pricefloor}, weight=$weight, score=$score")
+            logInfo(TAG, "CPM loading chunk: ${chunk.map { it.demandId }.joinToString(", ")}")
 
-            val result = loadSingleAdUnit(
-                adUnit = adUnit,
-                adTypeParam = adTypeParam,
-                demandAd = demandAd,
-                auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId,
-                auctionConfigurationUid = auctionConfigurationUid,
-                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                pricefloor = pricefloor,
-            )
+            // Load chunk in parallel
+            val results = coroutineScope {
+                chunk.map { adUnit ->
+                    async {
+                        val weight = weightModel.getWeight(adUnit.demandId)
+                        val score = weightModel.calculateScore(adUnit)
+                        logInfo(TAG, "CPM loading: demandId=${adUnit.demandId}, ecpm=${adUnit.pricefloor}, weight=$weight, score=$score")
 
-            if (result.isSuccess) {
-                weightModel.recordFill(adUnit.demandId)
-                successCount++
-                logInfo(TAG, "CPM loaded successfully: demandId=${adUnit.demandId}")
+                        val result = loadSingleAdUnit(
+                            adUnit = adUnit,
+                            adTypeParam = adTypeParam,
+                            demandAd = demandAd,
+                            auctionId = auctionId,
+                            auctionConfigurationId = auctionConfigurationId,
+                            auctionConfigurationUid = auctionConfigurationUid,
+                            externalWinNotificationsEnabled = externalWinNotificationsEnabled,
+                            pricefloor = pricefloor,
+                        )
 
-                if (firstSuccess == null) {
-                    firstSuccess = result.getOrNull()
+                        adUnit to result
+                    }
+                }.awaitAll()
+            }
+
+            // Process results sequentially to maintain consistent state
+            results.forEach { (adUnit, result) ->
+                if (result.isSuccess) {
+                    weightModel.recordFill(adUnit.demandId)
+                    successCount++
+                    logInfo(TAG, "CPM loaded successfully: demandId=${adUnit.demandId}")
+
+                    if (firstSuccess == null) {
+                        firstSuccess = result.getOrNull()
+                    }
+                } else {
+                    weightModel.recordNoFill(adUnit.demandId)
+                    failureCount++
+                    val error = result.exceptionOrNull()
+                    logInfo(TAG, "CPM load failed: demandId=${adUnit.demandId}, continuing waterfall, error=$error")
+                    // Continue to next adUnit (don't stop waterfall)
                 }
-            } else {
-                weightModel.recordNoFill(adUnit.demandId)
-                failureCount++
-                val error = result.exceptionOrNull()
-                logInfo(TAG, "CPM load failed: demandId=${adUnit.demandId}, continuing waterfall, error=$error")
-                // Continue to next adUnit (don't stop waterfall)
             }
         }
 
