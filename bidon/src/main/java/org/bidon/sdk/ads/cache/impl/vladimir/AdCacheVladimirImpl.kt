@@ -80,6 +80,9 @@ internal class AdCacheVladimirImpl(
             var rtbRequestedPrice: Double? = null
             val preservedAds: MutableList<AuctionResult> = mutableListOf()
             var preservedAdsConsumed: Boolean = false
+
+            /** True when preservedAds were saved by pop() snapshot (not by clear()). */
+            var preservedByPop: Boolean = false
             val preservedRemainingUnits: MutableList<AdUnit> = mutableListOf()
             var preservedRemainingRound: WaterfallLoader.AuctionRound? = null
         }
@@ -118,7 +121,13 @@ internal class AdCacheVladimirImpl(
         val preserved = persistedState.preservedAds.toList()
         if (preserved.isNotEmpty()) {
             persistedState.preservedAds.clear()
-            persistedState.preservedAdsConsumed = true
+            // Only mark consumed when ads came from pop() snapshot.
+            // Ads from clear() preserve are NOT pop-snapshots — the new instance
+            // must allow its own clear() to re-preserve them normally.
+            if (persistedState.preservedByPop) {
+                persistedState.preservedAdsConsumed = true
+            }
+            persistedState.preservedByPop = false
             for (ad in preserved) {
                 slots.insert(ad)
             }
@@ -242,6 +251,7 @@ internal class AdCacheVladimirImpl(
             persistedState.preservedAds.clear()
             persistedState.preservedAds.addAll(remaining)
             persistedState.preservedAdsConsumed = false
+            persistedState.preservedByPop = true
             logInfo(TAG, "pop(): snapshot ${remaining.size} remaining ads to persisted state")
         } else {
             logInfo(TAG, "pop(): nothing to pop")
@@ -350,6 +360,7 @@ internal class AdCacheVladimirImpl(
         } else {
             persistedState.preservedAds.clear()
             persistedState.preservedAds.addAll(preserved)
+            persistedState.preservedByPop = false
             logInfo(TAG, "clear(): preserved ${preserved.size} ads for next instance")
         }
         persistedState.preservedAdsConsumed = false
