@@ -34,7 +34,7 @@ import org.bidon.sdk.utils.ext.TAG
 
 internal class InterstitialImpl(
     dispatcher: CoroutineDispatcher = SdkDispatchers.Main,
-    private val auctionKey: String?,
+    private val auctionKey: String? = null,
     private val demandAd: DemandAd = DemandAd(AdType.Interstitial)
 ) : InitAwaiter by InitAwaiterImpl(),
     Interstitial,
