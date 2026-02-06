@@ -9,8 +9,10 @@ import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.config.BidonError
@@ -20,7 +22,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * Entry point for auction orchestration and cold/warm start coordination.
  *
  * Determines auction strategy based on cache state:
- * 1. Warm start: READY_TO_SHOW cache not empty → immediate callback (<1s)
+ * 1. Warm start: READY_TO_SHOW cache not empty → immediate callback (<1s) + background auction
  * 2. Cold start with cache: RTB_PAYLOAD cache has entries → skip tokens for cached adapters
  * 3. Pure cold start: Both caches empty → full token collection with user pricefloor
  *
@@ -30,13 +32,12 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * - Calculate dynamic pricefloor with safety margin
  * - Provide state to parallel processors (Phase 2)
  *
- * CRITICAL: coordinateAuction() returns AuctionCompletionType to signal warm start.
- * When AuctionCompletionType.WarmStartServed is returned, the caller MUST NOT
- * invoke coordinateAuction() again. This enforces the decision:
- * "No background refresh on warm start (serve cached ad only, no async auction to replenish)"
+ * CRITICAL: Both warm and cold start paths launch background auctions.
+ * - Warm start: onAdLoaded fires IMMEDIATELY, auction continues in background to replenish cache
+ * - Cold start: onAdLoaded fires when FIRST ad loads, auction continues for remaining ads
  *
  * Thread-safety: Reads from singleton caches (thread-safe via ConcurrentHashMap).
- * Warm start path is synchronous (no async operations for <1s callback requirement).
+ * Warm start callback is synchronous (no async operations for <1s callback requirement).
  */
 internal class CoordinationLayer(
     private val adaptersSource: AdaptersSource,
@@ -135,7 +136,7 @@ internal class CoordinationLayer(
      * Orchestrate complete auction flow.
      *
      * @return AuctionCompletionType indicating how auction completed:
-     *   - WarmStartServed: cached ad served immediately, caller MUST NOT start another auction
+     *   - WarmStartServed: cached ad served immediately, background auction started to replenish cache
      *   - ColdStartInProgress: cold start auction ongoing, results via callbacks
      */
     suspend fun coordinateAuction(
@@ -153,8 +154,27 @@ internal class CoordinationLayer(
 
         return when (startState) {
             is AuctionStartState.WarmStart -> {
+                // 1. Serve cached ad immediately (synchronous callback)
                 handleWarmStart(startState.bestAd, onSuccess)
-                AuctionCompletionType.WarmStartServed // Signals: DO NOT start another auction
+
+                // 2. Launch background auction to replenish cache
+                val auctionId = java.util.UUID.randomUUID().toString()
+                val job = lifecycleManager.getScope().launch {
+                    handleColdStart(
+                        auctionId = auctionId,
+                        skipDemandIds = snapshot.cachedDemandIds, // Use RTB_PAYLOAD cache optimization
+                        snapshot = snapshot,
+                        adTypeParam = adTypeParam,
+                        demandAd = demandAd,
+                        tokenTimeout = tokenTimeout,
+                        onSuccess = { _, _ -> /* no-op: onSuccess already fired in handleWarmStart */ },
+                        onFailure = { _, _ -> /* no-op: already returned success, silent cache refresh */ },
+                        silentMode = true, // Don't trigger callbacks, just update cache
+                    )
+                }
+                lifecycleManager.registerAuction(auctionId, job)
+                logInfo(TAG, "Warm start: served cached ad, background auction started (auctionId=$auctionId)")
+                AuctionCompletionType.WarmStartServed // Callback already fired, auction in background
             }
             is AuctionStartState.ColdStartWithCache -> {
                 // Launch cold start on lifecycle-managed scope and register job
@@ -169,6 +189,7 @@ internal class CoordinationLayer(
                         tokenTimeout = tokenTimeout,
                         onSuccess = onSuccess,
                         onFailure = onFailure,
+                        silentMode = false,
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
@@ -187,6 +208,7 @@ internal class CoordinationLayer(
                         tokenTimeout = tokenTimeout,
                         onSuccess = onSuccess,
                         onFailure = onFailure,
+                        silentMode = false,
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
@@ -231,6 +253,9 @@ internal class CoordinationLayer(
      * The dynamic pricefloor must be passed to the auction request.
      * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
      * we create a modified version that replaces the pricefloor.
+     *
+     * @param silentMode If true, suppress callbacks (used for warm start background refresh).
+     *                   Auction continues to update cache but doesn't fire onSuccess/onFailure.
      */
     private suspend fun handleColdStart(
         auctionId: String,
@@ -241,6 +266,7 @@ internal class CoordinationLayer(
         tokenTimeout: Long,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
+        silentMode: Boolean = false,
     ) {
         try {
             val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
@@ -279,7 +305,18 @@ internal class CoordinationLayer(
                         adaptersSource = adaptersSource
                     )
 
-                    logInfo(TAG, "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size}, cpm=${splitWaterfall.cpmAdUnits.size}")
+                    // Step 3b: Merge server RTB with cached RTB payloads
+                    val mergedRtbAdUnits = mergeAndSortRtb(
+                        serverRtbAdUnits = splitWaterfall.rtbAdUnits,
+                        auctionId = auctionId
+                    )
+
+                    logInfo(
+                        TAG,
+                        "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size} (server) + " +
+                            "${mergedRtbAdUnits.size - splitWaterfall.rtbAdUnits.size} (cached) = ${mergedRtbAdUnits.size} total, " +
+                            "cpm=${splitWaterfall.cpmAdUnits.size}"
+                    )
 
                     // Build AuctionInfo for callbacks
                     val auctionInfo = AuctionInfo(
@@ -293,9 +330,22 @@ internal class CoordinationLayer(
                     )
 
                     // Step 3b: Create per-auction orchestrator with ACTUAL callbacks
+                    // In silent mode (warm start background refresh), suppress callbacks
                     val callbackCoordinator = CallbackCoordinator(
-                        onAdLoaded = onSuccess,
-                        onAdLoadFailed = { info, error -> onFailure(info, error) },
+                        onAdLoaded = if (silentMode) {
+                            { _, _ ->
+                                logInfo(TAG, "Silent mode: ad loaded, updating cache only (no callback)")
+                            }
+                        } else {
+                            onSuccess
+                        },
+                        onAdLoadFailed = if (silentMode) {
+                            { _, _ ->
+                                logInfo(TAG, "Silent mode: ad load failed, no callback")
+                            }
+                        } else {
+                            { info, error -> onFailure(info, error) }
+                        },
                     )
                     val orchestrator = ParallelAuctionOrchestrator(
                         rtbProcessor = rtbProcessor,
@@ -305,7 +355,7 @@ internal class CoordinationLayer(
 
                     // Execute parallel auction via per-auction orchestrator
                     orchestrator.executeParallelAuction(
-                        rtbAdUnits = splitWaterfall.rtbAdUnits, // RTB group from split
+                        rtbAdUnits = mergedRtbAdUnits, // RTB group: server + cached, sorted by eCPM
                         cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
                         adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
                         demandAd = demandAd,
@@ -318,15 +368,73 @@ internal class CoordinationLayer(
                     )
                 },
                 onFailure = { error ->
-                    // Auction request failed - notify via failure callback
+                    // Auction request failed - notify via failure callback (unless silent mode)
                     logInfo(TAG, "Auction request failed: ${error.message}")
-                    onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
+                    if (!silentMode) {
+                        onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
+                    }
                 }
             )
         } finally {
             // Clear auction state after completion (success or failure)
             lifecycleManager.onAuctionCompleted(auctionId)
         }
+    }
+
+    /**
+     * Merge server RTB ad units with cached RTB payloads and sort by eCPM.
+     *
+     * Strategy:
+     * 1. Collect RTB from server response
+     * 2. Collect RTB from RTB_PAYLOAD cache
+     * 3. Deduplicate by demandId (keep highest eCPM)
+     * 4. Sort by eCPM descending (highest first)
+     *
+     * This ensures we use the best available RTB payloads from both sources.
+     *
+     * @param serverRtbAdUnits RTB ad units from auction response
+     * @param auctionId Current auction ID for logging
+     * @return Merged and sorted RTB ad units
+     */
+    private fun mergeAndSortRtb(
+        serverRtbAdUnits: List<AdUnit>,
+        auctionId: String
+    ): List<AdUnit> {
+        // Get cached RTB payloads (already sorted by eCPM)
+        val cachedRtbEntries = RtbPayloadCache.getAllSortedByEcpm()
+        val cachedRtbAdUnits = cachedRtbEntries.map { it.value.adUnit }
+
+        logInfo(
+            TAG,
+            "Merging RTB: server=${serverRtbAdUnits.size}, cached=${cachedRtbAdUnits.size}"
+        )
+
+        // Combine both sources
+        val allRtbAdUnits = serverRtbAdUnits + cachedRtbAdUnits
+
+        // Deduplicate by demandId, keeping highest eCPM
+        val deduplicatedRtb = allRtbAdUnits
+            .groupBy { it.demandId }
+            .mapNotNull { (demandId, adUnits) ->
+                // Keep the one with highest pricefloor (eCPM)
+                adUnits.maxByOrNull { it.pricefloor } ?: run {
+                    logInfo(TAG, "Warning: empty adUnits group for demandId=$demandId (should not happen)")
+                    null
+                }
+            }
+
+        // Sort by eCPM descending (highest first)
+        val sortedRtb = deduplicatedRtb.sortedByDescending { it.pricefloor }
+
+        if (sortedRtb.isNotEmpty()) {
+            val topEcpms = sortedRtb.take(3).joinToString { "${it.demandId}:$${it.pricefloor}" }
+            logInfo(
+                TAG,
+                "Merged RTB: ${sortedRtb.size} ad units (deduped), top 3 by eCPM: [$topEcpms]"
+            )
+        }
+
+        return sortedRtb
     }
 
     companion object {
