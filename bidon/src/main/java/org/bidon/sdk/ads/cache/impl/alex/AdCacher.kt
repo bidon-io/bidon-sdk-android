@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.ext.notifyExternalLoss
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
@@ -72,14 +73,21 @@ internal class AdCacher(
                 existingResults = _results.value,
                 adTypeParam = when (adTypeParam) {
                     is AdTypeParam.Banner -> TODO("Not implemented yet")
-                    is AdTypeParam.Interstitial -> AdTypeParam.Interstitial(
-                        activity = adTypeParam.activity,
-                        pricefloor = max(
-                            a = adTypeParam.pricefloor, // a - average price from UserFlow
-                            b = _results.value.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
-                        ),
-                        auctionKey = adTypeParam.auctionKey,
-                    )
+                    is AdTypeParam.Interstitial -> {
+                        /**
+                         * Pricefloor for the auction is set to the max of:
+                         * a - average price from UserFlow or from server if server > 1.0
+                         * b - highest price from cached results (if any)
+                         */
+                        AdTypeParam.Interstitial(
+                            activity = adTypeParam.activity,
+                            pricefloor = max(
+                                a = adTypeParam.pricefloor,
+                                b = _results.value.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
+                            ),
+                            auctionKey = adTypeParam.auctionKey,
+                        )
+                    }
 
                     is AdTypeParam.Rewarded -> TODO("Not implemented yet")
                 },
@@ -139,6 +147,10 @@ internal class AdCacher(
                 .distinctBy { it.adSource.demandId }
             (source - results.toSet()).onEach {
                 logInfo(TAG, "Destroying duplicate ad from ${it.adSource.demandId.demandId}")
+                it.adSource.notifyExternalLoss(
+                    winnerDemandId = results.firstOrNull()?.adSource?.demandId?.demandId ?: "-",
+                    winnerPrice = results.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
+                )
                 it.adSource.destroy()
             }
             results
