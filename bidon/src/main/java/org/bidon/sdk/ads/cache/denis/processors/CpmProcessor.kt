@@ -119,7 +119,7 @@ internal class CpmProcessor(
             }
         }
 
-        logInfo(TAG, "CPM waterfall complete: success=$successCount, failure=$failureCount")
+        logInfo(TAG, "CPM summary: loaded $successCount ads, failed $failureCount attempts")
 
         return CpmWaterfallResult(
             successCount = successCount,
@@ -232,6 +232,7 @@ internal class CpmProcessor(
                         auctionId = auctionId
                     )
                     ReadyToShowCache.put(entry)
+                    logInfo(TAG, "→ READY_TO_SHOW: stored ${adUnit.demandId} $${"%.2f".format(adUnit.pricefloor)}")
                     Result.success(auctionResult)
                 }
                 is AdEvent.LoadFailed, is AdEvent.Expired -> {

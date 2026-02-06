@@ -237,6 +237,7 @@ internal class RtbProcessor(
                             auctionId = auctionId
                         )
                         ReadyToShowCache.put(cacheEntry)
+                        logInfo(TAG, "→ READY_TO_SHOW: stored $demandId $${"%.2f".format(ecpm)}")
 
                         // Remove loaded source from cache if it was cached
                         if (source is RtbSource.FromCache) {
@@ -245,6 +246,7 @@ internal class RtbProcessor(
 
                         // Save remaining sources to RtbPayloadCache for next auction
                         val remainingSources = allRtbSources.drop(index + 1)
+                        var cachedCount = 0
                         remainingSources.forEach { remainingSource ->
                             // Only cache new AdUnits, skip already cached ones
                             if (remainingSource is RtbSource.FromAdUnit) {
@@ -255,10 +257,12 @@ internal class RtbProcessor(
                                 )
                                 val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
                                 if (inserted) {
-                                    logInfo(TAG, "RTB cached: demandId=${remainingSource.demandId}, ecpm=${remainingSource.ecpm}")
+                                    cachedCount++
+                                    logInfo(TAG, "→ RTB_PAYLOAD: cached ${remainingSource.demandId} $${"%.2f".format(remainingSource.ecpm)}")
                                 }
                             }
                         }
+                        logInfo(TAG, "RTB summary: loaded 1 ($demandId), cached $cachedCount payloads for future")
 
                         return@coroutineScope Result.success(auctionResult)
                     }

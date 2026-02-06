@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap
  */
 internal object ReadyToShowCache {
     private const val TAG = "ReadyToShowCache"
-    private const val DEFAULT_CAPACITY = 3
 
     /**
      * Thread-safe storage: demandId -> CacheEntry<AuctionResult>
@@ -27,26 +26,11 @@ internal object ReadyToShowCache {
     private val cache = ConcurrentHashMap<String, CacheEntry<AuctionResult>>()
 
     /**
-     * Configurable capacity limit (range 1-10, default 3).
-     */
-    private var capacity = DEFAULT_CAPACITY
-
-    /**
-     * Configure cache capacity.
-     *
-     * @param newCapacity Capacity limit (1-10), clamped to valid range
-     */
-    fun setCapacity(newCapacity: Int) {
-        capacity = newCapacity.coerceIn(1, 10)
-        logInfo(TAG, "ReadyToShowCache capacity set to $capacity")
-    }
-
-    /**
-     * Store an ad in cache with capacity and duplicate checks.
+     * Store an ad in cache.
      *
      * - Evicts expired entries first (lazy cleanup)
-     * - Checks capacity limit, evicts lowest eCPM if at limit
      * - Stores entry keyed by demandId
+     * - No capacity limit (unlimited storage, TTL-based eviction only)
      *
      * Thread-safe: ConcurrentHashMap operations are atomic.
      *
@@ -54,11 +38,6 @@ internal object ReadyToShowCache {
      */
     fun put(entry: CacheEntry<AuctionResult>) {
         evictExpired()
-
-        // Check capacity, evict lowest eCPM if at limit
-        if (cache.size >= capacity) {
-            evictLowestEcpm()
-        }
 
         cache[entry.demandId] = entry
         logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, ecpm=${entry.ecpm}, size=${cache.size}")

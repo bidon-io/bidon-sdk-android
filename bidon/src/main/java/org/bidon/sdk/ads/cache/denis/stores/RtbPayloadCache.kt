@@ -18,20 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 internal object RtbPayloadCache {
     private val cache = ConcurrentHashMap<String, CacheEntry<RtbPayload>>()
 
-    private const val DEFAULT_CAPACITY = 10
-    private var capacity = DEFAULT_CAPACITY
-
     private const val TAG = "RtbPayloadCache"
-
-    /**
-     * Sets maximum cache capacity (range 1-20).
-     *
-     * @param newCapacity New capacity limit (clamped to 1-20)
-     */
-    fun setCapacity(newCapacity: Int) {
-        capacity = newCapacity.coerceIn(1, 20)
-        logInfo(TAG, "RtbPayloadCache capacity set to $capacity")
-    }
 
     /**
      * Inserts payload only if new eCPM is higher than existing (atomic operation).
@@ -44,11 +31,6 @@ internal object RtbPayloadCache {
      */
     fun putIfHigherEcpm(payload: RtbPayload): Boolean {
         evictExpired()
-
-        // Check capacity before insert
-        if (cache.size >= capacity && !cache.containsKey(payload.adUnit.demandId)) {
-            evictLowestEcpm()
-        }
 
         val demandId = payload.adUnit.demandId
         val newEcpm = payload.adUnit.pricefloor

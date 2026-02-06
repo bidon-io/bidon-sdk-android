@@ -318,6 +318,21 @@ internal class CoordinationLayer(
                             "cpm=${splitWaterfall.cpmAdUnits.size}"
                     )
 
+                    // Detailed waterfall logging
+                    if (mergedRtbAdUnits.isNotEmpty()) {
+                        val rtbDetails = mergedRtbAdUnits.joinToString(", ") {
+                            "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
+                        }
+                        logInfo(TAG, "RTB waterfall (sorted by eCPM): [$rtbDetails]")
+                    }
+                    if (splitWaterfall.cpmAdUnits.isNotEmpty()) {
+                        val cpmDetails = splitWaterfall.cpmAdUnits.take(5).joinToString(", ") {
+                            "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
+                        }
+                        val more = if (splitWaterfall.cpmAdUnits.size > 5) " +${splitWaterfall.cpmAdUnits.size - 5} more" else ""
+                        logInfo(TAG, "CPM waterfall (first 5): [$cpmDetails]$more")
+                    }
+
                     // Build AuctionInfo for callbacks
                     val auctionInfo = AuctionInfo(
                         auctionId = auctionId,
