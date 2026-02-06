@@ -12,13 +12,14 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Thread-safety: Uses ConcurrentHashMap for lock-free concurrent access.
  * Expiration: Lazy eviction on access (CACHE-05) + periodic sweep via external job.
- * Capacity: Unlimited storage with TTL-based eviction only (no size limit).
+ * Capacity: Limited to MAX_CACHE_SIZE=10 with lowest-eCPM eviction policy.
  * Duplicate policy: Replaces only if new eCPM is higher (CACHE-07).
  *
  * Application-wide scope: Singleton object persists between ad instances (CACHE-03).
  */
 internal object ReadyToShowCache {
     private const val TAG = "[DenisCache] ReadyToShowCache"
+    private const val MAX_CACHE_SIZE = 10
 
     /**
      * Thread-safe storage: uid -> CacheEntry<AuctionResult>
@@ -30,8 +31,8 @@ internal object ReadyToShowCache {
      * Store an ad in cache.
      *
      * - Evicts expired entries first (lazy cleanup)
+     * - Evicts lowest eCPM entry if at capacity (MAX_CACHE_SIZE=10)
      * - Stores entry keyed by uid (unique per ad unit)
-     * - No capacity limit (unlimited storage, TTL-based eviction only)
      *
      * Thread-safe: ConcurrentHashMap operations are atomic.
      *
@@ -39,6 +40,11 @@ internal object ReadyToShowCache {
      */
     fun put(entry: CacheEntry<AuctionResult>) {
         evictExpired()
+
+        // Check capacity, evict lowest eCPM if at limit
+        if (cache.size >= MAX_CACHE_SIZE) {
+            evictLowestEcpm()
+        }
 
         cache[entry.uid] = entry
         logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, size=${cache.size}")
@@ -232,6 +238,20 @@ internal object ReadyToShowCache {
         }
         if (removed > 0) {
             logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
+        }
+    }
+
+    /**
+     * Evict entry with lowest eCPM when cache is at capacity.
+     *
+     * Called when cache.size >= MAX_CACHE_SIZE to make room for new entry.
+     * Keeps highest eCPM ads (better revenue optimization).
+     */
+    private fun evictLowestEcpm() {
+        val lowest = cache.entries.minByOrNull { it.value.ecpm }
+        lowest?.let {
+            cache.remove(it.key)
+            logInfo(TAG, "EVICT: Removed lowest eCPM ad: demandId=${it.value.demandId}, ecpm=${"$%.2f".format(it.value.ecpm)}, size=${cache.size}")
         }
     }
 

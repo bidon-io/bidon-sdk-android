@@ -12,25 +12,32 @@ import java.util.concurrent.ConcurrentHashMap
  * Features:
  * - Atomic duplicate detection with eCPM comparison (higher eCPM always wins)
  * - Lazy eviction on access (expired entries removed when queried)
- * - Unlimited storage with TTL-based eviction only (no size limit)
+ * - Limited to MAX_RTB_PAYLOADS=10 with lowest-eCPM eviction policy
  * - Thread-safe using ConcurrentHashMap with atomic compute()
  */
 internal object RtbPayloadCache {
     private val cache = ConcurrentHashMap<String, CacheEntry<RtbPayload>>()
 
     private const val TAG = "[DenisCache] RtbPayloadCache"
+    private const val MAX_RTB_PAYLOADS = 10
 
     /**
      * Inserts payload only if new eCPM is higher than existing (atomic operation).
      *
      * Uses atomic compute() to prevent race conditions in duplicate detection (SAFETY-02).
      * If demandId already exists with higher/equal eCPM, keeps existing entry.
+     * Evicts lowest eCPM entry if at capacity (MAX_RTB_PAYLOADS=10).
      *
      * @param payload RTB payload to cache
      * @return true if inserted, false if existing had higher eCPM
      */
     fun putIfHigherEcpm(payload: RtbPayload): Boolean {
         evictExpired()
+
+        // Check capacity, evict lowest eCPM if at limit
+        if (cache.size >= MAX_RTB_PAYLOADS) {
+            evictLowestEcpm()
+        }
 
         val demandId = payload.adUnit.demandId
         val newEcpm = payload.adUnit.pricefloor
@@ -206,6 +213,20 @@ internal object RtbPayloadCache {
         }
         if (removed > 0) {
             logInfo(TAG, "RtbPayloadCache evicted $removed expired entries")
+        }
+    }
+
+    /**
+     * Evict RTB payload with lowest eCPM when cache is at capacity.
+     *
+     * Called when cache.size >= MAX_RTB_PAYLOADS to make room for new entry.
+     * Keeps highest eCPM payloads for future cold start optimizations.
+     */
+    private fun evictLowestEcpm() {
+        val lowest = cache.entries.minByOrNull { it.value.ecpm }
+        lowest?.let {
+            cache.remove(it.key)
+            logInfo(TAG, "EVICT: Removed lowest eCPM RTB: demandId=${it.key}, ecpm=${"$%.2f".format(it.value.ecpm)}, size=${cache.size}")
         }
     }
 
