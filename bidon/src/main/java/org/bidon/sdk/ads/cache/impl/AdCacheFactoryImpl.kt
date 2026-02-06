@@ -44,6 +44,7 @@ internal class AdCacheFactoryImpl(
             AdCacheVersion.V3 -> {
                 AdCacheAndreiImpl(
                     demandAd = demandAd,
+                    scope = CoroutineScope(SdkDispatchers.Main),
                     resolver = resolver
                 )
             }
