@@ -694,12 +694,15 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "handleFill(): $demandId → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
-        if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
+        if (primaryUpdated) {
             val info = buildAuctionInfo(round.response)
-            logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
+            val wasAlreadyFired = callbackFired.getAndSet(true)
+            if (wasAlreadyFired) {
+                logInfo(TAG, "handleFill(): HOT-SWAP — re-firing onSuccess for $demandId @ $price")
+            } else {
+                logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
+            }
             adTypeParam.activity.runOnUiThread { onSuccess(result, info) }
-        } else if (primaryUpdated) {
-            logInfo(TAG, "handleFill(): primary updated but callback already fired (callbackFired=true)")
         }
     }
 
