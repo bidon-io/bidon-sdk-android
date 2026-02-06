@@ -19,6 +19,7 @@ import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.impl.AdCacheFactoryImpl
+import org.bidon.sdk.ads.cache.impl.alex.UserFlow
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -119,6 +120,7 @@ internal object DI {
             /**
              * Singletons
              */
+            singleton<UserFlow> { UserFlow() }
             singleton<AdaptersSource> { AdaptersSourceImpl() }
             singleton<BidonEndpoints> { BidonEndpointsImpl() }
             singleton<KeyValueStorage> {
