@@ -76,8 +76,7 @@ internal class CoordinationLayer(
                 if (bestAd != null) {
                     logInfo(
                         TAG,
-                        "🔥 WARM START: serving ${bestAd.demandId} @ $${"%.2f".format(bestAd.ecpm)}, " +
-                            "background auction will follow"
+                        "WARM START: Serving ${bestAd.demandId} @ ${"$%.2f".format(bestAd.ecpm)}"
                     )
                     AuctionStartState.WarmStart(bestAd)
                 } else {
@@ -132,10 +131,7 @@ internal class CoordinationLayer(
 
         logInfo(
             TAG,
-            "💰 PRICEFLOOR: user=$${"%.2f".format(userPricefloor)}, " +
-                "readyCache=$${"%.2f".format(snapshot.readyToShowMaxEcpm)}, " +
-                "rtbCache=$${"%.2f".format(snapshot.rtbPayloadMaxEcpm)} " +
-                "→ dynamic=$${"%.2f".format(dynamicPricefloor)}"
+            "PRICEFLOOR: user=${"$%.2f".format(userPricefloor)} → dynamic=${"$%.2f".format(dynamicPricefloor)}"
         )
 
         return dynamicPricefloor
@@ -330,25 +326,25 @@ internal class CoordinationLayer(
                     if (mergedRtbAdUnits.isNotEmpty()) {
                         val serverCount = splitWaterfall.rtbAdUnits.size
                         val cachedCount = mergedRtbAdUnits.size - serverCount
-                        val rtbDetails = mergedRtbAdUnits.take(3).joinToString(", ") {
-                            "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
+                        val rtbDetails = mergedRtbAdUnits.take(5).joinToString(", ") {
+                            "${it.demandId}:${"$%.2f".format(it.pricefloor)}"
                         }
-                        val more = if (mergedRtbAdUnits.size > 3) " +${mergedRtbAdUnits.size - 3} more" else ""
+                        val more = if (mergedRtbAdUnits.size > 5) " +${mergedRtbAdUnits.size - 5} more" else ""
                         logInfo(
                             TAG,
-                            "📊 RTB WATERFALL: $serverCount server + $cachedCount cached = ${mergedRtbAdUnits.size} total " +
-                                "[$rtbDetails$more]"
+                            "RTB WATERFALL: $serverCount server + $cachedCount cached = ${mergedRtbAdUnits.size} total [$rtbDetails$more]"
                         )
                     }
                     if (splitWaterfall.cpmAdUnits.isNotEmpty()) {
-                        val cpmDetails = splitWaterfall.cpmAdUnits.take(3).joinToString(", ") {
-                            "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
+                        val cpmDetails = splitWaterfall.cpmAdUnits.take(5).joinToString(", ") { adUnit ->
+                            val weight = org.bidon.sdk.ads.cache.denis.processors.WeightModel.getWeight(adUnit.demandId)
+                            val score = org.bidon.sdk.ads.cache.denis.processors.WeightModel.calculateScore(adUnit)
+                            "${adUnit.demandId}:${"$%.2f".format(adUnit.pricefloor)}(w$weight/s${"%.2f".format(score)})"
                         }
-                        val more = if (splitWaterfall.cpmAdUnits.size > 3) " +${splitWaterfall.cpmAdUnits.size - 3} more" else ""
+                        val more = if (splitWaterfall.cpmAdUnits.size > 5) " +${splitWaterfall.cpmAdUnits.size - 5} more" else ""
                         logInfo(
                             TAG,
-                            "📊 CPM WATERFALL: ${splitWaterfall.cpmAdUnits.size} networks (parallel 2x2) " +
-                                "[$cpmDetails$more]"
+                            "CPM WATERFALL: ${splitWaterfall.cpmAdUnits.size} networks (weighted) [$cpmDetails$more]"
                         )
                     }
 

@@ -127,18 +127,8 @@ internal class CallbackCoordinator(
      * Logs cache size, max eCPM, and details of all cached entries.
      */
     private fun logCacheState() {
-        val cacheSize = ReadyToShowCache.size()
-        val maxEcpm = ReadyToShowCache.getMaxEcpm()
-        val allEntries = ReadyToShowCache.getAll()
-
-        logInfo(TAG, "ReadyToShowCache state: size=$cacheSize, maxEcpm=$maxEcpm")
-        allEntries.forEach { entry ->
-            logInfo(
-                TAG,
-                "  - demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, " +
-                    "expiresAt=${entry.expiresAt}, auctionId=${entry.auctionId}"
-            )
-        }
+        // Cache state logging removed for cleaner logs
+        // Use ReadyToShowCache.getAll() directly when debugging
     }
 }
 

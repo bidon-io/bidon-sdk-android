@@ -203,18 +203,9 @@ internal class ParallelAuctionOrchestrator(
         if (rtbSuccess || cpmSuccess) {
             // At least one branch succeeded - callback already fired from processor
             if (cacheWasEmpty && !cacheIsEmpty) {
-                logInfo(
-                    TAG,
-                    "✅ Cache populated: onAdLoaded already fired from processor " +
-                        "(cache_size=$cacheSize)"
-                )
+                // Cache populated successfully
             } else if (!cacheWasEmpty) {
-                // Warm start scenario: cache already had ads
-                logInfo(
-                    TAG,
-                    "♻️ Warm start: cache was already non-empty, background refresh completed " +
-                        "(cache_size=$cacheSize, new_ads_added=${if (rtbSuccess) "RTB" else ""}${if (cpmSuccess) "CPM" else ""})"
-                )
+                // Warm start: cache refreshed in background
             } else {
                 // Unexpected: success reported but cache still empty
                 logInfo(
