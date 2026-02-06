@@ -37,5 +37,14 @@ internal sealed interface AdCacheVersion {
             5 -> V5
             else -> Default
         }
+
+        fun fromString(version: String?): AdCacheVersion = when (version?.lowercase()) {
+            "v1" -> V1
+            "v2" -> V2
+            "v3" -> V3
+            "v4" -> V4
+            "v5" -> V5
+            else -> Default
+        }
     }
 }
