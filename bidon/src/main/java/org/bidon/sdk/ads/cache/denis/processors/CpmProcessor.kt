@@ -206,6 +206,9 @@ internal class CpmProcessor(
                 return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
             }
 
+            // Mark fill started (sets adUnit in stats for getAd() calls)
+            adSource.markFillStarted(adUnit, pricefloor)
+
             // Load ad with timeout
             val adEvent = withTimeout(adUnit.timeout) {
                 adSource.load(adParams)
