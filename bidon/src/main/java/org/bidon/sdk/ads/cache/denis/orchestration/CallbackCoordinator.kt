@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -61,6 +62,7 @@ internal class CallbackCoordinator(
             onAdLoaded(result, auctionInfo)
         } else {
             logInfo(TAG, "onAdLoaded already fired, skipping")
+            logCacheState()
         }
     }
 
@@ -118,6 +120,26 @@ internal class CallbackCoordinator(
      * @return true if onAdLoaded has been called
      */
     fun hasSuccessCallbackFired(): Boolean = loadedCallbackFired.get()
+
+    /**
+     * Log current state of ReadyToShowCache.
+     *
+     * Logs cache size, max eCPM, and details of all cached entries.
+     */
+    private fun logCacheState() {
+        val cacheSize = ReadyToShowCache.size()
+        val maxEcpm = ReadyToShowCache.getMaxEcpm()
+        val allEntries = ReadyToShowCache.getAll()
+
+        logInfo(TAG, "ReadyToShowCache state: size=$cacheSize, maxEcpm=$maxEcpm")
+        allEntries.forEach { entry ->
+            logInfo(
+                TAG,
+                "  - demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, " +
+                    "expiresAt=${entry.expiresAt}, auctionId=${entry.auctionId}"
+            )
+        }
+    }
 }
 
-private const val TAG = "CallbackCoordinator"
+private const val TAG = "[DenisCache] Callbacks"

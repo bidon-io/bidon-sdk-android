@@ -16,20 +16,20 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayload
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
@@ -233,6 +233,12 @@ internal class RtbProcessor(
                         loadSuccess = true // Mark as success to prevent destroy in finally
                         loadedIndex = index // Track which source was loaded
 
+                        // Update price to RTB eCPM
+                        adSource.markFillFinished(
+                            roundStatus = RoundStatus.Successful,
+                            price = ecpm // Use RTB eCPM (from adUnit or cache)
+                        )
+
                         val auctionResult: AuctionResult = AuctionResult.Bidding(adSource, RoundStatus.Successful)
 
                         // Store in ReadyToShowCache
@@ -433,4 +439,4 @@ internal class RtbProcessor(
     }
 }
 
-private const val TAG = "RtbProcessor"
+private const val TAG = "[DenisCache] RTB"

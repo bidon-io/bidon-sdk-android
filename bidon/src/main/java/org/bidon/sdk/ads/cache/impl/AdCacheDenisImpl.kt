@@ -4,6 +4,7 @@ import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
@@ -11,14 +12,14 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
-import org.bidon.sdk.ads.cache.denis.orchestration.AuctionCompletionType
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.utils.SdkDispatchers
 
 /**
@@ -66,17 +67,7 @@ internal class AdCacheDenisImpl(
                 onFailure = { info, error -> onFailure(info, error) },
             )
 
-            when (completionType) {
-                is AuctionCompletionType.WarmStartServed -> {
-                    logInfo(TAG, "cache: warm start served, auction complete")
-                }
-                is AuctionCompletionType.ColdStartInProgress -> {
-                    logInfo(TAG, "cache: cold start in progress")
-                }
-                is AuctionCompletionType.ColdStartCompleted -> {
-                    logInfo(TAG, "cache: cold start completed")
-                }
-            }
+            // Completion type logged by CoordinationLayer
         }
     }
 
@@ -100,13 +91,7 @@ internal class AdCacheDenisImpl(
      */
     override fun pop(): AuctionResult? {
         val entry = ReadyToShowCache.popBest()
-        return if (entry != null) {
-            lifecycleManager.cancelAuction(entry.auctionId)
-            logInfo(TAG, "pop: served cached ad demandId=${entry.demandId}, ecpm=${entry.ecpm}")
-            entry.value
-        } else {
-            null
-        }
+        return entry?.value
     }
 
     /**
@@ -135,26 +120,43 @@ internal class AdCacheDenisImpl(
      * - Tries to show best ad from ReadyToShowCache
      * - On failure, automatically tries next best ad
      * - Continues until success or cache exhaustion
+     * - Handles all ad lifecycle events (Shown, Clicked, Closed, PaidRevenue)
      *
      * Denis ad caching specific feature.
      *
      * @param activity Activity context for showing the ad
      * @param onShown Callback when ad shown successfully
+     * @param onClicked Callback when ad is clicked
+     * @param onClosed Callback when ad is closed
+     * @param onRevenuePaid Callback when revenue is paid
+     * @param onShowFailed Callback when show fails (for each failed attempt)
      * @param onFailed Callback when all ads failed or cache empty
+     * @param onWinnerSelected Callback with the AdSource that was successfully shown
      */
     fun showBestWithFallback(
         activity: Activity,
         onShown: (Ad) -> Unit,
-        onFailed: (Throwable) -> Unit
+        onClicked: (Ad) -> Unit = {},
+        onClosed: (Ad) -> Unit = {},
+        onRevenuePaid: (Ad, AdValue) -> Unit = { _, _ -> },
+        onShowFailed: (BidonError) -> Unit = {},
+        onFailed: (Throwable) -> Unit,
+        onWinnerSelected: (AdSource.Interstitial<*>) -> Unit = {}
     ) {
         scope.launch {
-            showBestAdWithFallback(activity)
+            showBestAdWithFallback(
+                activity = activity,
+                onShown = onShown,
+                onClicked = onClicked,
+                onClosed = onClosed,
+                onRevenuePaid = onRevenuePaid,
+                onShowFailed = onShowFailed,
+                onWinnerSelected = onWinnerSelected
+            )
                 .onSuccess { ad ->
-                    logInfo(TAG, "showBestWithFallback: ad shown successfully")
-                    onShown(ad)
+                    // onShown already called inside extension
                 }
                 .onFailure { error ->
-                    logInfo(TAG, "showBestWithFallback: all ads failed, error=$error")
                     onFailed(error)
                 }
         }
@@ -167,7 +169,7 @@ internal class AdCacheDenisImpl(
      * Periodic sweep job removes expired entries automatically.
      */
     override fun clear() {
-        logInfo(TAG, "clear() called - NO-OP per design (caches clear via expiration only)")
+        // NO-OP: V2 uses TTL-based cache expiration
     }
 
     /**
@@ -180,13 +182,10 @@ internal class AdCacheDenisImpl(
      * @param settings Cache configuration (ignored)
      */
     override fun withSettings(settings: Cacheable.Settings) {
-        // NO-OP: V2 uses application-wide singleton cache with fixed capacity.
-        // Calling setCapacity() on one instance would affect all instances.
-        // Per user decision: withSettings should not be active in V2.
-        logInfo(TAG, "withSettings() called - NO-OP in V2 (singleton cache, capacity managed globally)")
+        // NO-OP: V2 uses singleton cache with global capacity management
     }
 
     companion object {
-        private const val TAG = "AdCacheDenisImpl"
+        private const val TAG = "[DenisCache] AdCache"
     }
 }

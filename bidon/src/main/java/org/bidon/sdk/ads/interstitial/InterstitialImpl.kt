@@ -121,8 +121,24 @@ internal class InterstitialImpl(
                 onShown = { ad ->
                     listener.onAdShown(ad)
                 },
+                onClicked = { ad ->
+                    listener.onAdClicked(ad)
+                },
+                onClosed = { ad ->
+                    listener.onAdClosed(ad)
+                },
+                onRevenuePaid = { ad, adValue ->
+                    listener.onRevenuePaid(ad, adValue)
+                },
+                onShowFailed = { error ->
+                    listener.onAdShowFailed(error)
+                },
                 onFailed = { error ->
                     listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
+                },
+                onWinnerSelected = { adSource ->
+                    logInfo(TAG, "Winner selected: ${adSource.demandId}")
+                    winner = adSource
                 }
             )
         } else {

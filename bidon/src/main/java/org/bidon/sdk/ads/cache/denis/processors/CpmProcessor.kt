@@ -18,19 +18,18 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.auction.models.BannerRequest
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
@@ -45,7 +44,6 @@ import org.bidon.sdk.stats.models.RoundStatus
  */
 internal class CpmProcessor(
     private val adaptersSource: AdaptersSource,
-    private val regulation: Regulation,
     private val weightModel: WeightModel = WeightModel, // Singleton default
 ) {
     /**
@@ -87,25 +85,19 @@ internal class CpmProcessor(
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
 
-        logInfo(TAG, "CPM waterfall loading: ${sortedAdUnits.size} ad units (parallel chunks of 2)")
+        logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units (weighted)")
 
         // Load in parallel chunks of 2
         sortedAdUnits.chunked(2).forEach { chunk ->
             // Check cancellation before each chunk
-            kotlinx.coroutines.coroutineScope {
+            coroutineScope {
                 ensureActive()
             }
-
-            logInfo(TAG, "CPM loading chunk: ${chunk.map { it.demandId }.joinToString(", ")}")
 
             // Load chunk in parallel
             val results = coroutineScope {
                 chunk.map { adUnit ->
                     async {
-                        val weight = weightModel.getWeight(adUnit.demandId)
-                        val score = weightModel.calculateScore(adUnit)
-                        logInfo(TAG, "CPM loading: demandId=${adUnit.demandId}, ecpm=${adUnit.pricefloor}, weight=$weight, score=$score")
-
                         val result = loadSingleAdUnit(
                             adUnit = adUnit,
                             adTypeParam = adTypeParam,
@@ -127,7 +119,6 @@ internal class CpmProcessor(
                 if (result.isSuccess) {
                     weightModel.recordFill(adUnit.demandId)
                     successCount++
-                    logInfo(TAG, "CPM loaded successfully: demandId=${adUnit.demandId}")
 
                     if (firstSuccess == null) {
                         firstSuccess = result.getOrNull()
@@ -137,14 +128,12 @@ internal class CpmProcessor(
                 } else {
                     weightModel.recordNoFill(adUnit.demandId)
                     failureCount++
-                    val error = result.exceptionOrNull()
-                    logInfo(TAG, "CPM load failed: demandId=${adUnit.demandId}, continuing waterfall, error=$error")
                     // Continue to next adUnit (don't stop waterfall)
                 }
             }
         }
 
-        logInfo(TAG, "CPM summary: loaded $successCount ads, failed $failureCount attempts")
+        logInfo(TAG, "CPM complete: success=$successCount, failed=$failureCount")
 
         return CpmWaterfallResult(
             successCount = successCount,
@@ -190,20 +179,14 @@ internal class CpmProcessor(
         return try {
             // Find adapter by demandId
             val adapter = adaptersSource.adapters.find { it.demandId.demandId == adUnit.demandId }
-            if (adapter == null) {
-                logInfo(TAG, "Adapter not found for demandId=${adUnit.demandId}")
-                return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
-            }
+                ?: return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
 
             // Apply regulation
             adapter.applyRegulation()
 
             // Create AdSource
             adSource = createAdSource(adapter, demandAd, adTypeParam)
-            if (adSource == null) {
-                logInfo(TAG, "AdSource creation failed for demandId=${adUnit.demandId}")
-                return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
-            }
+                ?: return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
 
             // Apply auction parameters
             applyParams(
@@ -229,7 +212,6 @@ internal class CpmProcessor(
             ).getOrNull()
 
             if (adParams == null) {
-                logInfo(TAG, "CPM load failed: demandId=${adUnit.demandId}, failed to create auction params")
                 adSource.destroy()
                 return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
             }
@@ -249,6 +231,12 @@ internal class CpmProcessor(
 
             when (adEvent) {
                 is AdEvent.Fill -> {
+                    // Update price to waterfall eCPM
+                    adSource.markFillFinished(
+                        roundStatus = RoundStatus.Successful,
+                        price = adUnit.pricefloor // For CPM use waterfall eCPM
+                    )
+
                     // Store in ReadyToShowCache
                     val auctionResult: AuctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
                     val entry: CacheEntry<AuctionResult> = CacheEntry.create(
@@ -279,7 +267,6 @@ internal class CpmProcessor(
             // NEVER catch CancellationException - always rethrow
             throw e
         } catch (e: Exception) {
-            logInfo(TAG, "CPM load exception: demandId=${adUnit.demandId}, exception=${e.message}")
             Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
         } finally {
             // Guaranteed cleanup even if cancelled (LIFE-06)
@@ -309,8 +296,6 @@ internal class CpmProcessor(
                 (adapter as? AdProvider.Interstitial<AdAuctionParams>)?.let { provider ->
                     runCatching {
                         provider.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
                     }.getOrNull()
                 }
             }
@@ -318,8 +303,6 @@ internal class CpmProcessor(
                 (adapter as? AdProvider.Rewarded<AdAuctionParams>)?.let { provider ->
                     runCatching {
                         provider.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
                     }.getOrNull()
                 }
             }
@@ -327,8 +310,6 @@ internal class CpmProcessor(
                 (adapter as? AdProvider.Banner<AdAuctionParams>)?.let { provider ->
                     runCatching {
                         provider.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
                     }.getOrNull()
                 }
             }
@@ -403,4 +384,4 @@ internal data class CpmWaterfallResult(
     val firstSuccess: AuctionResult?, // First successfully loaded ad
 )
 
-private const val TAG = "CpmProcessor"
+private const val TAG = "[DenisCache] CPM"

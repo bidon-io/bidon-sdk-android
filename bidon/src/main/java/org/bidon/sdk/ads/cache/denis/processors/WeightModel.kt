@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
 import org.bidon.sdk.auction.models.AdUnit
-import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -26,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Storage: In-memory only (resets on app restart).
  */
 internal object WeightModel {
-    private const val TAG = "WeightModel"
+    private const val TAG = "[DenisCache] Weights"
     private const val DEFAULT_WEIGHT = 10
     private const val MIN_WEIGHT = 1
     private const val MAX_WEIGHT = 20
@@ -45,11 +44,9 @@ internal object WeightModel {
      */
     fun recordFill(demandId: String) {
         val atomicWeight = weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        val oldWeight = atomicWeight.get()
-        val newWeight = atomicWeight.updateAndGet { current ->
+        atomicWeight.updateAndGet { current ->
             (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
-        logInfo(TAG, "WeightModel.recordFill: demandId=$demandId, weight=$oldWeight -> $newWeight")
     }
 
     /**
@@ -61,11 +58,9 @@ internal object WeightModel {
      */
     fun recordNoFill(demandId: String) {
         val atomicWeight = weights.getOrPut(demandId) { AtomicInteger(DEFAULT_WEIGHT) }
-        val oldWeight = atomicWeight.get()
-        val newWeight = atomicWeight.updateAndGet { current ->
+        atomicWeight.updateAndGet { current ->
             (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
-        logInfo(TAG, "WeightModel.recordNoFill: demandId=$demandId, weight=$oldWeight -> $newWeight")
     }
 
     /**
@@ -108,21 +103,9 @@ internal object WeightModel {
      * @return Sorted list (highest score first)
      */
     fun sortByWeightedScore(adUnits: List<AdUnit>): List<AdUnit> {
-        val sorted = adUnits.sortedByDescending { adUnit ->
+        return adUnits.sortedByDescending { adUnit ->
             calculateScore(adUnit)
         }
-
-        // Log sorted order for debugging
-        if (sorted.isNotEmpty()) {
-            logInfo(TAG, "WeightModel.sortByWeightedScore: sorted ${sorted.size} ad units")
-            sorted.take(5).forEach { adUnit ->
-                val score = calculateScore(adUnit)
-                val weight = getWeight(adUnit.demandId)
-                logInfo(TAG, "  - demandId=${adUnit.demandId}, ecpm=${adUnit.pricefloor}, weight=$weight, score=$score")
-            }
-        }
-
-        return sorted
     }
 
     /**
@@ -130,6 +113,5 @@ internal object WeightModel {
      */
     fun clear() {
         weights.clear()
-        logInfo(TAG, "WeightModel.clear: all weights cleared")
     }
 }

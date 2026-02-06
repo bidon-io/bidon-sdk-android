@@ -20,7 +20,7 @@ internal data class CacheEntry<T>(
     val expiresAt: Long,
     val demandId: String,
     val auctionId: String,
-    val uid: String = "${auctionId}_${demandId}_${System.nanoTime()}"  // Default fallback
+    val uid: String = "${auctionId}_${demandId}_${System.nanoTime()}" // Default fallback
 ) {
     companion object {
         /**

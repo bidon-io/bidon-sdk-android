@@ -81,10 +81,8 @@ internal class CoordinationLayer(
                     )
                     AuctionStartState.WarmStart(bestAd)
                 } else {
-                    // Edge case: isEmpty() returned false but getBest() null (race condition)
-                    // Between isEmpty() check and getBest() call, another thread may have
-                    // removed/expired the last entry. Fall back to cold start.
-                    logInfo(TAG, "Warning: cache reported non-empty but getBest() returned null (race condition)")
+                    // Edge case: Race condition between isEmpty() and getBest()
+                    // Fall back to cold start
                     AuctionStartState.PureColdStart(userPricefloor)
                 }
             }
@@ -102,7 +100,7 @@ internal class CoordinationLayer(
             }
             else -> {
                 // Pure cold start
-                logInfo(TAG, "🆕 PURE COLD START: both caches empty, full auction (pricefloor: $${"%.2f".format(userPricefloor)})")
+                logInfo(TAG, "COLD START: Full auction, pricefloor=${"$%.2f".format(userPricefloor)}")
                 AuctionStartState.PureColdStart(userPricefloor)
             }
         }
@@ -184,7 +182,6 @@ internal class CoordinationLayer(
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
-                logInfo(TAG, "Warm start: served cached ad, background auction started (auctionId=$auctionId)")
                 AuctionCompletionType.WarmStartServed // Callback already fired, auction in background
             }
             is AuctionStartState.ColdStartWithCache -> {
@@ -238,7 +235,7 @@ internal class CoordinationLayer(
         bestAd: CacheEntry<AuctionResult>,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit
     ) {
-        logInfo(TAG, "Warm start: serving cached ad (demandId=${bestAd.demandId}, ecpm=${bestAd.ecpm})")
+        logInfo(TAG, "WARM START: Serving ${bestAd.demandId} @ ${"$%.2f".format(bestAd.ecpm)}")
 
         // Build AuctionInfo from cached entry
         // Note: Warm start uses cached auctionId from when ad was originally loaded
@@ -281,7 +278,7 @@ internal class CoordinationLayer(
     ) {
         try {
             val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
-            logInfo(TAG, "Cold start: dynamicPricefloor=$dynamicPricefloor (user=${adTypeParam.pricefloor}), skipDemandIds=${skipDemandIds.size}")
+            logInfo(TAG, "COLD START: pricefloor=${"$%.2f".format(dynamicPricefloor)} (from user=${"$%.2f".format(adTypeParam.pricefloor)}), skip=${skipDemandIds.size}")
 
             // Create adTypeParam with dynamic pricefloor for auction request
             // This ensures the backend receives the dynamic pricefloor, not the original
@@ -370,16 +367,12 @@ internal class CoordinationLayer(
                     // In silent mode (warm start background refresh), suppress callbacks
                     val callbackCoordinator = CallbackCoordinator(
                         onAdLoaded = if (silentMode) {
-                            { _, _ ->
-                                logInfo(TAG, "Silent mode: ad loaded, updating cache only (no callback)")
-                            }
+                            { _, _ -> /* Silent mode: no callback */ }
                         } else {
                             onSuccess
                         },
                         onAdLoadFailed = if (silentMode) {
-                            { _, _ ->
-                                logInfo(TAG, "Silent mode: ad load failed, no callback")
-                            }
+                            { _, _ -> /* Silent mode: no callback */ }
                         } else {
                             { info, error -> onFailure(info, error) }
                         },
@@ -475,7 +468,7 @@ internal class CoordinationLayer(
     }
 
     companion object {
-        private const val TAG = "CoordinationLayer"
+        private const val TAG = "[DenisCache] Coordination"
     }
 }
 
