@@ -14,11 +14,15 @@ import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.utils.di.get
 
 /**
  * Factory for creating V2 AdCache instances with all denis package dependencies.
  *
  * Isolates complex dependency graph construction from AdCacheFactoryImpl.
+ * Gets V2-specific dependencies directly from DI container, keeping them
+ * encapsulated within V2 implementation.
+ *
  * This factory creates instance-scoped components (LifecycleManager, CoordinationLayer)
  * and wires them with processors and orchestrator.
  */
@@ -37,24 +41,23 @@ internal object AdCacheDenisFactory {
      * inside CoordinationLayer.handleColdStart() with actual callbacks from cache() call.
      * This ensures multiple cache() calls fire their own callbacks correctly.
      *
+     * V2-specific dependencies are obtained directly from DI container to avoid
+     * polluting AdCacheFactoryImpl with V2-only dependencies.
+     *
      * @param demandAd Ad instance configuration
      * @param resolver Auction resolver (V1 compatibility - unused in V2)
-     * @param adaptersSource Source of available ad adapters
-     * @param getTokens Use case for collecting bidding tokens
-     * @param getAuctionRequest Use case for creating auction requests
-     * @param biddingConfig Bidding configuration (timeouts, etc.)
-     * @param regulation Privacy/consent regulations
      * @return Fully-wired AdCache instance
      */
     fun create(
         demandAd: DemandAd,
         resolver: AuctionResolver,
-        adaptersSource: AdaptersSource,
-        getTokens: GetTokensUseCase,
-        getAuctionRequest: GetAuctionRequestUseCase,
-        biddingConfig: BiddingConfig,
-        regulation: Regulation,
     ): AdCache {
+        // Get V2-specific dependencies from DI container
+        val adaptersSource = get<AdaptersSource>()
+        val getTokens = get<GetTokensUseCase>()
+        val getAuctionRequest = get<GetAuctionRequestUseCase>()
+        val biddingConfig = get<BiddingConfig>()
+        val regulation = get<Regulation>()
         // Create instance-scoped lifecycle manager
         val lifecycleManager = LifecycleManager()
 

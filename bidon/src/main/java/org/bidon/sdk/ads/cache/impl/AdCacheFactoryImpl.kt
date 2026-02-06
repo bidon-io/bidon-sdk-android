@@ -1,29 +1,22 @@
 package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
-import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
-import org.bidon.sdk.auction.usecases.GetTokensUseCase
-import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.utils.SdkDispatchers
 
 /**
  * Factory implementation that creates version-specific AdCache instances.
+ *
+ * Note: V2 (AdCacheDenisFactory) obtains its specific dependencies directly
+ * from DI container to keep them encapsulated within V2 implementation.
  */
 internal class AdCacheFactoryImpl(
     private val resolver: AuctionResolver,
-    private val adaptersSource: AdaptersSource,
-    private val getTokens: GetTokensUseCase,
-    private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val biddingConfig: BiddingConfig,
-    private val regulation: Regulation,
 ) : AdCacheFactory {
 
     override fun create(demandAd: DemandAd): AdCache {
@@ -38,11 +31,6 @@ internal class AdCacheFactoryImpl(
             AdCacheVersion.V2 -> AdCacheDenisFactory.create(
                 demandAd = demandAd,
                 resolver = resolver,
-                adaptersSource = adaptersSource,
-                getTokens = getTokens,
-                getAuctionRequest = getAuctionRequest,
-                biddingConfig = biddingConfig,
-                regulation = regulation,
             )
 
             AdCacheVersion.V3 -> {

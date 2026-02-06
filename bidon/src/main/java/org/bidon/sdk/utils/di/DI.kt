@@ -294,11 +294,6 @@ internal object DI {
             factory<AdCacheFactory> {
                 AdCacheFactoryImpl(
                     resolver = get(),
-                    adaptersSource = get(),
-                    getTokens = get(),
-                    getAuctionRequest = get(),
-                    biddingConfig = get(),
-                    regulation = get(),
                 )
             }
             factoryWithParams<AdCache> { (demandAd) ->
