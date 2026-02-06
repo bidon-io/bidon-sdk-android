@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Thread-safety: Uses ConcurrentHashMap for lock-free concurrent access.
  * Expiration: Lazy eviction on access (CACHE-05) + periodic sweep via external job.
- * Capacity: Configurable limit (default 3) to prevent memory exhaustion (CACHE-09).
+ * Capacity: Unlimited storage with TTL-based eviction only (no size limit).
  * Duplicate policy: Replaces only if new eCPM is higher (CACHE-07).
  *
  * Application-wide scope: Singleton object persists between ad instances (CACHE-03).
@@ -224,17 +224,6 @@ internal object ReadyToShowCache {
         val removed = sizeBefore - cache.size
         if (removed > 0) {
             logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
-        }
-    }
-
-    /**
-     * Evict entry with lowest eCPM (LRU policy when at capacity).
-     */
-    private fun evictLowestEcpm() {
-        val lowest = cache.entries.minByOrNull { it.value.ecpm }
-        lowest?.let {
-            cache.remove(it.key)
-            logInfo(TAG, "ReadyToShowCache evicted lowest eCPM entry: demandId=${it.key}, ecpm=${it.value.ecpm}")
         }
     }
 }

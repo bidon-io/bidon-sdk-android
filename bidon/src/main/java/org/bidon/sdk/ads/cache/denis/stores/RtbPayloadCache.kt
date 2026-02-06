@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Features:
  * - Atomic duplicate detection with eCPM comparison (higher eCPM always wins)
  * - Lazy eviction on access (expired entries removed when queried)
- * - Capacity limit with lowest-eCPM eviction (default 10 entries)
+ * - Unlimited storage with TTL-based eviction only (no size limit)
  * - Thread-safe using ConcurrentHashMap with atomic compute()
  */
 internal object RtbPayloadCache {
@@ -196,17 +196,6 @@ internal object RtbPayloadCache {
         cache.entries.removeIf { (_, entry) -> now > entry.expiresAt }
         if (removed > 0) {
             logInfo(TAG, "RtbPayloadCache evicted $removed expired entries")
-        }
-    }
-
-    /**
-     * Evicts entry with lowest eCPM to free capacity.
-     */
-    private fun evictLowestEcpm() {
-        val lowest = cache.entries.minByOrNull { it.value.ecpm }
-        lowest?.let {
-            cache.remove(it.key)
-            logInfo(TAG, "RtbPayloadCache evicted lowest eCPM: ${it.key} (ecpm=${it.value.ecpm})")
         }
     }
 }
