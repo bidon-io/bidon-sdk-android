@@ -7,15 +7,13 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
+import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
 
 /**
  * Factory implementation that creates version-specific AdCache instances.
- *
- * Note: V2 (AdCacheDenisFactory) obtains its specific dependencies directly
- * from DI container to keep them encapsulated within V2 implementation.
  */
 internal class AdCacheFactoryImpl(
     private val resolver: AuctionResolver,
@@ -48,15 +46,18 @@ internal class AdCacheFactoryImpl(
             AdCacheVersion.V3 -> {
                 AdCacheAndreiImpl(
                     demandAd = demandAd,
+                    scope = CoroutineScope(SdkDispatchers.Main),
                     resolver = resolver
                 )
             }
+
             AdCacheVersion.V4 -> {
                 AdCacheVladimirImpl(
                     demandAd = demandAd,
                     resolver = resolver
                 )
             }
+
             AdCacheVersion.V5 -> {
                 AdCacheAlexImpl(
                     demandAd = demandAd,

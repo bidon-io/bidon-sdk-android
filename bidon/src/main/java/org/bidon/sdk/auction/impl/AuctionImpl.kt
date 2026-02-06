@@ -67,12 +67,12 @@ internal class AuctionImpl(
             )
         ) {
             if (job?.isActive == true) {
-                logInfo(TAG, "Action in progress $this")
+                logInfo(TAG, "Action in progress $adTypeParam")
                 return
             }
             job = scope.launch {
                 runCatching {
-                    logInfo(TAG, "Auction started $this")
+                    logInfo(TAG, "Auction started $adTypeParam")
                     resultsCollector.startRound(adTypeParam.pricefloor)
                     resultsCollector.serverBiddingStarted()
 
