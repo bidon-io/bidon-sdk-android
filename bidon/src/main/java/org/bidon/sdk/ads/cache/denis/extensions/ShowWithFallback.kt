@@ -47,15 +47,16 @@ private suspend fun tryShowNextAd(activity: Activity): Result<Ad> {
     val entry = ReadyToShowCache.popBest()
 
     if (entry == null) {
-        logInfo(TAG, "No ads in cache")
+        logInfo(TAG, "🚫 FALLBACK EXHAUSTED: no more ads in cache")
         return Result.failure(BidonError.AdNotReady)
     }
 
     val adSource = entry.value.adSource
     val demandId = entry.demandId
     val ecpm = entry.ecpm
+    val cacheRemaining = ReadyToShowCache.size()
 
-    logInfo(TAG, "Trying to show ad: demandId=$demandId, ecpm=${"%.2f".format(ecpm)}")
+    logInfo(TAG, "📺 SHOW ATTEMPT: $demandId @ $${"%.2f".format(ecpm)} (cache remaining: $cacheRemaining ads)")
 
     // Show the ad based on type
     when (adSource) {
@@ -73,16 +74,16 @@ private suspend fun tryShowNextAd(activity: Activity): Result<Ad> {
     }.let { event ->
         when (event) {
             is AdEvent.Shown -> {
-                logInfo(TAG, "Ad shown successfully: demandId=$demandId")
+                logInfo(TAG, "✅ SHOW SUCCESS: $demandId displayed")
                 Result.success(event.ad)
             }
             is AdEvent.ShowFailed -> {
-                logInfo(TAG, "Show failed: demandId=$demandId, error=${event.cause}, trying next ad")
+                logInfo(TAG, "❌ SHOW FAILED: $demandId (${event.cause}), trying fallback...")
                 // Recursive retry with next best ad from cache
                 tryShowNextAd(activity)
             }
             else -> {
-                logInfo(TAG, "Unexpected event: $event")
+                logInfo(TAG, "⚠️ UNEXPECTED EVENT: $event")
                 Result.failure(BidonError.Unspecified(demandId = adSource.demandId))
             }
         }

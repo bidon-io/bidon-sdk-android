@@ -76,7 +76,8 @@ internal class CoordinationLayer(
                 if (bestAd != null) {
                     logInfo(
                         TAG,
-                        "Warm start: cached ad available (demandId=${bestAd.demandId}, ecpm=${bestAd.ecpm})"
+                        "🔥 WARM START: serving ${bestAd.demandId} @ $${"%.2f".format(bestAd.ecpm)}, " +
+                            "background auction will follow"
                     )
                     AuctionStartState.WarmStart(bestAd)
                 } else {
@@ -91,8 +92,8 @@ internal class CoordinationLayer(
                 // Cold start with RTB cache optimization
                 logInfo(
                     TAG,
-                    "Cold start with cache: ${snapshot.cachedDemandIds.size} RTB payloads cached " +
-                        "(maxEcpm=${snapshot.rtbPayloadMaxEcpm})"
+                    "❄️ COLD START WITH CACHE: ${snapshot.cachedDemandIds.size} RTB payloads available " +
+                        "(max eCPM: $${"%.2f".format(snapshot.rtbPayloadMaxEcpm)}), will merge with server response"
                 )
                 AuctionStartState.ColdStartWithCache(
                     cachedDemandIds = snapshot.cachedDemandIds,
@@ -101,7 +102,7 @@ internal class CoordinationLayer(
             }
             else -> {
                 // Pure cold start
-                logInfo(TAG, "Pure cold start: both caches empty (userPricefloor=$userPricefloor)")
+                logInfo(TAG, "🆕 PURE COLD START: both caches empty, full auction (pricefloor: $${"%.2f".format(userPricefloor)})")
                 AuctionStartState.PureColdStart(userPricefloor)
             }
         }
@@ -125,11 +126,21 @@ internal class CoordinationLayer(
      * @return Calculated pricefloor for auction request
      */
     fun calculatePricefloor(userPricefloor: Double, snapshot: CacheStateSnapshot): Double {
-        return PricefloorCalculator.calculateDynamicPricefloor(
+        val dynamicPricefloor = PricefloorCalculator.calculateDynamicPricefloor(
             userPricefloor = userPricefloor,
             readyToShowMaxEcpm = snapshot.readyToShowMaxEcpm,
             rtbPayloadMaxEcpm = snapshot.rtbPayloadMaxEcpm
         )
+
+        logInfo(
+            TAG,
+            "💰 PRICEFLOOR: user=$${"%.2f".format(userPricefloor)}, " +
+                "readyCache=$${"%.2f".format(snapshot.readyToShowMaxEcpm)}, " +
+                "rtbCache=$${"%.2f".format(snapshot.rtbPayloadMaxEcpm)} " +
+                "→ dynamic=$${"%.2f".format(dynamicPricefloor)}"
+        )
+
+        return dynamicPricefloor
     }
 
     /**
@@ -320,17 +331,28 @@ internal class CoordinationLayer(
 
                     // Detailed waterfall logging
                     if (mergedRtbAdUnits.isNotEmpty()) {
-                        val rtbDetails = mergedRtbAdUnits.joinToString(", ") {
+                        val serverCount = splitWaterfall.rtbAdUnits.size
+                        val cachedCount = mergedRtbAdUnits.size - serverCount
+                        val rtbDetails = mergedRtbAdUnits.take(3).joinToString(", ") {
                             "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
                         }
-                        logInfo(TAG, "RTB waterfall (sorted by eCPM): [$rtbDetails]")
+                        val more = if (mergedRtbAdUnits.size > 3) " +${mergedRtbAdUnits.size - 3} more" else ""
+                        logInfo(
+                            TAG,
+                            "📊 RTB WATERFALL: $serverCount server + $cachedCount cached = ${mergedRtbAdUnits.size} total " +
+                                "[$rtbDetails$more]"
+                        )
                     }
                     if (splitWaterfall.cpmAdUnits.isNotEmpty()) {
-                        val cpmDetails = splitWaterfall.cpmAdUnits.take(5).joinToString(", ") {
+                        val cpmDetails = splitWaterfall.cpmAdUnits.take(3).joinToString(", ") {
                             "${it.demandId}:$${"%.2f".format(it.pricefloor)}"
                         }
-                        val more = if (splitWaterfall.cpmAdUnits.size > 5) " +${splitWaterfall.cpmAdUnits.size - 5} more" else ""
-                        logInfo(TAG, "CPM waterfall (first 5): [$cpmDetails]$more")
+                        val more = if (splitWaterfall.cpmAdUnits.size > 3) " +${splitWaterfall.cpmAdUnits.size - 3} more" else ""
+                        logInfo(
+                            TAG,
+                            "📊 CPM WATERFALL: ${splitWaterfall.cpmAdUnits.size} networks (parallel 2x2) " +
+                                "[$cpmDetails$more]"
+                        )
                     }
 
                     // Build AuctionInfo for callbacks
