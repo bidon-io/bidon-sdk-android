@@ -157,6 +157,6 @@ internal class LifecycleManager {
     }
 
     companion object {
-        private const val TAG = "LifecycleManager"
+        private const val TAG = "[DenisCache] LifecycleManager"
     }
 }

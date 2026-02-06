@@ -65,7 +65,6 @@ internal object AdCacheDenisFactory {
         )
         val cpmProcessor = CpmProcessor(
             adaptersSource = adaptersSource,
-            regulation = regulation,
         )
 
         // Create V2-specific token wrapper that filters cached demand IDs

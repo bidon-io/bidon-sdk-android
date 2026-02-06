@@ -160,6 +160,6 @@ internal class CancellationManager {
     }
 
     companion object {
-        private const val TAG = "CancellationManager"
+        private const val TAG = "[DenisCache] CancellationManager"
     }
 }

@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 internal object RtbPayloadCache {
     private val cache = ConcurrentHashMap<String, CacheEntry<RtbPayload>>()
 
-    private const val TAG = "RtbPayloadCache"
+    private const val TAG = "[DenisCache] RtbPayloadCache"
 
     /**
      * Inserts payload only if new eCPM is higher than existing (atomic operation).

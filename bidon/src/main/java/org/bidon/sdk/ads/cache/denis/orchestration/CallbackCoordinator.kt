@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo

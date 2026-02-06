@@ -41,7 +41,7 @@ internal class GetTokensWithSkipUseCase(
     }
 
     companion object {
-        private const val TAG = "GetTokensWithSkipUseCase"
+        private const val TAG = "[DenisCache] GetTokensWithSkipUseCase"
     }
 }
 

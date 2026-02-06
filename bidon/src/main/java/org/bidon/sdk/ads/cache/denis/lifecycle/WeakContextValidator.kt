@@ -27,7 +27,7 @@ import java.lang.ref.WeakReference
  * Thread-safety: Called from PeriodicSweepJob on Dispatchers.Default.
  */
 internal object WeakContextValidator {
-    private const val TAG = "WeakContextValidator"
+    private const val TAG = "[DenisCache] WeakContextValidator"
 
     /**
      * Interface for cache entries that track Activity context.

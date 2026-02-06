@@ -23,7 +23,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * operations are attempted even if some fail.
  */
 internal object CleanupCoordinator {
-    private const val TAG = "CleanupCoordinator"
+    private const val TAG = "[DenisCache] CleanupCoordinator"
 
     /**
      * Destroy single AdSource with guaranteed execution.

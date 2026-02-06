@@ -20,7 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * 4. Return calculated value (used for entire auction, not recalculated)
  */
 internal object PricefloorCalculator {
-    private const val TAG = "PricefloorCalculator"
+    private const val TAG = "[DenisCache] PricefloorCalculator"
 
     /**
      * Safety margin multiplier (90% of cached eCPM).

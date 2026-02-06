@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Application-wide scope: Singleton object persists between ad instances (CACHE-03).
  */
 internal object ReadyToShowCache {
-    private const val TAG = "ReadyToShowCache"
+    private const val TAG = "[DenisCache] ReadyToShowCache"
 
     /**
      * Thread-safe storage: uid -> CacheEntry<AuctionResult>

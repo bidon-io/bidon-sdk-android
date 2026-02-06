@@ -24,7 +24,7 @@ internal data class SplitWaterfall(
  * This matches GetTokensUseCaseImpl pattern of using filterIsInstance<Adapter.Bidding>.
  */
 internal object WaterfallSplitter {
-    private const val TAG = "WaterfallSplitter"
+    private const val TAG = "[DenisCache] WaterfallSplitter"
 
     /**
      * Split AdUnits into RTB and CPM groups.
