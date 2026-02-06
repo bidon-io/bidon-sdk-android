@@ -292,9 +292,7 @@ internal object DI {
             }
             factory { CalculateAdContainerParamsUseCase() }
             factory<AdCacheFactory> {
-                AdCacheFactoryImpl(
-                    resolver = get(),
-                )
+                AdCacheFactoryImpl(resolver = get())
             }
             factoryWithParams<AdCache> { (demandAd) ->
                 get<AdCacheFactory>().create(demandAd as DemandAd)

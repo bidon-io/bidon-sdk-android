@@ -57,12 +57,10 @@ fun InterstitialScreen(
     val pricefloorState = remember {
         mutableStateOf("0.001")
     }
-    val auctionKeyState = remember { mutableStateOf("1O16GQT380000") } // Default test key for ad caching
+    val auctionKeyState = remember { mutableStateOf("") }
 
     val interstitial by lazy {
         InterstitialAd(auctionKey = auctionKeyState.value.ifBlank { null }).apply {
-            // Enable Ad Caching v2 (Denis)
-            addExtra("cache_size", 2)
             setInterstitialListener(
                 object : InterstitialListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {
@@ -161,7 +159,6 @@ fun InterstitialScreen(
                 AppTextButton(
                     text = "Add extras"
                 ) {
-                    interstitial.addExtra("cache_size", 2) // Enable AdCache V2 (Denis implementation)
                     interstitial.addExtra("some_extra_obj", interstitial)
                     interstitial.addExtra("some_extra_int", 123)
                     interstitial.addExtra("some_extra_data", "some_value")
