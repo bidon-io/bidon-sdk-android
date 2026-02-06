@@ -11,6 +11,7 @@ import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
 import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
+import org.json.JSONObject
 
 /**
  * Factory implementation that creates version-specific AdCache instances.
@@ -68,28 +69,31 @@ internal class AdCacheFactoryImpl(
     }
 
     private fun extractStrategyVersion(demandAd: DemandAd): AdCacheVersion {
-        // Try to read from global BidonSdk extras
-        val globalExtras = BidonSdk.getExtras()
-        val cacheSettings = globalExtras["cache_settings"] as? Map<*, *>
+        return try {
+            // Try to read from global BidonSdk extras
+            val globalExtras = BidonSdk.getExtras()
+            val cacheSettings = globalExtras["cache_settings"] as? JSONObject
 
-        if (cacheSettings != null) {
-            val adTypeKey = when (demandAd.adType) {
-                AdType.Interstitial -> "interstitial"
-                AdType.Banner -> "banner"
-                AdType.Rewarded -> "rewarded_video"
+            if (cacheSettings != null) {
+                val adTypeKey = when (demandAd.adType) {
+                    AdType.Interstitial -> "interstitial"
+                    AdType.Banner -> "banner"
+                    AdType.Rewarded -> "rewarded_video"
+                }
+
+                val adTypeSettings = cacheSettings.optJSONObject(adTypeKey)
+                val strategyVersion = adTypeSettings?.optString("strategy_version")
+
+                return if (!strategyVersion.isNullOrEmpty()) {
+                    AdCacheVersion.fromString(strategyVersion)
+                } else {
+                    AdCacheVersion.Default
+                }
+            } else {
+                return AdCacheVersion.Default
             }
-
-            val adTypeSettings = cacheSettings[adTypeKey] as? Map<*, *>
-            val strategyVersion = adTypeSettings?.get("strategy_version") as? String
-
-            if (strategyVersion != null) {
-                return AdCacheVersion.fromString(strategyVersion)
-            }
+        } catch (_: Exception) {
+            AdCacheVersion.Default
         }
-
-        // Fallback to old approach for backward compatibility
-        val demandExtras = demandAd.getExtras()
-        val cacheSize = demandExtras["cache_size"] as? String
-        return AdCacheVersion.fromString(cacheSize)
     }
 }
