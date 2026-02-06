@@ -36,6 +36,7 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -217,6 +218,10 @@ internal class AdCacheVladimirImpl(
                     runRefillLoad(adTypeParam, onSuccess, onFailure)
                 }
             }.onFailure { cause ->
+                if (cause is CancellationException) {
+                    logInfo(TAG, "cache(): loading cancelled (expected during clear)")
+                    return@onFailure
+                }
                 logError(TAG, "cache(): auction FAILED with exception", cause)
                 loadingState.value = LoadingState.IDLE
                 if (callbackFired.compareAndSet(false, true)) {
@@ -694,20 +699,12 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "handleFill(): $demandId → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
-        if (primaryUpdated) {
+        if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
             val info = buildAuctionInfo(round.response)
-            val wasAlreadyFired = callbackFired.getAndSet(true)
-            if (wasAlreadyFired) {
-                logInfo(TAG, "handleFill(): HOT-SWAP — re-firing onSuccess for $demandId @ $price")
-            } else {
-                logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
-            }
-            // Use scope.launch (not runOnUiThread) to guarantee ordering:
-            // insert() emits Expired via tryEmit → collector resumed via handler.post()
-            // scope.launch also dispatches via handler.post()
-            // FIFO ordering ensures Expired is processed before onSuccess
-            // (runOnUiThread would run inline on Main, breaking ordering)
-            scope.launch { onSuccess(result, info) }
+            logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
+            adTypeParam.activity.runOnUiThread { onSuccess(result, info) }
+        } else if (primaryUpdated) {
+            logInfo(TAG, "handleFill(): primary updated but callback already fired — next cache() will pick it up")
         }
     }
 
