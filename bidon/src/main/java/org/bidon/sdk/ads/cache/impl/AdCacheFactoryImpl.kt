@@ -2,9 +2,11 @@ package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
+import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
 
@@ -16,7 +18,15 @@ internal class AdCacheFactoryImpl(
 ) : AdCacheFactory {
 
     override fun create(demandAd: DemandAd): AdCache {
-        val version: AdCacheVersion = AdCacheVersion.V3 // AdCacheVersion.fromInt(demandAd.getExtras()["cache_size"] as? Int)
+        if (demandAd.adType != AdType.Interstitial) {
+            return AdCacheImpl(
+                demandAd = demandAd,
+                scope = CoroutineScope(SdkDispatchers.Main),
+                resolver = resolver
+            )
+        }
+        val version: AdCacheVersion = AdCacheVersion.fromInt(demandAd.getExtras()["strategy_version"] as? Int)
+            // AdCacheVersion.V5 // AdCacheVersion.fromInt(demandAd.getExtras()["strategy_version"] as? Int)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,
@@ -38,12 +48,14 @@ internal class AdCacheFactoryImpl(
                     resolver = resolver
                 )
             }
+
             AdCacheVersion.V4 -> {
                 AdCacheVladimirImpl(
                     demandAd = demandAd,
                     resolver = resolver
                 )
             }
+
             AdCacheVersion.V5 -> {
                 AdCacheAlexImpl(
                     demandAd = demandAd,
