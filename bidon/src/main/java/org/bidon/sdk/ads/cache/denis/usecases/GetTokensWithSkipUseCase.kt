@@ -27,21 +27,30 @@ internal class GetTokensWithSkipUseCase(
             return delegate(adTypeParam, adaptersSource, tokenTimeout)
         }
 
+        // Always collect tokens for BidMachine, even when payload is cached
+        val effectiveSkipDemandIds = skipDemandIds - BIDMACHINE_DEMAND_ID
+
         // Log skip info for debugging
         val allBiddingCount = adaptersSource.adapters.count { it is Adapter.Bidding }
-        logInfo(TAG, "Token collection: skipping ${skipDemandIds.size} of $allBiddingCount bidding adapters (cached RTB payloads)")
-        skipDemandIds.forEach { demandId ->
+        logInfo(TAG, "Token collection: skipping ${effectiveSkipDemandIds.size} of $allBiddingCount bidding adapters (cached RTB payloads)")
+        effectiveSkipDemandIds.forEach { demandId ->
             logInfo(TAG, "Skipped token collection for demandId=$demandId (cached payload)")
         }
 
-        // Create filtered adapters source that excludes cached demand IDs
-        val filteredAdaptersSource = FilteredAdaptersSource(adaptersSource, skipDemandIds)
+        // Create filtered adapters source (BidMachine not in skip list)
+        val filteredAdaptersSource = FilteredAdaptersSource(adaptersSource, effectiveSkipDemandIds)
 
         return delegate(adTypeParam, filteredAdaptersSource, tokenTimeout)
     }
 
     companion object {
         private const val TAG = "[DenisCache] GetTokensWithSkipUseCase"
+
+        /**
+         * BidMachine requires tokens for every auction,
+         * even when cached RTB payload exists.
+         */
+        private const val BIDMACHINE_DEMAND_ID = "bidmachine"
     }
 }
 
