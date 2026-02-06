@@ -17,7 +17,7 @@ internal interface Cacheable {
 
     companion object {
         private const val MIN_CACHE_SIZE = 1
-        private const val CACHE_CAPACITY = 6
+        private const val CACHE_CAPACITY = 1
 
         val DefaultSettings
             get() = Settings(
