@@ -2,6 +2,7 @@ package org.bidon.sdk.ads.cache.impl
 
 import kotlinx.coroutines.CoroutineScope
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
@@ -20,6 +21,16 @@ internal class AdCacheFactoryImpl(
 ) : AdCacheFactory {
 
     override fun create(demandAd: DemandAd): AdCache {
+        // Only Interstitial ads use version-based cache implementations
+        // Banner and Rewarded always use default V1 implementation
+        if (demandAd.adType != AdType.Interstitial) {
+            return AdCacheImpl(
+                demandAd = demandAd,
+                scope = CoroutineScope(SdkDispatchers.Main),
+                resolver = resolver
+            )
+        }
+
         val version = AdCacheVersion.fromInt(demandAd.getExtras()["cache_size"] as? Int)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
