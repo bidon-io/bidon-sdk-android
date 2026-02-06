@@ -159,6 +159,7 @@ fun InterstitialScreen(
                 AppTextButton(
                     text = "Add extras"
                 ) {
+                    interstitial.addExtra("cache_size", 2) // Enable AdCache V2 (Denis implementation)
                     interstitial.addExtra("some_extra_obj", interstitial)
                     interstitial.addExtra("some_extra_int", 123)
                     interstitial.addExtra("some_extra_data", "some_value")

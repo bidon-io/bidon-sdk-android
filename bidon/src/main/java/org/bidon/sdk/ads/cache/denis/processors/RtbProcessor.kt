@@ -1,8 +1,10 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -209,9 +211,11 @@ internal class RtbProcessor(
                 // Mark fill started (sets adUnit in stats for getAd() calls)
                 adSource.markFillStarted(source.adUnit, pricefloor)
 
-                // Load ad with timeout
+                // Load ad with timeout (on Main thread for adapters like Admob)
                 val adEvent = withTimeout(source.adUnit.timeout) {
-                    adSource.load(adParams)
+                    withContext(Dispatchers.Main) {
+                        adSource.load(adParams)
+                    }
                     adSource.adEvent.first { event ->
                         event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired
                     }

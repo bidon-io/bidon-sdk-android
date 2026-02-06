@@ -30,7 +30,7 @@
 | Scenario 6: Dynamic Pricefloor | ⬜ PENDING | - | - |
 | Scenario 7: Empty Waterfall | ⬜ PENDING | - | - |
 | Scenario 8: Memory Leak Detection | ⬜ PENDING | - | - |
-| Scenario 9: Concurrent loadAd() | ⬜ PENDING | - | - |
+| Scenario 9: Concurrent loadAd() | ✅ PASSED | One onAdLoaded callback | SDK handles concurrent calls correctly - second ignored/queued |
 | Scenario 10: showAd() Cancel Auction | ⬜ PENDING | - | - |
 
 ---
@@ -97,6 +97,7 @@
 - ✅ showAd(): serves highest eCPM ad from cache
 - ✅ No NullPointerExceptions
 - ✅ Multiple adapters loading successfully (DTExchange, Mintegral, Applovin, IronSource)
+- ✅ Concurrent loadAd(): SDK handles properly (second call ignored/queued)
 
 **Root cause was simple:** Missing `markFillStarted()` call before `adSource.load()` in both RtbProcessor and CpmProcessor. This caused `stat.adUnit` to remain null, which triggered NPE in `getAd()`, which prevented `AdEvent.Fill` from firing, which blocked `ReadyToShowCache.put()`.
 
@@ -104,4 +105,28 @@
 
 ---
 
-**Last Updated:** 2026-02-06 23:50 (BREAKTHROUGH - Core functionality working!)
+## Current Testing Session (2026-02-06 09:00-09:14)
+
+### Tests Completed:
+1. ✅ Scenario 9: Concurrent loadAd() - PASSED (one onAdLoaded callback, SDK handles concurrent calls correctly)
+2. ✅ SDK Initialization - VERIFIED (after proper INIT, ads load successfully: bidmachine/CPM 0.020227 USD)
+
+### Key Learnings:
+- **CRITICAL**: Must click INIT button (not SKIP INIT) for SDK to function properly
+- After proper initialization, ad loading works correctly
+- First test showed Vungle/RTB 0.001 USD
+- Second proper init test showed bidmachine/CPM 0.020227 USD
+- Both RTB and CPM adapters working
+
+### Remaining Scenarios:
+- Scenario 3: showAd() Best eCPM
+- Scenario 4: Periodic Sweep (TTL) - deferred (requires long wait)
+- Scenario 5: Token Collection Skip
+- Scenario 6: Dynamic Pricefloor
+- Scenario 7: Empty Waterfall
+- Scenario 8: Memory Leak Detection
+- Scenario 10: showAd() Cancel Auction
+
+---
+
+**Last Updated:** 2026-02-06 09:14 (Testing session: SDK initialized correctly, ready to continue)

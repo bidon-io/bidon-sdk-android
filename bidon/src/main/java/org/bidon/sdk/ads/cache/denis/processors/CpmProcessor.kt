@@ -1,7 +1,9 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -209,9 +211,11 @@ internal class CpmProcessor(
             // Mark fill started (sets adUnit in stats for getAd() calls)
             adSource.markFillStarted(adUnit, pricefloor)
 
-            // Load ad with timeout
+            // Load ad with timeout (on Main thread for adapters like Admob)
             val adEvent = withTimeout(adUnit.timeout) {
-                adSource.load(adParams)
+                withContext(Dispatchers.Main) {
+                    adSource.load(adParams)
+                }
                 adSource.adEvent.first { event ->
                     event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired
                 }
@@ -223,7 +227,7 @@ internal class CpmProcessor(
                     val auctionResult: AuctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
                     val entry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
-                        ecpm = adEvent.ad.price,
+                        ecpm = adUnit.pricefloor, // Use waterfall eCPM, not actual bid price
                         demandId = adUnit.demandId,
                         auctionId = auctionId
                     )

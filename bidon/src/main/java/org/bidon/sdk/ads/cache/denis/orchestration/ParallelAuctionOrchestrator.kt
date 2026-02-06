@@ -45,7 +45,7 @@ internal class ParallelAuctionOrchestrator(
      * 3. Wait for both to complete
      * 4. Fire callback based on results and cache state
      *
-     * @param rtbPayloadsAvailable Whether RtbPayloadCache has entries
+     * @param rtbAdUnits RTB ad units from current auction response
      * @param cpmAdUnits CPM ad units to load
      * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
      * @param demandAd Demand ad configuration
@@ -57,7 +57,7 @@ internal class ParallelAuctionOrchestrator(
      * @param auctionInfo Auction information for callback
      */
     suspend fun executeParallelAuction(
-        rtbPayloadsAvailable: Boolean,
+        rtbAdUnits: List<AdUnit>,
         cpmAdUnits: List<AdUnit>,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
@@ -78,21 +78,22 @@ internal class ParallelAuctionOrchestrator(
         logInfo(
             TAG,
             "Starting parallel auction: auctionId=$auctionId, " +
-                "rtbAvailable=$rtbPayloadsAvailable, cpmAdUnits=${cpmAdUnits.size}, " +
+                "rtbAdUnits=${rtbAdUnits.size}, cpmAdUnits=${cpmAdUnits.size}, " +
                 "cacheWasEmpty=$cacheWasEmpty"
         )
 
         coroutineScope {
             // RTB branch (independent failure domain)
             val rtbDeferred = async {
-                if (!rtbPayloadsAvailable) {
-                    logInfo(TAG, "Skipping RTB branch: no cached payloads")
+                if (rtbAdUnits.isEmpty()) {
+                    logInfo(TAG, "Skipping RTB branch: no RTB ad units")
                     return@async null
                 }
                 // supervisorScope isolates RTB failures (doesn't cancel CPM)
                 supervisorScope {
-                    logInfo(TAG, "RTB branch starting (auctionId=$auctionId)")
+                    logInfo(TAG, "RTB branch starting (auctionId=$auctionId, adUnits=${rtbAdUnits.size})")
                     val result = rtbProcessor.loadBestPayload(
+                        rtbAdUnits = rtbAdUnits,
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
                         auctionId = auctionId,

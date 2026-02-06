@@ -9,7 +9,6 @@ import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
-import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
@@ -306,7 +305,7 @@ internal class CoordinationLayer(
 
                     // Execute parallel auction via per-auction orchestrator
                     orchestrator.executeParallelAuction(
-                        rtbPayloadsAvailable = !RtbPayloadCache.isEmpty(), // Check if RTB payloads are cached
+                        rtbAdUnits = splitWaterfall.rtbAdUnits, // RTB group from split
                         cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
                         adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
                         demandAd = demandAd,
