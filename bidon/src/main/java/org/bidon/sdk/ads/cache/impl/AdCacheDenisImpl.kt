@@ -1,12 +1,15 @@
 package org.bidon.sdk.ads.cache.impl
 
+import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
+import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.orchestration.AuctionCompletionType
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
@@ -122,6 +125,38 @@ internal class AdCacheDenisImpl(
             if (result != null) return result
             // Wait briefly before checking again
             kotlinx.coroutines.delay(100)
+        }
+    }
+
+    /**
+     * Show best ad from cache with automatic fallback on failure.
+     *
+     * Delegates to showBestAdWithFallback extension which:
+     * - Tries to show best ad from ReadyToShowCache
+     * - On failure, automatically tries next best ad
+     * - Continues until success or cache exhaustion
+     *
+     * Denis ad caching specific feature.
+     *
+     * @param activity Activity context for showing the ad
+     * @param onShown Callback when ad shown successfully
+     * @param onFailed Callback when all ads failed or cache empty
+     */
+    fun showBestWithFallback(
+        activity: Activity,
+        onShown: (Ad) -> Unit,
+        onFailed: (Throwable) -> Unit
+    ) {
+        scope.launch {
+            showBestAdWithFallback(activity)
+                .onSuccess { ad ->
+                    logInfo(TAG, "showBestWithFallback: ad shown successfully")
+                    onShown(ad)
+                }
+                .onFailure { error ->
+                    logInfo(TAG, "showBestWithFallback: all ads failed, error=$error")
+                    onFailed(error)
+                }
         }
     }
 

@@ -22,6 +22,7 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.InitAwaiter
 import org.bidon.sdk.ads.InitAwaiterImpl
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -111,14 +112,31 @@ internal class InterstitialImpl(
             return
         }
         logInfo(TAG, "Show")
-        activity.runOnUiThread {
-            val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
-            if (adSource == null) {
-                logInfo(TAG, "Show failed. No Auction results.")
-                listener.onAdShowFailed(BidonError.AdNotReady)
-            } else {
-                winner = adSource
-                adSource.show(activity)
+
+        // Use fallback if denis ad caching, otherwise default behavior
+        if (adCache is AdCacheDenisImpl) {
+            logInfo(TAG, "Using denis ad caching with fallback")
+            (adCache as AdCacheDenisImpl).showBestWithFallback(
+                activity = activity,
+                onShown = { ad ->
+                    listener.onAdShown(ad)
+                },
+                onFailed = { error ->
+                    listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
+                }
+            )
+        } else {
+            // Default behavior (old ad cache)
+            logInfo(TAG, "Using default ad caching without fallback")
+            activity.runOnUiThread {
+                val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
+                if (adSource == null) {
+                    logInfo(TAG, "Show failed. No Auction results.")
+                    listener.onAdShowFailed(BidonError.AdNotReady)
+                } else {
+                    winner = adSource
+                    adSource.show(activity)
+                }
             }
         }
     }
