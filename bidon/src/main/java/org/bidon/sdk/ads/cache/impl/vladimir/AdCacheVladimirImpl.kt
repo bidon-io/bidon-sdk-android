@@ -702,12 +702,7 @@ internal class AdCacheVladimirImpl(
             } else {
                 logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
             }
-            // Use scope.launch (not runOnUiThread) to guarantee ordering:
-            // insert() emits Expired via tryEmit → collector resumed via handler.post()
-            // scope.launch also dispatches via handler.post()
-            // FIFO ordering ensures Expired is processed before onSuccess
-            // (runOnUiThread would run inline on Main, breaking ordering)
-            scope.launch { onSuccess(result, info) }
+            adTypeParam.activity.runOnUiThread { onSuccess(result, info) }
         }
     }
 
