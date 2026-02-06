@@ -54,6 +54,8 @@ fun RewardedScreen(
 
     val rewardedAd by lazy {
         RewardedAd(auctionKey = auctionKeyState.value.ifBlank { null }).apply {
+            // Enable Ad Caching v2 (Denis)
+            addExtra("cache_size", 2)
             setRewardedListener(
                 object : RewardedListener {
                     override fun onAdLoaded(ad: Ad, auctionInfo: AuctionInfo) {

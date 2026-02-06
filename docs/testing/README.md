@@ -8,7 +8,7 @@
 
 Эта папка содержит полную документацию по тестированию ad caching v2 системы для Bidon Android SDK.
 
-**Всего:** 90 тест-кейсов, покрывающих функциональность, edge cases, lifecycle, и performance.
+**Всего:** 121 тест-кейс, покрывающих функциональность, edge cases, lifecycle, performance, и callbacks.
 
 ---
 
@@ -141,6 +141,43 @@
 
 ---
 
+### 6. [TEST_SCENARIOS_CALLBACKS.md](./TEST_SCENARIOS_CALLBACKS.md) — Колбэки пользователя
+**Статус:** ✅ Complete
+**Тест-кейсов:** 31
+
+Проверяет все callback методы, которые возвращаются пользователю SDK. Гарантирует что все события жизненного цикла рекламы корректно передаются в user callbacks.
+
+**Разделы:**
+1. **Show & Display Callbacks (3 tests)** — onAdShown при показе
+2. **Close Callbacks (4 tests)** — onAdClosed при закрытии ⭐ CRITICAL
+3. **Click Callbacks (3 tests)** — onAdClicked при клике
+4. **Expired Callbacks (3 tests)** — onAdExpired при expiration
+5. **Revenue Callbacks (3 tests)** — onRevenuePaid revenue tracking
+6. **Rewarded Callbacks (3 tests)** — onUserRewarded для rewarded ads
+7. **Callback Order & Timing (3 tests)** — Последовательность и thread safety
+8. **Edge Cases (3 tests)** — Error handling, null listener, exceptions
+
+**Приоритет:** 🔴 HIGH (58%), 🟡 MEDIUM (39%), 🟢 LOW (3%)
+
+**Все колбэки:**
+- `onAdLoaded` / `onAdLoadFailed` — загрузка (покрыто в FUNCTIONAL)
+- `onAdShown` / `onAdShowFailed` — показ
+- `onAdClosed` — закрытие ⭐
+- `onAdClicked` — клик
+- `onAdExpired` — expiration
+- `onRevenuePaid` — revenue
+- `onUserRewarded` — reward (только rewarded ads)
+
+**Ключевые тесты:**
+- TC-CB-CLOSE-001-002: onAdClosed при закрытии ⭐ CRITICAL
+- TC-CB-SHOW-001: onAdShown при показе
+- TC-CB-CLICK-001: onAdClicked при клике
+- TC-CB-ORDER-001-003: Правильный порядок и thread safety
+- TC-CB-EDGE-002-003: Error handling
+- TC-CB-REWARD-001-002: onUserRewarded для rewarded ads
+
+---
+
 ## Quick Start
 
 ### Тестирование через claude-in-mobile (рекомендуется)
@@ -234,6 +271,22 @@ adb logcat -s BidonCache:D | grep "PeriodicSweepJob"   # Lifecycle
 
 ---
 
+### Phase 5: Callbacks (2-3 hours)
+**Goal:** Все callback события работают корректно
+
+- [ ] All Show & Display Callbacks (3)
+- [ ] All Close Callbacks (4) ⭐ CRITICAL
+- [ ] All Click Callbacks (3)
+- [ ] All Expired Callbacks (3)
+- [ ] All Revenue Callbacks (3)
+- [ ] All Rewarded Callbacks (3)
+- [ ] All Callback Order & Timing (3)
+- [ ] All Edge Cases (3)
+
+**Success Criteria:** All critical callbacks fire correctly, thread-safe
+
+---
+
 ## Test Coverage Summary
 
 | Category | Test Cases | Priority HIGH | Priority MEDIUM | Priority LOW |
@@ -242,7 +295,8 @@ adb logcat -s BidonCache:D | grep "PeriodicSweepJob"   # Lifecycle
 | Edge Cases | 26 | 13 (50%) | 10 (38%) | 3 (12%) |
 | Lifecycle | 20 | 15 (75%) | 5 (25%) | 0 (0%) |
 | Performance | 19 | 7 (37%) | 6 (32%) | 6 (31%) |
-| **Total** | **90** | **51 (57%)** | **29 (32%)** | **10 (11%)** |
+| Callbacks | 31 | 18 (58%) | 12 (39%) | 1 (3%) |
+| **Total** | **121** | **69 (57%)** | **41 (34%)** | **11 (9%)** |
 
 ---
 
@@ -269,7 +323,19 @@ adb logcat -s BidonCache:D | grep "PeriodicSweepJob"   # Lifecycle
 14. TC-CANCEL-001-002: Cancellation working
 15. TC-CLEANUP-001-004: Proper cleanup
 
-**Total Critical Tests:** 15 из 90 (17%)
+### Callback Critical (Must Pass)
+
+16. **TC-CB-CLOSE-001**: onAdClosed при закрытии ⭐ **MAIN LIFECYCLE EVENT**
+17. **TC-CB-CLOSE-002**: onAdClosed при back button ⭐
+18. TC-CB-SHOW-001: onAdShown при показе
+19. TC-CB-CLICK-001: onAdClicked при клике
+20. TC-CB-ORDER-001: Правильная последовательность callbacks
+21. TC-CB-ORDER-003: Thread safety (Main thread)
+22. TC-CB-EDGE-002: Listener = null (no crash)
+23. TC-CB-EDGE-003: User exception в callback
+24. TC-CB-REWARD-001-002: onUserRewarded для rewarded ads
+
+**Total Critical Tests:** 24 из 121 (20%)
 
 ---
 
@@ -323,7 +389,7 @@ adb logcat -s BidonCache:D | grep "PeriodicSweepJob"   # Lifecycle
 **SDK Version:** _______________
 
 ### Results
-- **Tests Run:** _____ / 90
+- **Tests Run:** _____ / 121
 - **Passed:** _____ (_____ %)
 - **Failed:** _____
 - **Blocked:** _____
@@ -375,6 +441,6 @@ adb logcat -s BidonCache:D | grep "PeriodicSweepJob"   # Lifecycle
 ---
 
 **Document Status:** Complete ✅
-**Last Updated:** 2026-02-05
-**Total Documentation:** 5 files, ~3000 lines, 90 test cases
+**Last Updated:** 2026-02-06
+**Total Documentation:** 6 files, ~4000 lines, 121 test cases
 **Ready for:** Manual Testing Execution

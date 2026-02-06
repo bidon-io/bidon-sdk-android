@@ -43,6 +43,10 @@ internal class RewardedImpl(
     private var winner: AdSource.Rewarded<*>? = null
     private var observeCallbacksJob: Job? = null
 
+    // Fallback support - store activity for retry on ShowFailed
+    private var showActivity: Activity? = null
+    private var fallbackAttempted: Boolean = false
+
     private val adCache: AdCache by lazy {
         get { params(demandAd) }
     }

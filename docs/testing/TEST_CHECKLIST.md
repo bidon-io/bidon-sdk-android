@@ -375,7 +375,161 @@ SDK Version: _______________
 
 ---
 
-## 5. Integration Tests
+## 5. Callback Tests (31 test cases)
+
+> **Related Document:** [TEST_SCENARIOS_CALLBACKS.md](./TEST_SCENARIOS_CALLBACKS.md)
+
+### 5.1 Show & Display Callbacks (3 tests)
+
+- [ ] **TC-CB-SHOW-001**: onAdShown вызывается при успешном показе ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - Timing correct? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-SHOW-002**: onAdShown НЕ вызывается при show failure
+  - Status: ⬜ Pass / ⬜ Fail
+  - Only onAdShowFailed? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-SHOW-003**: onAdShown timing (после фактического показа)
+  - Status: ⬜ Pass / ⬜ Fail
+  - After render? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.2 Close Callbacks (4 tests)
+
+- [ ] **TC-CB-CLOSE-001**: onAdClosed вызывается при закрытии ⭐ **КРИТИЧНО**
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - Only once? ⬜ Yes / ⬜ No
+  - Cleanup done? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-CLOSE-002**: onAdClosed при back button ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Back button works? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-CLOSE-003**: onAdClosed НЕ вызывается без show
+  - Status: ⬜ Pass / ⬜ Fail
+  - No callback? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-CLOSE-004**: Multiple onAdClosed (не должно происходить)
+  - Status: ⬜ Pass / ⬜ Fail
+  - Only once? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.3 Click Callbacks (3 tests)
+
+- [ ] **TC-CB-CLICK-001**: onAdClicked вызывается при клике ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - sendClickImpression? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-CLICK-002**: onAdClicked может быть несколько раз
+  - Status: ⬜ Pass / ⬜ Fail
+  - Multiple clicks tracked? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-CLICK-003**: onAdClicked НЕ вызывается без клика
+  - Status: ⬜ Pass / ⬜ Fail
+  - No callback? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.4 Expired Callbacks (3 tests)
+
+- [ ] **TC-CB-EXPIRE-001**: onAdExpired при TTL expiration
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-EXPIRE-002**: onAdExpired при show expired ad
+  - Status: ⬜ Pass / ⬜ Fail
+  - onAdShowFailed? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-EXPIRE-003**: onAdExpired НЕ для shown ads
+  - Status: ⬜ Pass / ⬜ Fail
+  - No callback? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.5 Revenue Callbacks (3 tests)
+
+- [ ] **TC-CB-REVENUE-001**: onRevenuePaid при успешном показе
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - AdValue correct? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-REVENUE-002**: onRevenuePaid опциональный
+  - Status: ⬜ Pass / ⬜ Fail
+  - Works without? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-REVENUE-003**: Different precision types
+  - Status: ⬜ Pass / ⬜ Fail
+  - All types work? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.6 Rewarded Callbacks (3 tests)
+
+- [ ] **TC-CB-REWARD-001**: onUserRewarded для rewarded ads ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Callback fired? ⬜ Yes / ⬜ No
+  - Reward data correct? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-REWARD-002**: onUserRewarded НЕ при раннем закрытии ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - No callback? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-REWARD-003**: onUserRewarded только для RewardedAd
+  - Status: ⬜ Pass / ⬜ Fail
+  - Type safety? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.7 Callback Order & Timing (3 tests)
+
+- [ ] **TC-CB-ORDER-001**: Правильная последовательность callbacks ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Order correct? ⬜ Yes / ⬜ No
+  - No missing? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-ORDER-002**: Callbacks при failure scenarios ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - Failures handled? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-ORDER-003**: Thread safety (Main thread) ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - All Main thread? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+### 5.8 Edge Cases (3 tests)
+
+- [ ] **TC-CB-EDGE-001**: destroyAd() во время показа
+  - Status: ⬜ Pass / ⬜ Fail
+  - No crash? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-EDGE-002**: Listener = null (no crash) ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - No NPE? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+- [ ] **TC-CB-EDGE-003**: User exception в callback ⭐
+  - Status: ⬜ Pass / ⬜ Fail
+  - SDK continues? ⬜ Yes / ⬜ No
+  - Notes: _______________
+
+---
+
+## 6. Integration Tests
 
 ### 5.1 AdCacheFactory
 
@@ -391,7 +545,7 @@ SDK Version: _______________
 - [ ] AuctionResolver integration
 - [ ] Stats tracking (новые статусы: CachedPayload, etc.)
 
-### 5.3 Backend Integration
+### 6.3 Backend Integration
 
 - [ ] Dynamic pricefloor accepted by /v2/auction
 - [ ] skipDemandIds filters tokens correctly
@@ -424,6 +578,14 @@ All tests marked with ⭐ MUST pass before production release.
 - [ ] TC-STRESS-001-002: Stability under load
 - [ ] TC-NET-PERF-001: Parallel speedup
 
+**Critical Callbacks:**
+- [ ] TC-CB-CLOSE-001-002: onAdClosed при закрытии (ОСНОВНОЙ LIFECYCLE!)
+- [ ] TC-CB-SHOW-001: onAdShown при показе
+- [ ] TC-CB-CLICK-001: onAdClicked при клике
+- [ ] TC-CB-ORDER-001-003: Правильный порядок и thread safety
+- [ ] TC-CB-EDGE-002-003: Error handling (null listener, exceptions)
+- [ ] TC-CB-REWARD-001-002: onUserRewarded для rewarded ads
+
 ### Performance Targets
 
 | Metric | Target | Measured | Pass? |
@@ -443,7 +605,7 @@ All tests marked with ⭐ MUST pass before production release.
 ### Session 1
 - **Date:** _______________
 - **Duration:** _______________
-- **Tests Run:** _____ / 90
+- **Tests Run:** _____ / 121
 - **Passed:** _____
 - **Failed:** _____
 - **Blocked:** _____
@@ -452,7 +614,7 @@ All tests marked with ⭐ MUST pass before production release.
 ### Session 2
 - **Date:** _______________
 - **Duration:** _______________
-- **Tests Run:** _____ / 90
+- **Tests Run:** _____ / 121
 - **Passed:** _____
 - **Failed:** _____
 - **Blocked:** _____
@@ -495,6 +657,6 @@ _______________________________________________
 ---
 
 **Document Status:** Ready for Testing
-**Last Updated:** 2026-02-05
-**Total Test Cases:** 90 (25 Functional + 26 Edge Cases + 20 Lifecycle + 19 Performance)
-**Estimated Testing Time:** 8-12 hours for full manual execution
+**Last Updated:** 2026-02-06
+**Total Test Cases:** 121 (25 Functional + 26 Edge Cases + 20 Lifecycle + 19 Performance + 31 Callbacks)
+**Estimated Testing Time:** 10-15 hours for full manual execution
