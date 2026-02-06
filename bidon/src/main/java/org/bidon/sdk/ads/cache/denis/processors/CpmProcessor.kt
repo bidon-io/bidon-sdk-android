@@ -21,8 +21,11 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.BannerRequest
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -211,6 +214,7 @@ internal class CpmProcessor(
                 externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                 demandAd = demandAd,
                 pricefloor = pricefloor,
+                adTypeParam = adTypeParam,
             )
 
             // Get auction params
@@ -350,7 +354,11 @@ internal class CpmProcessor(
         externalWinNotificationsEnabled: Boolean,
         demandAd: DemandAd,
         pricefloor: Double,
+        adTypeParam: AdTypeParam,
     ) {
+        // Set statistic ad type (CRITICAL: must be set before show)
+        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
+
         adSource.addRoundInfo(
             auctionId = auctionId,
             demandAd = demandAd,
@@ -359,6 +367,26 @@ internal class CpmProcessor(
         adSource.addAuctionConfigurationId(auctionConfigurationId)
         adSource.addAuctionConfigurationUid(auctionConfigurationUid)
         adSource.addExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
+    }
+
+    /**
+     * Convert AdTypeParam to StatisticsCollector.AdType.
+     */
+    private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
+        return when (this) {
+            is AdTypeParam.Banner -> {
+                StatisticsCollector.AdType.Banner(
+                    format = when (bannerFormat) {
+                        BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
+                        BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
+                        BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
+                        BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
+                    }
+                )
+            }
+            is AdTypeParam.Interstitial -> StatisticsCollector.AdType.Interstitial
+            is AdTypeParam.Rewarded -> StatisticsCollector.AdType.Rewarded
+        }
     }
 }
 
