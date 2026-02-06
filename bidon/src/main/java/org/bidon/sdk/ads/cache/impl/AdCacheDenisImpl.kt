@@ -145,6 +145,7 @@ internal class AdCacheDenisImpl(
     ) {
         scope.launch {
             showBestAdWithFallback(
+                lifecycleManager = lifecycleManager,
                 activity = activity,
                 onShown = onShown,
                 onClicked = onClicked,

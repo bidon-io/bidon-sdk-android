@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.Ad
+import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
@@ -28,6 +29,7 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * ```kotlin
  * scope.launch {
  *     val result = showBestAdWithFallback(
+ *         lifecycleManager = lifecycleManager,
  *         activity = activity,
  *         onShown = { ad -> },
  *         onClicked = { ad -> },
@@ -44,6 +46,7 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * }
  * ```
  *
+ * @param lifecycleManager Lifecycle manager for cancelling ongoing auctions
  * @param activity Activity context for showing the ad
  * @param onShown Called when ad is shown successfully
  * @param onClicked Called when ad is clicked
@@ -54,6 +57,7 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * @return Result with Ad on success, BidonError on failure
  */
 internal suspend fun showBestAdWithFallback(
+    lifecycleManager: LifecycleManager,
     activity: Activity,
     onShown: (Ad) -> Unit = {},
     onClicked: (Ad) -> Unit = {},
@@ -63,6 +67,7 @@ internal suspend fun showBestAdWithFallback(
     onWinnerSelected: (AdSource.Interstitial<*>) -> Unit = {}
 ): Result<Ad> {
     return tryShowNextAd(
+        lifecycleManager = lifecycleManager,
         activity = activity,
         onShown = onShown,
         onClicked = onClicked,
@@ -77,6 +82,7 @@ internal suspend fun showBestAdWithFallback(
  * Internal recursive function to try showing ads from cache.
  */
 private suspend fun tryShowNextAd(
+    lifecycleManager: LifecycleManager,
     activity: Activity,
     onShown: (Ad) -> Unit,
     onClicked: (Ad) -> Unit,
@@ -96,6 +102,13 @@ private suspend fun tryShowNextAd(
     val adSource = entry.value.adSource
     val demandId = entry.demandId
     val ecpm = entry.ecpm
+    val auctionId = entry.auctionId
+
+    // Cancel ongoing auction for this ad to prevent wasted processing
+    val wasCancelled = lifecycleManager.cancelAuction(auctionId)
+    if (wasCancelled) {
+        logInfo(TAG, "CANCEL: Stopped ongoing auction $auctionId for $demandId")
+    }
 
     logInfo(TAG, "SHOW: Attempting $demandId @ $${"%.2f".format(ecpm)}")
 
@@ -140,6 +153,7 @@ private suspend fun tryShowNextAd(
 
                 // Recursive retry with next best ad from cache
                 tryShowNextAd(
+                    lifecycleManager = lifecycleManager,
                     activity = activity,
                     onShown = onShown,
                     onClicked = onClicked,
