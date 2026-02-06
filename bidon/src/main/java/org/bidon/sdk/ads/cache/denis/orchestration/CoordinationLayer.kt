@@ -246,6 +246,9 @@ internal class CoordinationLayer(
             adUnits = null,
         )
 
+        // Log cache state before serving
+        ReadyToShowCache.logDetailedState()
+
         // Fire callback immediately
         onSuccess(auctionResult, auctionInfo)
     }

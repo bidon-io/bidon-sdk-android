@@ -227,4 +227,38 @@ internal object ReadyToShowCache {
             logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
         }
     }
+
+    /**
+     * Log detailed cache state for debugging.
+     *
+     * Shows full cache contents with all ads sorted by eCPM descending.
+     * Useful for understanding cache composition and troubleshooting.
+     *
+     * Usage: ReadyToShowCache.logDetailedState()
+     */
+    fun logDetailedState() {
+        evictExpired()
+        val allEntries = cache.values.toList().sortedByDescending { it.ecpm }
+        val maxEcpm = allEntries.firstOrNull()?.ecpm ?: 0.0
+
+        logInfo(TAG, "=== CACHE STATE: size=${allEntries.size}, maxEcpm=${"$%.2f".format(maxEcpm)} ===")
+
+        allEntries.forEachIndexed { index, entry ->
+            val timeLeft = (entry.expiresAt - TtlConfig.now()) / 1000 // seconds
+            logInfo(
+                TAG,
+                "  [${index + 1}] ${entry.demandId}: " +
+                    "ecpm=${"$%.2f".format(entry.ecpm)}, " +
+                    "uid=${entry.uid.take(8)}..., " +
+                    "auctionId=${entry.auctionId.take(8)}..., " +
+                    "ttl=${timeLeft}s"
+            )
+        }
+
+        if (allEntries.isEmpty()) {
+            logInfo(TAG, "  (cache is empty)")
+        }
+
+        logInfo(TAG, "=== END CACHE STATE ===")
+    }
 }

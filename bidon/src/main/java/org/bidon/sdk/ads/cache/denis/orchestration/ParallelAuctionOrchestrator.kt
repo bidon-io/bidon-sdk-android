@@ -9,6 +9,7 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
@@ -204,13 +205,17 @@ internal class ParallelAuctionOrchestrator(
             // At least one branch succeeded - callback already fired from processor
             if (cacheWasEmpty && !cacheIsEmpty) {
                 // Cache populated successfully
+                ReadyToShowCache.logDetailedState()
+                RtbPayloadCache.logDetailedState()
             } else if (!cacheWasEmpty) {
                 // Warm start: cache refreshed in background
+                ReadyToShowCache.logDetailedState()
+                RtbPayloadCache.logDetailedState()
             } else {
                 // Unexpected: success reported but cache still empty
                 logInfo(
                     TAG,
-                    "⚠️ Warning: branch success but cache still empty " +
+                    "Warning: branch success but cache still empty " +
                         "(rtb=$rtbSuccess, cpm=$cpmSuccess)"
                 )
             }
