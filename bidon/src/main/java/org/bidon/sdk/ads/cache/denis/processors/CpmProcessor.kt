@@ -247,7 +247,8 @@ internal class CpmProcessor(
                         value = auctionResult,
                         ecpm = adUnit.pricefloor, // Use waterfall eCPM, not actual bid price
                         demandId = adUnit.demandId,
-                        auctionId = auctionId
+                        auctionId = auctionId,
+                        uid = adUnit.uid
                     )
                     ReadyToShowCache.put(entry)
                     logInfo(TAG, "→ READY_TO_SHOW: stored ${adUnit.demandId} $${"%.2f".format(adUnit.pricefloor)}")

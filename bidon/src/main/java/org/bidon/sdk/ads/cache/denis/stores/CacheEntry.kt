@@ -12,13 +12,15 @@ package org.bidon.sdk.ads.cache.denis.stores
  * @property expiresAt Timestamp when entry expires (from TtlConfig.expiresAt())
  * @property demandId Demand network identifier for lookup
  * @property auctionId Auction identifier for tracking (STAT-02)
+ * @property uid Unique identifier from AdUnit for cache key uniqueness
  */
 internal data class CacheEntry<T>(
     val value: T,
     val ecpm: Double,
     val expiresAt: Long,
     val demandId: String,
-    val auctionId: String
+    val auctionId: String,
+    val uid: String = "${auctionId}_${demandId}_${System.nanoTime()}"  // Default fallback
 ) {
     companion object {
         /**
@@ -28,20 +30,23 @@ internal data class CacheEntry<T>(
          * @param ecpm eCPM for comparison
          * @param demandId Demand network identifier
          * @param auctionId Auction identifier
+         * @param uid Unique identifier from AdUnit (optional, auto-generated if not provided)
          * @return CacheEntry with expiresAt set to TtlConfig.expiresAt()
          */
         fun <T> create(
             value: T,
             ecpm: Double,
             demandId: String,
-            auctionId: String
+            auctionId: String,
+            uid: String? = null
         ): CacheEntry<T> {
             return CacheEntry(
                 value = value,
                 ecpm = ecpm,
                 expiresAt = TtlConfig.expiresAt(),
                 demandId = demandId,
-                auctionId = auctionId
+                auctionId = auctionId,
+                uid = uid ?: "${auctionId}_${demandId}_${System.nanoTime()}"
             )
         }
     }

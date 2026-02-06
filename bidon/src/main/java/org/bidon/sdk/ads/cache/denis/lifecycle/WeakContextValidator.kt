@@ -54,7 +54,7 @@ internal object WeakContextValidator {
      * @return Number of entries removed due to invalid context
      */
     suspend fun validateAndCleanup(): Int {
-        val invalidEntries = mutableListOf<String>()
+        val invalidEntries = mutableListOf<Pair<String, String>>() // uid to demandId
 
         // Get all entries from ReadyToShowCache
         val entries = ReadyToShowCache.getAll()
@@ -69,8 +69,8 @@ internal object WeakContextValidator {
             // Check if AdSource implements ContextAware
             if (adSource is ContextAware) {
                 if (!adSource.isContextValid()) {
-                    logInfo(TAG, "Invalid Activity context detected: demandId=${entry.demandId}")
-                    invalidEntries.add(entry.demandId)
+                    logInfo(TAG, "Invalid Activity context detected: demandId=${entry.demandId}, uid=${entry.uid}")
+                    invalidEntries.add(entry.uid to entry.demandId)
 
                     // Destroy AdSource before removing from cache
                     CleanupCoordinator.destroyAdSource(adSource, entry.demandId)
@@ -80,9 +80,9 @@ internal object WeakContextValidator {
         }
 
         // Remove invalid entries from cache
-        invalidEntries.forEach { demandId ->
-            ReadyToShowCache.remove(demandId)
-            logInfo(TAG, "Removed entry with invalid Activity context: demandId=$demandId")
+        invalidEntries.forEach { (uid, demandId) ->
+            ReadyToShowCache.removeByUid(uid)
+            logInfo(TAG, "Removed entry with invalid Activity context: demandId=$demandId, uid=$uid")
         }
 
         if (invalidEntries.isNotEmpty()) {

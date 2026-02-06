@@ -234,7 +234,8 @@ internal class RtbProcessor(
                             value = auctionResult,
                             ecpm = ecpm,
                             demandId = demandId,
-                            auctionId = auctionId
+                            auctionId = auctionId,
+                            uid = source.adUnit.uid
                         )
                         ReadyToShowCache.put(cacheEntry)
                         logInfo(TAG, "→ READY_TO_SHOW: stored $demandId $${"%.2f".format(ecpm)}")

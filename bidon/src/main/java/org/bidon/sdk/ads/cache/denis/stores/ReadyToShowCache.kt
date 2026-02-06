@@ -21,7 +21,8 @@ internal object ReadyToShowCache {
     private const val TAG = "ReadyToShowCache"
 
     /**
-     * Thread-safe storage: demandId -> CacheEntry<AuctionResult>
+     * Thread-safe storage: uid -> CacheEntry<AuctionResult>
+     * Key is AdUnit.uid for true uniqueness (allows multiple ads from same demandId)
      */
     private val cache = ConcurrentHashMap<String, CacheEntry<AuctionResult>>()
 
@@ -29,7 +30,7 @@ internal object ReadyToShowCache {
      * Store an ad in cache.
      *
      * - Evicts expired entries first (lazy cleanup)
-     * - Stores entry keyed by demandId
+     * - Stores entry keyed by uid (unique per ad unit)
      * - No capacity limit (unlimited storage, TTL-based eviction only)
      *
      * Thread-safe: ConcurrentHashMap operations are atomic.
@@ -39,22 +40,22 @@ internal object ReadyToShowCache {
     fun put(entry: CacheEntry<AuctionResult>) {
         evictExpired()
 
-        cache[entry.demandId] = entry
-        logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, ecpm=${entry.ecpm}, size=${cache.size}")
+        cache[entry.uid] = entry
+        logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, size=${cache.size}")
     }
 
     /**
-     * Retrieve ad by demandId with lazy expiration check.
+     * Retrieve ad by uid with lazy expiration check.
      *
      * Returns null if not found or expired. Expired entries are removed.
      *
-     * @param demandId Demand network identifier
+     * @param uid Unique ad unit identifier
      * @return Cached AuctionResult or null
      */
-    fun get(demandId: String): AuctionResult? {
-        val entry = cache[demandId] ?: return null
+    fun get(uid: String): AuctionResult? {
+        val entry = cache[uid] ?: return null
         return if (entry.isExpired()) {
-            cache.remove(demandId)
+            cache.remove(uid)
             null
         } else {
             entry.value
@@ -62,15 +63,15 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Remove and return ad by demandId.
+     * Remove and return ad by uid.
      *
      * Returns null if not found or expired.
      *
-     * @param demandId Demand network identifier
+     * @param uid Unique ad unit identifier
      * @return Cached AuctionResult or null
      */
-    fun remove(demandId: String): AuctionResult? {
-        val entry = cache.remove(demandId) ?: return null
+    fun removeByUid(uid: String): AuctionResult? {
+        val entry = cache.remove(uid) ?: return null
         return if (entry.isExpired()) null else entry.value
     }
 
@@ -129,17 +130,17 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Peek at ad by demandId without removing it.
+     * Peek at ad by uid without removing it.
      *
      * Non-destructive read for checking cache state.
      *
-     * @param demandId Demand network identifier
+     * @param uid Unique ad unit identifier
      * @return Cached AuctionResult or null if not found/expired
      */
-    fun peek(demandId: String): AuctionResult? {
-        val entry = cache[demandId] ?: return null
+    fun peek(uid: String): AuctionResult? {
+        val entry = cache[uid] ?: return null
         return if (entry.isExpired()) {
-            cache.remove(demandId)
+            cache.remove(uid)
             null
         } else {
             entry.value
@@ -176,13 +177,13 @@ internal object ReadyToShowCache {
      *
      * Quick existence check with expiration validation.
      *
-     * @param demandId Demand network identifier
+     * @param uid Unique ad unit identifier
      * @return true if valid (non-expired) entry exists
      */
-    fun contains(demandId: String): Boolean {
-        val entry = cache[demandId] ?: return false
+    fun contains(uid: String): Boolean {
+        val entry = cache[uid] ?: return false
         return if (entry.isExpired()) {
-            cache.remove(demandId)
+            cache.remove(uid)
             false
         } else {
             true
