@@ -63,6 +63,7 @@ internal class CpmProcessor(
      * @param auctionConfigurationUid Auction configuration UID
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
+     * @param onFirstFill Callback to fire on first successful load (for immediate onAdLoaded)
      * @return CpmWaterfallResult with success/failure counts
      */
     suspend fun loadWaterfall(
@@ -74,6 +75,7 @@ internal class CpmProcessor(
         auctionConfigurationUid: String,
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
+        onFirstFill: (AuctionResult) -> Unit = {},
     ): CpmWaterfallResult {
         // Sort by weighted score (eCPM × weight factor)
         val sortedAdUnits = weightModel.sortByWeightedScore(adUnits)
@@ -126,6 +128,8 @@ internal class CpmProcessor(
 
                     if (firstSuccess == null) {
                         firstSuccess = result.getOrNull()
+                        // Fire callback on first successful load (for immediate onAdLoaded)
+                        firstSuccess?.let { onFirstFill(it) }
                     }
                 } else {
                     weightModel.recordNoFill(adUnit.demandId)

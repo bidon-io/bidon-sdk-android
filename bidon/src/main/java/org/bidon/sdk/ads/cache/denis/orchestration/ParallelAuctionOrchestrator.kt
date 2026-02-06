@@ -101,6 +101,10 @@ internal class ParallelAuctionOrchestrator(
                         auctionConfigurationUid = auctionConfigurationUid,
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
+                        onFirstFill = { auctionResult ->
+                            // Fire onAdLoaded immediately on first successful load
+                            callbackCoordinator.notifySuccess(auctionResult, auctionInfo)
+                        }
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(
@@ -130,6 +134,10 @@ internal class ParallelAuctionOrchestrator(
                         auctionConfigurationUid = auctionConfigurationUid,
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
+                        onFirstFill = { auctionResult ->
+                            // Fire onAdLoaded immediately on first successful load
+                            callbackCoordinator.notifySuccess(auctionResult, auctionInfo)
+                        }
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(
@@ -167,14 +175,11 @@ internal class ParallelAuctionOrchestrator(
     }
 
     /**
-     * Check cache state and fire appropriate callback.
+     * Check cache state and fire failure callback if needed.
      *
      * Logic:
-     * - If cache transitioned from empty to non-empty: fire onAdLoaded with best ad
-     * - If both branches failed AND cache still empty: fire onAdLoadFailed
-     * - Otherwise: no callback (cache was already non-empty, warm start scenario)
-     *
-     * This implements the "first ad cached" event that triggers onAdLoaded callback.
+     * - Success callbacks are fired directly from processors on first load
+     * - This only handles failure case: both branches failed AND cache still empty
      */
     private fun checkAndNotifyCallback(
         rtbSuccess: Boolean,
@@ -196,33 +201,25 @@ internal class ParallelAuctionOrchestrator(
 
         // Check if ANY success occurred
         if (rtbSuccess || cpmSuccess) {
-            // At least one branch succeeded
-            // Check if cache transitioned from empty to non-empty
+            // At least one branch succeeded - callback already fired from processor
             if (cacheWasEmpty && !cacheIsEmpty) {
-                // Cache populated - fire callback with best ad
-                ReadyToShowCache.getBest()?.let { entry ->
-                    logInfo(
-                        TAG,
-                        "Cache transitioned empty -> non-empty: firing onAdLoaded " +
-                            "(demandId=${entry.demandId}, ecpm=${entry.ecpm}, cache_size=$cacheSize)"
-                    )
-                    callbackCoordinator.notifySuccess(entry.value, auctionInfo)
-                } ?: run {
-                    // Unexpected: cache not empty but getBest() returned null
-                    logInfo(TAG, "Warning: cache not empty but getBest() returned null")
-                }
+                logInfo(
+                    TAG,
+                    "✅ Cache populated: onAdLoaded already fired from processor " +
+                        "(cache_size=$cacheSize)"
+                )
             } else if (!cacheWasEmpty) {
                 // Warm start scenario: cache already had ads
                 logInfo(
                     TAG,
-                    "Warm start: cache was already non-empty, no callback fired " +
+                    "♻️ Warm start: cache was already non-empty, background refresh completed " +
                         "(cache_size=$cacheSize, new_ads_added=${if (rtbSuccess) "RTB" else ""}${if (cpmSuccess) "CPM" else ""})"
                 )
             } else {
                 // Unexpected: success reported but cache still empty
                 logInfo(
                     TAG,
-                    "Warning: branch success but cache still empty " +
+                    "⚠️ Warning: branch success but cache still empty " +
                         "(rtb=$rtbSuccess, cpm=$cpmSuccess)"
                 )
             }

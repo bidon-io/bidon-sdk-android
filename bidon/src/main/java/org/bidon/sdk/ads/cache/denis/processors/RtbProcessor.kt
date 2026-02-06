@@ -94,6 +94,7 @@ internal class RtbProcessor(
      * @param auctionConfigurationUid Auction configuration UID
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
+     * @param onFirstFill Callback to fire on successful load (for immediate onAdLoaded)
      * @return Result with AuctionResult on success, BidonError on failure
      */
     suspend fun loadBestPayload(
@@ -105,6 +106,7 @@ internal class RtbProcessor(
         auctionConfigurationUid: String,
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
+        onFirstFill: (AuctionResult) -> Unit = {},
     ): Result<AuctionResult> = coroutineScope {
         // Get cached payloads (sorted by eCPM descending)
         val cachedPayloads = RtbPayloadCache.getAllSortedByEcpm()
@@ -239,6 +241,9 @@ internal class RtbProcessor(
                         )
                         ReadyToShowCache.put(cacheEntry)
                         logInfo(TAG, "→ READY_TO_SHOW: stored $demandId $${"%.2f".format(ecpm)}")
+
+                        // Fire callback on successful load (for immediate onAdLoaded)
+                        onFirstFill(auctionResult)
 
                         // Remove loaded source from cache if it was cached
                         if (source is RtbSource.FromCache) {
