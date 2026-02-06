@@ -24,6 +24,7 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxPriceAuctionResolver
+import org.bidon.sdk.auction.impl.PriceFloorStrategy
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
@@ -80,6 +81,7 @@ import org.bidon.sdk.regulation.impl.RegulationImpl
 import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.segment.impl.SegmentImpl
+import org.bidon.sdk.stats.impl.DemandStatisticsRepository
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.SendWinLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
@@ -166,6 +168,8 @@ internal object DI {
 
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
+            singleton<DemandStatisticsRepository> { DemandStatisticsRepository(context = get()) }
+            singleton<PriceFloorStrategy> { PriceFloorStrategy() }
 
             /**
              * Factories
