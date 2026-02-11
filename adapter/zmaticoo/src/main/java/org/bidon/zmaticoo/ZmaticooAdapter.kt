@@ -138,10 +138,8 @@ internal class ZmaticooAdapter :
             }
         }
 
-        if (regulation.coppaApplies) {
-            context?.let {
-                MaticooAds.setCoppa(it, 1)
-            }
+        context?.let {
+            MaticooAds.setCoppa(it, if (regulation.coppaApplies) 1 else 0)
         }
     }
 
