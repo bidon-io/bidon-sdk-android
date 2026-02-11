@@ -13,6 +13,7 @@ import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
+import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -57,7 +58,17 @@ internal class ZmaticooAdapter :
     override suspend fun getToken(adTypeParam: AdTypeParam): String? {
         val tokensMap = mutableMapOf<String, JSONObject>()
 
-        for (placement in placements) {
+        val targetFormat = when (adTypeParam) {
+            is AdTypeParam.Banner -> if (adTypeParam.bannerFormat == BannerFormat.MRec) {
+                PlacementFormat.MREC
+            } else {
+                PlacementFormat.BANNER
+            }
+            is AdTypeParam.Interstitial -> PlacementFormat.INTERSTITIAL
+            is AdTypeParam.Rewarded -> PlacementFormat.REWARDED
+        }
+
+        for (placement in placements.filter { it.format == targetFormat }) {
             val timestamp = System.currentTimeMillis()
             val token = ZMaticooAds.getBiddingToken(placement.placementId, timestamp)
             if (!token.isNullOrEmpty()) {
