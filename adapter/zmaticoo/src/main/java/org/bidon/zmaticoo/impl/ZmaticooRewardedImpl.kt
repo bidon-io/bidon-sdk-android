@@ -161,6 +161,7 @@ internal class ZmaticooRewardedImpl :
         logInfo(TAG, "destroy $this")
         placementId?.let {
             RewardedVideoAd.setAdListener(it, null)
+            RewardedVideoAd.destroy(it)
         }
         placementId = null
     }

@@ -140,6 +140,7 @@ internal class ZmaticooInterstitialImpl :
         logInfo(TAG, "destroy $this")
         placementId?.let {
             InterstitialAd.setAdListener(it, null)
+            InterstitialAd.destroy(it)
         }
         placementId = null
     }
