@@ -1,6 +1,7 @@
 # 0.14.0 (2026.*.*)
 - [BDN-1112](https://appodeal.atlassian.net/browse/BDN-1112) Improved CI workflows and enable Changelog logic for Dependabot automation
 - [BDN-1125](https://appodeal.atlassian.net/browse/BDN-1125) Added SDK size check and Claude AI auto-fix deprecated workflows
+- [BDN-1103](https://appodeal.atlassian.net/browse/BDN-1103) Integrated Zmaticoo SDK 2.0.4.5 (rtb) as ad adapter
 
 # 0.13.0 (2025.12.04)
 ## Features:
