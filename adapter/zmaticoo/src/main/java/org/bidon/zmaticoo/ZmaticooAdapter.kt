@@ -84,7 +84,7 @@ internal class ZmaticooAdapter :
         context: Context,
         configParams: ZmaticooParameters
     ) = suspendCoroutine { continuation ->
-        this.context = context
+        this.context = context.applicationContext
         this.placements = configParams.placements
 
         val configuration =
@@ -133,14 +133,18 @@ internal class ZmaticooAdapter :
         }
 
         if (regulation.ccpaApplies) {
-            MaticooAds.setDoNotTrackStatus(
-                context,
-                if (regulation.hasCcpaConsent) 0 else 1
-            )
+            context?.let {
+                MaticooAds.setDoNotTrackStatus(
+                    it,
+                    if (regulation.hasCcpaConsent) 0 else 1
+                )
+            }
         }
 
         if (regulation.coppaApplies) {
-            MaticooAds.setCoppa(context, 1)
+            context?.let {
+                MaticooAds.setCoppa(it, 1)
+            }
         }
     }
 
