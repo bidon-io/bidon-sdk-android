@@ -13,8 +13,6 @@ import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
-import org.bidon.sdk.adapter.SupportsTestMode
-import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -42,7 +40,6 @@ internal class ZmaticooAdapter :
     Adapter.Bidding,
     Initializable<ZmaticooParameters>,
     SupportsRegulation,
-    SupportsTestMode by SupportsTestModeImpl(),
     AdProvider.Banner<ZmaticooBannerAuctionParams>,
     AdProvider.Interstitial<ZmaticooFullscreenAuctionParams>,
     AdProvider.Rewarded<ZmaticooFullscreenAuctionParams> {
