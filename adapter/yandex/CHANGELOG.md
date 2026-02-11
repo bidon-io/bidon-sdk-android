@@ -4,7 +4,7 @@ All notable changes to the Yandex adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-📋 [Release Notes](https://ads.yandex.com/helpcenter/en/dev/android/changelog-android)
+📋 [Release Notes](https://raw.githubusercontent.com/yandexmobile/yandex-ads-sdk-android/master/changelogs/mobileads/CHANGELOG.md)
 
 ## [Unreleased]
 
