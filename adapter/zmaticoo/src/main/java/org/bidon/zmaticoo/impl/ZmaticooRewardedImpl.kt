@@ -133,10 +133,7 @@ internal class ZmaticooRewardedImpl :
                 }
             })
 
-        RewardedVideoAd.loadAd(
-            placementId,
-            payload
-        )
+        RewardedVideoAd.loadAd(placementId, payload)
     }
 
     override fun show(activity: Activity) {

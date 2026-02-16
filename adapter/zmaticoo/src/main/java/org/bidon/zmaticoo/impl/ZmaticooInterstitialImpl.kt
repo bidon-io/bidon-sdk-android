@@ -112,10 +112,7 @@ internal class ZmaticooInterstitialImpl :
             }
         )
 
-        InterstitialAd.loadAd(
-            placementId,
-            payload
-        )
+        InterstitialAd.loadAd(placementId, payload)
     }
 
     override fun show(activity: Activity) {
