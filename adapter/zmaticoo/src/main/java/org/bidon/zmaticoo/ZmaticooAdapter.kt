@@ -4,7 +4,9 @@ import android.content.Context
 import com.maticoo.sdk.InitConfiguration
 import com.maticoo.sdk.core.InitCallback
 import com.maticoo.sdk.core.MaticooAds
+import com.zmaticoo.sdk.base.common.logging.ZmaticooLog
 import com.zmaticoo.sdk.flow.model.ComponentError
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -13,6 +15,7 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.logs.logging.Logger
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.zmaticoo.ext.adapterVersion
@@ -69,6 +72,14 @@ internal class ZmaticooAdapter :
             InitConfiguration
                 .Builder()
                 .appKey(configParams.appKey)
+                .logEnable(BidonSdk.loggerLevel != Logger.Level.Off)
+                .logLevel(
+                    when (BidonSdk.loggerLevel) {
+                        Logger.Level.Verbose -> ZmaticooLog.LogLevel.DEBUG
+                        Logger.Level.Error -> ZmaticooLog.LogLevel.INFO
+                        Logger.Level.Off -> ZmaticooLog.LogLevel.NONE
+                    }
+                )
                 .build()
 
         MaticooAds.init(
