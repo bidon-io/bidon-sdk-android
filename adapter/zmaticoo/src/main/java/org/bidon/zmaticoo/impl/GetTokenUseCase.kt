@@ -42,7 +42,7 @@ internal object GetTokenUseCase {
 
         return if (tokensMap.isNotEmpty()) {
             logInfo(TAG, "getToken: tokensMap $tokensMap")
-            JSONObject(tokensMap as Map<*, *>).toString()
+            JSONObject(tokensMap).toString()
         } else {
             null
         }
