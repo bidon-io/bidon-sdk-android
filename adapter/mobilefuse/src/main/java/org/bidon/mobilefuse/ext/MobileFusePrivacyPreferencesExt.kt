@@ -4,7 +4,7 @@ import com.mobilefuse.sdk.privacy.MobileFusePrivacyPreferences
 import org.bidon.sdk.regulation.Regulation
 
 /**
- * Created by Aleksei Cherniaev on 20/10/2023.
+ * Created by Bidon Team on 20/10/2023.
  */
 internal fun Regulation.toMobileFusePrivacyPreferences(): MobileFusePrivacyPreferences {
     val regulation = this

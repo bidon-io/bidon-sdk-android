@@ -23,7 +23,7 @@ import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 
 /**
- * Created by Aleksei Cherniaev on 28/09/2023.
+ * Created by Bidon Team on 28/09/2023.
  */
 internal class AdCacheImpl(
     override val demandAd: DemandAd,

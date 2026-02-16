@@ -13,7 +13,7 @@ import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.utils.networking.NetworkSettings
 
 /**
- * Created by Aleksei Cherniaev on 07/02/2023.
+ * Created by Bidon Team on 07/02/2023.
  */
 public object BidonSdk {
 

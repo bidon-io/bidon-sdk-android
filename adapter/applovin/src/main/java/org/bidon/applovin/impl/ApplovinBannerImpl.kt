@@ -21,11 +21,6 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
-/**
- * I have no idea how it works. There is no documentation.
- *
- * https://appodeal.slack.com/archives/C02PE4GAFU0/p1661421318406689
- */
 internal class ApplovinBannerImpl : AdSource.Banner<ApplovinBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {

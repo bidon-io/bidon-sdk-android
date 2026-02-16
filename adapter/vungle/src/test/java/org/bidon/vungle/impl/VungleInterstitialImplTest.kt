@@ -12,7 +12,7 @@ import org.bidon.vungle.VungleDemandId
 import org.junit.Test
 
 /**
- * Created by Aleksei Cherniaev on 21/11/2023.
+ * Created by Bidon Team on 27/11/2023.
  */
 class VungleInterstitialImplTest {
     private val activity = mockk<Activity>()

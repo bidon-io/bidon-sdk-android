@@ -33,7 +33,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * Created by Aleksei Cherniaev on 14/07/2023.
+ * Created by Bidon Team on 14/08/2023.
  */
 internal val VungleDemandId = DemandId("vungle")
 

@@ -25,7 +25,7 @@ import org.bidon.sdk.utils.networking.BidonEndpoints
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 12/08/2022.
  */
 internal class BidonInitializerImpl : BidonInitializer {
 

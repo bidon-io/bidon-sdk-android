@@ -1,7 +1,7 @@
 package org.bidon.sdk.regulation
 
 /**
- * Created by Aleksei Cherniaev on 21/06/2023.
+ * Created by Bidon Team on 13/07/2023.
  *
  * [GDPR](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md#what-does-the-gdprapplies-value-mean)
  */

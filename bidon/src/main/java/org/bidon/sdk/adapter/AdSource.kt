@@ -5,7 +5,7 @@ import org.bidon.sdk.adapter.impl.AdEventFlow
 import org.bidon.sdk.stats.StatisticsCollector
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 07/09/2022.
  */
 public sealed interface AdSource<T : AdAuctionParams> : StatisticsCollector, AdEventFlow {
     public val isAdReadyToShow: Boolean

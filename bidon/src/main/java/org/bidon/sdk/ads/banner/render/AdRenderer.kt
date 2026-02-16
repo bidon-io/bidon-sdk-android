@@ -8,7 +8,7 @@ import org.bidon.sdk.ads.banner.BannerPosition
 import org.bidon.sdk.ads.banner.BannerView
 
 /**
- * Created by Aleksei Cherniaev on 05/09/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 internal interface AdRenderer {
     fun render(

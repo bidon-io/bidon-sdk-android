@@ -14,7 +14,7 @@ import org.bidon.sdk.utils.json.jsonObject
 import org.junit.Test
 
 /**
- * Created by Aleksei Cherniaev on 21/11/2023.
+ * Created by Bidon Team on 27/11/2023.
  */
 class BMInterstitialAdImplTest {
     private val activity = mockk<Activity> {

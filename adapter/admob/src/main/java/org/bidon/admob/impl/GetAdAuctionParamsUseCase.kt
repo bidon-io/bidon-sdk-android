@@ -7,7 +7,7 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.ads.AdType
 
 /**
- * Created by Aleksei Cherniaev on 18/08/2023.
+ * Created by Bidon Team on 23/08/2023.
  */
 internal class GetAdAuctionParamsUseCase {
     operator fun invoke(
