@@ -19,6 +19,7 @@ import org.bidon.zmaticoo.ext.adapterVersion
 import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.zmaticoo.ext.sdkVersion
 import org.bidon.zmaticoo.impl.GetTokenUseCase
+import org.bidon.zmaticoo.impl.ParsePlacementsUseCase
 import org.bidon.zmaticoo.impl.ZmaticooBannerAuctionParams
 import org.bidon.zmaticoo.impl.ZmaticooBannerImpl
 import org.bidon.zmaticoo.impl.ZmaticooFullscreenAuctionParams
@@ -90,16 +91,7 @@ internal class ZmaticooAdapter :
         val jsonObject = JSONObject(json)
         val appKey = jsonObject.getString("app_key")
         val placementsArray = jsonObject.getJSONArray("placement_ids")
-        val placements = mutableListOf<PlacementConfig>()
-
-        for (i in 0 until placementsArray.length()) {
-            val obj = placementsArray.getJSONObject(i)
-            val placementId = obj.getString("placement_id")
-            val format = PlacementFormat.getOrNull(obj.getString("format"))
-            if (format != null) {
-                placements.add(PlacementConfig(placementId, format))
-            }
-        }
+        val placements = ParsePlacementsUseCase(placementsArray)
 
         return ZmaticooParameters(appKey, placements)
     }
