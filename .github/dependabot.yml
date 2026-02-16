@@ -431,3 +431,22 @@ updates:
     labels:
       - "dependencies"
       - "adapter"
+
+  - package-ecosystem: "gradle"
+    directory: "/adapter/zmaticoo"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - google-maven
+      - bidon-public
+    reviewers:
+      - "bidon-io/bidon-android"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependencies"
+      - "adapter"
