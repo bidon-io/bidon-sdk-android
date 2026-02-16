@@ -9,7 +9,7 @@ class AdapterGradlePlugin : Plugin<Project> {
         pluginManager.apply("common")
 
         // Add implementation dependency on core SDK with strictly version constraints,
-        // it will applied for adapters during publishing
+        // it will apply for adapters during publishing
         dependencies {
             add("implementation", "org.bidon:bidon-sdk") {
                 version {
