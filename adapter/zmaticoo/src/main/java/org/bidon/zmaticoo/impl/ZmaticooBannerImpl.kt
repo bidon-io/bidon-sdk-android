@@ -61,7 +61,9 @@ internal class ZmaticooBannerImpl :
                 )
             )
 
-        val options = BannerAdOptions.Builder(placementId).build()
+        val options = BannerAdOptions.Builder(placementId)
+            .setAutoRefresh(false)
+            .build()
         val ad = BannerAd(adParams.activity, options)
 
         bannerAd = ad
