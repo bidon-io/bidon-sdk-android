@@ -23,7 +23,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
 /**
- * Created by Aleksei Cherniaev on 11/09/2023.
+ * Created by Bidon Team on 13/09/2023.
  */
 internal class InmobiInterstitialImpl :
     AdSource.Interstitial<InmobiFullscreenAuctionParams>,

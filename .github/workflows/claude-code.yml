@@ -66,7 +66,7 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.CLAUDE_API_KEY_SDK }}
           github_token: ${{ secrets.DEPENDABOT_PAT }}
           trigger_phrase: "@claude"
           show_full_output: true

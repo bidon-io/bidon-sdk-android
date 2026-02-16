@@ -6,7 +6,7 @@ import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.stats.WinLossNotifier
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 19/04/2023.
  */
 internal interface BannerAd : WinLossNotifier, Extras {
     /**

@@ -15,8 +15,17 @@ import org.bidon.yandex.ext.toYandexBannerSize
 import kotlin.coroutines.resume
 
 internal class GetYandexTokenUseCase {
+    @Suppress("DEPRECATION")
     suspend operator fun invoke(adTypeParam: AdTypeParam): String? =
         suspendCancellableCoroutine { continuation ->
+            val context = adTypeParam.activity.applicationContext
+
+            val requestParameters = mapOf(
+                "adapter_network_name" to "Bidon",
+                "adapter_version" to MobileAds.libraryVersion,
+                "adapter_network_sdk_version" to BidonSdk.SdkVersion
+            )
+
             val adType = when (adTypeParam) {
                 is AdTypeParam.Banner -> AdType.BANNER
                 is AdTypeParam.Interstitial -> AdType.INTERSTITIAL
@@ -24,24 +33,19 @@ internal class GetYandexTokenUseCase {
             }
 
             val requestBuilder = BidderTokenRequestConfiguration.Builder(adType)
-            val context = adTypeParam.activity.applicationContext
 
             if (adTypeParam is AdTypeParam.Banner) {
-                val bannerFormat = adTypeParam.bannerFormat
-                val bannerAdSize = bannerFormat.toYandexBannerSize(context)
+                val bannerAdSize = adTypeParam.bannerFormat.toYandexBannerSize(context)
                 requestBuilder.setBannerAdSize(bannerAdSize)
             }
 
-            val requestParameters = mapOf(
-                "adapter_network_name" to "Bidon",
-                "adapter_version" to MobileAds.libraryVersion,
-                "adapter_network_sdk_version" to BidonSdk.SdkVersion
-            )
-            requestBuilder.setParameters(requestParameters)
+            val requestConfiguration = requestBuilder
+                .setParameters(requestParameters)
+                .build()
 
             BidderTokenLoader.loadBidderToken(
                 context = context,
-                bidderTokenRequestConfiguration = requestBuilder.build(),
+                bidderTokenRequestConfiguration = requestConfiguration,
                 listener = object : BidderTokenLoadListener {
                     override fun onBidderTokenLoaded(bidderToken: String) {
                         logInfo(TAG, "Loaded bidder token for $adType")

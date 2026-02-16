@@ -8,5 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [7.7.0.0] - 2026-01-29
+### Changed
+- Updated SDK dependency from 7.6.3 to 7.7.0
+
+## [7.6.3.0] - 2026-01-28
+### Changed
+- Updated SDK dependency from 7.6.2 to 7.6.3
+
+## [7.6.2.0] - 2026-01-07
+### Changed
+- Updated SDK dependency from 7.6.1 to 7.6.2
+- Migrated from deprecated `BannerAd` to `VungleBannerView` API
+- Replaced deprecated `BaseAdListener` with `BannerAdListener` for banner ads
+- Implemented manual load state tracking using `isAdLoaded` flag to replace deprecated `canPlayAd()` method
+- Simplified `getAdView()` implementation as `VungleBannerView` itself is the view (removed `getBannerView()` call)
+
 ## [7.6.1.0]
 - Updated Vungle SDK to 7.6.1

@@ -6,7 +6,7 @@ import android.graphics.Rect
 import android.view.View
 
 /**
- * Created by Aleksei Cherniaev on 24/04/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 internal class RenderInspectorImpl : AdRenderer.RenderInspector {
 

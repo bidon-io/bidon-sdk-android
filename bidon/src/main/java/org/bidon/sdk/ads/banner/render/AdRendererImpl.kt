@@ -19,7 +19,7 @@ import org.bidon.sdk.utils.ext.dpToPx
 import java.lang.ref.WeakReference
 
 /**
- * Created by Aleksei Cherniaev on 05/09/2023.
+ * Created by Bidon Team on 08/09/2023.
  *
  * Hierarchy: (Network) AdView -> AdContainer -> RootContainer
  */

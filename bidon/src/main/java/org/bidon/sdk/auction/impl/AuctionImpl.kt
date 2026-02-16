@@ -37,7 +37,7 @@ import org.bidon.sdk.utils.di.get
 import java.util.UUID
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 11/08/2022.
  */
 internal class AuctionImpl(
     private val adaptersSource: AdaptersSource,

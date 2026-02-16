@@ -1,7 +1,7 @@
 package org.bidon.amazon
 
 /**
- * Created by Aleksei Cherniaev on 27/09/2023.
+ * Created by Bidon Team on 05/10/2023.
  */
 internal enum class SlotType(val format: String) {
     /**

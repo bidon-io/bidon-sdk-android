@@ -4,7 +4,7 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 
 /**
- * Created by Aleksei Cherniaev on 26/07/2023.
+ * Created by Bidon Team on 28/07/2023.
  */
 internal sealed interface RoundResult {
     object Idle : RoundResult

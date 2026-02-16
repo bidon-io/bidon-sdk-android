@@ -6,7 +6,7 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 
 /**
- * Created by Aleksei Cherniaev on 28/09/2023.
+ * Created by Bidon Team on 28/09/2023.
  */
 internal interface AdCache : Cacheable {
     val demandAd: DemandAd

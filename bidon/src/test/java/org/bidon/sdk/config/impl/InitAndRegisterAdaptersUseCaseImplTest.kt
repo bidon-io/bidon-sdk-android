@@ -17,7 +17,7 @@ import org.junit.Before
 import kotlin.test.Test
 
 /**
- * Created by Aleksei Cherniaev on 28/11/2023.
+ * Created by Bidon Team on 29/11/2023.
  */
 class InitAndRegisterAdaptersUseCaseImplTest {
 

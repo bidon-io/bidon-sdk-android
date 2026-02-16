@@ -4,7 +4,7 @@ import org.bidon.amazon.SlotType
 import org.json.JSONObject
 
 /**
- * Created by Aleksei Cherniaev on 27/09/2023.
+ * Created by Bidon Team on 05/10/2023.
  */
 internal class ParseSlotsUseCase {
     operator fun invoke(jsonObject: JSONObject): Map<SlotType, List<String>> = buildMap {

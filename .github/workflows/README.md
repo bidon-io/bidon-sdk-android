@@ -50,7 +50,7 @@
 | `bot:tests-attempted` | Purple | Claude attempted to fix test failures |
 
 **Requirements:**
-- `ANTHROPIC_API_KEY` secret in Repository secrets (not Dependabot secrets)
+- `CLAUDE_API_KEY_SDK` secret in Repository secrets (not Dependabot secrets)
 - `DEPENDABOT_PAT` secret in Repository secrets (not Dependabot secrets)
 
 ### `automation-publish-adapters.yml` - **Automation Publish Adapters**
@@ -283,7 +283,7 @@ automation-publish-adapters.yml
 - Ensure workflow file is in `.github/workflows/` (not a subdirectory)
 
 ### Claude fix not working
-- Verify `ANTHROPIC_API_KEY` secret is in **Repository secrets** (not Dependabot secrets)
+- Verify `CLAUDE_API_KEY_SDK` secret is in **Repository secrets** (not Dependabot secrets)
 - Verify `DEPENDABOT_PAT` secret is in **Repository secrets** (not Dependabot secrets)
 - Check if artifacts were uploaded by CI
 - Review Claude action logs for API errors

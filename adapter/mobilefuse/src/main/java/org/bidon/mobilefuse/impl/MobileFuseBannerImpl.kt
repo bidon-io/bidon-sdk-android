@@ -41,23 +41,19 @@ internal class MobileFuseBannerImpl :
 
     override fun load(adParams: MobileFuseBannerAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        adParams.placementId ?: run {
-            emitEvent(
-                AdEvent.LoadFailed(
-                    BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
-                )
-            )
+        val placementId = adParams.placementId
+        if (placementId == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")))
             return
         }
-        if (adParams.adUnit.bidType == BidType.RTB) {
-            adParams.signalData ?: run {
-                emitEvent(
-                    AdEvent.LoadFailed(
-                        BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")
-                    )
-                )
-                return
-            }
+        if (adParams.adUnit.bidType != BidType.RTB) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "Only RTB is supported")))
+            return
+        }
+        val signalData = adParams.signalData
+        if (signalData == null) {
+            emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "signalData")))
+            return
         }
         // placementId should be configured in the mediation platform UI and passed back to this method:
         val adSize = when (adParams.bannerFormat) {
@@ -70,9 +66,8 @@ internal class MobileFuseBannerImpl :
                 MobileFuseBannerAd.AdSize.BANNER_320x50
             }
         }
-        val bannerAd = MobileFuseBannerAd(adParams.activity, adParams.placementId, adSize).also {
-            fuseBannerAd = it
-        }
+        val bannerAd = MobileFuseBannerAd(adParams.activity, placementId, adSize)
+            .also { fuseBannerAd = it }
         bannerAd.autorefreshEnabled = false
         bannerAd.setListener(object : MobileFuseBannerAd.Listener {
             override fun onAdLoaded() {
@@ -149,7 +144,7 @@ internal class MobileFuseBannerImpl :
             override fun onAdExpanded() {}
             override fun onAdCollapsed() {}
         })
-        bannerAd.loadAdFromBiddingToken(adParams.signalData)
+        bannerAd.loadAdFromBiddingToken(signalData)
     }
 
     override fun getAdView(): AdViewHolder? = fuseBannerAd?.let { AdViewHolder(it) }

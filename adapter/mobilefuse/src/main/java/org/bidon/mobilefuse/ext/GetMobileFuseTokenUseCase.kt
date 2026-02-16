@@ -9,7 +9,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 06/07/2023.
+ * Created by Bidon Team on 27/09/2023.
  */
 internal object GetMobileFuseTokenUseCase {
     suspend operator fun invoke(context: Context, isTestMode: Boolean): String? {
