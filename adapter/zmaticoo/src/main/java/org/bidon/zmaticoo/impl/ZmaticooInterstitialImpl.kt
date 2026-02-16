@@ -14,7 +14,6 @@ import org.bidon.sdk.adapter.impl.AdEventFlowImpl
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.analytic.Precision
-import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
@@ -34,12 +33,7 @@ internal class ZmaticooInterstitialImpl :
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
-            ZmaticooFullscreenAuctionParams(
-                activity = activity,
-                adUnit = adUnit
-            )
-        }.onFailure {
-            logError(TAG, "Failed to get auction param", it)
+            ZmaticooFullscreenAuctionParams(activity, adUnit)
         }
 
     override fun load(adParams: ZmaticooFullscreenAuctionParams) {
