@@ -28,7 +28,7 @@ import org.bidon.sdk.utils.json.jsonObject
 import org.junit.After
 import org.junit.Before
 /**
- * Created by Aleksei Cherniaev on 26/06/2023.
+ * Created by Bidon Team on 02/07/2024.
  */
 internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
 

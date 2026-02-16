@@ -23,7 +23,7 @@ import org.bidon.sdk.stats.models.BidType
 import org.bidon.vungle.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 03/08/2023.
+ * Created by Bidon Team on 14/08/2023.
  */
 internal class VungleInterstitialImpl :
     AdSource.Interstitial<VungleFullscreenAuctionParams>,

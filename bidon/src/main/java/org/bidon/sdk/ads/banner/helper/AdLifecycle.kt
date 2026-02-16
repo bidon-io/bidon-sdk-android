@@ -1,7 +1,7 @@
 package org.bidon.sdk.ads.banner.helper
 
 /**
- * Created by Aleksei Cherniaev on 11/04/2023.
+ * Created by Bidon Team on 11/07/2023.
  */
 internal enum class AdLifecycle {
     Created,

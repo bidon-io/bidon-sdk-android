@@ -26,7 +26,7 @@ import org.bidon.yandex.impl.YandexRewardedImpl
 import kotlin.coroutines.resume
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 07/08/2024.
  */
 internal val YandexDemandId = DemandId("yandex")
 

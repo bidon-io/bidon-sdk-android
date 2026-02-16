@@ -6,7 +6,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
 /**
- * Created by Aleksei Cherniaev on 02/03/2023.
+ * Created by Bidon Team on 11/07/2023.
  */
 internal data class UnityAdsFullscreenAuctionParams(
     override val adUnit: AdUnit,

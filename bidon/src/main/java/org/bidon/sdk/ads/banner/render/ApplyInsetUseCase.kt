@@ -6,7 +6,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 /**
- * Created by Aleksei Cherniaev on 07/09/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 internal object ApplyInsetUseCase {
     fun RootAdContainer.applyWindowInsets(): RootAdContainer {

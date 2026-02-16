@@ -50,7 +50,7 @@ import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 16/08/2022.
  */
 public class BannerView @JvmOverloads constructor(
     context: Context,

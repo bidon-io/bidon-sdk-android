@@ -5,7 +5,7 @@ import org.bidon.sdk.stats.models.ImpressionRequestBody
 import org.bidon.sdk.utils.networking.BaseResponse
 
 /**
- * Created by Aleksei Cherniaev on 06/04/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 internal interface SendWinLossRequestUseCase {
     suspend operator fun invoke(

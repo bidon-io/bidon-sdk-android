@@ -62,7 +62,7 @@ internal fun View?.isOnTop(visibilityParams: VisibilityParams): Boolean {
         return false
     }
     if (!ignoreOverlap && view.hasOverlap(viewRect, visibilityPercent, maxCountOverlappedViews)) {
-        // TODO Implement the task https://appodeal.atlassian.net/browse/BDN-551
+        // TODO Implement the task BDN-551
     }
     return true
 }
