@@ -4,7 +4,6 @@ import android.content.Context
 import com.maticoo.sdk.InitConfiguration
 import com.maticoo.sdk.core.InitCallback
 import com.maticoo.sdk.core.MaticooAds
-import com.zmaticoo.sdk.base.common.ZMaticooAds
 import com.zmaticoo.sdk.flow.model.ComponentError
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
@@ -13,14 +12,13 @@ import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.Initializable
 import org.bidon.sdk.adapter.SupportsRegulation
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
 import org.bidon.zmaticoo.ext.adapterVersion
 import org.bidon.zmaticoo.ext.asBidonError
 import org.bidon.zmaticoo.ext.sdkVersion
+import org.bidon.zmaticoo.impl.GetTokenUseCase
 import org.bidon.zmaticoo.impl.ZmaticooBannerAuctionParams
 import org.bidon.zmaticoo.impl.ZmaticooBannerImpl
 import org.bidon.zmaticoo.impl.ZmaticooFullscreenAuctionParams
@@ -56,36 +54,7 @@ internal class ZmaticooAdapter :
     private var placements: List<PlacementConfig> = emptyList()
 
     override suspend fun getToken(adTypeParam: AdTypeParam): String? {
-        val tokensMap = mutableMapOf<String, JSONObject>()
-
-        val targetFormat = when (adTypeParam) {
-            is AdTypeParam.Banner -> if (adTypeParam.bannerFormat == BannerFormat.MRec) {
-                PlacementFormat.MREC
-            } else {
-                PlacementFormat.BANNER
-            }
-            is AdTypeParam.Interstitial -> PlacementFormat.INTERSTITIAL
-            is AdTypeParam.Rewarded -> PlacementFormat.REWARDED
-        }
-
-        for (placement in placements.filter { it.format == targetFormat }) {
-            val timestamp = System.currentTimeMillis()
-            val token = ZMaticooAds.getBiddingToken(placement.placementId, timestamp)
-            if (!token.isNullOrEmpty()) {
-                tokensMap[placement.placementId] =
-                    JSONObject().apply {
-                        put("token", token)
-                        put("timestamp", timestamp)
-                    }
-            }
-        }
-
-        return if (tokensMap.isNotEmpty()) {
-            logInfo(TAG, "getToken: tokensMap $tokensMap")
-            JSONObject(tokensMap as Map<*, *>).toString()
-        } else {
-            null
-        }
+        return GetTokenUseCase(adTypeParam, placements)
     }
 
     override suspend fun init(
