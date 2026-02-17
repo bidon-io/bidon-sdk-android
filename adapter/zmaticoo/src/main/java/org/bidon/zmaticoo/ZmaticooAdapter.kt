@@ -34,7 +34,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Vladimir Khrolovich on 09/01/2026.
+ * Created by Bidon Team on 09/01/2026.
  */
 internal val ZmaticooDemandId = DemandId("zmaticoo")
 

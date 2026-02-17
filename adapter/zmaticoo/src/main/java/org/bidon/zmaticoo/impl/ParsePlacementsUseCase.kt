@@ -5,7 +5,7 @@ import org.bidon.zmaticoo.PlacementFormat
 import org.json.JSONArray
 
 /**
- * Created by Vladimir Khrolovich on 16/02/2026.
+ * Created by Bidon Team on 16/02/2026.
  */
 internal object ParsePlacementsUseCase {
     internal operator fun invoke(placementsJson: JSONArray): List<PlacementConfig> {

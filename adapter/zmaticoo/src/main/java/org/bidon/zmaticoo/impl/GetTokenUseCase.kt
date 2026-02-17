@@ -9,7 +9,7 @@ import org.bidon.zmaticoo.PlacementFormat
 import org.json.JSONObject
 
 /**
- * Created by Vladimir Khrolovich on 16/02/2026.
+ * Created by Bidon Team on 16/02/2026.
  */
 internal object GetTokenUseCase {
     operator fun invoke(

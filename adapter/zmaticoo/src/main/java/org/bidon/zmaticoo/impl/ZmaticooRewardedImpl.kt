@@ -22,12 +22,13 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.zmaticoo.ext.asBidonError
 
 /**
- * Created by Vladimir Khrolovich on 12/01/2026.
+ * Created by Bidon Team on 12/01/2026.
  */
 internal class ZmaticooRewardedImpl :
     AdSource.Rewarded<ZmaticooFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
+
     private var placementId: String? = null
 
     override val isAdReadyToShow: Boolean
@@ -112,16 +113,16 @@ internal class ZmaticooRewardedImpl :
                 }
 
                 override fun onRewardedVideoAdRewarded(
-                    p0: MaticooIds,
-                    p1: MaticooRewardInfo
+                    maticooIds: MaticooIds,
+                    rewardInfo: MaticooRewardInfo
                 ) {
                     logInfo(TAG, "onRewardedVideoAdRewarded")
                     emitEvent(
                         AdEvent.OnReward(
                             getAd() ?: return,
                             Reward(
-                                label = p1.rewardName,
-                                amount = p1.rewardAmount.toIntOrNull() ?: 0
+                                label = rewardInfo.rewardName,
+                                amount = rewardInfo.rewardAmount.toIntOrNull() ?: 0
                             )
                         )
                     )

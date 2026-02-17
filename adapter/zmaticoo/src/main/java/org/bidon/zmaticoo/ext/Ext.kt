@@ -7,7 +7,7 @@ import org.bidon.zmaticoo.BuildConfig
 import org.bidon.zmaticoo.ZmaticooDemandId
 
 /**
- * Created by Vladimir Khrolovich on 09/01/2026.
+ * Created by Bidon Team on 09/01/2026.
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = ZMaticooAds.SDK_VERSION

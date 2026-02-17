@@ -3,7 +3,7 @@ package org.bidon.zmaticoo
 import org.bidon.sdk.adapter.AdapterParameters
 
 /**
- * Created by Vladimir Khrolovich on 09/01/2026.
+ * Created by Bidon Team on 09/01/2026.
  */
 internal enum class PlacementFormat(
     val value: String

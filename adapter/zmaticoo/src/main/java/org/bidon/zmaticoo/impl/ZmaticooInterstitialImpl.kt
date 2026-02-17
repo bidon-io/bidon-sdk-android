@@ -20,12 +20,13 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.zmaticoo.ext.asBidonError
 
 /**
- * Created by Vladimir Khrolovich on 12/01/2026.
+ * Created by Bidon Team on 12/01/2026.
  */
 internal class ZmaticooInterstitialImpl :
     AdSource.Interstitial<ZmaticooFullscreenAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
+
     private var placementId: String? = null
 
     override val isAdReadyToShow: Boolean

@@ -6,7 +6,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
 /**
- * Created by Vladimir Khrolovich on 09/01/2026.
+ * Created by Bidon Team on 09/01/2026.
  */
 internal class ZmaticooFullscreenAuctionParams(
     val activity: Activity,
