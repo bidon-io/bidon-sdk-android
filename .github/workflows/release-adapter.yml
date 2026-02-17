@@ -25,7 +25,7 @@ on:
         description: 'Adapter'
         required: true
         type: choice
-        options: [admob, amazon, applovin, bidmachine, bigoads, chartboost, dtexchange, gam, inmobi, ironsource, meta, mintegral, mobilefuse, moloco, startio, taurusx, unityads, vkads, vungle, yandex]
+        options: [admob, amazon, applovin, bidmachine, bigoads, chartboost, dtexchange, gam, inmobi, ironsource, meta, mintegral, mobilefuse, moloco, startio, taurusx, unityads, vkads, vungle, yandex, zmaticoo]
       repository:
         description: 'Repository'
         required: true
