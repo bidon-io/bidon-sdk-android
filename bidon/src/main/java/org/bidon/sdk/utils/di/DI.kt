@@ -25,7 +25,6 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxPriceAuctionResolver
-import org.bidon.sdk.auction.impl.PriceFloorStrategy
 import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
@@ -171,7 +170,6 @@ internal object DI {
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
             singleton<DemandStatisticsRepository> { DemandStatisticsRepository(context = get()) }
-            singleton<PriceFloorStrategy> { PriceFloorStrategy() }
 
             /**
              * Factories

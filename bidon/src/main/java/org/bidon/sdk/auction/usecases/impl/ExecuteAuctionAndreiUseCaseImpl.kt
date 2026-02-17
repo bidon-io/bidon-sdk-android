@@ -11,6 +11,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.cache.impl.andr.AdBuffer
 import org.bidon.sdk.ads.cache.impl.andr.sortedByRankDescending
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
@@ -40,13 +41,10 @@ internal class ExecuteAuctionAndreiUseCaseImpl(
     private val requestAdUnit: RequestAdUnitUseCase,
     private val regulation: Regulation,
     private val statsRepository: DemandStatisticsRepository,
-    private val cachedRtbBids: List<AdUnit>,
+    private val adUnitBuffer: AdBuffer<AdUnit, *>,
     private val stopCondition: AuctionStopCondition,
 ) : ExecuteAuctionUseCase {
     private var adUnitQueue: LinkedList<AdUnit> = LinkedList()
-
-    var unusedRtbAdUnits: List<AdUnit> = emptyList()
-        private set
 
     override suspend fun invoke(
         auctionId: String,
@@ -68,7 +66,7 @@ internal class ExecuteAuctionAndreiUseCaseImpl(
             val result =
                 withTimeoutOrNull(auctionTimeout) {
                     // RTB merge: keep higher-priced bid per demandId
-                    val cachedByDemand = cachedRtbBids.associateBy { it.demandId }
+                    val cachedByDemand = adUnitBuffer.associateBy { it.demandId }
                     val mergedAdUnits =
                         buildList {
                             val usedCachedIds = mutableSetOf<String>()
@@ -81,7 +79,9 @@ internal class ExecuteAuctionAndreiUseCaseImpl(
                                     add(serverUnit)
                                 }
                             }
-                            cachedRtbBids.filter { it.demandId !in usedCachedIds }.forEach { add(it) }
+                            adUnitBuffer
+                                .filter { it.demandId !in usedCachedIds }
+                                .forEach { add(it) }
                         }
 
                     // UCB1 sort
@@ -206,7 +206,7 @@ internal class ExecuteAuctionAndreiUseCaseImpl(
                     statsRepository.record(pendingMeasurements)
 
                     // Save unused RTB for caching
-                    unusedRtbAdUnits = adUnitQueue.filter { it.bidType == BidType.RTB }
+                    adUnitBuffer.insert(adUnitQueue.filter { it.bidType == BidType.RTB })
 
                     logInfo(TAG, "Auction was finished")
 
@@ -335,12 +335,12 @@ internal class ExecuteAuctionAndreiUseCaseImpl(
             is AdTypeParam.Banner -> {
                 StatisticsCollector.AdType.Banner(
                     format =
-                    when (bannerFormat) {
-                        BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
-                        BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
-                        BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
-                        BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
-                    }
+                        when (bannerFormat) {
+                            BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
+                            BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
+                            BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
+                            BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
+                        }
                 )
             }
 
