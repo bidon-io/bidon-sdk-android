@@ -79,14 +79,18 @@ internal class CpmProcessor(
         pricefloor: Double,
         resultsCollector: ResultsCollector,
     ): CpmWaterfallResult {
-        // Sort by pricefloor descending (highest first)
-        val sortedAdUnits = adUnits.sortedByDescending { it.pricefloor }
+        // Sort by weighted score descending (fill rate × eCPM)
+        val sortedAdUnits = WeightModel.sortByWeightedScore(adUnits)
         val batches = sortedAdUnits.chunked(BATCH_SIZE)
 
         var successCount = 0
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
 
+        logInfo(
+            TAG,
+            "CPM waterfall (weighted): ${sortedAdUnits.joinToString { "${it.demandId}:w${WeightModel.getWeight(it.demandId)}" }}"
+        )
         logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units in ${batches.size} batches of $BATCH_SIZE")
 
         for ((batchIndex, batch) in batches.withIndex()) {
@@ -138,9 +142,15 @@ internal class CpmProcessor(
             var batchBestSuccess: AuctionResult? = null
             var batchBestPricefloor = 0.0
 
-            for (entry in batchResults) {
+            for ((entryIndex, entry) in batchResults.withIndex()) {
                 if (entry == null) {
                     failureCount++
+                    // Record no-fill for the corresponding ad unit in this batch
+                    val failedAdUnit = batch.getOrNull(entryIndex)
+                    if (failedAdUnit != null) {
+                        WeightModel.recordNoFill(failedAdUnit.demandId)
+                        logInfo(TAG, "CPM no-fill: ${failedAdUnit.demandId}, weight now ${WeightModel.getWeight(failedAdUnit.demandId)}")
+                    }
                     continue
                 }
                 val (adUnit, result) = entry
@@ -281,6 +291,10 @@ internal class CpmProcessor(
 
             when (adEvent) {
                 is AdEvent.Fill -> {
+                    // Record fill for weight model
+                    WeightModel.recordFill(adUnit.demandId)
+                    logInfo(TAG, "CPM fill: ${adUnit.demandId}, weight now ${WeightModel.getWeight(adUnit.demandId)}")
+
                     // Update price to waterfall eCPM
                     adSource.markFillFinished(
                         roundStatus = RoundStatus.Successful,
@@ -305,6 +319,10 @@ internal class CpmProcessor(
                     Result.success(auctionResult)
                 }
                 is AdEvent.LoadFailed, is AdEvent.Expired -> {
+                    // Record no-fill for weight model
+                    WeightModel.recordNoFill(adUnit.demandId)
+                    logInfo(TAG, "CPM no-fill: ${adUnit.demandId}, weight now ${WeightModel.getWeight(adUnit.demandId)}")
+
                     val error = when (adEvent) {
                         is AdEvent.LoadFailed -> adEvent.cause
                         is AdEvent.Expired -> BidonError.Expired(null)
@@ -317,6 +335,10 @@ internal class CpmProcessor(
                     Result.failure(error)
                 }
                 else -> {
+                    // Record no-fill for weight model
+                    WeightModel.recordNoFill(adUnit.demandId)
+                    logInfo(TAG, "CPM no-fill: ${adUnit.demandId}, weight now ${WeightModel.getWeight(adUnit.demandId)}")
+
                     logError(TAG, "Unexpected ad event: $adEvent", null)
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
@@ -329,6 +351,10 @@ internal class CpmProcessor(
             // NEVER catch CancellationException - always rethrow
             throw e
         } catch (e: Exception) {
+            // Record no-fill for weight model
+            WeightModel.recordNoFill(adUnit.demandId)
+            logInfo(TAG, "CPM no-fill: ${adUnit.demandId}, weight now ${WeightModel.getWeight(adUnit.demandId)}")
+
             val failedResult = AuctionResult.AuctionFailed(
                 adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
             )
