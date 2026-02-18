@@ -25,13 +25,11 @@ import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.ext.SystemTimeNow
 
 /**
- * Denis cache-specific AuctionStat that preserves Successful status for non-winner cached ads.
+ * Denis cache-specific AuctionStat that marks ALL successfully loaded cached ads as WIN.
  *
- * In Denis ad caching, non-winner ads remain in ReadyToShowCache and can be shown later.
- * Unlike the classic [AuctionStatImpl], this implementation does NOT convert Successful → LOSE
- * for non-winner demands, because they are still alive in cache.
- *
- * The winner still gets WIN status. Only the LOSE conversion is suppressed.
+ * In Denis ad caching, all loaded ads go to cache and can be shown later.
+ * Unlike the classic [AuctionStatImpl], this implementation converts ALL Successful → WIN
+ * (not just the best one), because every cached ad is a "winner" in caching context.
  */
 internal class CacheAuctionStat(
     private val statsRequest: StatsRequestUseCase,
@@ -80,17 +78,13 @@ internal class CacheAuctionStat(
 
         logInfo(TAG, "Winner: $roundWinner")
 
-        val winnerUuid = roundWinner?.adSource?.getStats()?.adUnit?.uid
-
         val results: List<StatsAdUnit> = roundResults
             .map { it.asStatsAdUnit() }
             .map { statsAdUnit ->
-                val currentUuid = statsAdUnit.adUnitUid
-                if (winnerUuid == currentUuid) {
-                    // Mark winner as WIN
+                if (statsAdUnit.status == RoundStatus.Successful.code) {
+                    // Cache path: all successfully loaded ads are WIN (they all go to cache)
                     statsAdUnit.copy(status = RoundStatus.Win.code)
                 } else {
-                    // Cache path: keep Successful status for non-winners (they stay in cache)
                     statsAdUnit
                 }
             }
@@ -177,12 +171,7 @@ internal class CacheAuctionStat(
                 winnerPrice = winner?.adSource?.getStats()?.price,
                 demands = roundStat.demands.map { demandStat ->
                     demandStat.copy(
-                        status = getCacheFinalStatus(
-                            currentStatus = demandStat.status,
-                            isWinner = demandStat.demandId == (winner as? AuctionResult.Network)?.adSource?.demandId?.demandId &&
-                                demandStat.adUnitUid == (winner as? AuctionResult.Network)?.adSource?.getStats()?.adUnit?.uid &&
-                                demandStat.price == (winner as? AuctionResult.Network)?.adSource?.getStats()?.price
-                        )
+                        status = getCacheFinalStatus(currentStatus = demandStat.status)
                     )
                 },
             )
@@ -204,12 +193,12 @@ internal class CacheAuctionStat(
     }
 
     /**
-     * Cache-specific final status: winner gets WIN, non-winners keep their current status.
-     * Unlike classic path, Successful is NOT converted to LOSE because cached ads stay alive.
+     * Cache-specific final status: all Successful ads become WIN (they all go to cache).
+     * Other statuses (NO_FILL, TIMEOUT, etc.) stay as-is.
      */
-    private fun getCacheFinalStatus(currentStatus: String?, isWinner: Boolean): String {
+    private fun getCacheFinalStatus(currentStatus: String?): String {
         return when {
-            isWinner -> RoundStatus.Win.code
+            currentStatus == RoundStatus.Successful.code -> RoundStatus.Win.code
             currentStatus == null -> "NO_EXPLANATION_AVAILABLE"
             else -> currentStatus
         }
