@@ -19,7 +19,6 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
-import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayload
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
@@ -84,7 +83,7 @@ internal class RtbProcessor(
      * 2. Sort by eCPM descending
      * 3. Try each source in order — on failure, fallback to next
      * 4. Cache untried new AdUnits in RtbPayloadCache for future auctions
-     * 5. On success: Store in ReadyToShowCache
+     * 5. On success: Return CacheEntry (orchestrator handles cache insertion)
      * 6. On failure: Remove from RtbPayloadCache if it was cached
      *
      * @param rtbAdUnits RTB ad units from current auction response
@@ -96,7 +95,7 @@ internal class RtbProcessor(
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
      * @param resultsCollector Collector for auction results
-     * @return Result with AuctionResult on success, BidonError on failure
+     * @return Result with Pair of AuctionResult and CacheEntry on success, BidonError on failure
      */
     suspend fun loadBestPayload(
         rtbAdUnits: List<org.bidon.sdk.auction.models.AdUnit>,
@@ -108,7 +107,7 @@ internal class RtbProcessor(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         resultsCollector: ResultsCollector,
-    ): Result<AuctionResult> = coroutineScope {
+    ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> = coroutineScope {
         // Get cached payloads (sorted by eCPM descending)
         val cachedPayloads = RtbPayloadCache.getAllSortedByEcpm()
 
@@ -157,13 +156,13 @@ internal class RtbProcessor(
             )
 
             if (result.isSuccess) {
-                val auctionResult = result.getOrThrow()
+                val (auctionResult, cacheEntry) = result.getOrThrow()
 
                 // Cache untried new AdUnits for future auctions
                 val cachedCount = cacheUntriedSources(allRtbSources, triedDemandIds, auctionId)
 
                 logInfo(TAG, "RTB summary: loaded ${source.demandId}, cached $cachedCount payloads for future")
-                return@coroutineScope Result.success(auctionResult)
+                return@coroutineScope Result.success(auctionResult to cacheEntry)
             }
             // Failed — continue to next source
         }
@@ -189,7 +188,7 @@ internal class RtbProcessor(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         resultsCollector: ResultsCollector,
-    ): Result<AuctionResult> {
+    ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
         val demandId = source.demandId
         val ecpm = source.ecpm
         val sourceType = when (source) {
@@ -291,7 +290,7 @@ internal class RtbProcessor(
                     // Report successful RTB result to ResultsCollector
                     resultsCollector.add(auctionResult)
 
-                    // Store in ReadyToShowCache
+                    // Create CacheEntry — orchestrator will sort and cache after both pipelines complete
                     val cacheEntry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
                         ecpm = ecpm,
@@ -299,15 +298,14 @@ internal class RtbProcessor(
                         auctionId = auctionId,
                         uid = source.adUnit.uid
                     )
-                    ReadyToShowCache.put(cacheEntry)
-                    logInfo(TAG, "→ READY_TO_SHOW: stored $demandId $${"%.2f".format(ecpm)}")
+                    logInfo(TAG, "RTB result: ready for cache $demandId $${"%.2f".format(ecpm)}")
 
                     // Remove loaded source from cache if it was cached
                     if (source is RtbSource.FromCache) {
                         RtbPayloadCache.remove(demandId)
                     }
 
-                    return Result.success(auctionResult)
+                    return Result.success(auctionResult to cacheEntry)
                 }
                 is AdEvent.LoadFailed, is AdEvent.Expired -> {
                     val error = when (adEvent) {

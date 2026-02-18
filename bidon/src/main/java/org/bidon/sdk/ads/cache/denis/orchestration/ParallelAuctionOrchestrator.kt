@@ -8,11 +8,13 @@ import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
+import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
+import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -159,6 +161,29 @@ internal class ParallelAuctionOrchestrator(
                 "Parallel auction completed: rtbSuccess=$rtbSuccess, cpmSuccess=$cpmSuccess"
             )
 
+            // Collect all cache entries from this auction, sort by eCPM desc, insert into cache
+            val auctionEntries = mutableListOf<CacheEntry<AuctionResult>>()
+
+            rtbResult?.getOrNull()?.let { (_, cacheEntry) ->
+                auctionEntries.add(cacheEntry)
+            }
+
+            cpmResult?.cacheEntries?.let { entries ->
+                auctionEntries.addAll(entries)
+            }
+
+            if (auctionEntries.isNotEmpty()) {
+                val sorted = auctionEntries.sortedByDescending { it.ecpm }
+                sorted.forEach { entry ->
+                    ReadyToShowCache.put(entry)
+                }
+                logInfo(
+                    TAG,
+                    "Cached ${sorted.size} ads from auction (sorted by eCPM): " +
+                        sorted.joinToString { "${it.demandId}:$${"%.2f".format(it.ecpm)}" }
+                )
+            }
+
             // Check cache state and notify appropriately
             checkAndNotifyCallback(
                 rtbSuccess = rtbSuccess,
@@ -181,7 +206,7 @@ internal class ParallelAuctionOrchestrator(
     private fun checkAndNotifyCallback(
         rtbSuccess: Boolean,
         cpmSuccess: Boolean,
-        rtbResult: Result<org.bidon.sdk.auction.models.AuctionResult>?,
+        rtbResult: Result<Pair<AuctionResult, CacheEntry<AuctionResult>>>?,
         cpmResult: org.bidon.sdk.ads.cache.denis.processors.CpmWaterfallResult?,
         auctionInfo: AuctionInfo,
         cacheWasEmpty: Boolean

@@ -86,6 +86,7 @@ internal class CpmProcessor(
         var successCount = 0
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
+        val cacheEntries = mutableListOf<CacheEntry<AuctionResult>>()
 
         logInfo(
             TAG,
@@ -156,10 +157,14 @@ internal class CpmProcessor(
                 val (adUnit, result) = entry
                 if (result.isSuccess) {
                     successCount++
-                    val auctionResult = result.getOrNull()
-                    if (auctionResult != null && adUnit.pricefloor > batchBestPricefloor) {
-                        batchBestSuccess = auctionResult
-                        batchBestPricefloor = adUnit.pricefloor
+                    val pair = result.getOrNull()
+                    if (pair != null) {
+                        val (auctionResult, cacheEntry) = pair
+                        cacheEntries.add(cacheEntry)
+                        if (adUnit.pricefloor > batchBestPricefloor) {
+                            batchBestSuccess = auctionResult
+                            batchBestPricefloor = adUnit.pricefloor
+                        }
                     }
                 } else {
                     failureCount++
@@ -181,6 +186,7 @@ internal class CpmProcessor(
             successCount = successCount,
             failureCount = failureCount,
             firstSuccess = firstSuccess,
+            cacheEntries = cacheEntries,
         )
     }
 
@@ -192,7 +198,7 @@ internal class CpmProcessor(
      * 2. Create AdSource for ad type
      * 3. Apply auction parameters
      * 4. Load ad with timeout
-     * 5. On success: Store in ReadyToShowCache
+     * 5. On success: Return CacheEntry (orchestrator handles cache insertion)
      * 6. On failure: Return failure (don't throw)
      * 7. Always destroy AdSource in finally block if not ready
      *
@@ -205,7 +211,7 @@ internal class CpmProcessor(
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
      * @param resultsCollector Collector for auction results
-     * @return Result with AuctionResult on success, BidonError on failure
+     * @return Result with Pair of AuctionResult and CacheEntry on success, BidonError on failure
      */
     private suspend fun loadSingleAdUnit(
         adUnit: AdUnit,
@@ -217,7 +223,7 @@ internal class CpmProcessor(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         resultsCollector: ResultsCollector,
-    ): Result<AuctionResult> {
+    ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
         var adSource: AdSource<AdAuctionParams>? = null
 
         return try {
@@ -301,12 +307,12 @@ internal class CpmProcessor(
                         price = adUnit.pricefloor // For CPM use waterfall eCPM
                     )
 
-                    // Store in ReadyToShowCache
                     val auctionResult: AuctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
 
                     // Report successful CPM result to ResultsCollector
                     resultsCollector.add(auctionResult)
 
+                    // Create CacheEntry — orchestrator will sort and cache after both pipelines complete
                     val entry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
                         ecpm = adUnit.pricefloor, // Use waterfall eCPM, not actual bid price
@@ -314,9 +320,8 @@ internal class CpmProcessor(
                         auctionId = auctionId,
                         uid = adUnit.uid
                     )
-                    ReadyToShowCache.put(entry)
-                    logInfo(TAG, "→ READY_TO_SHOW: stored ${adUnit.demandId} $${"%.2f".format(adUnit.pricefloor)}")
-                    Result.success(auctionResult)
+                    logInfo(TAG, "CPM result: ready for cache ${adUnit.demandId} $${"%.2f".format(adUnit.pricefloor)}")
+                    Result.success(auctionResult to entry)
                 }
                 is AdEvent.LoadFailed, is AdEvent.Expired -> {
                     // Record no-fill for weight model
@@ -469,11 +474,13 @@ internal class CpmProcessor(
  * @property successCount Number of successfully loaded ads
  * @property failureCount Number of failed loads
  * @property firstSuccess First successfully loaded ad (highest priority)
+ * @property cacheEntries All successful cache entries for orchestrator to sort and insert
  */
 internal data class CpmWaterfallResult(
     val successCount: Int,
     val failureCount: Int,
     val firstSuccess: AuctionResult?, // First successfully loaded ad
+    val cacheEntries: List<CacheEntry<AuctionResult>>, // Entries for orchestrator to cache
 )
 
 private const val TAG = "[DenisCache] CPM"
