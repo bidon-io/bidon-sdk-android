@@ -206,6 +206,15 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         return results
     }
 
+    fun evictBackup() {
+        val old = slot2.getAndUpdate { null }
+        if (old != null) {
+            logInfo(TAG, "evictBackup(): destroying ${old.demandId} @ ${old.price}")
+            old.observeJob?.cancel()
+            old.auctionResult.adSource.destroy()
+        }
+    }
+
     fun clear() {
         logInfo(TAG, "clear(): destroying all slots, current state=${description()}")
         val old1 = slot1.getAndUpdate { null }
