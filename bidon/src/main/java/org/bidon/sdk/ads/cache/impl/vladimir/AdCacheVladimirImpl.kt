@@ -6,15 +6,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
@@ -25,16 +20,13 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.SdkDispatchers
-import org.bidon.sdk.utils.di.get
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
@@ -49,60 +41,27 @@ import kotlin.math.pow
  * enables preferRtb mode (skipping CPM units) if slot1 is still empty.
  * Walks remaining units from previous waterfalls.
  *
- * Delegates slot management to [CacheSlotManager] and auction mechanics to [WaterfallLoader].
+ * Delegates slot management to [CacheSlotManager], auction mechanics to [WaterfallLoader],
+ * token storage to [RtbTokenStore], show fallback to [ShowFallbackHandler],
+ * and cross-instance persistence to [CachePersistedState].
  */
 internal class AdCacheVladimirImpl(
     override val demandAd: DemandAd,
-    private val resolver: AuctionResolver,
+    @Suppress("unused") private val resolver: AuctionResolver,
 ) : AdCache {
-
-    /**
-     * Stored RTB token with expiration tracking.
-     * Each network's token expires independently after [RTB_TOKEN_EXPIRATION_MS].
-     */
-    private data class StoredToken(
-        val tokenInfo: TokenInfo,
-        val storedAt: Long,
-    ) {
-        fun isExpired(now: Long): Boolean = now - storedAt > RTB_TOKEN_EXPIRATION_MS
-    }
-
-    companion object {
-        /**
-         * Strategy state that persists across instance recreations within the same process.
-         * Appodeal calls clear() + creates new cache on every show cycle, so we preserve
-         * discovery flag, RTB tokens, and price context to avoid redundant work.
-         * Keyed by [AdType] since each ad type has independent caching lifecycle.
-         */
-        private class PersistedState {
-            var firstLoadCompleted: Boolean = false
-            val rtbTokens: MutableMap<String, StoredToken> = mutableMapOf()
-            val preservedAds: MutableList<AuctionResult> = mutableListOf()
-            var preservedAdsConsumed: Boolean = false
-
-            /** True when preservedAds were saved by pop() snapshot (not by clear()). */
-            var preservedByPop: Boolean = false
-            val preservedRemainingUnits: MutableList<AdUnit> = mutableListOf()
-            var preservedRemainingRound: WaterfallLoader.AuctionRound? = null
-        }
-
-        private val stateByAdType = mutableMapOf<AdType, PersistedState>()
-
-        private fun getState(adType: AdType): PersistedState =
-            stateByAdType.getOrPut(adType) { PersistedState() }
-    }
 
     private enum class LoadingState { IDLE, LOADING }
 
-    private val persistedState = getState(demandAd.adType)
+    private val persistedState = CachePersistedState.getState(demandAd.adType)
 
     private val scope = CoroutineScope(SdkDispatchers.Main + SupervisorJob())
     private val slots = CacheSlotManager(scope)
     private val loader = WaterfallLoader(demandAd)
+    private val tokenStore = RtbTokenStore(persistedState.rtbTokens)
+    private val fallbackHandler = ShowFallbackHandler(scope, slots)
 
-    // Strategy state (persisted across instance recreations via companion)
+    // Strategy state (persisted across instance recreations via CachePersistedState)
     private var isFirstLoad = !persistedState.firstLoadCompleted
-    private val storedRtbTokens: MutableMap<String, StoredToken> get() = persistedState.rtbTokens
 
     // Remaining units from a previous waterfall to try after the current round.
     // Persists across rounds: untried units carry forward.
@@ -110,33 +69,7 @@ internal class AdCacheVladimirImpl(
     private var remainingRound: WaterfallLoader.AuctionRound? = null
 
     init {
-        // Restore preserved ads from previous instance (saved during clear() or pop() snapshot)
-        val preserved = persistedState.preservedAds.toList()
-        if (preserved.isNotEmpty()) {
-            persistedState.preservedAds.clear()
-            // Only mark consumed when ads came from pop() snapshot.
-            // Ads from clear() preserve are NOT pop-snapshots — the new instance
-            // must allow its own clear() to re-preserve them normally.
-            if (persistedState.preservedByPop) {
-                persistedState.preservedAdsConsumed = true
-            }
-            persistedState.preservedByPop = false
-            for (ad in preserved) {
-                slots.insert(ad)
-            }
-            logInfo(TAG, "init: restored ${preserved.size} preserved ads → ${slots.description()}")
-        }
-
-        // Restore remaining units from previous instance
-        val savedUnits = persistedState.preservedRemainingUnits.toList()
-        val savedRound = persistedState.preservedRemainingRound
-        if (savedUnits.isNotEmpty() && savedRound != null) {
-            remainingUnits.addAll(savedUnits)
-            remainingRound = savedRound
-            persistedState.preservedRemainingUnits.clear()
-            persistedState.preservedRemainingRound = null
-            logInfo(TAG, "init: restored ${savedUnits.size} remaining units from previous instance")
-        }
+        remainingRound = persistedState.restoreInto(slots, remainingUnits)
     }
 
     // Loading guards
@@ -144,16 +77,10 @@ internal class AdCacheVladimirImpl(
     private val callbackFired = AtomicBoolean(false)
     private var loadingJob: Job? = null
     private var autoRestartJob: Job? = null
-    private var settings: Cacheable.Settings = Cacheable.DefaultSettings
     private var retryAttempt = 0
-    private var lastActivity: android.app.Activity? = null
-
-    @Suppress("unused")
-    private val regulation: Regulation by lazy { get() }
 
     override fun withSettings(settings: Cacheable.Settings) {
-        logInfo(TAG, "withSettings(): minCacheSize=${settings.minCacheSize}")
-        this.settings = settings
+        // NO-OP: V4 does not use cache settings yet
     }
 
     override fun cache(
@@ -169,10 +96,10 @@ internal class AdCacheVladimirImpl(
         slots.logCacheStatus("cache() entry")
 
         // Fire onSuccess immediately if we already have a cached ad
-        val hasAd = slots.peek() != null
-        if (hasAd) {
+        val cachedResult = slots.peek()
+        val hasAd = cachedResult != null
+        if (cachedResult != null) {
             logInfo(TAG, "cache(): ad available, firing immediate onSuccess")
-            val cachedResult = slots.peek()!!
             adTypeParam.activity.runOnUiThread {
                 onSuccess(cachedResult, AuctionInfo(auctionId = "", auctionConfigurationId = null, auctionConfigurationUid = null, auctionPricefloor = 0.0, auctionTimeout = 0L, noBids = null, adUnits = null))
             }
@@ -199,7 +126,7 @@ internal class AdCacheVladimirImpl(
 
         // If onSuccess was already fired above, mark it so loading doesn't fire it again
         callbackFired.set(hasAd)
-        lastActivity = adTypeParam.activity // Store for show fallback
+        fallbackHandler.lastActivity = adTypeParam.activity
         logInfo(TAG, "cache(): state→LOADING, callbackFired=$hasAd, launching load")
 
         loadingJob = scope.launch {
@@ -223,7 +150,7 @@ internal class AdCacheVladimirImpl(
 
     override fun peek(): AuctionResult? {
         val result = slots.peek()
-        logInfo(TAG, "peek(): ${result?.adSource?.getStats()?.demandId?.demandId ?: "null"}")
+        logInfo(TAG, "peek(): ${result?.demandId ?: "null"}")
         return result
     }
 
@@ -231,20 +158,10 @@ internal class AdCacheVladimirImpl(
         slots.logCacheStatus("pop() before")
         val result = slots.pop()
         if (result != null) {
-            val price = result.adSource.getStats().price
-            logInfo(TAG, "pop(): popped ${result.adSource.getStats().demandId.demandId} @ $price")
+            logInfo(TAG, "pop(): popped ${result.demandId} @ ${result.price}")
 
-            // Observe for ShowFailed to enable automatic fallback to backup ad
-            observeShowFallback(result)
-
-            // Eagerly preserve remaining ads for next instance.
-            // Protects against new instance creation before clear() is called.
-            val remaining = slots.snapshotAll()
-            persistedState.preservedAds.clear()
-            persistedState.preservedAds.addAll(remaining)
-            persistedState.preservedAdsConsumed = false
-            persistedState.preservedByPop = true
-            logInfo(TAG, "pop(): snapshot ${remaining.size} remaining ads to persisted state")
+            fallbackHandler.observe(result)
+            persistedState.snapshotOnPop(slots)
         } else {
             logInfo(TAG, "pop(): nothing to pop")
         }
@@ -252,80 +169,12 @@ internal class AdCacheVladimirImpl(
         return result
     }
 
-    /**
-     * Observes the popped ad for ShowFailed events and automatically attempts fallback.
-     *
-     * When show() fails on the primary ad, we automatically try to show the backup ad
-     * from slot2 (now in slot1 after pop promoted it). The backup's events are forwarded
-     * to the primary's event flow.
-     *
-     * ## Event flow to caller:
-     * - If primary succeeds: Shown → Closed (normal flow)
-     * - If primary fails, backup succeeds: ShowFailed → Shown → Closed
-     * - If both fail: ShowFailed → ShowFailed
-     *
-     * Note: The initial ShowFailed from primary cannot be suppressed without modifying
-     * AdSource outside the vladimir package. Callers may see ShowFailed followed by Shown
-     * when fallback succeeds - this indicates primary failed but backup recovered.
-     *
-     * This implements: "When the winner show failed, we try to show the second cache.
-     * Only if it failed, we return onFailed."
-     */
-    private fun observeShowFallback(result: AuctionResult) {
-        val source = result.adSource
-        val primaryDemandId = source.demandId.demandId
-        var fallbackAttempted = false
-
-        source.adEvent.onEach { event ->
-            if (event is AdEvent.ShowFailed && !fallbackAttempted) {
-                fallbackAttempted = true // Prevent double-fallback if event emitted multiple times
-                logInfo(TAG, "ShowFailed on $primaryDemandId, trying backup...")
-
-                val backup = slots.pop()
-                if (backup != null) {
-                    val backupSource = backup.adSource
-                    val backupDemandId = backupSource.demandId.demandId
-                    logInfo(TAG, "Found backup ad $backupDemandId, attempting show...")
-
-                    // Forward backup events to primary's flow so caller sees outcome
-                    backupSource.adEvent.onEach { backupEvent ->
-                        logInfo(TAG, "Forwarding backup event $backupEvent from $backupDemandId to primary flow")
-                        source.emitEvent(backupEvent)
-                    }.launchIn(scope)
-
-                    // Show backup using stored activity from cache() call
-                    val activity = lastActivity
-                    if (activity != null) {
-                        when (backupSource) {
-                            is AdSource.Interstitial<*> -> {
-                                logInfo(TAG, "Showing backup interstitial $backupDemandId")
-                                backupSource.show(activity)
-                            }
-                            is AdSource.Rewarded<*> -> {
-                                logInfo(TAG, "Showing backup rewarded $backupDemandId")
-                                backupSource.show(activity)
-                            }
-                            else -> {
-                                logInfo(TAG, "Backup $backupDemandId is not Interstitial or Rewarded, cannot show")
-                            }
-                        }
-                    } else {
-                        logInfo(TAG, "No activity available for backup show, fallback failed")
-                    }
-                } else {
-                    logInfo(TAG, "No backup available for fallback")
-                }
-            }
-        }.launchIn(scope)
-    }
-
     override suspend fun poll(): AuctionResult {
         logInfo(TAG, "poll(): suspending until ad available...")
         val result = slots.poll()
-        logInfo(TAG, "poll(): got ${result.adSource.getStats().demandId.demandId} @ ${result.adSource.getStats().price}")
+        logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
 
-        // Observe for ShowFailed to enable automatic fallback to backup ad
-        observeShowFallback(result)
+        fallbackHandler.observe(result)
 
         return result
     }
@@ -338,25 +187,8 @@ internal class AdCacheVladimirImpl(
         loadingJob?.cancel()
         loadingJob = null
 
-        // Extract ads without destroying — preserve for next instance
         val preserved = slots.extractAll()
-        if (persistedState.preservedAdsConsumed) {
-            // Ads were already claimed by a new instance via pop() snapshot
-            // extractAll cancelled our observe jobs — just drop the references
-            logInfo(TAG, "clear(): ${preserved.size} ads already transferred to new instance, skipping preserve")
-        } else {
-            persistedState.preservedAds.clear()
-            persistedState.preservedAds.addAll(preserved)
-            persistedState.preservedByPop = false
-            logInfo(TAG, "clear(): preserved ${preserved.size} ads for next instance")
-        }
-        persistedState.preservedAdsConsumed = false
-
-        // Preserve remaining units for next instance
-        persistedState.preservedRemainingUnits.clear()
-        persistedState.preservedRemainingUnits.addAll(remainingUnits)
-        persistedState.preservedRemainingRound = remainingRound
-        logInfo(TAG, "clear(): preserved ${remainingUnits.size} remaining units for next instance")
+        persistedState.preserveOnClear(preserved, remainingUnits, remainingRound)
 
         remainingUnits.clear()
         remainingRound = null
@@ -391,7 +223,7 @@ internal class AdCacheVladimirImpl(
         var loadIndex = 0
 
         // Get valid (non-expired) tokens — removes expired ones automatically
-        val validTokens = getValidRtbTokens()
+        val validTokens = tokenStore.getValidTokens()
         logInfo(TAG, "runLoad(): ${validTokens.size} valid RTB tokens: [${validTokens.keys.joinToString()}]")
 
         // Evict slot2 if both slots full but both below requested floor
@@ -425,40 +257,39 @@ internal class AdCacheVladimirImpl(
             logWaterfall("Load", currentRound.adUnits)
             slots.logCacheStatus("Load start")
 
+            var fillCount = 0
+            var skipCount = 0
             for (adUnit in currentRound.adUnits) {
                 loadIndex++
-                logInfo(TAG, "Load: [$loadIndex/${currentRound.adUnits.size}] processing ${adUnit.demandId}/${adUnit.bidType} @ ${adUnit.pricefloor}")
 
                 if (slots.isFull()) {
-                    logInfo(TAG, "Load: [$loadIndex] BREAK — both slots filled")
+                    logInfo(TAG, "Load: BREAK at [$loadIndex] — both slots filled")
                     break
                 }
 
                 // preferRtb: skip CPM units to reach RTB faster
                 if (preferRtb?.get() == true && adUnit.bidType == BidType.CPM) {
-                    logInfo(TAG, "Load: [$loadIndex] SKIP CPM ${adUnit.demandId} (preferRtb mode)")
+                    skipCount++
                     continue
                 }
 
                 // Skip units from networks already cached — avoids duplicate networks in slots
                 if (adUnit.demandId in slots.cachedDemandIds) {
-                    logInfo(TAG, "Load: [$loadIndex] SKIP — ${adUnit.demandId} already cached")
+                    skipCount++
                     continue
                 }
                 val result = loader.loadUnit(adUnit, currentRound)
                 if (result?.roundStatus == RoundStatus.Successful) {
-                    val demandId = result.adSource.getStats().demandId.demandId
-                    val price = result.adSource.getStats().price
-                    logInfo(TAG, "Load: [$loadIndex] ✓ FILL from $demandId @ $price")
+                    fillCount++
+                    logInfo(TAG, "Load: [$loadIndex] ✓ FILL from ${result.demandId} @ ${result.price}")
                     handleFill(result, currentRound, adTypeParam, onSuccess)
                     if (preferRtb?.get() == true) {
                         logInfo(TAG, "Load: preferRtb fill — abandoning waterfall")
                         break
                     }
-                } else {
-                    logInfo(TAG, "Load: [$loadIndex] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
                 }
             }
+            logInfo(TAG, "Load: processed $loadIndex/${currentRound.adUnits.size} units, filled=$fillCount, skipped=$skipCount")
 
             // Save untried units from this Load waterfall for future rounds.
             // These are cheaper units the server returned but we didn't walk
@@ -521,16 +352,14 @@ internal class AdCacheVladimirImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
         retryAttempt = 0
-        val demandId = result.adSource.getStats().demandId.demandId
-        val price = result.adSource.getStats().price
-        logInfo(TAG, "handleFill(): $demandId @ $price, slots before=${slots.description()}, callbackFired=${callbackFired.get()}")
+        logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}, callbackFired=${callbackFired.get()}")
 
         val primaryUpdated = slots.insert(result)
-        logInfo(TAG, "handleFill(): $demandId → primaryUpdated=$primaryUpdated")
+        logInfo(TAG, "handleFill(): ${result.demandId} → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
         if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
-            logInfo(TAG, "handleFill(): FIRING onSuccess callback for $demandId @ $price")
+            logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
             val info = buildAuctionInfo(round.response)
             adTypeParam.activity.runOnUiThread { onSuccess(result, info) }
         } else if (primaryUpdated) {
@@ -555,9 +384,6 @@ internal class AdCacheVladimirImpl(
         if (remainingUnits.isEmpty()) return
 
         logInfo(TAG, "── Remaining | ${remainingUnits.size} units from previous waterfall ──")
-        remainingUnits.forEachIndexed { index, unit ->
-            logInfo(TAG, "  #${index + 1}  ${unit.demandId} / ${unit.bidType} / ${unit.pricefloor}")
-        }
 
         // Refresh expired RTB tokens before walking
         val rtbDemandIds = remainingUnits
@@ -565,54 +391,34 @@ internal class AdCacheVladimirImpl(
             .map { it.demandId }
             .toSet()
 
-        val validTokens = getValidRtbTokens()
-        val expiredRtbDemandIds = rtbDemandIds - validTokens.keys
-
-        val tokens = if (expiredRtbDemandIds.isNotEmpty()) {
-            logInfo(TAG, "walkRemainingUnits(): refreshing tokens for: $expiredRtbDemandIds")
-            val freshTokens = loader.fetchTokens(adTypeParam)
-                .filterKeys { it in expiredRtbDemandIds }
-            val now = System.currentTimeMillis()
-            freshTokens.forEach { (demandId, token) ->
-                storedRtbTokens[demandId] = StoredToken(token, now)
-            }
-            logInfo(TAG, "walkRemainingUnits(): refreshed ${freshTokens.size} tokens")
-            validTokens + freshTokens
-        } else {
-            validTokens
+        val tokens = tokenStore.refreshExpired(rtbDemandIds) {
+            loader.fetchTokens(adTypeParam)
         }
 
         var index = 0
+        var fillCount = 0
+        var skipCount = 0
         val iterator = remainingUnits.iterator()
         while (iterator.hasNext()) {
-            if (slots.isFull()) {
-                logInfo(TAG, "Remaining: BREAK — both slots filled, ${remainingUnits.size - index} units kept for next round")
-                break
-            }
+            if (slots.isFull()) break
             val adUnit = iterator.next()
             iterator.remove()
             index++
 
             // Skip units from networks already cached — avoids duplicate networks in slots
             if (adUnit.demandId in slots.cachedDemandIds) {
-                logInfo(TAG, "Remaining: [$index] SKIP — ${adUnit.demandId} already cached")
+                skipCount++
                 continue
             }
 
-            logInfo(TAG, "Remaining: [$index] processing ${adUnit.demandId}/${adUnit.bidType} @ ${adUnit.pricefloor}")
-
             val result = loader.loadUnit(adUnit, round, tokens)
             if (result?.roundStatus == RoundStatus.Successful) {
-                val demandId = result.adSource.getStats().demandId.demandId
-                val price = result.adSource.getStats().price
-                logInfo(TAG, "Remaining: [$index] ✓ FILL from $demandId @ $price")
+                fillCount++
+                logInfo(TAG, "Remaining: [$index] ✓ FILL from ${result.demandId} @ ${result.price}")
                 handleFill(result, round, adTypeParam, onSuccess)
-            } else {
-                logInfo(TAG, "Remaining: [$index] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
             }
         }
-
-        logInfo(TAG, "walkRemainingUnits(): done, ${remainingUnits.size} units still remaining for future rounds")
+        logInfo(TAG, "Remaining: processed $index units, filled=$fillCount, skipped=$skipCount, ${remainingUnits.size} still remaining")
     }
 
     // --- Finalization ---
@@ -661,17 +467,15 @@ internal class AdCacheVladimirImpl(
             logInfo(TAG, "notifyWinner(): no winner (slot1 empty)")
             return
         }
-        val winnerDemandId = winner.adSource.getStats().demandId.demandId
-        val winnerPrice = winner.adSource.getStats().price
-        logInfo(TAG, "notifyWinner(): winner=$winnerDemandId @ $winnerPrice, externalWinNotifications=$externalWinNotificationsEnabled")
+        logInfo(TAG, "notifyWinner(): winner=${winner.demandId} @ ${winner.price}, externalWinNotifications=$externalWinNotificationsEnabled")
 
         winner.adSource.markWin()
-        logInfo(TAG, "notifyWinner(): markWin() called on $winnerDemandId")
+        logInfo(TAG, "notifyWinner(): markWin() called on ${winner.demandId}")
 
         if (!externalWinNotificationsEnabled) {
             if (winner !is AuctionResult.Bidding && winner.adSource is WinLossNotifiable) {
                 (winner.adSource as WinLossNotifiable).notifyWin()
-                logInfo(TAG, "notifyWinner(): notifyWin() sent to $winnerDemandId")
+                logInfo(TAG, "notifyWinner(): notifyWin() sent to ${winner.demandId}")
             } else {
                 logInfo(TAG, "notifyWinner(): skipped notifyWin() (isBidding=${winner is AuctionResult.Bidding}, isWinLossNotifiable=${winner.adSource is WinLossNotifiable})")
             }
@@ -680,42 +484,9 @@ internal class AdCacheVladimirImpl(
 
     // --- RTB Token Storage ---
 
-    /**
-     * Stores RTB tokens from the round with current timestamp.
-     * Tokens expire after [RTB_TOKEN_EXPIRATION_MS] (15 minutes).
-     */
     private fun storeRtbTokens(round: WaterfallLoader.AuctionRound) {
         val noBidDemandIds = round.response.noBids?.map { it.demandId }?.toSet() ?: emptySet()
-        val rtbUnits = round.adUnits
-            .filter { it.bidType == BidType.RTB }
-            .filter { it.demandId !in noBidDemandIds }
-        val now = System.currentTimeMillis()
-        var storedCount = 0
-        for (unit in rtbUnits) {
-            val token = round.tokens[unit.demandId]
-            if (token != null) {
-                storedRtbTokens[unit.demandId] = StoredToken(token, now)
-                storedCount++
-                logInfo(TAG, "storeRtbTokens(): stored ${unit.demandId} token (expires in ${RTB_TOKEN_EXPIRATION_MS / 60_000}min)")
-            }
-        }
-        logInfo(TAG, "storeRtbTokens(): stored $storedCount tokens, total=${storedRtbTokens.size}: [${storedRtbTokens.keys.joinToString()}]")
-    }
-
-    /**
-     * Returns valid (non-expired) RTB tokens, removing expired ones.
-     * Each network's expiration is tracked independently.
-     */
-    private fun getValidRtbTokens(): Map<String, TokenInfo> {
-        val now = System.currentTimeMillis()
-        val expired = storedRtbTokens.filter { (_, stored) -> stored.isExpired(now) }.keys
-        if (expired.isNotEmpty()) {
-            logInfo(TAG, "getValidRtbTokens(): removing ${expired.size} expired tokens: [${expired.joinToString()}]")
-            expired.forEach { storedRtbTokens.remove(it) }
-        }
-        val valid = storedRtbTokens.mapValues { it.value.tokenInfo }
-        logInfo(TAG, "getValidRtbTokens(): ${valid.size} valid tokens: [${valid.keys.joinToString()}]")
-        return valid
+        tokenStore.storeFromRound(round.adUnits, noBidDemandIds, round.tokens)
     }
 
     // --- Auto Restart ---
@@ -766,4 +537,3 @@ internal class AdCacheVladimirImpl(
 private const val TAG = "AdCacheVladimir"
 private const val LOADING_TIMEOUT_MS = 10_000L
 private const val GLOBAL_TIMEOUT_MS = 29_000L
-private const val RTB_TOKEN_EXPIRATION_MS = 15 * 60 * 1000L // 15 minutes

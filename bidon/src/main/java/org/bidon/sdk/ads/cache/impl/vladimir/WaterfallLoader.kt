@@ -287,33 +287,20 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     private fun Adapter.getAdSource(adType: AdType): AdSource<AdAuctionParams>? {
         val adapterDemandId = demandId
         return when (adType) {
-            AdType.Interstitial -> {
-                (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Rewarded -> {
-                (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Banner -> {
-                (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
-                    }.getOrNull()
-                }
-            }
+            AdType.Interstitial -> safeCreateAdSource<AdProvider.Interstitial<AdAuctionParams>>("interstitial") { interstitial().apply { addDemandId(adapterDemandId) } }
+            AdType.Rewarded -> safeCreateAdSource<AdProvider.Rewarded<AdAuctionParams>>("rewarded") { rewarded().apply { addDemandId(adapterDemandId) } }
+            AdType.Banner -> safeCreateAdSource<AdProvider.Banner<AdAuctionParams>>("banner") { banner().apply { addDemandId(adapterDemandId) } }
+        }
+    }
+
+    private inline fun <reified T> Adapter.safeCreateAdSource(
+        adType: String,
+        create: T.() -> AdSource<AdAuctionParams>,
+    ): AdSource<AdAuctionParams>? {
+        return (this as? T)?.let {
+            runCatching { it.create() }
+                .onFailure { logError(TAG, "Failed to create $adType ad source", it) }
+                .getOrNull()
         }
     }
 
@@ -354,4 +341,4 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     }
 }
 
-private const val TAG = "WaterfallLoader"
+private const val TAG = "AdCacheVladimir.WaterfallLoader"

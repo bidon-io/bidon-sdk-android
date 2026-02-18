@@ -77,19 +77,15 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     fun logCacheStatus(label: String) {
         val s1 = slot1.value
         val s2 = slot2.value
-        val count = listOfNotNull(s1, s2).size
-        logInfo(TAG, "── $label | Cache: $count ads loaded ──")
-        if (s1 != null) {
-            val mode = if (s1.auctionResult is AuctionResult.Bidding) "RTB" else "CPM"
-            logInfo(TAG, "  [slot1] ${s1.demandId} / $mode / ${s1.price}")
-        }
-        if (s2 != null) {
-            val mode = if (s2.auctionResult is AuctionResult.Bidding) "RTB" else "CPM"
-            logInfo(TAG, "  [slot2] ${s2.demandId} / $mode / ${s2.price}")
-        }
-        if (count == 0) {
-            logInfo(TAG, "  (empty)")
-        }
+        val slot1Desc = s1?.let {
+            val mode = if (it.auctionResult is AuctionResult.Bidding) "RTB" else "CPM"
+            "${it.demandId}/$mode/${it.price}"
+        } ?: "empty"
+        val slot2Desc = s2?.let {
+            val mode = if (it.auctionResult is AuctionResult.Bidding) "RTB" else "CPM"
+            "${it.demandId}/$mode/${it.price}"
+        } ?: "empty"
+        logInfo(TAG, "$label: slot1=$slot1Desc, slot2=$slot2Desc")
     }
 
     // === Mutations ===
@@ -101,8 +97,8 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
      *         The caller can use this to decide whether to fire a callback.
      */
     fun insert(result: AuctionResult): Boolean {
-        val price = result.adSource.getStats().price
-        val demandId = result.adSource.getStats().demandId.demandId
+        val price = result.price
+        val demandId = result.demandId
         logInfo(TAG, "insert(): incoming $demandId @ $price, current state=${description()}")
 
         val observeJob = observeSlotEvents(result)
@@ -120,21 +116,18 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
             // Slot1 is empty -> fill it
             currentSlot1 == null -> {
                 slot1.value = newSlot
-                logInfo(TAG, "insert(): slot1 FILLED with $demandId @ $price → state=${description()}")
+                logInfo(TAG, "insert(): slot1 FILLED with $demandId @ $price")
                 true
             }
             // New ad is more expensive -> hot-swap
             price > currentSlot1.price -> {
-                logInfo(TAG, "insert(): HOT-SWAP $demandId @ $price replaces ${currentSlot1.demandId} @ ${currentSlot1.price}")
                 slot1.value = newSlot
 
                 // Stop observing the demoted ad before emitting notification
                 // (prevents removeExpiredSlot from removing it)
                 currentSlot1.observeJob?.cancel()
-                logInfo(TAG, "insert(): cancelled observe job for demoted ${currentSlot1.demandId}")
 
                 // Notify user that a different creative will be shown
-                logInfo(TAG, "insert(): emitting Expired notification for demoted ${currentSlot1.demandId}")
                 currentSlot1.auctionResult.adSource.emitEvent(
                     AdEvent.Expired(
                         requireNotNull(currentSlot1.auctionResult.adSource.ad) {
@@ -146,22 +139,20 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
                 // Re-subscribe for real expirations and demote to slot2
                 val newObserveJob = observeSlotEvents(currentSlot1.auctionResult)
                 slot2.value = currentSlot1.copy(observeJob = newObserveJob)
-                logInfo(TAG, "insert(): demoted ${currentSlot1.demandId} to slot2 with fresh observe job")
-                logInfo(TAG, "insert(): after hot-swap → state=${description()}")
+                logInfo(TAG, "insert(): HOT-SWAP $demandId @ $price replaces ${currentSlot1.demandId} @ ${currentSlot1.price} → ${description()}")
                 true
             }
             // Slot2 is empty -> fill backup
             currentSlot2 == null -> {
                 slot2.value = newSlot
-                logInfo(TAG, "insert(): slot2 FILLED with $demandId @ $price → state=${description()}")
+                logInfo(TAG, "insert(): slot2 FILLED with $demandId @ $price")
                 false
             }
             // New ad beats slot2 -> replace backup
             price > currentSlot2.price -> {
-                logInfo(TAG, "insert(): slot2 REPLACED $demandId @ $price over ${currentSlot2.demandId} @ ${currentSlot2.price}")
                 slot2.value = newSlot
                 destroySlot(currentSlot2)
-                logInfo(TAG, "insert(): after replace → state=${description()}")
+                logInfo(TAG, "insert(): slot2 REPLACED $demandId @ $price over ${currentSlot2.demandId} @ ${currentSlot2.price}")
                 false
             }
             // Worse than both slots -> discard
@@ -227,7 +218,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     // === Internal ===
 
     private fun observeSlotEvents(result: AuctionResult): Job {
-        val demandId = result.adSource.getStats().demandId.demandId
+        val demandId = result.demandId
         logInfo(TAG, "observeSlotEvents(): started observing $demandId")
         return result.adSource.adEvent.onEach { event ->
             logInfo(TAG, "observeSlotEvents(): event=$event for $demandId")
@@ -269,4 +260,4 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     }
 }
 
-private const val TAG = "CacheSlotManager"
+private const val TAG = "AdCacheVladimir.CacheSlotManager"
