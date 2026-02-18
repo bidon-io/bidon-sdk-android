@@ -900,4 +900,4 @@ private const val TAG = "AdCacheVladimir"
 private const val PRELOAD_TIMEOUT_MS = 10_000L
 private const val GLOBAL_TIMEOUT_MS = 29_000L
 private const val DEFAULT_RTB_PRICE = 0.01
-private const val RTB_TOKEN_EXPIRATION_MS = 30 * 60 * 1000L // 30 minutes
+private const val RTB_TOKEN_EXPIRATION_MS = 15 * 60 * 1000L // 15 minutes
