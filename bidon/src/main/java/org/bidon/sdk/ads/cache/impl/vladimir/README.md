@@ -2,7 +2,7 @@
 
 > **WARNING: This is an experimental implementation. Not intended for production use.**
 
-Two-slot ad cache with discovery, rebid, and refill phases.
+Two-slot ad cache with preload and load phases.
 
 ## How It Works
 
@@ -16,16 +16,14 @@ Higher-priced inserts hot-swap slot1, demoting the old ad to slot2. Both slots a
 
 ### Loading Phases
 
-**Discovery** (once per session) — walks waterfall at $0.01 pricefloor, stops on first fill. Stores RTB tokens.
+**Preload** (once per session) — walks waterfall at $0.01 pricefloor, stops on first fill. Stores RTB tokens. On fill, transitions to Load phase and immediately runs Load.
 
-**Rebid** (follows Discovery) — new auction at fill price so RTB networks compete. Excludes the Discovery winner. Walks remaining Discovery units if slots aren't full.
-
-**Refill** (all subsequent loads) — auction at last shown price, reuses stored RTB tokens. Skips networks already cached. Walks remaining units from previous waterfalls.
+**Load** (all subsequent, including first after Preload) — auction at current price (fill price after Preload, last shown price on subsequent runs). Reuses stored RTB tokens, excludes cached networks, fills empty slots. Walks remaining units from previous waterfalls.
 
 ### State Persistence
 
 Appodeal recreates the cache instance on every show cycle (`clear()` → new instance). A companion object preserves state across recreations:
-- Discovery completion flag
+- Preload completion flag
 - RTB tokens (30-min per-network expiration)
 - Price context (`lastShownPrice`, `rtbRequestedPrice`)
 - Cached ads (eagerly snapshot on `pop()`, also extracted on `clear()`, restored in `init`)

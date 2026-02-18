@@ -81,8 +81,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
      * @param existingTokens RTB tokens from previous rounds to reuse. These networks will be
      *        excluded from token fetching but their stored tokens will be sent to the server.
      * @param excludedDemandIds Networks to fully exclude — no token fetch, no token sent to server.
-     *        Used to exclude networks that already filled in a previous phase (e.g., Discovery fill
-     *        excluded from Rebid).
+     *        Used to exclude networks already cached in slots.
      */
     suspend fun startRound(
         adTypeParam: AdTypeParam,
