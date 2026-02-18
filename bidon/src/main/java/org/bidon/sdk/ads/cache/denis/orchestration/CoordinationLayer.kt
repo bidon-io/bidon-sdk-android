@@ -378,8 +378,8 @@ internal class CoordinationLayer(
                         logInfo(TAG, "Auction timed out after ${effectiveTimeout}ms, using available results")
                     }
 
-                    // Save winners after auction completion
-                    resultsCollector.saveWinners(pricefloor)
+                    // Cache path: do NOT call saveWinners() — it marks non-winners as LOSE
+                    // and destroys their ad sources, but cached ads stay alive in ReadyToShowCache.
 
                     // Collect round results and send auction stats (mirrors AuctionImpl pattern)
                     val roundStat = proceedRoundResults(resultsCollector)

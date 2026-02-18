@@ -7,13 +7,14 @@ import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
+import org.bidon.sdk.ads.cache.denis.stats.CacheAuctionStat
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.bidding.BiddingConfig
+import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.get
 
 /**
@@ -57,7 +58,11 @@ internal object AdCacheDenisFactory {
         val getTokens = get<GetTokensUseCase>()
         val getAuctionRequest = get<GetAuctionRequestUseCase>()
         val biddingConfig = get<BiddingConfig>()
-        val auctionStat = get<AuctionStat>()
+        // Use cache-specific AuctionStat that preserves Successful status for non-winner cached ads
+        val auctionStat = CacheAuctionStat(
+            statsRequest = get<StatsRequestUseCase>(),
+            resolver = resolver,
+        )
         // Create instance-scoped lifecycle manager
         val lifecycleManager = LifecycleManager()
 
