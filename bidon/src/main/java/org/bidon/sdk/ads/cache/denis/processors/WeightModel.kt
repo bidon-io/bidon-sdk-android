@@ -43,7 +43,7 @@ internal object WeightModel {
      */
     fun recordFill(demandId: String) {
         synchronized(weights) {
-            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            val current = weights[demandId] ?: DEFAULT_WEIGHT
             weights[demandId] = (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
@@ -57,7 +57,7 @@ internal object WeightModel {
      */
     fun recordNoFill(demandId: String) {
         synchronized(weights) {
-            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            val current = weights[demandId] ?: DEFAULT_WEIGHT
             weights[demandId] = (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
@@ -72,7 +72,7 @@ internal object WeightModel {
      */
     fun getWeight(demandId: String): Int {
         return synchronized(weights) {
-            weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            weights[demandId] ?: DEFAULT_WEIGHT
         }
     }
 
