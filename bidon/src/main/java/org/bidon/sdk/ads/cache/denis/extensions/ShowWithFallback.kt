@@ -52,7 +52,7 @@ private suspend fun tryShowNextAd(
     onWinnerSelected: (AdSource<*>) -> Unit
 ): Result<Ad> {
     // Get best ad from cache
-    val entry = ReadyToShowCache.popBest()
+    val entry = ReadyToShowCache.popFirst()
 
     if (entry == null) {
         logInfo(TAG, "EXHAUSTED: No more ads in cache")

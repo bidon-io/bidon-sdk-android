@@ -29,13 +29,6 @@ internal class AdInstanceScope {
     val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
-     * Check if scope is still active.
-     * @return true if scope has not been cancelled
-     */
-    val isActive: Boolean
-        get() = scope.coroutineContext[kotlinx.coroutines.Job]?.isActive == true
-
-    /**
      * Cancel all coroutines in this scope.
      * Called when ad instance is destroyed (LIFE-04: sweep job stops with ad instance).
      */

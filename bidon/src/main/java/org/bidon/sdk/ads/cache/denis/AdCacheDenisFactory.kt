@@ -46,7 +46,7 @@ internal object AdCacheDenisFactory {
      * polluting AdCacheFactoryImpl with V2-only dependencies.
      *
      * @param demandAd Ad instance configuration
-     * @param resolver Auction resolver (V1 compatibility - unused in V2)
+     * @param resolver Auction resolver for CacheAuctionStat winner sorting
      * @return Fully-wired AdCache instance
      */
     fun create(
@@ -90,7 +90,6 @@ internal object AdCacheDenisFactory {
 
         return AdCacheDenisImpl(
             demandAd = demandAd,
-            resolver = resolver,
             coordinationLayer = coordinationLayer,
             lifecycleManager = lifecycleManager,
             biddingConfig = biddingConfig,

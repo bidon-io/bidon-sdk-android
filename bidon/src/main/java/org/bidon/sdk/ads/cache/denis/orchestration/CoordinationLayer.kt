@@ -120,9 +120,8 @@ internal class CoordinationLayer(
     /**
      * Orchestrate complete auction flow.
      *
-     * @return AuctionCompletionType indicating how auction completed:
-     *   - WarmStartServed: cached ad served immediately, background auction started to replenish cache
-     *   - ColdStartInProgress: cold start auction ongoing, results via callbacks
+     * Handles warm start (cached ad served immediately + background auction)
+     * and cold start (full auction, results via callbacks).
      */
     suspend fun coordinateAuction(
         adTypeParam: AdTypeParam,
@@ -130,14 +129,14 @@ internal class CoordinationLayer(
         tokenTimeout: Long,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
-    ): AuctionCompletionType {
+    ) {
         // Start lifecycle management (idempotent, safe to call multiple times)
         lifecycleManager.start()
 
         val userPricefloor = adTypeParam.pricefloor
         val (startState, snapshot) = determineStartState(userPricefloor)
 
-        return when (startState) {
+        when (startState) {
             is AuctionStartState.WarmStart -> {
                 // 1. Serve cached ad immediately (synchronous callback)
                 handleWarmStart(startState.bestAd, onSuccess)
@@ -156,7 +155,6 @@ internal class CoordinationLayer(
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
-                AuctionCompletionType.WarmStartServed // Callback already fired, auction in background
             }
             is AuctionStartState.ColdStartWithCache -> {
                 // Launch cold start on lifecycle-managed scope and register job
@@ -173,7 +171,6 @@ internal class CoordinationLayer(
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
-                AuctionCompletionType.ColdStartInProgress
             }
             is AuctionStartState.PureColdStart -> {
                 // Launch cold start on lifecycle-managed scope and register job
@@ -190,7 +187,6 @@ internal class CoordinationLayer(
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
-                AuctionCompletionType.ColdStartInProgress
             }
         }
     }
@@ -219,9 +215,6 @@ internal class CoordinationLayer(
             noBids = null,
             adUnits = null,
         )
-
-        // Log cache state before serving
-        ReadyToShowCache.logDetailedState()
 
         // Fire callback immediately
         onSuccess(auctionResult, auctionInfo)

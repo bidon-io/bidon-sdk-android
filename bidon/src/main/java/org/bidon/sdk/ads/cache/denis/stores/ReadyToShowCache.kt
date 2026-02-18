@@ -142,31 +142,6 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Peek at ad by uid without removing it.
-     *
-     * @param uid Unique ad unit identifier
-     * @return Cached AuctionResult or null if not found/expired
-     */
-    fun peek(uid: String): AuctionResult? {
-        synchronized(lock) {
-            val entry = entries.find { it.uid == uid } ?: return null
-            return if (entry.isExpired()) {
-                entries.remove(entry)
-                null
-            } else {
-                entry.value
-            }
-        }
-    }
-
-    /**
-     * Peek at FIFO head (oldest ad) without removing it.
-     *
-     * @return AuctionResult of oldest entry or null if empty
-     */
-    fun peekBest(): AuctionResult? = getBest()?.value
-
-    /**
      * Remove and return FIFO head (oldest ad).
      *
      * @return Oldest entry or null if empty
@@ -178,15 +153,6 @@ internal object ReadyToShowCache {
             return entries.removeAt(0)
         }
     }
-
-    /**
-     * Remove and return FIFO head (oldest ad).
-     *
-     * Delegates to popFirst().
-     *
-     * @return Oldest entry or null if empty
-     */
-    fun popBest(): CacheEntry<AuctionResult>? = popFirst()
 
     /**
      * Check if ad exists in cache without retrieving it.
@@ -251,37 +217,6 @@ internal object ReadyToShowCache {
         }
         if (removed > 0) {
             logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
-        }
-    }
-
-    /**
-     * Log detailed cache state for debugging.
-     */
-    fun logDetailedState() {
-        synchronized(lock) {
-            evictExpiredLocked()
-            val allEntries = entries.toList()
-            val maxEcpm = allEntries.maxOfOrNull { it.ecpm } ?: 0.0
-
-            logInfo(TAG, "=== CACHE STATE: size=${allEntries.size}, maxEcpm=${"$%.2f".format(maxEcpm)} ===")
-
-            allEntries.forEachIndexed { index, entry ->
-                val timeLeft = (entry.expiresAt - TtlConfig.now()) / 1000 // seconds
-                logInfo(
-                    TAG,
-                    "  [${index + 1}] ${entry.demandId}: " +
-                        "ecpm=${"$%.2f".format(entry.ecpm)}, " +
-                        "uid=${entry.uid.take(8)}..., " +
-                        "auctionId=${entry.auctionId.take(8)}..., " +
-                        "ttl=${timeLeft}s"
-                )
-            }
-
-            if (allEntries.isEmpty()) {
-                logInfo(TAG, "  (cache is empty)")
-            }
-
-            logInfo(TAG, "=== END CACHE STATE ===")
         }
     }
 }

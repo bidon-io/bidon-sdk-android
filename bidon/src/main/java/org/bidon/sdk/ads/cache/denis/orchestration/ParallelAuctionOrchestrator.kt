@@ -10,7 +10,6 @@ import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
-import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
@@ -38,8 +37,6 @@ internal class ParallelAuctionOrchestrator(
     private val cpmProcessor: CpmProcessor,
     private val callbackCoordinator: CallbackCoordinator,
 ) {
-    private var currentAuctionId: String? = null
-
     /**
      * Execute parallel auction (RTB + CPM).
      *
@@ -73,9 +70,6 @@ internal class ParallelAuctionOrchestrator(
         auctionInfo: AuctionInfo,
         resultsCollector: ResultsCollector,
     ) {
-        // Record current auction for cancellation support
-        currentAuctionId = auctionId
-
         // Record cache state BEFORE auction
         val cacheWasEmpty = ReadyToShowCache.isEmpty()
         callbackCoordinator.setCacheEmptyAtStart(cacheWasEmpty)
@@ -239,8 +233,6 @@ internal class ParallelAuctionOrchestrator(
                         "(rtb=$rtbSuccess, cpm=$cpmSuccess)"
                 )
             }
-            ReadyToShowCache.logDetailedState()
-            RtbPayloadCache.logDetailedState()
         } else {
             // Both branches failed
             logInfo(
@@ -250,19 +242,6 @@ internal class ParallelAuctionOrchestrator(
             )
             callbackCoordinator.notifyFailure(auctionInfo, BidonError.NoFill(DemandId("auction")))
         }
-    }
-
-    /**
-     * Check if auction ID matches current auction.
-     *
-     * Used when showing an ad from cache - caller can decide whether to
-     * cancel the running auction based on auctionId match.
-     *
-     * @param auctionId Auction ID of ad being shown
-     * @return true if auctionId matches current auction
-     */
-    fun isCurrentAuction(auctionId: String): Boolean {
-        return currentAuctionId == auctionId
     }
 }
 

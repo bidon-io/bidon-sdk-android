@@ -14,7 +14,6 @@ import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
@@ -35,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class AdCacheDenisImpl(
     override val demandAd: DemandAd,
-    private val resolver: AuctionResolver, // V1 compatibility - unused in V2
     private val coordinationLayer: CoordinationLayer,
     private val lifecycleManager: LifecycleManager,
     private val biddingConfig: BiddingConfig,
@@ -68,7 +66,7 @@ internal class AdCacheDenisImpl(
             try {
                 val tokenTimeout = biddingConfig.tokenTimeout
 
-                val completionType = coordinationLayer.coordinateAuction(
+                coordinationLayer.coordinateAuction(
                     adTypeParam = adTypeParam,
                     demandAd = demandAd,
                     tokenTimeout = tokenTimeout,
@@ -89,7 +87,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun peek(): AuctionResult? {
-        return ReadyToShowCache.peekBest()
+        return ReadyToShowCache.getBest()?.value
     }
 
     /**
@@ -100,7 +98,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun pop(): AuctionResult? {
-        val entry = ReadyToShowCache.popBest()
+        val entry = ReadyToShowCache.popFirst()
         return entry?.value
     }
 

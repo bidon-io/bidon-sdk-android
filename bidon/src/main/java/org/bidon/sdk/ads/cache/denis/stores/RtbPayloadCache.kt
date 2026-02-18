@@ -229,37 +229,4 @@ internal object RtbPayloadCache {
             logInfo(TAG, "EVICT: Removed lowest eCPM RTB: demandId=${it.key}, ecpm=${"$%.2f".format(it.value.ecpm)}, size=${cache.size}")
         }
     }
-
-    /**
-     * Log detailed RTB payload cache state for debugging.
-     *
-     * Shows all cached RTB payloads sorted by eCPM descending.
-     * Useful for understanding which RTB bids are cached for reuse.
-     *
-     * Usage: RtbPayloadCache.logDetailedState()
-     */
-    fun logDetailedState() {
-        evictExpired()
-        val allEntries = cache.values.toList().sortedByDescending { it.ecpm }
-        val maxEcpm = allEntries.firstOrNull()?.ecpm ?: 0.0
-
-        logInfo(TAG, "=== RTB CACHE STATE: size=${allEntries.size}, maxEcpm=${"$%.2f".format(maxEcpm)} ===")
-
-        allEntries.forEachIndexed { index, entry ->
-            val timeLeft = (entry.expiresAt - TtlConfig.now()) / 1000 // seconds
-            logInfo(
-                TAG,
-                "  [${index + 1}] ${entry.demandId}: " +
-                    "ecpm=${"$%.2f".format(entry.ecpm)}, " +
-                    "auctionId=${entry.auctionId.take(8)}..., " +
-                    "ttl=${timeLeft}s"
-            )
-        }
-
-        if (allEntries.isEmpty()) {
-            logInfo(TAG, "  (RTB cache is empty)")
-        }
-
-        logInfo(TAG, "=== END RTB CACHE STATE ===")
-    }
 }

@@ -73,16 +73,11 @@ internal class PeriodicSweepJob(
         logInfo(TAG, "Starting periodic sweep")
 
         try {
-            // Step 1: Sweep expired entries from caches
             val readyRemoved = ReadyToShowCache.sweep()
             val rtbRemoved = RtbPayloadCache.sweep()
-
-            // Step 2: Validate WeakReferences and remove invalid entries (LIFE-07)
-            val contextInvalid = WeakContextValidator.validateAndCleanup()
-
             logInfo(
                 TAG,
-                "Sweep completed: expired=$readyRemoved+$rtbRemoved, contextInvalid=$contextInvalid, " +
+                "Sweep completed: expired=$readyRemoved+$rtbRemoved, " +
                     "ReadyToShow size=${ReadyToShowCache.size()}, RtbPayload size=${RtbPayloadCache.size()}"
             )
         } catch (e: Exception) {

@@ -44,15 +44,6 @@ internal class CacheAuctionStat(
     private var rewardedRequestBody: RewardedRequest? = null
 
     private var winner: AuctionResult? = null
-        get() {
-            return if (isAuctionCanceled) {
-                return null
-            } else {
-                field
-            }
-        }
-
-    private var isAuctionCanceled = false
 
     override fun markAuctionStarted(auctionId: String, adTypeParam: AdTypeParam) {
         this.auctionId = auctionId
@@ -64,7 +55,7 @@ internal class CacheAuctionStat(
     }
 
     override fun markAuctionCanceled() {
-        isAuctionCanceled = true
+        // No-op: Denis cache auctions are not externally cancelable
     }
 
     override suspend fun addRoundResults(result: RoundResult.Results): RoundStat {
@@ -73,7 +64,6 @@ internal class CacheAuctionStat(
         val roundWinner = updateWinnerIfNeed(
             roundResults
                 .firstOrNull { it.roundStatus == RoundStatus.Successful }
-                .takeIf { !isAuctionCanceled }
         )
 
         logInfo(TAG, "Winner: $roundWinner")
@@ -241,7 +231,6 @@ internal class CacheAuctionStat(
         logInfo(TAG, "isSucceed=$isSucceed, stat: $stat")
         return ResultBody(
             status = when {
-                isAuctionCanceled -> RoundStatus.AuctionCancelled.code
                 winner?.roundStatus == RoundStatus.Successful -> "SUCCESS"
                 else -> "FAIL"
             },

@@ -120,28 +120,6 @@ internal class CancellationManager {
     }
 
     /**
-     * Check if auction is currently running.
-     *
-     * @return true if an active auction job exists
-     */
-    fun isAuctionRunning(): Boolean {
-        synchronized(lock) {
-            return currentAuctionJob?.isActive == true
-        }
-    }
-
-    /**
-     * Get current auction ID (for logging/debugging).
-     *
-     * @return Current auction ID or null if no auction running
-     */
-    fun getCurrentAuctionId(): String? {
-        synchronized(lock) {
-            return if (currentAuctionJob?.isActive == true) currentAuctionId else null
-        }
-    }
-
-    /**
      * Clear state when auction completes normally.
      *
      * Called when auction finishes successfully (not cancelled).

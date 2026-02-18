@@ -61,7 +61,6 @@ internal class CallbackCoordinator(
             onAdLoaded(result, auctionInfo)
         } else {
             logInfo(TAG, "onAdLoaded already fired, skipping")
-            logCacheState()
         }
     }
 
@@ -96,38 +95,6 @@ internal class CallbackCoordinator(
                     "cacheEmpty=$cacheWasEmptyAtStart, failedFired=${failedCallbackFired.get()}"
             )
         }
-    }
-
-    /**
-     * Reset coordinator state for new auction.
-     *
-     * Resets both atomic flags and cache state.
-     * Call this when starting a new auction.
-     */
-    fun reset() {
-        loadedCallbackFired.set(false)
-        failedCallbackFired.set(false)
-        cacheWasEmptyAtStart = true
-        logInfo(TAG, "CallbackCoordinator reset")
-    }
-
-    /**
-     * Check if success callback has fired.
-     *
-     * Used for external state checks (e.g., cancellation logic).
-     *
-     * @return true if onAdLoaded has been called
-     */
-    fun hasSuccessCallbackFired(): Boolean = loadedCallbackFired.get()
-
-    /**
-     * Log current state of ReadyToShowCache.
-     *
-     * Logs cache size, max eCPM, and details of all cached entries.
-     */
-    private fun logCacheState() {
-        // Cache state logging removed for cleaner logs
-        // Use ReadyToShowCache.getAll() directly when debugging
     }
 }
 
