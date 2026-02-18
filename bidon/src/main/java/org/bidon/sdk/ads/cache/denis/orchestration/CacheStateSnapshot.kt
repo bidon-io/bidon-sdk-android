@@ -13,11 +13,9 @@ import org.bidon.sdk.ads.cache.denis.stores.TtlConfig
  *
  * Single snapshot pattern prevents:
  * - Inconsistent warm/cold start decisions
- * - Pricefloor recalculation mid-auction
  * - Token skip list changes during collection
  *
  * @property readyToShowIsEmpty READY_TO_SHOW cache empty state
- * @property readyToShowMaxEcpm Maximum eCPM in READY_TO_SHOW cache (or 0.0 if empty)
  * @property rtbPayloadIsEmpty RTB_PAYLOAD cache empty state
  * @property rtbPayloadMaxEcpm Maximum eCPM in RTB_PAYLOAD cache (or 0.0 if empty)
  * @property cachedDemandIds Set of demandIds with valid RTB payloads (for token skipping)
@@ -25,7 +23,6 @@ import org.bidon.sdk.ads.cache.denis.stores.TtlConfig
  */
 internal data class CacheStateSnapshot(
     val readyToShowIsEmpty: Boolean,
-    val readyToShowMaxEcpm: Double,
     val rtbPayloadIsEmpty: Boolean,
     val rtbPayloadMaxEcpm: Double,
     val cachedDemandIds: Set<String>,
@@ -42,7 +39,6 @@ internal data class CacheStateSnapshot(
          */
         fun capture(): CacheStateSnapshot = CacheStateSnapshot(
             readyToShowIsEmpty = ReadyToShowCache.isEmpty(),
-            readyToShowMaxEcpm = ReadyToShowCache.getMaxEcpm(),
             rtbPayloadIsEmpty = RtbPayloadCache.isEmpty(),
             rtbPayloadMaxEcpm = RtbPayloadCache.getMaxEcpm(),
             cachedDemandIds = RtbPayloadCache.getCachedDemandIds()

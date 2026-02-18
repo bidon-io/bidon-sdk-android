@@ -40,7 +40,6 @@ import kotlin.math.max
  * Core responsibilities:
  * - Capture cache state at auction start (no re-validation during processing)
  * - Determine warm vs cold start path
- * - Calculate dynamic pricefloor with safety margin
  * - Provide state to parallel processors (Phase 2)
  *
  * CRITICAL: Both warm and cold start paths launch background auctions.
@@ -106,7 +105,6 @@ internal class CoordinationLayer(
                 )
                 AuctionStartState.ColdStartWithCache(
                     cachedDemandIds = snapshot.cachedDemandIds,
-                    maxCachedEcpm = snapshot.rtbPayloadMaxEcpm
                 )
             }
             else -> {
@@ -117,36 +115,6 @@ internal class CoordinationLayer(
         }
 
         return state to snapshot
-    }
-
-    /**
-     * Calculate dynamic pricefloor for auction request.
-     *
-     * Uses cached eCPM values with 0.9 safety margin to protect cached ad value
-     * while allowing slightly better bids to compete.
-     *
-     * Formula: max(userPricefloor, 0.9 * max(READY_TO_SHOW, RTB_PAYLOAD))
-     *
-     * Called once at auction start, result used for entire auction lifecycle.
-     * No recalculation during processing (maintains consistency).
-     *
-     * @param userPricefloor Publisher-configured minimum eCPM
-     * @param snapshot Cache state snapshot from determineStartState()
-     * @return Calculated pricefloor for auction request
-     */
-    fun calculatePricefloor(userPricefloor: Double, snapshot: CacheStateSnapshot): Double {
-        val dynamicPricefloor = PricefloorCalculator.calculateDynamicPricefloor(
-            userPricefloor = userPricefloor,
-            readyToShowMaxEcpm = snapshot.readyToShowMaxEcpm,
-            rtbPayloadMaxEcpm = snapshot.rtbPayloadMaxEcpm
-        )
-
-        logInfo(
-            TAG,
-            "PRICEFLOOR: user=${"$%.2f".format(userPricefloor)} → dynamic=${"$%.2f".format(dynamicPricefloor)}"
-        )
-
-        return dynamicPricefloor
     }
 
     /**
@@ -180,7 +148,6 @@ internal class CoordinationLayer(
                     handleColdStart(
                         auctionId = auctionId,
                         skipDemandIds = snapshot.cachedDemandIds, // Use RTB_PAYLOAD cache optimization
-                        snapshot = snapshot,
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
                         tokenTimeout = tokenTimeout,
@@ -198,7 +165,6 @@ internal class CoordinationLayer(
                     handleColdStart(
                         auctionId = auctionId,
                         skipDemandIds = startState.cachedDemandIds,
-                        snapshot = snapshot,
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
                         tokenTimeout = tokenTimeout,
@@ -216,7 +182,6 @@ internal class CoordinationLayer(
                     handleColdStart(
                         auctionId = auctionId,
                         skipDemandIds = emptySet(),
-                        snapshot = snapshot,
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
                         tokenTimeout = tokenTimeout,
@@ -265,15 +230,11 @@ internal class CoordinationLayer(
     /**
      * Handle cold start: token collection, auction request, waterfall splitting, parallel processing.
      *
-     * CRITICAL PRICEFLOOR WIRING:
-     * The dynamic pricefloor must be passed to the auction request.
-     * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
-     * we create a modified version that replaces the pricefloor.
+     * Uses the publisher's pricefloor (from adTypeParam.pricefloor) directly — no dynamic calculation.
      */
     private suspend fun handleColdStart(
         auctionId: String,
         skipDemandIds: Set<String>,
-        snapshot: CacheStateSnapshot,
         adTypeParam: AdTypeParam,
         demandAd: DemandAd,
         tokenTimeout: Long,
@@ -282,33 +243,29 @@ internal class CoordinationLayer(
     ) {
         // Create fresh ResultsCollector for this auction
         val resultsCollector: ResultsCollector = get()
+        val pricefloor = adTypeParam.pricefloor
 
         try {
-            val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
-            logInfo(TAG, "COLD START: pricefloor=${"$%.2f".format(dynamicPricefloor)} (from user=${"$%.2f".format(adTypeParam.pricefloor)}), skip=${skipDemandIds.size}")
+            logInfo(TAG, "COLD START: pricefloor=${"$%.2f".format(pricefloor)}, skip=${skipDemandIds.size}")
 
             // Initialize ResultsCollector lifecycle
-            resultsCollector.startRound(dynamicPricefloor)
+            resultsCollector.startRound(pricefloor)
             resultsCollector.serverBiddingStarted()
 
             // Mark auction started for stats tracking (mirrors AuctionImpl pattern)
             auctionStat.markAuctionStarted(auctionId, adTypeParam)
 
-            // Create adTypeParam with dynamic pricefloor for auction request
-            // This ensures the backend receives the dynamic pricefloor, not the original
-            val adTypeParamWithDynamicPricefloor = adTypeParam.withPricefloor(dynamicPricefloor)
-
             // Step 1: Collect tokens (with skip optimization)
             val tokens = getTokensWithSkip(
-                adTypeParam = adTypeParam, // Original for token collection
+                adTypeParam = adTypeParam,
                 adaptersSource = adaptersSource,
                 tokenTimeout = tokenTimeout,
                 skipDemandIds = skipDemandIds,
             )
 
-            // Step 2: Request auction WITH DYNAMIC PRICEFLOOR
+            // Step 2: Request auction with publisher's pricefloor
             val auctionResponse = getAuctionRequest.request(
-                adTypeParam = adTypeParamWithDynamicPricefloor, // <-- Dynamic pricefloor used here
+                adTypeParam = adTypeParam,
                 auctionId = auctionId,
                 demandAd = demandAd,
                 adapters = adaptersSource.adapters.associate {
@@ -406,13 +363,13 @@ internal class CoordinationLayer(
                             orchestrator.executeParallelAuction(
                                 rtbAdUnits = mergedRtbAdUnits, // RTB group: server + cached, sorted by eCPM
                                 cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
-                                adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
+                                adTypeParam = adTypeParam,
                                 demandAd = demandAd,
                                 auctionId = auctionId,
                                 auctionConfigurationId = response.auctionConfigurationId ?: 0L,
                                 auctionConfigurationUid = response.auctionConfigurationUid ?: "",
                                 externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
-                                pricefloor = dynamicPricefloor,
+                                pricefloor = pricefloor,
                                 auctionInfo = auctionInfo,
                                 resultsCollector = resultsCollector,
                             )
@@ -422,7 +379,7 @@ internal class CoordinationLayer(
                     }
 
                     // Save winners after auction completion
-                    resultsCollector.saveWinners(dynamicPricefloor)
+                    resultsCollector.saveWinners(pricefloor)
 
                     // Collect round results and send auction stats (mirrors AuctionImpl pattern)
                     val roundStat = proceedRoundResults(resultsCollector)
@@ -519,32 +476,4 @@ internal class CoordinationLayer(
         private const val AUCTION_TIMEOUT_REDUCTION_MS = 5_000L
         private const val MIN_AUCTION_TIMEOUT_MS = 5_000L
     }
-}
-
-/**
- * Extension function to create AdTypeParam with modified pricefloor.
- *
- * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
- * we recreate the specific subtype with the new pricefloor value.
- *
- * This is a file-private extension function in CoordinationLayer.kt.
- */
-private fun AdTypeParam.withPricefloor(pricefloor: Double): AdTypeParam = when (this) {
-    is AdTypeParam.Banner -> AdTypeParam.Banner(
-        activity = activity,
-        pricefloor = pricefloor,
-        auctionKey = auctionKey,
-        bannerFormat = bannerFormat,
-        containerWidth = containerWidth,
-    )
-    is AdTypeParam.Interstitial -> AdTypeParam.Interstitial(
-        activity = activity,
-        pricefloor = pricefloor,
-        auctionKey = auctionKey,
-    )
-    is AdTypeParam.Rewarded -> AdTypeParam.Rewarded(
-        activity = activity,
-        pricefloor = pricefloor,
-        auctionKey = auctionKey,
-    )
 }
