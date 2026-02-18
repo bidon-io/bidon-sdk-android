@@ -8,7 +8,6 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
-import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
 import org.json.JSONObject
@@ -31,41 +30,41 @@ internal class AdCacheFactoryImpl(
             )
         }
 
-        val version = extractStrategyVersion(demandAd)
-        return when (version) {
-            AdCacheVersion.V1 -> AdCacheImpl(
-                demandAd = demandAd,
-                scope = CoroutineScope(SdkDispatchers.Main),
-                resolver = resolver
-            )
+//        val version = extractStrategyVersion(demandAd)
+//        return when (version) {
+//            AdCacheVersion.V1 -> AdCacheImpl(
+//                demandAd = demandAd,
+//                scope = CoroutineScope(SdkDispatchers.Main),
+//                resolver = resolver
+//            )
 
-            AdCacheVersion.V2 -> AdCacheDenisFactory.create(
-                demandAd = demandAd,
-                resolver = resolver,
-            )
+        return AdCacheDenisFactory.create(
+            demandAd = demandAd,
+            resolver = resolver,
+        )
 
-            AdCacheVersion.V3 -> {
-                AdCacheAndreiImpl(
-                    demandAd = demandAd,
-                    scope = CoroutineScope(SdkDispatchers.Main),
-                    resolver = resolver
-                )
-            }
-
-            AdCacheVersion.V4 -> {
-                AdCacheVladimirImpl(
-                    demandAd = demandAd,
-                    resolver = resolver
-                )
-            }
-
-            AdCacheVersion.V5 -> {
-                AdCacheAlexImpl(
-                    demandAd = demandAd,
-                    resolver = resolver,
-                )
-            }
-        }
+//            AdCacheVersion.V3 -> {
+//                AdCacheAndreiImpl(
+//                    demandAd = demandAd,
+//                    scope = CoroutineScope(SdkDispatchers.Main),
+//                    resolver = resolver
+//                )
+//            }
+//
+//            AdCacheVersion.V4 -> {
+//                AdCacheVladimirImpl(
+//                    demandAd = demandAd,
+//                    resolver = resolver
+//                )
+//            }
+//
+//            AdCacheVersion.V5 -> {
+//                AdCacheAlexImpl(
+//                    demandAd = demandAd,
+//                    resolver = resolver,
+//                )
+//            }
+//        }
     }
 
     private fun extractStrategyVersion(demandAd: DemandAd): AdCacheVersion {

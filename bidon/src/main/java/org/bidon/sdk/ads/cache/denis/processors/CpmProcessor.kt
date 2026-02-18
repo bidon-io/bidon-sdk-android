@@ -1,8 +1,10 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -32,10 +34,11 @@ import org.bidon.sdk.stats.models.RoundStatus
 import kotlin.coroutines.coroutineContext
 
 /**
- * CPM waterfall processor with early-stop optimization.
+ * CPM waterfall processor with batch loading and early-stop optimization.
  *
- * Loads CPM adUnits sequentially sorted by pricefloor descending.
- * Stops after the first successful fill OR when the current adUnit's pricefloor
+ * Loads CPM adUnits in batches of [BATCH_SIZE] (2 at a time), sorted by pricefloor descending.
+ * Within each batch, ad units load in parallel.
+ * Stops after the first successful fill OR when the batch's lowest pricefloor
  * is less than or equal to the best cached RTB eCPM in ReadyToShowCache.
  *
  * Thread-safety: Coroutine-based with proper cancellation support.
@@ -44,14 +47,15 @@ internal class CpmProcessor(
     private val adaptersSource: AdaptersSource,
 ) {
     /**
-     * Load CPM waterfall with early-stop logic.
+     * Load CPM waterfall in batches of [BATCH_SIZE] with early-stop logic.
      *
      * Process:
      * 1. Sort adUnits by pricefloor descending (highest first)
-     * 2. For each adUnit:
-     *    a. Check if pricefloor <= best cached eCPM in ReadyToShowCache -> STOP
-     *    b. Try to load the ad
-     *    c. On first success -> add to cache -> STOP
+     * 2. Chunk into batches of [BATCH_SIZE]
+     * 3. For each batch:
+     *    a. Check if batch's highest pricefloor <= best cached eCPM -> STOP
+     *    b. Load all ads in the batch in parallel
+     *    c. On first success -> fire callback -> STOP
      *
      * @param adUnits List of CPM ad units to load
      * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
@@ -79,51 +83,88 @@ internal class CpmProcessor(
     ): CpmWaterfallResult {
         // Sort by pricefloor descending (highest first)
         val sortedAdUnits = adUnits.sortedByDescending { it.pricefloor }
+        val batches = sortedAdUnits.chunked(BATCH_SIZE)
 
         var successCount = 0
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
 
-        logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units (sorted by pricefloor desc)")
+        logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units in ${batches.size} batches of $BATCH_SIZE")
 
-        for (adUnit in sortedAdUnits) {
-            // Check cancellation before each attempt
+        for ((batchIndex, batch) in batches.withIndex()) {
+            // Check cancellation before each batch
             coroutineContext.ensureActive()
 
-            // Early stop: if adUnit pricefloor <= best cached eCPM, no point loading cheaper ads
+            // Early stop: if batch's highest pricefloor <= best cached eCPM, stop
             val bestCachedEcpm = ReadyToShowCache.getMaxEcpm()
-            if (bestCachedEcpm > 0.0 && adUnit.pricefloor <= bestCachedEcpm) {
+            val batchHighestPricefloor = batch.first().pricefloor
+            if (bestCachedEcpm > 0.0 && batchHighestPricefloor <= bestCachedEcpm) {
                 logInfo(
                     TAG,
-                    "CPM early stop: adUnit pricefloor=${"$%.2f".format(adUnit.pricefloor)} <= " +
+                    "CPM early stop: batch[$batchIndex] highest pricefloor=${"$%.2f".format(batchHighestPricefloor)} <= " +
                         "best cached eCPM=${"$%.2f".format(bestCachedEcpm)}, stopping waterfall"
                 )
                 break
             }
 
-            val result = loadSingleAdUnit(
-                adUnit = adUnit,
-                adTypeParam = adTypeParam,
-                demandAd = demandAd,
-                auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId,
-                auctionConfigurationUid = auctionConfigurationUid,
-                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                pricefloor = pricefloor,
-                resultsCollector = resultsCollector,
+            logInfo(
+                TAG,
+                "CPM batch[$batchIndex]: ${batch.size} units [${batch.joinToString { "${it.demandId}:$${"%.2f".format(it.pricefloor)}" }}]"
             )
 
-            if (result.isSuccess) {
-                successCount++
-                firstSuccess = result.getOrNull()
-                // Fire callback on first successful load (for immediate onAdLoaded)
-                firstSuccess?.let { onFirstFill(it) }
-                // Stop after first fill
-                logInfo(TAG, "CPM first fill: ${adUnit.demandId} @ $${"%.2f".format(adUnit.pricefloor)}, stopping waterfall")
+            // Load all ads in this batch in parallel
+            val batchResults = supervisorScope {
+                batch.map { adUnit ->
+                    async {
+                        adUnit to loadSingleAdUnit(
+                            adUnit = adUnit,
+                            adTypeParam = adTypeParam,
+                            demandAd = demandAd,
+                            auctionId = auctionId,
+                            auctionConfigurationId = auctionConfigurationId,
+                            auctionConfigurationUid = auctionConfigurationUid,
+                            externalWinNotificationsEnabled = externalWinNotificationsEnabled,
+                            pricefloor = pricefloor,
+                            resultsCollector = resultsCollector,
+                        )
+                    }
+                }.map { deferred ->
+                    runCatching { deferred.await() }.getOrElse { e ->
+                        // Shouldn't happen with supervisorScope, but handle gracefully
+                        null
+                    }
+                }
+            }
+
+            // Process batch results — pick best success (highest pricefloor)
+            var batchBestSuccess: AuctionResult? = null
+            var batchBestPricefloor = 0.0
+
+            for (entry in batchResults) {
+                if (entry == null) {
+                    failureCount++
+                    continue
+                }
+                val (adUnit, result) = entry
+                if (result.isSuccess) {
+                    successCount++
+                    val auctionResult = result.getOrNull()
+                    if (auctionResult != null && adUnit.pricefloor > batchBestPricefloor) {
+                        batchBestSuccess = auctionResult
+                        batchBestPricefloor = adUnit.pricefloor
+                    }
+                } else {
+                    failureCount++
+                }
+            }
+
+            if (batchBestSuccess != null) {
+                if (firstSuccess == null) {
+                    firstSuccess = batchBestSuccess
+                    onFirstFill(batchBestSuccess)
+                }
+                logInfo(TAG, "CPM batch[$batchIndex] fill, stopping waterfall")
                 break
-            } else {
-                failureCount++
-                // Continue to next adUnit
             }
         }
 
@@ -413,3 +454,4 @@ internal data class CpmWaterfallResult(
 )
 
 private const val TAG = "[DenisCache] CPM"
+private const val BATCH_SIZE = 2
