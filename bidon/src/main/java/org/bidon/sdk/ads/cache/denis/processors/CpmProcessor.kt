@@ -66,7 +66,6 @@ internal class CpmProcessor(
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
      * @param resultsCollector Collector for auction results
-     * @param onFirstFill Callback to fire on first successful load (for immediate onAdLoaded)
      * @return CpmWaterfallResult with success/failure counts
      */
     suspend fun loadWaterfall(
@@ -79,7 +78,6 @@ internal class CpmProcessor(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         resultsCollector: ResultsCollector,
-        onFirstFill: (AuctionResult) -> Unit = {},
     ): CpmWaterfallResult {
         // Sort by pricefloor descending (highest first)
         val sortedAdUnits = adUnits.sortedByDescending { it.pricefloor }
@@ -161,7 +159,6 @@ internal class CpmProcessor(
             if (batchBestSuccess != null) {
                 if (firstSuccess == null) {
                     firstSuccess = batchBestSuccess
-                    onFirstFill(batchBestSuccess)
                 }
                 logInfo(TAG, "CPM batch[$batchIndex] fill, stopping waterfall")
                 break

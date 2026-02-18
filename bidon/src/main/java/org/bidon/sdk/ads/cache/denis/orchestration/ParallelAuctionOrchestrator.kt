@@ -23,7 +23,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * - RTB failure doesn't cancel CPM
  * - CPM failure doesn't cancel RTB
  * - Both branches always run to completion
- * - Callback fires when cache transitions from empty to non-empty
+ * - Callback fires after both complete with best result from cache
  *
  * Cancellation support:
  * - cancelIfSameAuction() only cancels auctions with matching auctionId
@@ -105,10 +105,6 @@ internal class ParallelAuctionOrchestrator(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
                         resultsCollector = resultsCollector,
-                        onFirstFill = { auctionResult ->
-                            // Fire onAdLoaded immediately on first successful load
-                            callbackCoordinator.notifySuccess(auctionResult, auctionInfo)
-                        }
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(
@@ -139,10 +135,6 @@ internal class ParallelAuctionOrchestrator(
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
                         resultsCollector = resultsCollector,
-                        onFirstFill = { auctionResult ->
-                            // Fire onAdLoaded immediately on first successful load
-                            callbackCoordinator.notifySuccess(auctionResult, auctionInfo)
-                        }
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(
@@ -180,11 +172,11 @@ internal class ParallelAuctionOrchestrator(
     }
 
     /**
-     * Check cache state and fire failure callback if needed.
+     * Check results after both pipelines complete and fire appropriate callback.
      *
      * Logic:
-     * - Success callbacks are fired directly from processors on first load
-     * - This only handles failure case: both branches failed AND cache still empty
+     * - If any success: pick best from ReadyToShowCache, fire onAdLoaded ONCE
+     * - If both failed: fire onAdLoadFailed (only if cache was empty)
      */
     private fun checkAndNotifyCallback(
         rtbSuccess: Boolean,
@@ -204,25 +196,26 @@ internal class ParallelAuctionOrchestrator(
                 "current_empty=$cacheIsEmpty, rtb_success=$rtbSuccess, cpm_success=$cpmSuccess"
         )
 
-        // Check if ANY success occurred
         if (rtbSuccess || cpmSuccess) {
-            // At least one branch succeeded - callback already fired from processor
-            if (cacheWasEmpty && !cacheIsEmpty) {
-                // Cache populated successfully
-                ReadyToShowCache.logDetailedState()
-                RtbPayloadCache.logDetailedState()
-            } else if (!cacheWasEmpty) {
-                // Warm start: cache refreshed in background
-                ReadyToShowCache.logDetailedState()
-                RtbPayloadCache.logDetailedState()
+            // Both pipelines done — pick best from cache
+            val bestEntry = ReadyToShowCache.getBest()
+            if (bestEntry != null) {
+                logInfo(
+                    TAG,
+                    "Both pipelines complete: best ad=${bestEntry.demandId} " +
+                        "ecpm=${"$%.2f".format(bestEntry.ecpm)}"
+                )
+                callbackCoordinator.notifySuccess(bestEntry.value, auctionInfo)
             } else {
-                // Unexpected: success reported but cache still empty
+                // Unexpected: success reported but cache is empty
                 logInfo(
                     TAG,
                     "Warning: branch success but cache still empty " +
                         "(rtb=$rtbSuccess, cpm=$cpmSuccess)"
                 )
             }
+            ReadyToShowCache.logDetailedState()
+            RtbPayloadCache.logDetailedState()
         } else {
             // Both branches failed
             logInfo(
@@ -230,7 +223,6 @@ internal class ParallelAuctionOrchestrator(
                 "Both RTB and CPM branches failed (cache_was_empty=$cacheWasEmpty, " +
                     "cache_size=$cacheSize)"
             )
-            // CallbackCoordinator checks if cache was empty before firing failure
             callbackCoordinator.notifyFailure(auctionInfo, BidonError.NoFill(DemandId("auction")))
         }
     }
