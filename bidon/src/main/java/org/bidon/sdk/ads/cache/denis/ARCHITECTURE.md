@@ -3,7 +3,10 @@
 Denis is the V3 ad caching pipeline for Bidon SDK. It runs RTB and CPM loading
 in parallel, stores results in a pure FIFO cache (insertion order), and uses a
 dynamic WeightModel to optimize CPM waterfall ordering based on observed fill
-rates. Sorting by price/weight happens before cache in processors.
+rates. The orchestrator collects results from both pipelines, sorts by eCPM, and
+inserts into cache.
+
+> **Scope:** Denis cache currently supports Interstitial only. Rewarded uses the classic auction path.
 
 ## Load Flow
 
@@ -21,7 +24,7 @@ Full Auction (wrapped in auctionTimeout - 5sec):
 |   +-- Server bidding request
 |   +-- Merge server RTB with cached RTB payloads, sort by ecpm
 |   +-- Try load best RTB; if fail, try next (waterfall fallback)
-|   +-- First successful -> add to ReadyToShowCache
+|   +-- First successful -> return CacheEntry to orchestrator
 |   +-- Cache untried payloads in RtbPayloadCache for next auction
 |
 +-- CPM Pipeline (async, parallel with RTB)
@@ -30,9 +33,13 @@ Full Auction (wrapped in auctionTimeout - 5sec):
 |   +-- For each batch:
 |   |   +-- If pricefloor <= best RTB in cache -> STOP
 |   |   +-- Load 2 adUnits in parallel (with adUnit.timeout)
-|   |   +-- Any fill -> add best to ReadyToShowCache -> STOP
+|   |   +-- Any fill -> collect CacheEntry -> STOP
 |   |   +-- Both fail -> continue to next batch
-|   +-- Result -> 0 or 1 CPM in cache
+|   +-- Result -> 0 or 1 CacheEntry returned
+|
++-- Orchestrator collects all CacheEntries from RTB + CPM
+|   +-- Sort by eCPM descending
+|   +-- Insert into ReadyToShowCache (preserves per-auction ordering)
 |
 +-- Both pipelines done (or timeout reached)
 |   +-- Has results -> onAdLoaded(FIFO head from cache)
@@ -59,9 +66,9 @@ showAd()
 |------|---------------|
 | `../impl/AdCacheDenisImpl.kt` | Public API entry point (loadAd, showAd, isReady) |
 | `orchestration/CoordinationLayer.kt` | Orchestrates auction lifecycle, stats, callbacks |
-| `orchestration/ParallelAuctionOrchestrator.kt` | Runs RTB + CPM in parallel, fires callback after both |
-| `processors/RtbProcessor.kt` | RTB waterfall with fallback, payload caching |
-| `processors/CpmProcessor.kt` | CPM batch loading, WeightModel integration |
+| `orchestration/ParallelAuctionOrchestrator.kt` | Runs RTB + CPM in parallel, collects results, sorts by eCPM, inserts into cache, fires callback |
+| `processors/RtbProcessor.kt` | RTB waterfall with fallback, payload caching, returns CacheEntry |
+| `processors/CpmProcessor.kt` | CPM batch loading, WeightModel integration, returns CacheEntries |
 | `stores/ReadyToShowCache.kt` | Pure FIFO cache (insertion order) |
 | `stores/RtbPayloadCache.kt` | Persists untried RTB payloads between auctions |
 | `orchestration/CallbackCoordinator.kt` | Ensures exactly-once public callback firing |
@@ -75,7 +82,7 @@ showAd()
 | Decision | Rationale |
 |----------|-----------|
 | Wait for both pipelines before onAdLoaded | Developer gets the best ad, not the fastest |
-| Pure FIFO cache, no size limit | Ads served in insertion order. Sorting by price/weight happens before cache in processors |
+| Pure FIFO cache, no size limit | Ads served in insertion order. Orchestrator sorts by eCPM before inserting into cache |
 | RTB waterfall fallback | Don't waste RTB bids on single failure |
 | CPM batches of 2 | Balance between speed and network load |
 | WeightModel CPM sorting | Networks with better fill rates get priority |
@@ -83,6 +90,7 @@ showAd()
 | No saveWinners/markLoss | Prevents destroying ads still in cache |
 | Reduced timeout (auctionTimeout - 5sec) | Faster response for cached ad use case |
 | No dynamic pricefloor | Always use publisher's explicit pricefloor |
+| Orchestrator owns cache insertion | Processors return results, orchestrator sorts by eCPM and inserts. Ensures per-auction ordering (expensive first) while keeping FIFO between auctions |
 | Concurrent loadAd() guard | Prevent duplicate auctions |
 
 ## Stats Reporting
