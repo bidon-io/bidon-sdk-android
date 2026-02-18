@@ -130,6 +130,9 @@ internal class InterstitialImpl(
                 onRevenuePaid = { ad, adValue ->
                     listener.onRevenuePaid(ad, adValue)
                 },
+                onExpired = { ad ->
+                    listener.onAdExpired(ad)
+                },
                 onShowFailed = { error ->
                     listener.onAdShowFailed(error)
                 },
@@ -138,7 +141,7 @@ internal class InterstitialImpl(
                 },
                 onWinnerSelected = { adSource ->
                     logInfo(TAG, "Winner selected: ${adSource.demandId}")
-                    winner = adSource
+                    winner = adSource as? AdSource.Interstitial<*>
                 }
             )
         } else {

@@ -10,10 +10,10 @@ import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AuctionResolver
+import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.regulation.Regulation
 import org.bidon.sdk.utils.di.get
 
 /**
@@ -57,14 +57,13 @@ internal object AdCacheDenisFactory {
         val getTokens = get<GetTokensUseCase>()
         val getAuctionRequest = get<GetAuctionRequestUseCase>()
         val biddingConfig = get<BiddingConfig>()
-        val regulation = get<Regulation>()
+        val auctionStat = get<AuctionStat>()
         // Create instance-scoped lifecycle manager
         val lifecycleManager = LifecycleManager()
 
         // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
-            regulation = regulation,
         )
         val cpmProcessor = CpmProcessor(
             adaptersSource = adaptersSource,
@@ -81,6 +80,7 @@ internal object AdCacheDenisFactory {
             rtbProcessor = rtbProcessor,
             cpmProcessor = cpmProcessor,
             lifecycleManager = lifecycleManager,
+            auctionStat = auctionStat,
         )
 
         return AdCacheDenisImpl(

@@ -1,6 +1,8 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
@@ -11,12 +13,21 @@ import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
+import org.bidon.sdk.ads.ext.toAdUnitInfo
+import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.models.BidType
+import org.bidon.sdk.stats.models.RoundStat
+import org.bidon.sdk.utils.di.get
+import kotlin.math.max
 
 /**
  * Entry point for auction orchestration and cold/warm start coordination.
@@ -46,6 +57,7 @@ internal class CoordinationLayer(
     private val rtbProcessor: RtbProcessor,
     private val cpmProcessor: CpmProcessor,
     private val lifecycleManager: LifecycleManager,
+    private val auctionStat: AuctionStat,
 ) {
     /**
      * Determine auction start state based on cache contents.
@@ -162,7 +174,7 @@ internal class CoordinationLayer(
                 // 1. Serve cached ad immediately (synchronous callback)
                 handleWarmStart(startState.bestAd, onSuccess)
 
-                // 2. Launch background auction to replenish cache
+                // 2. Launch background auction to replenish cache (no callbacks — warm start is final)
                 val auctionId = java.util.UUID.randomUUID().toString()
                 val job = lifecycleManager.getScope().launch {
                     handleColdStart(
@@ -172,9 +184,8 @@ internal class CoordinationLayer(
                         adTypeParam = adTypeParam,
                         demandAd = demandAd,
                         tokenTimeout = tokenTimeout,
-                        onSuccess = { _, _ -> /* no-op: onSuccess already fired in handleWarmStart */ },
-                        onFailure = { _, _ -> /* no-op: already returned success, silent cache refresh */ },
-                        silentMode = true, // Don't trigger callbacks, just update cache
+                        onSuccess = { _, _ -> },
+                        onFailure = { _, _ -> },
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
@@ -193,7 +204,6 @@ internal class CoordinationLayer(
                         tokenTimeout = tokenTimeout,
                         onSuccess = onSuccess,
                         onFailure = onFailure,
-                        silentMode = false,
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
@@ -212,7 +222,6 @@ internal class CoordinationLayer(
                         tokenTimeout = tokenTimeout,
                         onSuccess = onSuccess,
                         onFailure = onFailure,
-                        silentMode = false,
                     )
                 }
                 lifecycleManager.registerAuction(auctionId, job)
@@ -260,9 +269,6 @@ internal class CoordinationLayer(
      * The dynamic pricefloor must be passed to the auction request.
      * Since AdTypeParam is sealed (cannot be copied with modified pricefloor),
      * we create a modified version that replaces the pricefloor.
-     *
-     * @param silentMode If true, suppress callbacks (used for warm start background refresh).
-     *                   Auction continues to update cache but doesn't fire onSuccess/onFailure.
      */
     private suspend fun handleColdStart(
         auctionId: String,
@@ -273,11 +279,20 @@ internal class CoordinationLayer(
         tokenTimeout: Long,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
-        silentMode: Boolean = false,
     ) {
+        // Create fresh ResultsCollector for this auction
+        val resultsCollector: ResultsCollector = get()
+
         try {
             val dynamicPricefloor = calculatePricefloor(adTypeParam.pricefloor, snapshot)
             logInfo(TAG, "COLD START: pricefloor=${"$%.2f".format(dynamicPricefloor)} (from user=${"$%.2f".format(adTypeParam.pricefloor)}), skip=${skipDemandIds.size}")
+
+            // Initialize ResultsCollector lifecycle
+            resultsCollector.startRound(dynamicPricefloor)
+            resultsCollector.serverBiddingStarted()
+
+            // Mark auction started for stats tracking (mirrors AuctionImpl pattern)
+            auctionStat.markAuctionStarted(auctionId, adTypeParam)
 
             // Create adTypeParam with dynamic pricefloor for auction request
             // This ensures the backend receives the dynamic pricefloor, not the original
@@ -305,6 +320,12 @@ internal class CoordinationLayer(
             // Step 3: Handle auction response - split waterfall and execute parallel auction
             auctionResponse.fold(
                 onSuccess = { response ->
+                    // Report server bidding finished to ResultsCollector
+                    resultsCollector.serverBiddingFinished(
+                        response.adUnits?.filter { it.bidType == BidType.RTB }
+                    )
+                    resultsCollector.setNoBidInfo(response.noBids)
+
                     // Step 3a: Split waterfall into RTB and CPM groups using WaterfallSplitter
                     val adUnits = response.adUnits ?: emptyList()
                     val splitWaterfall = WaterfallSplitter.split(
@@ -351,30 +372,27 @@ internal class CoordinationLayer(
                         )
                     }
 
+                    // Reduce auction timeout for faster cache auctions
+                    val effectiveTimeout = max(
+                        response.auctionTimeout - AUCTION_TIMEOUT_REDUCTION_MS,
+                        MIN_AUCTION_TIMEOUT_MS
+                    )
+
                     // Build AuctionInfo for callbacks
                     val auctionInfo = AuctionInfo(
                         auctionId = auctionId,
                         auctionConfigurationId = response.auctionConfigurationId,
                         auctionConfigurationUid = response.auctionConfigurationUid,
-                        auctionTimeout = response.auctionTimeout,
+                        auctionTimeout = effectiveTimeout,
                         auctionPricefloor = response.pricefloor,
-                        noBids = null,
-                        adUnits = null,
+                        noBids = response.noBids?.map { it.toAuctionNoBidInfo() },
+                        adUnits = response.adUnits?.map { it.toAdUnitInfo() },
                     )
 
-                    // Step 3b: Create per-auction orchestrator with ACTUAL callbacks
-                    // In silent mode (warm start background refresh), suppress callbacks
+                    // Create per-auction orchestrator with callbacks
                     val callbackCoordinator = CallbackCoordinator(
-                        onAdLoaded = if (silentMode) {
-                            { _, _ -> /* Silent mode: no callback */ }
-                        } else {
-                            onSuccess
-                        },
-                        onAdLoadFailed = if (silentMode) {
-                            { _, _ -> /* Silent mode: no callback */ }
-                        } else {
-                            { info, error -> onFailure(info, error) }
-                        },
+                        onAdLoaded = onSuccess,
+                        onAdLoadFailed = { info, error -> onFailure(info, error) },
                     )
                     val orchestrator = ParallelAuctionOrchestrator(
                         rtbProcessor = rtbProcessor,
@@ -382,26 +400,43 @@ internal class CoordinationLayer(
                         callbackCoordinator = callbackCoordinator,
                     )
 
-                    // Execute parallel auction via per-auction orchestrator
-                    orchestrator.executeParallelAuction(
-                        rtbAdUnits = mergedRtbAdUnits, // RTB group: server + cached, sorted by eCPM
-                        cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
-                        adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
+                    // Execute parallel auction via per-auction orchestrator with timeout
+                    try {
+                        withTimeout(effectiveTimeout) {
+                            orchestrator.executeParallelAuction(
+                                rtbAdUnits = mergedRtbAdUnits, // RTB group: server + cached, sorted by eCPM
+                                cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
+                                adTypeParam = adTypeParamWithDynamicPricefloor, // Use dynamic pricefloor
+                                demandAd = demandAd,
+                                auctionId = auctionId,
+                                auctionConfigurationId = response.auctionConfigurationId ?: 0L,
+                                auctionConfigurationUid = response.auctionConfigurationUid ?: "",
+                                externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
+                                pricefloor = dynamicPricefloor,
+                                auctionInfo = auctionInfo,
+                                resultsCollector = resultsCollector,
+                            )
+                        }
+                    } catch (_: TimeoutCancellationException) {
+                        logInfo(TAG, "Auction timed out after ${effectiveTimeout}ms, using available results")
+                    }
+
+                    // Save winners after auction completion
+                    resultsCollector.saveWinners(dynamicPricefloor)
+
+                    // Collect round results and send auction stats (mirrors AuctionImpl pattern)
+                    val roundStat = proceedRoundResults(resultsCollector)
+                    auctionStat.sendAuctionStats(
+                        auctionData = response,
+                        roundStat = roundStat,
                         demandAd = demandAd,
-                        auctionId = auctionId,
-                        auctionConfigurationId = response.auctionConfigurationId ?: 0L,
-                        auctionConfigurationUid = response.auctionConfigurationUid ?: "",
-                        externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
-                        pricefloor = dynamicPricefloor,
-                        auctionInfo = auctionInfo,
                     )
                 },
                 onFailure = { error ->
-                    // Auction request failed - notify via failure callback (unless silent mode)
+                    // Auction request failed - no AuctionResponse available, skip stats
+                    // (mirrors AuctionImpl.processAuctionFailed: only sends stats when auctionData exists)
                     logInfo(TAG, "Auction request failed: ${error.message}")
-                    if (!silentMode) {
-                        onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
-                    }
+                    onFailure(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
                 }
             )
         } finally {
@@ -466,8 +501,23 @@ internal class CoordinationLayer(
         return sortedRtb
     }
 
+    /**
+     * Extract round results from ResultsCollector and add to AuctionStat.
+     * Mirrors AuctionImpl.proceedRoundResults() pattern.
+     */
+    private suspend fun proceedRoundResults(resultsCollector: ResultsCollector): RoundStat? {
+        (resultsCollector.getRoundResults() as? RoundResult.Results)?.let {
+            return auctionStat.addRoundResults(it)
+        }
+        return null
+    }
+
     companion object {
         private const val TAG = "[DenisCache] Coordination"
+
+        // Reduce auction timeout for faster response when RTB is available in cache
+        private const val AUCTION_TIMEOUT_REDUCTION_MS = 5_000L
+        private const val MIN_AUCTION_TIMEOUT_MS = 5_000L
     }
 }
 

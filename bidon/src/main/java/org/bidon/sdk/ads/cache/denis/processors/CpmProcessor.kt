@@ -1,9 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -23,6 +20,7 @@ import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.BannerRequest
@@ -31,30 +29,29 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
+import kotlin.coroutines.coroutineContext
 
 /**
- * CPM waterfall processor for parallel ad loading with dynamic weight model.
+ * CPM waterfall processor with early-stop optimization.
  *
- * Loads CPM adUnits in parallel chunks of 2 in weighted eCPM order.
- * Each successful load goes to ReadyToShowCache.
- * Fill/no-fill feedback updates WeightModel for future optimizations.
+ * Loads CPM adUnits sequentially sorted by pricefloor descending.
+ * Stops after the first successful fill OR when the current adUnit's pricefloor
+ * is less than or equal to the best cached RTB eCPM in ReadyToShowCache.
  *
  * Thread-safety: Coroutine-based with proper cancellation support.
- * Failure handling: Continues through entire waterfall (doesn't stop on first success).
  */
 internal class CpmProcessor(
     private val adaptersSource: AdaptersSource,
-    private val weightModel: WeightModel = WeightModel, // Singleton default
 ) {
     /**
-     * Load entire CPM waterfall sequentially.
+     * Load CPM waterfall with early-stop logic.
      *
      * Process:
-     * 1. Sort adUnits by WeightModel.sortByWeightedScore() (eCPM × weight factor)
-     * 2. Load each adUnit sequentially (one at a time)
-     * 3. Record fill/no-fill on WeightModel after each attempt
-     * 4. On success: Store in ReadyToShowCache
-     * 5. Continue through entire waterfall (don't stop early)
+     * 1. Sort adUnits by pricefloor descending (highest first)
+     * 2. For each adUnit:
+     *    a. Check if pricefloor <= best cached eCPM in ReadyToShowCache -> STOP
+     *    b. Try to load the ad
+     *    c. On first success -> add to cache -> STOP
      *
      * @param adUnits List of CPM ad units to load
      * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
@@ -64,6 +61,7 @@ internal class CpmProcessor(
      * @param auctionConfigurationUid Auction configuration UID
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
+     * @param resultsCollector Collector for auction results
      * @param onFirstFill Callback to fire on first successful load (for immediate onAdLoaded)
      * @return CpmWaterfallResult with success/failure counts
      */
@@ -76,60 +74,56 @@ internal class CpmProcessor(
         auctionConfigurationUid: String,
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
+        resultsCollector: ResultsCollector,
         onFirstFill: (AuctionResult) -> Unit = {},
     ): CpmWaterfallResult {
-        // Sort by weighted score (eCPM × weight factor)
-        val sortedAdUnits = weightModel.sortByWeightedScore(adUnits)
+        // Sort by pricefloor descending (highest first)
+        val sortedAdUnits = adUnits.sortedByDescending { it.pricefloor }
 
         var successCount = 0
         var failureCount = 0
         var firstSuccess: AuctionResult? = null
 
-        logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units (weighted)")
+        logInfo(TAG, "Loading ${sortedAdUnits.size} CPM units (sorted by pricefloor desc)")
 
-        // Load in parallel chunks of 2
-        sortedAdUnits.chunked(2).forEach { chunk ->
-            // Check cancellation before each chunk
-            coroutineScope {
-                ensureActive()
+        for (adUnit in sortedAdUnits) {
+            // Check cancellation before each attempt
+            coroutineContext.ensureActive()
+
+            // Early stop: if adUnit pricefloor <= best cached eCPM, no point loading cheaper ads
+            val bestCachedEcpm = ReadyToShowCache.getMaxEcpm()
+            if (bestCachedEcpm > 0.0 && adUnit.pricefloor <= bestCachedEcpm) {
+                logInfo(
+                    TAG,
+                    "CPM early stop: adUnit pricefloor=${"$%.2f".format(adUnit.pricefloor)} <= " +
+                        "best cached eCPM=${"$%.2f".format(bestCachedEcpm)}, stopping waterfall"
+                )
+                break
             }
 
-            // Load chunk in parallel
-            val results = coroutineScope {
-                chunk.map { adUnit ->
-                    async {
-                        val result = loadSingleAdUnit(
-                            adUnit = adUnit,
-                            adTypeParam = adTypeParam,
-                            demandAd = demandAd,
-                            auctionId = auctionId,
-                            auctionConfigurationId = auctionConfigurationId,
-                            auctionConfigurationUid = auctionConfigurationUid,
-                            externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                            pricefloor = pricefloor,
-                        )
+            val result = loadSingleAdUnit(
+                adUnit = adUnit,
+                adTypeParam = adTypeParam,
+                demandAd = demandAd,
+                auctionId = auctionId,
+                auctionConfigurationId = auctionConfigurationId,
+                auctionConfigurationUid = auctionConfigurationUid,
+                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
+                pricefloor = pricefloor,
+                resultsCollector = resultsCollector,
+            )
 
-                        adUnit to result
-                    }
-                }.awaitAll()
-            }
-
-            // Process results sequentially to maintain consistent state
-            results.forEach { (adUnit, result) ->
-                if (result.isSuccess) {
-                    weightModel.recordFill(adUnit.demandId)
-                    successCount++
-
-                    if (firstSuccess == null) {
-                        firstSuccess = result.getOrNull()
-                        // Fire callback on first successful load (for immediate onAdLoaded)
-                        firstSuccess?.let { onFirstFill(it) }
-                    }
-                } else {
-                    weightModel.recordNoFill(adUnit.demandId)
-                    failureCount++
-                    // Continue to next adUnit (don't stop waterfall)
-                }
+            if (result.isSuccess) {
+                successCount++
+                firstSuccess = result.getOrNull()
+                // Fire callback on first successful load (for immediate onAdLoaded)
+                firstSuccess?.let { onFirstFill(it) }
+                // Stop after first fill
+                logInfo(TAG, "CPM first fill: ${adUnit.demandId} @ $${"%.2f".format(adUnit.pricefloor)}, stopping waterfall")
+                break
+            } else {
+                failureCount++
+                // Continue to next adUnit
             }
         }
 
@@ -162,6 +156,7 @@ internal class CpmProcessor(
      * @param auctionConfigurationUid Auction configuration UID
      * @param externalWinNotificationsEnabled Win notification flag
      * @param pricefloor Minimum acceptable price
+     * @param resultsCollector Collector for auction results
      * @return Result with AuctionResult on success, BidonError on failure
      */
     private suspend fun loadSingleAdUnit(
@@ -173,20 +168,33 @@ internal class CpmProcessor(
         auctionConfigurationUid: String,
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
+        resultsCollector: ResultsCollector,
     ): Result<AuctionResult> {
         var adSource: AdSource<AdAuctionParams>? = null
 
         return try {
             // Find adapter by demandId
             val adapter = adaptersSource.adapters.find { it.demandId.demandId == adUnit.demandId }
-                ?: return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
+                ?: run {
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = adUnit, roundStatus = RoundStatus.UnknownAdapter, tokenInfo = null
+                    )
+                    resultsCollector.add(failedResult)
+                    return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
+                }
 
             // Apply regulation
             adapter.applyRegulation()
 
             // Create AdSource
             adSource = createAdSource(adapter, demandAd, adTypeParam)
-                ?: return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
+                ?: run {
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
+                    )
+                    resultsCollector.add(failedResult)
+                    return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
+                }
 
             // Apply auction parameters
             applyParams(
@@ -213,6 +221,10 @@ internal class CpmProcessor(
 
             if (adParams == null) {
                 adSource.destroy()
+                val failedResult = AuctionResult.AuctionFailed(
+                    adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
+                )
+                resultsCollector.add(failedResult)
                 return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
             }
 
@@ -239,6 +251,10 @@ internal class CpmProcessor(
 
                     // Store in ReadyToShowCache
                     val auctionResult: AuctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
+
+                    // Report successful CPM result to ResultsCollector
+                    resultsCollector.add(auctionResult)
+
                     val entry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
                         ecpm = adUnit.pricefloor, // Use waterfall eCPM, not actual bid price
@@ -256,10 +272,18 @@ internal class CpmProcessor(
                         is AdEvent.Expired -> BidonError.Expired(null)
                         else -> BidonError.NoFill(DemandId(adUnit.demandId))
                     }
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
+                    )
+                    resultsCollector.add(failedResult)
                     Result.failure(error)
                 }
                 else -> {
                     logError(TAG, "Unexpected ad event: $adEvent", null)
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
+                    )
+                    resultsCollector.add(failedResult)
                     Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
                 }
             }
@@ -267,6 +291,10 @@ internal class CpmProcessor(
             // NEVER catch CancellationException - always rethrow
             throw e
         } catch (e: Exception) {
+            val failedResult = AuctionResult.AuctionFailed(
+                adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
+            )
+            resultsCollector.add(failedResult)
             Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
         } finally {
             // Guaranteed cleanup even if cancelled (LIFE-06)

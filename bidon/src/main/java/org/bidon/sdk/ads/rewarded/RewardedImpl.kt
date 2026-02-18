@@ -119,8 +119,30 @@ internal class RewardedImpl(
                 onShown = { ad ->
                     listener.onAdShown(ad)
                 },
+                onClicked = { ad ->
+                    listener.onAdClicked(ad)
+                },
+                onClosed = { ad ->
+                    listener.onAdClosed(ad)
+                },
+                onRevenuePaid = { ad, adValue ->
+                    listener.onRevenuePaid(ad, adValue)
+                },
+                onReward = { ad, reward ->
+                    listener.onUserRewarded(ad, reward)
+                },
+                onExpired = { ad ->
+                    listener.onAdExpired(ad)
+                },
+                onShowFailed = { error ->
+                    listener.onAdShowFailed(error)
+                },
                 onFailed = { error ->
                     listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
+                },
+                onWinnerSelected = { adSource ->
+                    logInfo(TAG, "Winner selected: ${adSource.demandId}")
+                    winner = adSource as? AdSource.Rewarded<*>
                 }
             )
         } else {

@@ -31,3 +31,16 @@ internal fun AdUnit.toAuctionNoBidInfo() =
         status = RoundStatus.NoBid.code,
         ext = extra.toString(),
     )
+
+internal fun AdUnit.toAdUnitInfo() =
+    AdUnitInfo(
+        demandId = demandId,
+        label = label,
+        price = pricefloor,
+        uid = uid,
+        bidType = bidType.code,
+        fillStartTs = null,
+        fillFinishTs = null,
+        status = null,
+        ext = extra.toString(),
+    )

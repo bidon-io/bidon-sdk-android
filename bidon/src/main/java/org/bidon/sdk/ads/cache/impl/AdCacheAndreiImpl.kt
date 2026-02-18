@@ -121,13 +121,13 @@ internal class AdCacheAndreiImpl(
                 statsRepository = get(),
                 cachedRtbBids = rtbAdUnits,
                 stopCondition =
-                    object : AuctionStopCondition {
-                        override fun shouldStop(
-                            successCount: Int,
-                            lastResult: AuctionResult,
-                            next: AdUnit?
-                        ): Boolean = successCount >= 1
-                    },
+                object : AuctionStopCondition {
+                    override fun shouldStop(
+                        successCount: Int,
+                        lastResult: AuctionResult,
+                        next: AdUnit?
+                    ): Boolean = successCount >= 1
+                },
             )
         _auction =
             AuctionImpl(
@@ -157,15 +157,15 @@ internal class AdCacheAndreiImpl(
                         adType = adType,
                         originalFloor = originalFloor,
                         recentFillRate =
-                            demandStatsRepository.getRecentFillRate(
-                                adType,
-                                windowMinutes = 10
-                            ),
+                        demandStatsRepository.getRecentFillRate(
+                            adType,
+                            windowMinutes = 10
+                        ),
                         bidDistribution =
-                            demandStatsRepository.getBidDistribution(
-                                adType,
-                                windowDays = 3
-                            ),
+                        demandStatsRepository.getBidDistribution(
+                            adType,
+                            windowDays = 3
+                        ),
                     )
                 }.also { demandStatsRepository.savePriceFloor(adType, it) }
 

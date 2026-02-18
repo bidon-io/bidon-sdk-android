@@ -11,6 +11,7 @@ import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -68,6 +69,7 @@ internal class ParallelAuctionOrchestrator(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         auctionInfo: AuctionInfo,
+        resultsCollector: ResultsCollector,
     ) {
         // Record current auction for cancellation support
         currentAuctionId = auctionId
@@ -102,6 +104,7 @@ internal class ParallelAuctionOrchestrator(
                         auctionConfigurationUid = auctionConfigurationUid,
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
+                        resultsCollector = resultsCollector,
                         onFirstFill = { auctionResult ->
                             // Fire onAdLoaded immediately on first successful load
                             callbackCoordinator.notifySuccess(auctionResult, auctionInfo)
@@ -135,6 +138,7 @@ internal class ParallelAuctionOrchestrator(
                         auctionConfigurationUid = auctionConfigurationUid,
                         externalWinNotificationsEnabled = externalWinNotificationsEnabled,
                         pricefloor = pricefloor,
+                        resultsCollector = resultsCollector,
                         onFirstFill = { auctionResult ->
                             // Fire onAdLoaded immediately on first successful load
                             callbackCoordinator.notifySuccess(auctionResult, auctionInfo)

@@ -14,13 +14,16 @@ import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.rewarded.Reward
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * V2 implementation of AdCache that delegates to Phase 1-4 components.
@@ -42,9 +45,12 @@ internal class AdCacheDenisImpl(
     private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main + SupervisorJob()),
 ) : AdCache {
 
+    private val isAuctionRunning = AtomicBoolean(false)
+
     /**
      * Start auction to cache ads.
      *
+     * Ignores concurrent calls while an auction is already running.
      * Delegates to CoordinationLayer which handles:
      * - Warm start: serve cached ad immediately
      * - Cold start: run full auction flow
@@ -56,18 +62,25 @@ internal class AdCacheDenisImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
+        if (!isAuctionRunning.compareAndSet(false, true)) {
+            logInfo(TAG, "Ignoring loadAd(): auction already running")
+            return
+        }
+
         scope.launch {
-            val tokenTimeout = biddingConfig.tokenTimeout
+            try {
+                val tokenTimeout = biddingConfig.tokenTimeout
 
-            val completionType = coordinationLayer.coordinateAuction(
-                adTypeParam = adTypeParam,
-                demandAd = demandAd,
-                tokenTimeout = tokenTimeout,
-                onSuccess = { result, info -> onSuccess(result, info) },
-                onFailure = { info, error -> onFailure(info, error) },
-            )
-
-            // Completion type logged by CoordinationLayer
+                val completionType = coordinationLayer.coordinateAuction(
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = { result, info -> onSuccess(result, info) },
+                    onFailure = { info, error -> onFailure(info, error) },
+                )
+            } finally {
+                isAuctionRunning.set(false)
+            }
         }
     }
 
@@ -120,7 +133,7 @@ internal class AdCacheDenisImpl(
      * - Tries to show best ad from ReadyToShowCache
      * - On failure, automatically tries next best ad
      * - Continues until success or cache exhaustion
-     * - Handles all ad lifecycle events (Shown, Clicked, Closed, PaidRevenue)
+     * - Handles all ad lifecycle events (Shown, Clicked, Closed, PaidRevenue, OnReward, Expired)
      *
      * Denis ad caching specific feature.
      *
@@ -129,6 +142,8 @@ internal class AdCacheDenisImpl(
      * @param onClicked Callback when ad is clicked
      * @param onClosed Callback when ad is closed
      * @param onRevenuePaid Callback when revenue is paid
+     * @param onReward Callback when user earns a reward (Rewarded ads only)
+     * @param onExpired Callback when a cached ad has expired
      * @param onShowFailed Callback when show fails (for each failed attempt)
      * @param onFailed Callback when all ads failed or cache empty
      * @param onWinnerSelected Callback with the AdSource that was successfully shown
@@ -139,9 +154,11 @@ internal class AdCacheDenisImpl(
         onClicked: (Ad) -> Unit = {},
         onClosed: (Ad) -> Unit = {},
         onRevenuePaid: (Ad, AdValue) -> Unit = { _, _ -> },
+        onReward: (Ad, Reward?) -> Unit = { _, _ -> },
+        onExpired: (Ad) -> Unit = {},
         onShowFailed: (BidonError) -> Unit = {},
         onFailed: (Throwable) -> Unit,
-        onWinnerSelected: (AdSource.Interstitial<*>) -> Unit = {}
+        onWinnerSelected: (AdSource<*>) -> Unit = {}
     ) {
         scope.launch {
             showBestAdWithFallback(
@@ -151,6 +168,8 @@ internal class AdCacheDenisImpl(
                 onClicked = onClicked,
                 onClosed = onClosed,
                 onRevenuePaid = onRevenuePaid,
+                onReward = onReward,
+                onExpired = onExpired,
                 onShowFailed = onShowFailed,
                 onWinnerSelected = onWinnerSelected
             )
