@@ -22,7 +22,6 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.InitAwaiter
 import org.bidon.sdk.ads.InitAwaiterImpl
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -110,38 +109,14 @@ internal class RewardedImpl(
             return
         }
         logInfo(TAG, "Show")
-
-        // Use fallback if denis ad caching, otherwise default behavior
-        if (adCache is AdCacheDenisImpl) {
-            logInfo(TAG, "Using denis ad caching with fallback")
-            (adCache as AdCacheDenisImpl).showBestWithFallback(
-                activity = activity,
-                onShowFailed = { error ->
-                    listener.onAdShowFailed(error)
-                },
-                onFailed = { error ->
-                    listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
-                },
-                onWinnerSelected = { adSource ->
-                    logInfo(TAG, "Winner selected: ${adSource.demandId}")
-                    winner = adSource as? AdSource.Rewarded<*>
-                    // Resubscribe to actual shown ad (handles fallback case)
-                    observeCallbacksJob?.cancel()
-                    subscribeToWinner(null, adSource)
-                }
-            )
-        } else {
-            // Default behavior (old ad cache)
-            logInfo(TAG, "Using default ad caching without fallback")
-            activity.runOnUiThread {
-                val adSource = adCache.pop()?.adSource as? AdSource.Rewarded
-                if (adSource == null) {
-                    logInfo(TAG, "Show failed. No Auction results.")
-                    listener.onAdShowFailed(BidonError.AdNotReady)
-                } else {
-                    winner = adSource
-                    adSource.show(activity)
-                }
+        activity.runOnUiThread {
+            val adSource = adCache.pop()?.adSource as? AdSource.Rewarded
+            if (adSource == null) {
+                logInfo(TAG, "Show failed. No Auction results.")
+                listener.onAdShowFailed(BidonError.AdNotReady)
+            } else {
+                winner = adSource
+                adSource.show(activity)
             }
         }
     }
@@ -182,6 +157,7 @@ internal class RewardedImpl(
             adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+            winner = null
         }
     }
 
@@ -189,7 +165,7 @@ internal class RewardedImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo?, adSource: AdSource<*>) {
+    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
         require(adSource is AdSource.Rewarded<*>)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
@@ -220,11 +196,7 @@ internal class RewardedImpl(
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> {
-                    if (auctionInfo != null) {
-                        listener.onAdLoadFailed(auctionInfo, adEvent.cause)
-                    }
-                }
+                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
