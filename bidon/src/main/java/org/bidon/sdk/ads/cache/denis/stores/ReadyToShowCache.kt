@@ -9,8 +9,9 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * Stores AuctionResult entries that have been successfully loaded and are ready for display.
  * Enables warm start optimization - when cache is not empty, onAdLoaded fires immediately.
  *
- * Ordering: FIFO with price-sorted insertion. Ads are inserted in eCPM descending order,
- * so the first element is always the most expensive. popFirst() returns the most expensive ad.
+ * Ordering: Pure FIFO (insertion order). No sorting inside cache.
+ * Sorting by price/weight happens before cache in processors (CpmProcessor, RtbProcessor).
+ * popFirst() returns the oldest ad.
  *
  * Thread-safety: Uses synchronized blocks for consistent read/write access.
  * Expiration: Lazy eviction on access + periodic sweep via external job.
@@ -22,32 +23,24 @@ internal object ReadyToShowCache {
     private const val TAG = "[DenisCache] ReadyToShowCache"
 
     /**
-     * Thread-safe sorted list: ordered by eCPM descending (most expensive first).
+     * Thread-safe FIFO list: entries stored in insertion order (oldest first).
      * All access must be synchronized on [lock].
      */
     private val entries = mutableListOf<CacheEntry<AuctionResult>>()
     private val lock = Any()
 
     /**
-     * Store an ad in cache with price-sorted insertion (eCPM descending).
+     * Store an ad in cache (FIFO append).
      *
      * - Evicts expired entries first (lazy cleanup)
-     * - Inserts entry at correct position to maintain eCPM descending order
+     * - Appends entry at end (insertion order)
      *
      * @param entry Cache entry to store
      */
     fun put(entry: CacheEntry<AuctionResult>) {
         synchronized(lock) {
             evictExpiredLocked()
-
-            // Find insertion position to maintain eCPM descending order
-            val insertIndex = entries.indexOfFirst { it.ecpm < entry.ecpm }
-            if (insertIndex == -1) {
-                entries.add(entry) // Lowest ecpm or empty list, add at end
-            } else {
-                entries.add(insertIndex, entry)
-            }
-
+            entries.add(entry)
             logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, size=${entries.size}")
         }
     }
@@ -89,9 +82,9 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Get entry with highest eCPM (first in sorted list).
+     * Get FIFO head (oldest entry).
      *
-     * @return Entry with highest eCPM or null if cache empty/all expired
+     * @return Oldest entry or null if cache empty/all expired
      */
     fun getBest(): CacheEntry<AuctionResult>? {
         synchronized(lock) {
@@ -137,14 +130,14 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Get maximum eCPM across all entries (first entry since sorted descending).
+     * Get maximum eCPM across all entries.
      *
      * @return Highest eCPM in cache or 0.0 if empty
      */
     fun getMaxEcpm(): Double {
         synchronized(lock) {
             evictExpiredLocked()
-            return entries.firstOrNull()?.ecpm ?: 0.0
+            return entries.maxOfOrNull { it.ecpm } ?: 0.0
         }
     }
 
@@ -167,18 +160,16 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Peek at best ad without removing it.
+     * Peek at FIFO head (oldest ad) without removing it.
      *
-     * @return AuctionResult with highest eCPM or null if empty
+     * @return AuctionResult of oldest entry or null if empty
      */
     fun peekBest(): AuctionResult? = getBest()?.value
 
     /**
-     * Remove and return first ad (highest eCPM due to sorted insertion).
+     * Remove and return FIFO head (oldest ad).
      *
-     * FIFO pop: returns and removes the most expensive ad.
-     *
-     * @return Entry with highest eCPM or null if empty
+     * @return Oldest entry or null if empty
      */
     fun popFirst(): CacheEntry<AuctionResult>? {
         synchronized(lock) {
@@ -189,11 +180,11 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Remove and return best ad (highest eCPM).
+     * Remove and return FIFO head (oldest ad).
      *
-     * Delegates to popFirst() since list is sorted by eCPM descending.
+     * Delegates to popFirst().
      *
-     * @return Entry with highest eCPM or null if empty
+     * @return Oldest entry or null if empty
      */
     fun popBest(): CacheEntry<AuctionResult>? = popFirst()
 
@@ -270,7 +261,7 @@ internal object ReadyToShowCache {
         synchronized(lock) {
             evictExpiredLocked()
             val allEntries = entries.toList()
-            val maxEcpm = allEntries.firstOrNull()?.ecpm ?: 0.0
+            val maxEcpm = allEntries.maxOfOrNull { it.ecpm } ?: 0.0
 
             logInfo(TAG, "=== CACHE STATE: size=${allEntries.size}, maxEcpm=${"$%.2f".format(maxEcpm)} ===")
 

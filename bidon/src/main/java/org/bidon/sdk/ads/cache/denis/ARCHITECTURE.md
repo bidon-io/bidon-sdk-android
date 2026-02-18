@@ -1,9 +1,9 @@
 # Denis -- Ad Caching Pipeline (V3)
 
 Denis is the V3 ad caching pipeline for Bidon SDK. It runs RTB and CPM loading
-in parallel, stores results in a FIFO cache with price-sorted insertion
-(most expensive first), and uses a dynamic WeightModel to optimize CPM waterfall
-ordering based on observed fill rates.
+in parallel, stores results in a pure FIFO cache (insertion order), and uses a
+dynamic WeightModel to optimize CPM waterfall ordering based on observed fill
+rates. Sorting by price/weight happens before cache in processors.
 
 ## Load Flow
 
@@ -11,7 +11,7 @@ ordering based on observed fill rates.
 loadAd()
 |
 +-- Cache has READY_TO_SHOW ads?
-|   +-- YES -> onAdLoaded(best from cache) immediately [WARM START]
+|   +-- YES -> onAdLoaded(FIFO head from cache) immediately [WARM START]
 |   |          background auction starts to replenish cache
 |   +-- NO  -> full auction (cold start)
 |
@@ -35,7 +35,7 @@ Full Auction (wrapped in auctionTimeout - 5sec):
 |   +-- Result -> 0 or 1 CPM in cache
 |
 +-- Both pipelines done (or timeout reached)
-|   +-- Has results -> onAdLoaded(best from cache)
+|   +-- Has results -> onAdLoaded(FIFO head from cache)
 |   +-- No results  -> onAdLoadFailed
 |
 +-- Stats: ResultsCollector -> CacheAuctionStat.sendAuctionStats()
@@ -45,7 +45,7 @@ Full Auction (wrapped in auctionTimeout - 5sec):
 
 ```
 showAd()
-+-- ReadyToShowCache.popFirst() -> FIFO (expensive first)
++-- ReadyToShowCache.popFirst() -> FIFO head (oldest ad)
 +-- Try show
 |   +-- Success -> onAdShown, onAdClicked, onAdClosed, onRevenuePaid
 |   +-- Fail    -> try next from cache (ShowWithFallback)
@@ -62,7 +62,7 @@ showAd()
 | `orchestration/ParallelAuctionOrchestrator.kt` | Runs RTB + CPM in parallel, fires callback after both |
 | `processors/RtbProcessor.kt` | RTB waterfall with fallback, payload caching |
 | `processors/CpmProcessor.kt` | CPM batch loading, WeightModel integration |
-| `stores/ReadyToShowCache.kt` | FIFO cache, price-sorted insertion (expensive first) |
+| `stores/ReadyToShowCache.kt` | Pure FIFO cache (insertion order) |
 | `stores/RtbPayloadCache.kt` | Persists untried RTB payloads between auctions |
 | `orchestration/CallbackCoordinator.kt` | Ensures exactly-once public callback firing |
 | `extensions/ShowWithFallback.kt` | Show with fallback to next cached ad on failure |
@@ -75,7 +75,7 @@ showAd()
 | Decision | Rationale |
 |----------|-----------|
 | Wait for both pipelines before onAdLoaded | Developer gets the best ad, not the fastest |
-| FIFO cache, no size limit | Simple; always show most expensive first |
+| Pure FIFO cache, no size limit | Ads served in insertion order. Sorting by price/weight happens before cache in processors |
 | RTB waterfall fallback | Don't waste RTB bids on single failure |
 | CPM batches of 2 | Balance between speed and network load |
 | WeightModel CPM sorting | Networks with better fill rates get priority |
