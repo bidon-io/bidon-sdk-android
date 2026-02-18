@@ -116,24 +116,6 @@ internal class RewardedImpl(
             logInfo(TAG, "Using denis ad caching with fallback")
             (adCache as AdCacheDenisImpl).showBestWithFallback(
                 activity = activity,
-                onShown = { ad ->
-                    listener.onAdShown(ad)
-                },
-                onClicked = { ad ->
-                    listener.onAdClicked(ad)
-                },
-                onClosed = { ad ->
-                    listener.onAdClosed(ad)
-                },
-                onRevenuePaid = { ad, adValue ->
-                    listener.onRevenuePaid(ad, adValue)
-                },
-                onReward = { ad, reward ->
-                    listener.onUserRewarded(ad, reward)
-                },
-                onExpired = { ad ->
-                    listener.onAdExpired(ad)
-                },
                 onShowFailed = { error ->
                     listener.onAdShowFailed(error)
                 },
@@ -143,6 +125,9 @@ internal class RewardedImpl(
                 onWinnerSelected = { adSource ->
                     logInfo(TAG, "Winner selected: ${adSource.demandId}")
                     winner = adSource as? AdSource.Rewarded<*>
+                    // Resubscribe to actual shown ad (handles fallback case)
+                    observeCallbacksJob?.cancel()
+                    subscribeToWinner(null, adSource)
                 }
             )
         } else {
@@ -204,7 +189,7 @@ internal class RewardedImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
+    private fun subscribeToWinner(auctionInfo: AuctionInfo?, adSource: AdSource<*>) {
         require(adSource is AdSource.Rewarded<*>)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
@@ -235,7 +220,11 @@ internal class RewardedImpl(
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
+                is AdEvent.LoadFailed -> {
+                    if (auctionInfo != null) {
+                        listener.onAdLoadFailed(auctionInfo, adEvent.cause)
+                    }
+                }
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)

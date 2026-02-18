@@ -6,7 +6,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
@@ -14,13 +13,11 @@ import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
 import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
-import org.bidon.sdk.ads.rewarded.Reward
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import java.util.concurrent.atomic.AtomicBoolean
@@ -133,29 +130,20 @@ internal class AdCacheDenisImpl(
      * - Tries to show best ad from ReadyToShowCache
      * - On failure, automatically tries next best ad
      * - Continues until success or cache exhaustion
-     * - Handles all ad lifecycle events (Shown, Clicked, Closed, PaidRevenue, OnReward, Expired)
+     *
+     * Event callbacks and impression sending are handled by subscribeToWinner()
+     * in InterstitialImpl/RewardedImpl. This method only handles the show/fallback
+     * flow and notifies via onWinnerSelected.
      *
      * Denis ad caching specific feature.
      *
      * @param activity Activity context for showing the ad
-     * @param onShown Callback when ad shown successfully
-     * @param onClicked Callback when ad is clicked
-     * @param onClosed Callback when ad is closed
-     * @param onRevenuePaid Callback when revenue is paid
-     * @param onReward Callback when user earns a reward (Rewarded ads only)
-     * @param onExpired Callback when a cached ad has expired
      * @param onShowFailed Callback when show fails (for each failed attempt)
      * @param onFailed Callback when all ads failed or cache empty
      * @param onWinnerSelected Callback with the AdSource that was successfully shown
      */
     fun showBestWithFallback(
         activity: Activity,
-        onShown: (Ad) -> Unit,
-        onClicked: (Ad) -> Unit = {},
-        onClosed: (Ad) -> Unit = {},
-        onRevenuePaid: (Ad, AdValue) -> Unit = { _, _ -> },
-        onReward: (Ad, Reward?) -> Unit = { _, _ -> },
-        onExpired: (Ad) -> Unit = {},
         onShowFailed: (BidonError) -> Unit = {},
         onFailed: (Throwable) -> Unit,
         onWinnerSelected: (AdSource<*>) -> Unit = {}
@@ -164,18 +152,9 @@ internal class AdCacheDenisImpl(
             showBestAdWithFallback(
                 lifecycleManager = lifecycleManager,
                 activity = activity,
-                onShown = onShown,
-                onClicked = onClicked,
-                onClosed = onClosed,
-                onRevenuePaid = onRevenuePaid,
-                onReward = onReward,
-                onExpired = onExpired,
                 onShowFailed = onShowFailed,
                 onWinnerSelected = onWinnerSelected
             )
-                .onSuccess { ad ->
-                    // onShown already called inside extension
-                }
                 .onFailure { error ->
                     onFailed(error)
                 }
