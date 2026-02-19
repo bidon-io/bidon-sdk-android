@@ -70,6 +70,7 @@ internal class AdCacheVladimirImpl(
 
     init {
         persistedState.restoreInto(slots, remainingUnits)
+        logInfo(TAG, "init: adType=${demandAd.adType}, slots=${slots.description()}, remaining=${remainingUnits.size}, isFirstLoad=$isFirstLoad")
     }
 
     // Loading guards
@@ -80,7 +81,7 @@ internal class AdCacheVladimirImpl(
     private var retryAttempt = 0
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // NO-OP: V4 does not use cache settings yet
+        logInfo(TAG, "withSettings(): not implemented yet, ignoring $settings")
     }
 
     override fun cache(
@@ -90,7 +91,7 @@ internal class AdCacheVladimirImpl(
     ) {
         logInfo(
             TAG,
-            "cache(): slots=${slots.description()}, isFirstLoad=$isFirstLoad, " +
+            "cache(): pricefloor=${adTypeParam.pricefloor}, slots=${slots.description()}, isFirstLoad=$isFirstLoad, " +
                 "loadingState=${loadingState.value}, retryAttempt=$retryAttempt"
         )
         slots.logCacheStatus("cache() entry")
@@ -286,6 +287,8 @@ internal class AdCacheVladimirImpl(
                         logInfo(TAG, "Load: preferRtb fill — abandoning waterfall")
                         break
                     }
+                } else {
+                    logInfo(TAG, "Load: [$loadIndex] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
                 }
             }
             logInfo(TAG, "Load: processed $loadIndex/${currentRound.adUnits.size} units, filled=$fillCount, skipped=$skipCount")
@@ -304,6 +307,8 @@ internal class AdCacheVladimirImpl(
             // Walk remaining units from previous rounds only when both slots are empty
             if (slots.peek() == null && remainingUnits.isNotEmpty()) {
                 walkRemainingUnits(adTypeParam, onSuccess)
+            } else if (remainingUnits.isNotEmpty()) {
+                logInfo(TAG, "Load: skipping ${remainingUnits.size} remaining units — slot1 occupied")
             }
         } == null
 
@@ -413,6 +418,8 @@ internal class AdCacheVladimirImpl(
                 fillCount++
                 logInfo(TAG, "Remaining: [$index] ✓ FILL from ${result.demandId} @ ${result.price}")
                 handleFill(result, entry.round, adTypeParam, onSuccess)
+            } else {
+                logInfo(TAG, "Remaining: [$index] ✗ ${entry.adUnit.demandId} → ${result?.roundStatus ?: "null"}")
             }
         }
         logInfo(TAG, "Remaining: processed $index units, filled=$fillCount, skipped=$skipCount, ${remainingUnits.size} still remaining")
