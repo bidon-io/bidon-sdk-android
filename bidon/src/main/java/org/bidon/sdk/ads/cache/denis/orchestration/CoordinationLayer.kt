@@ -8,20 +8,20 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
+import org.bidon.sdk.ads.cache.denis.processors.AuctionParams
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
-import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
 import org.bidon.sdk.ads.ext.toAdUnitInfo
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
+import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -52,7 +52,7 @@ import kotlin.math.max
  */
 internal class CoordinationLayer(
     private val adaptersSource: AdaptersSource,
-    private val getTokensWithSkip: GetTokensWithSkipUseCase,
+    private val getTokens: GetTokensUseCase,
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val rtbProcessor: RtbProcessor,
     private val cpmProcessor: CpmProcessor,
@@ -78,7 +78,7 @@ internal class CoordinationLayer(
      * @param userPricefloor Publisher-configured minimum eCPM
      * @return Pair of (auction state, cache snapshot) for pricefloor calculation
      */
-    fun determineStartState(userPricefloor: Double): Pair<AuctionStartState, CacheStateSnapshot> {
+    private fun determineStartState(userPricefloor: Double): Pair<AuctionStartState, CacheStateSnapshot> {
         // Capture cache state BEFORE any async operations
         val snapshot = CacheStateSnapshot.capture()
 
@@ -100,11 +100,7 @@ internal class CoordinationLayer(
             }
             !snapshot.rtbPayloadIsEmpty -> {
                 // Cold start with RTB cache optimization
-                logInfo(
-                    TAG,
-                    "❄️ COLD START WITH CACHE: ${snapshot.cachedDemandIds.size} RTB payloads available " +
-                        "(max eCPM: $${"%.2f".format(snapshot.rtbPayloadMaxEcpm)}), will merge with server response"
-                )
+                logInfo(TAG, "COLD START WITH CACHE: ${snapshot.cachedDemandIds.size} RTB payloads cached")
                 AuctionStartState.ColdStartWithCache(
                     cachedDemandIds = snapshot.cachedDemandIds,
                 )
@@ -267,9 +263,8 @@ internal class CoordinationLayer(
             auctionStat.markAuctionStarted(auctionId, adTypeParam)
 
             // Step 1: Collect tokens (with skip optimization)
-            val tokens = getTokensWithSkip(
+            val tokens = collectTokens(
                 adTypeParam = adTypeParam,
-                adaptersSource = adaptersSource,
                 tokenTimeout = tokenTimeout,
                 skipDemandIds = skipDemandIds,
             )
@@ -294,51 +289,15 @@ internal class CoordinationLayer(
                     )
                     resultsCollector.setNoBidInfo(response.noBids)
 
-                    // Step 3a: Split waterfall into RTB and CPM groups using WaterfallSplitter
+                    // Step 3a: Split waterfall into RTB and CPM groups
                     val adUnits = response.adUnits ?: emptyList()
-                    val splitWaterfall = WaterfallSplitter.split(
-                        adUnits = adUnits,
-                        adaptersSource = adaptersSource
-                    )
+                    val biddingDemandIds = adaptersSource.adapters
+                        .filterIsInstance<org.bidon.sdk.adapter.Adapter.Bidding>()
+                        .map { it.demandId.demandId }
+                        .toSet()
+                    val (rtbAdUnits, cpmAdUnits) = adUnits.partition { it.demandId in biddingDemandIds }
 
-                    // Step 3b: Merge server RTB with cached RTB payloads
-                    val mergedRtbAdUnits = mergeAndSortRtb(
-                        serverRtbAdUnits = splitWaterfall.rtbAdUnits,
-                        auctionId = auctionId
-                    )
-
-                    logInfo(
-                        TAG,
-                        "Waterfall split complete: rtb=${splitWaterfall.rtbAdUnits.size} (server) + " +
-                            "${mergedRtbAdUnits.size - splitWaterfall.rtbAdUnits.size} (cached) = ${mergedRtbAdUnits.size} total, " +
-                            "cpm=${splitWaterfall.cpmAdUnits.size}"
-                    )
-
-                    // Detailed waterfall logging
-                    if (mergedRtbAdUnits.isNotEmpty()) {
-                        val serverCount = splitWaterfall.rtbAdUnits.size
-                        val cachedCount = mergedRtbAdUnits.size - serverCount
-                        val rtbDetails = mergedRtbAdUnits.take(5).joinToString(", ") {
-                            "${it.demandId}:${"$%.2f".format(it.pricefloor)}"
-                        }
-                        val more = if (mergedRtbAdUnits.size > 5) " +${mergedRtbAdUnits.size - 5} more" else ""
-                        logInfo(
-                            TAG,
-                            "RTB WATERFALL: $serverCount server + $cachedCount cached = ${mergedRtbAdUnits.size} total [$rtbDetails$more]"
-                        )
-                    }
-                    if (splitWaterfall.cpmAdUnits.isNotEmpty()) {
-                        val cpmDetails = splitWaterfall.cpmAdUnits.take(5).joinToString(", ") { adUnit ->
-                            val weight = org.bidon.sdk.ads.cache.denis.processors.WeightModel.getWeight(adUnit.demandId)
-                            val score = org.bidon.sdk.ads.cache.denis.processors.WeightModel.calculateScore(adUnit)
-                            "${adUnit.demandId}:${"$%.2f".format(adUnit.pricefloor)}(w$weight/s${"%.2f".format(score)})"
-                        }
-                        val more = if (splitWaterfall.cpmAdUnits.size > 5) " +${splitWaterfall.cpmAdUnits.size - 5} more" else ""
-                        logInfo(
-                            TAG,
-                            "CPM WATERFALL: ${splitWaterfall.cpmAdUnits.size} networks (weighted) [$cpmDetails$more]"
-                        )
-                    }
+                    logInfo(TAG, "Waterfall: ${rtbAdUnits.size} RTB, ${cpmAdUnits.size} CPM")
 
                     // Reduce auction timeout for faster cache auctions
                     val effectiveTimeout = max(
@@ -368,21 +327,26 @@ internal class CoordinationLayer(
                         callbackCoordinator = callbackCoordinator,
                     )
 
+                    // Build common auction parameters for processors
+                    val auctionParams = AuctionParams(
+                        adTypeParam = adTypeParam,
+                        demandAd = demandAd,
+                        auctionId = auctionId,
+                        auctionConfigurationId = response.auctionConfigurationId ?: 0L,
+                        auctionConfigurationUid = response.auctionConfigurationUid ?: "",
+                        externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
+                        pricefloor = pricefloor,
+                        resultsCollector = resultsCollector,
+                    )
+
                     // Execute parallel auction via per-auction orchestrator with timeout
                     try {
                         withTimeout(effectiveTimeout) {
                             orchestrator.executeParallelAuction(
-                                rtbAdUnits = mergedRtbAdUnits, // RTB group: server + cached, sorted by eCPM
-                                cpmAdUnits = splitWaterfall.cpmAdUnits, // CPM group from split
-                                adTypeParam = adTypeParam,
-                                demandAd = demandAd,
-                                auctionId = auctionId,
-                                auctionConfigurationId = response.auctionConfigurationId ?: 0L,
-                                auctionConfigurationUid = response.auctionConfigurationUid ?: "",
-                                externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
-                                pricefloor = pricefloor,
+                                rtbAdUnits = rtbAdUnits,
+                                cpmAdUnits = cpmAdUnits,
+                                params = auctionParams,
                                 auctionInfo = auctionInfo,
-                                resultsCollector = resultsCollector,
                             )
                         }
                     } catch (_: TimeoutCancellationException) {
@@ -414,49 +378,6 @@ internal class CoordinationLayer(
     }
 
     /**
-     * Merge server RTB ad units with cached RTB payloads and sort by eCPM.
-     *
-     * Strategy:
-     * 1. Collect RTB from server response
-     * 2. Collect RTB from RTB_PAYLOAD cache
-     * 3. Deduplicate by demandId (keep highest eCPM)
-     * 4. Sort by eCPM descending (highest first)
-     *
-     * This ensures we use the best available RTB payloads from both sources.
-     *
-     * @param serverRtbAdUnits RTB ad units from auction response
-     * @param auctionId Current auction ID for logging
-     * @return Merged and sorted RTB ad units
-     */
-    private fun mergeAndSortRtb(
-        serverRtbAdUnits: List<AdUnit>,
-        auctionId: String
-    ): List<AdUnit> {
-        // Get cached RTB payloads (already sorted by eCPM)
-        val cachedRtbEntries = RtbPayloadCache.getAllSortedByEcpm()
-        val cachedRtbAdUnits = cachedRtbEntries.map { it.value.adUnit }
-
-        // Combine both sources
-        val allRtbAdUnits = serverRtbAdUnits + cachedRtbAdUnits
-
-        // Deduplicate by demandId, keeping highest eCPM
-        val deduplicatedRtb = allRtbAdUnits
-            .groupBy { it.demandId }
-            .mapNotNull { (demandId, adUnits) ->
-                // Keep the one with highest pricefloor (eCPM)
-                adUnits.maxByOrNull { it.pricefloor } ?: run {
-                    logInfo(TAG, "Warning: empty adUnits group for demandId=$demandId (should not happen)")
-                    null
-                }
-            }
-
-        // Sort by eCPM descending (highest first)
-        val sortedRtb = deduplicatedRtb.sortedByDescending { it.pricefloor }
-
-        return sortedRtb
-    }
-
-    /**
      * Extract round results from ResultsCollector and add to AuctionStat.
      * Mirrors AuctionImpl.proceedRoundResults() pattern.
      */
@@ -467,11 +388,68 @@ internal class CoordinationLayer(
         return null
     }
 
+    /**
+     * Collect tokens with skip optimization for cached RTB adapters.
+     * BidMachine is always included (requires tokens even when cached).
+     */
+    private suspend fun collectTokens(
+        adTypeParam: AdTypeParam,
+        tokenTimeout: Long,
+        skipDemandIds: Set<String>,
+    ): Map<String, org.bidon.sdk.auction.models.TokenInfo> {
+        if (skipDemandIds.isEmpty()) {
+            return getTokens(adTypeParam, adaptersSource, tokenTimeout)
+        }
+
+        // Always collect tokens for BidMachine, even when payload is cached
+        val effectiveSkipDemandIds = skipDemandIds - BIDMACHINE_DEMAND_ID
+
+        logInfo(
+            TAG,
+            "Token collection: skipping ${effectiveSkipDemandIds.size} of " +
+                "${adaptersSource.adapters.count { it is org.bidon.sdk.adapter.Adapter.Bidding }} " +
+                "bidding adapters (cached RTB payloads)"
+        )
+
+        val filteredAdaptersSource = object : AdaptersSource {
+            override val adapters: Set<org.bidon.sdk.adapter.Adapter>
+                get() = adaptersSource.adapters.filter { adapter ->
+                    adapter.demandId.demandId !in effectiveSkipDemandIds
+                }.toSet()
+
+            override fun add(adapter: org.bidon.sdk.adapter.Adapter) {
+                adaptersSource.add(adapter)
+            }
+        }
+
+        return getTokens(adTypeParam, filteredAdaptersSource, tokenTimeout)
+    }
+
     companion object {
         private const val TAG = "[DenisCache] Coordination"
 
         // Reduce auction timeout for faster response when RTB is available in cache
         private const val AUCTION_TIMEOUT_REDUCTION_MS = 5_000L
         private const val MIN_AUCTION_TIMEOUT_MS = 5_000L
+        private const val BIDMACHINE_DEMAND_ID = "bidmachine"
+    }
+}
+
+/**
+ * Immutable snapshot of cache state at auction start.
+ */
+private data class CacheStateSnapshot(
+    val readyToShowIsEmpty: Boolean,
+    val rtbPayloadIsEmpty: Boolean,
+    val rtbPayloadMaxEcpm: Double,
+    val cachedDemandIds: Set<String>,
+) {
+    companion object {
+        fun capture(): CacheStateSnapshot = CacheStateSnapshot(
+            readyToShowIsEmpty = ReadyToShowCache.isEmpty(),
+            rtbPayloadIsEmpty = RtbPayloadCache.isEmpty(),
+            rtbPayloadMaxEcpm = RtbPayloadCache.getMaxEcpm(),
+            cachedDemandIds = RtbPayloadCache.getCachedDemandIds()
+        )
     }
 }

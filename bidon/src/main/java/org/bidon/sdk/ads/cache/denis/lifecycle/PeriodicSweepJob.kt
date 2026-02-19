@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.lifecycle
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -18,13 +19,13 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * - SupervisorJob isolation: sweep failures don't crash ad instance
  * - Logs sweep results for monitoring
  *
- * CRITICAL: Job automatically stops when AdInstanceScope is cancelled (LIFE-04).
+ * CRITICAL: Job automatically stops when parent scope is cancelled.
  * No zombie background tasks after ad instance destroyed.
  *
  * Thread-safety: Coroutine-based, runs on Dispatchers.Default.
  */
 internal class PeriodicSweepJob(
-    private val adInstanceScope: AdInstanceScope,
+    private val scope: CoroutineScope,
 ) {
     private var sweepJob: Job? = null
 
@@ -41,7 +42,7 @@ internal class PeriodicSweepJob(
             return
         }
 
-        sweepJob = adInstanceScope.scope.launch {
+        sweepJob = scope.launch {
             while (isActive) {
                 // Wait first, then sweep (first sweep after 5 minutes)
                 delay(TtlConfig.SWEEP_INTERVAL_MILLIS)

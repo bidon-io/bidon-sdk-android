@@ -3,15 +3,13 @@ package org.bidon.sdk.ads.cache.denis.orchestration
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.supervisorScope
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.denis.processors.AuctionParams
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
-import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
@@ -48,27 +46,14 @@ internal class ParallelAuctionOrchestrator(
      *
      * @param rtbAdUnits RTB ad units from current auction response
      * @param cpmAdUnits CPM ad units to load
-     * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
-     * @param demandAd Demand ad configuration
-     * @param auctionId Auction identifier for tracking
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param pricefloor Minimum acceptable price
+     * @param params Common auction parameters
      * @param auctionInfo Auction information for callback
      */
     suspend fun executeParallelAuction(
         rtbAdUnits: List<AdUnit>,
         cpmAdUnits: List<AdUnit>,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
+        params: AuctionParams,
         auctionInfo: AuctionInfo,
-        resultsCollector: ResultsCollector,
     ) {
         // Record cache state BEFORE auction
         val cacheWasEmpty = ReadyToShowCache.isEmpty()
@@ -84,14 +69,7 @@ internal class ParallelAuctionOrchestrator(
                 supervisorScope {
                     val result = rtbProcessor.loadBestPayload(
                         rtbAdUnits = rtbAdUnits,
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        auctionId = auctionId,
-                        auctionConfigurationId = auctionConfigurationId,
-                        auctionConfigurationUid = auctionConfigurationUid,
-                        externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                        pricefloor = pricefloor,
-                        resultsCollector = resultsCollector,
+                        params = params,
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(
@@ -112,14 +90,7 @@ internal class ParallelAuctionOrchestrator(
                 supervisorScope {
                     val result = cpmProcessor.loadWaterfall(
                         adUnits = cpmAdUnits,
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        auctionId = auctionId,
-                        auctionConfigurationId = auctionConfigurationId,
-                        auctionConfigurationUid = auctionConfigurationUid,
-                        externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                        pricefloor = pricefloor,
-                        resultsCollector = resultsCollector,
+                        params = params,
                     )
                     val cacheSize = ReadyToShowCache.size()
                     logInfo(

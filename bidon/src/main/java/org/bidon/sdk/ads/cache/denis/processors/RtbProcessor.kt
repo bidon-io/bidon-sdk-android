@@ -8,15 +8,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayload
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
@@ -79,26 +76,12 @@ internal class RtbProcessor(
      * 6. On failure: Remove from RtbPayloadCache if it was cached
      *
      * @param rtbAdUnits RTB ad units from current auction response
-     * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
-     * @param demandAd Demand ad configuration
-     * @param auctionId Auction identifier for tracking
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param pricefloor Minimum acceptable price
-     * @param resultsCollector Collector for auction results
+     * @param params Common auction parameters
      * @return Result with Pair of AuctionResult and CacheEntry on success, BidonError on failure
      */
     suspend fun loadBestPayload(
         rtbAdUnits: List<org.bidon.sdk.auction.models.AdUnit>,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
-        resultsCollector: ResultsCollector,
+        params: AuctionParams,
     ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> = coroutineScope {
         // Get cached payloads (sorted by eCPM descending)
         val cachedPayloads = RtbPayloadCache.getAllSortedByEcpm()
@@ -137,21 +120,14 @@ internal class RtbProcessor(
 
             val result = tryLoadRtbSource(
                 source = source,
-                adTypeParam = adTypeParam,
-                demandAd = demandAd,
-                auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId,
-                auctionConfigurationUid = auctionConfigurationUid,
-                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                pricefloor = pricefloor,
-                resultsCollector = resultsCollector,
+                params = params,
             )
 
             if (result.isSuccess) {
                 val (auctionResult, cacheEntry) = result.getOrThrow()
 
                 // Cache untried new AdUnits for future auctions
-                val cachedCount = cacheUntriedSources(allRtbSources, triedDemandIds, auctionId)
+                val cachedCount = cacheUntriedSources(allRtbSources, triedDemandIds, params.auctionId)
 
                 logInfo(TAG, "RTB summary: loaded ${source.demandId}, cached $cachedCount payloads for future")
                 return@coroutineScope Result.success(auctionResult to cacheEntry)
@@ -160,7 +136,7 @@ internal class RtbProcessor(
         }
 
         // All sources failed — cache any untried new AdUnits (shouldn't be any, but safe)
-        cacheUntriedSources(allRtbSources, triedDemandIds, auctionId)
+        cacheUntriedSources(allRtbSources, triedDemandIds, params.auctionId)
 
         return@coroutineScope Result.failure(BidonError.NoFill(DemandId("RTB")))
     }
@@ -172,14 +148,7 @@ internal class RtbProcessor(
      */
     private suspend fun tryLoadRtbSource(
         source: RtbSource,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
-        resultsCollector: ResultsCollector,
+        params: AuctionParams,
     ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
         val demandId = source.demandId
         val ecpm = source.ecpm
@@ -198,7 +167,7 @@ internal class RtbProcessor(
         adapter.applyRegulation()
 
         // Create AdSource
-        val adSource = AdSourceFactory.createAdSource(adapter, demandAd, adTypeParam, TAG)
+        val adSource = AdSourceFactory.createAdSource(adapter, params.demandAd, params.adTypeParam, TAG)
         if (adSource == null) {
             logInfo(TAG, "AdSource creation failed for demandId=$demandId")
             if (source is RtbSource.FromCache) {
@@ -219,22 +188,22 @@ internal class RtbProcessor(
             // Apply auction parameters
             AdSourceFactory.applyParams(
                 adSource = adSource,
-                auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId,
-                auctionConfigurationUid = auctionConfigurationUid,
-                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                demandAd = demandAd,
-                pricefloor = pricefloor,
-                adTypeParam = adTypeParam,
+                auctionId = params.auctionId,
+                auctionConfigurationId = params.auctionConfigurationId,
+                auctionConfigurationUid = params.auctionConfigurationUid,
+                externalWinNotificationsEnabled = params.externalWinNotificationsEnabled,
+                demandAd = params.demandAd,
+                pricefloor = params.pricefloor,
+                adTypeParam = params.adTypeParam,
             )
 
             // Get auction params
             val adParams = adSource.getAuctionParam(
                 org.bidon.sdk.adapter.AdAuctionParamSource(
-                    activity = adTypeParam.activity,
-                    pricefloor = pricefloor,
-                    optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
-                    optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                    activity = params.adTypeParam.activity,
+                    pricefloor = params.pricefloor,
+                    optBannerFormat = (params.adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+                    optContainerWidth = (params.adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                     adUnit = source.adUnit,
                 )
             ).getOrNull()
@@ -248,7 +217,7 @@ internal class RtbProcessor(
             }
 
             // Mark fill started (sets adUnit in stats for getAd() calls)
-            adSource.markFillStarted(source.adUnit, pricefloor)
+            adSource.markFillStarted(source.adUnit, params.pricefloor)
 
             // Load ad with timeout (on Main thread for adapters like Admob)
             val adEvent = withTimeout(source.adUnit.timeout) {
@@ -273,14 +242,14 @@ internal class RtbProcessor(
                     val auctionResult: AuctionResult = AuctionResult.Bidding(adSource, RoundStatus.Successful)
 
                     // Report successful RTB result to ResultsCollector
-                    resultsCollector.add(auctionResult)
+                    params.resultsCollector.add(auctionResult)
 
                     // Create CacheEntry — orchestrator will sort and cache after both pipelines complete
                     val cacheEntry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
                         ecpm = ecpm,
                         demandId = demandId,
-                        auctionId = auctionId,
+                        auctionId = params.auctionId,
                         uid = source.adUnit.uid
                     )
 
@@ -301,7 +270,7 @@ internal class RtbProcessor(
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = source.adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = source.tokenInfo
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     if (source is RtbSource.FromCache) {
                         RtbPayloadCache.remove(demandId)
                     }
@@ -311,7 +280,7 @@ internal class RtbProcessor(
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = source.adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = source.tokenInfo
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     if (source is RtbSource.FromCache) {
                         RtbPayloadCache.remove(demandId)
                     }
@@ -329,13 +298,13 @@ internal class RtbProcessor(
             val failedResult = AuctionResult.AuctionFailed(
                 adUnit = source.adUnit, roundStatus = roundStatus, tokenInfo = source.tokenInfo
             )
-            resultsCollector.add(failedResult)
+            params.resultsCollector.add(failedResult)
             if (source is RtbSource.FromCache) {
                 RtbPayloadCache.remove(demandId)
             }
         } finally {
             if (!loadSuccess) {
-                CleanupCoordinator.destroyAdSource(adSource, demandId)
+                adSource.safeDestroy(demandId)
             }
         }
 

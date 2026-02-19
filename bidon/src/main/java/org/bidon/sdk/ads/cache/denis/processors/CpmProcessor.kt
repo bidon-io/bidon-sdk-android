@@ -11,14 +11,11 @@ import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
@@ -52,26 +49,12 @@ internal class CpmProcessor(
      *    c. On first success -> fire callback -> STOP
      *
      * @param adUnits List of CPM ad units to load
-     * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
-     * @param demandAd Demand ad configuration
-     * @param auctionId Auction identifier for tracking
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param pricefloor Minimum acceptable price
-     * @param resultsCollector Collector for auction results
+     * @param params Common auction parameters
      * @return CpmWaterfallResult with success/failure counts
      */
     suspend fun loadWaterfall(
         adUnits: List<AdUnit>,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
-        resultsCollector: ResultsCollector,
+        params: AuctionParams,
     ): CpmWaterfallResult {
         // Sort by weighted score descending (fill rate × eCPM)
         val sortedAdUnits = WeightModel.sortByWeightedScore(adUnits)
@@ -109,14 +92,7 @@ internal class CpmProcessor(
                     async {
                         adUnit to loadSingleAdUnit(
                             adUnit = adUnit,
-                            adTypeParam = adTypeParam,
-                            demandAd = demandAd,
-                            auctionId = auctionId,
-                            auctionConfigurationId = auctionConfigurationId,
-                            auctionConfigurationUid = auctionConfigurationUid,
-                            externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                            pricefloor = pricefloor,
-                            resultsCollector = resultsCollector,
+                            params = params,
                         )
                     }
                 }.map { deferred ->
@@ -190,26 +166,12 @@ internal class CpmProcessor(
      * 7. Always destroy AdSource in finally block if not ready
      *
      * @param adUnit Ad unit to load
-     * @param adTypeParam Ad type parameters
-     * @param demandAd Demand ad configuration
-     * @param auctionId Auction identifier
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param pricefloor Minimum acceptable price
-     * @param resultsCollector Collector for auction results
+     * @param params Common auction parameters
      * @return Result with Pair of AuctionResult and CacheEntry on success, BidonError on failure
      */
     private suspend fun loadSingleAdUnit(
         adUnit: AdUnit,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
-        resultsCollector: ResultsCollector,
+        params: AuctionParams,
     ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
         var adSource: AdSource<AdAuctionParams>? = null
 
@@ -220,7 +182,7 @@ internal class CpmProcessor(
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = adUnit, roundStatus = RoundStatus.UnknownAdapter, tokenInfo = null
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
                 }
 
@@ -228,34 +190,34 @@ internal class CpmProcessor(
             adapter.applyRegulation()
 
             // Create AdSource
-            adSource = AdSourceFactory.createAdSource(adapter, demandAd, adTypeParam, TAG)
+            adSource = AdSourceFactory.createAdSource(adapter, params.demandAd, params.adTypeParam, TAG)
                 ?: run {
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
                 }
 
             // Apply auction parameters
             AdSourceFactory.applyParams(
                 adSource = adSource,
-                auctionId = auctionId,
-                auctionConfigurationId = auctionConfigurationId,
-                auctionConfigurationUid = auctionConfigurationUid,
-                externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                demandAd = demandAd,
-                pricefloor = pricefloor,
-                adTypeParam = adTypeParam,
+                auctionId = params.auctionId,
+                auctionConfigurationId = params.auctionConfigurationId,
+                auctionConfigurationUid = params.auctionConfigurationUid,
+                externalWinNotificationsEnabled = params.externalWinNotificationsEnabled,
+                demandAd = params.demandAd,
+                pricefloor = params.pricefloor,
+                adTypeParam = params.adTypeParam,
             )
 
             // Get auction params
             val adParams = adSource.getAuctionParam(
                 org.bidon.sdk.adapter.AdAuctionParamSource(
-                    activity = adTypeParam.activity,
-                    pricefloor = pricefloor,
-                    optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
-                    optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                    activity = params.adTypeParam.activity,
+                    pricefloor = params.pricefloor,
+                    optBannerFormat = (params.adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+                    optContainerWidth = (params.adTypeParam as? AdTypeParam.Banner)?.containerWidth,
                     adUnit = adUnit,
                 )
             ).getOrNull()
@@ -265,12 +227,12 @@ internal class CpmProcessor(
                 val failedResult = AuctionResult.AuctionFailed(
                     adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
                 )
-                resultsCollector.add(failedResult)
+                params.resultsCollector.add(failedResult)
                 return Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
             }
 
             // Mark fill started (sets adUnit in stats for getAd() calls)
-            adSource.markFillStarted(adUnit, pricefloor)
+            adSource.markFillStarted(adUnit, params.pricefloor)
 
             // Load ad with timeout (on Main thread for adapters like Admob)
             val adEvent = withTimeout(adUnit.timeout) {
@@ -296,14 +258,14 @@ internal class CpmProcessor(
                     val auctionResult: AuctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
 
                     // Report successful CPM result to ResultsCollector
-                    resultsCollector.add(auctionResult)
+                    params.resultsCollector.add(auctionResult)
 
                     // Create CacheEntry — orchestrator will sort and cache after both pipelines complete
                     val entry: CacheEntry<AuctionResult> = CacheEntry.create(
                         value = auctionResult,
                         ecpm = adUnit.pricefloor, // Use waterfall eCPM, not actual bid price
                         demandId = adUnit.demandId,
-                        auctionId = auctionId,
+                        auctionId = params.auctionId,
                         uid = adUnit.uid
                     )
                     Result.success(auctionResult to entry)
@@ -320,7 +282,7 @@ internal class CpmProcessor(
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     Result.failure(error)
                 }
                 else -> {
@@ -331,7 +293,7 @@ internal class CpmProcessor(
                     val failedResult = AuctionResult.AuctionFailed(
                         adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
                     )
-                    resultsCollector.add(failedResult)
+                    params.resultsCollector.add(failedResult)
                     Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
                 }
             }
@@ -345,13 +307,13 @@ internal class CpmProcessor(
             val failedResult = AuctionResult.AuctionFailed(
                 adUnit = adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = null
             )
-            resultsCollector.add(failedResult)
+            params.resultsCollector.add(failedResult)
             Result.failure(BidonError.NoFill(DemandId(adUnit.demandId)))
         } finally {
             // Guaranteed cleanup even if cancelled (LIFE-06)
             // Only destroy if not successfully loaded into cache
             if (adSource != null && adSource.isAdReadyToShow != true) {
-                CleanupCoordinator.destroyAdSource(adSource, adUnit.demandId)
+                adSource.safeDestroy(adUnit.demandId)
             }
         }
     }

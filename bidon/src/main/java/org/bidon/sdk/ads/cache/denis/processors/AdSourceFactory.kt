@@ -1,5 +1,7 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
@@ -8,6 +10,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.stats.StatisticsCollector
@@ -119,3 +122,31 @@ internal fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
         is AdTypeParam.Rewarded -> StatisticsCollector.AdType.Rewarded
     }
 }
+
+/**
+ * Destroy AdSource with guaranteed execution even during cancellation.
+ */
+internal suspend fun AdSource<*>.safeDestroy(demandId: String) {
+    withContext(NonCancellable) {
+        try {
+            destroy()
+        } catch (e: Exception) {
+            logError("[DenisCache]", "AdSource.destroy() failed: demandId=$demandId", e)
+        }
+    }
+}
+
+/**
+ * Common auction parameters shared between RTB and CPM processors.
+ * Reduces parameter passing in processor methods.
+ */
+internal data class AuctionParams(
+    val adTypeParam: AdTypeParam,
+    val demandAd: DemandAd,
+    val auctionId: String,
+    val auctionConfigurationId: Long,
+    val auctionConfigurationUid: String,
+    val externalWinNotificationsEnabled: Boolean,
+    val pricefloor: Double,
+    val resultsCollector: ResultsCollector,
+)
