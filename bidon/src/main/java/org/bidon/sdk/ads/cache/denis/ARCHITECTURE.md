@@ -17,32 +17,26 @@ denis/
 ├── extensions/
 │   └── ShowWithFallback.kt          # Show with fallback to next cached ad on failure
 ├── lifecycle/
-│   ├── AdInstanceScope.kt           # Ad instance lifecycle scope
 │   ├── CancellationManager.kt       # Cancellation coordination for auctions
-│   ├── CleanupCoordinator.kt        # Coordinates cleanup of expired entries
 │   └── PeriodicSweepJob.kt          # Periodic sweep of expired cache entries
 ├── orchestration/
 │   ├── AuctionStartState.kt         # Enum for warm/cold start determination
-│   ├── CacheStateSnapshot.kt        # Snapshot of cache state for auction decisions
 │   ├── CallbackCoordinator.kt       # Ensures exactly-once public callback firing
 │   ├── CoordinationLayer.kt         # Orchestrates auction lifecycle, stats, callbacks
-│   ├── ParallelAuctionOrchestrator.kt # Runs RTB + CPM in parallel, collects results
-│   └── WaterfallSplitter.kt         # Splits waterfall into RTB/CPM using partition()
+│   └── ParallelAuctionOrchestrator.kt # Runs RTB + CPM in parallel, collects results
 ├── processors/
-│   ├── AdSourceFactory.kt           # Shared ad source creation for both processors
+│   ├── AdSourceFactory.kt           # Shared ad source creation, safeDestroy(), AuctionParams
 │   ├── CpmProcessor.kt              # CPM batch loading with WeightModel integration
 │   ├── RtbProcessor.kt              # RTB waterfall with fallback and payload caching
 │   └── WeightModel.kt               # Tracks CPM fill rates, dynamic waterfall scoring
 ├── stats/
 │   └── CacheAuctionStat.kt          # Denis-specific stats -- all cached ads marked WIN
-├── stores/
-│   ├── CacheEntry.kt                # Cache entry data class
-│   ├── ReadyToShowCache.kt          # Pure FIFO cache (insertion order)
-│   ├── RtbPayload.kt                # RTB payload data class
-│   ├── RtbPayloadCache.kt           # Persists untried RTB payloads between auctions
-│   └── TtlConfig.kt                 # TTL configuration for cache entries
-└── usecases/
-    └── GetTokensWithSkipUseCase.kt  # Token collection with cached network skip
+└── stores/
+    ├── CacheEntry.kt                # Cache entry data class
+    ├── ReadyToShowCache.kt          # Pure FIFO cache (insertion order)
+    ├── RtbPayload.kt                # RTB payload data class
+    ├── RtbPayloadCache.kt           # Persists untried RTB payloads between auctions
+    └── TtlConfig.kt                 # TTL configuration for cache entries
 ```
 
 ## Load Flow
@@ -57,7 +51,7 @@ loadAd()
 |
 Full Auction (wrapped in auctionTimeout - 5sec):
 +-- RTB Pipeline (async)
-|   +-- Collect tokens (skip cached networks via RtbPayloadCache)
+|   +-- Collect tokens (skip cached networks via collectTokens() in CoordinationLayer)
 |   +-- Server bidding request
 |   +-- Merge server RTB with cached RTB payloads, sort by ecpm
 |   +-- Try load best RTB; if fail, try next (waterfall fallback)
@@ -101,12 +95,12 @@ showAd()
 
 | File | Responsibility |
 |------|---------------|
-| `../impl/AdCacheDenisImpl.kt` | Public API entry point (loadAd, showAd, isReady). Directly holds `AdInstanceScope`, `PeriodicSweepJob`, `CancellationManager` for lifecycle management |
-| `orchestration/CoordinationLayer.kt` | Orchestrates auction lifecycle, stats, callbacks. Cold start paths deduplicated via `launchColdStart()`. Takes `CoroutineScope` + `CancellationManager` directly |
-| `orchestration/ParallelAuctionOrchestrator.kt` | Runs RTB + CPM in parallel, collects results, sorts by eCPM, inserts into cache, fires callback |
-| `processors/AdSourceFactory.kt` | Shared ad source creation and param application for both CpmProcessor and RtbProcessor |
-| `processors/RtbProcessor.kt` | RTB waterfall with fallback, payload caching. Uses `AdSourceFactory` for ad source creation |
-| `processors/CpmProcessor.kt` | CPM batch loading, WeightModel integration. Uses `AdSourceFactory` for ad source creation |
+| `../impl/AdCacheDenisImpl.kt` | Public API entry point (loadAd, showAd, isReady). Holds `PeriodicSweepJob`, `CancellationManager` for lifecycle management |
+| `orchestration/CoordinationLayer.kt` | Orchestrates auction lifecycle, stats, callbacks. Inlines token skip logic and cache state snapshot. Cold start paths deduplicated via `launchColdStart()` |
+| `orchestration/ParallelAuctionOrchestrator.kt` | Runs RTB + CPM in parallel via `AuctionParams`, collects results, sorts by eCPM, inserts into cache, fires callback |
+| `processors/AdSourceFactory.kt` | Shared ad source creation, `safeDestroy()` extension, and `AuctionParams` data class for parameter bundling |
+| `processors/RtbProcessor.kt` | RTB waterfall with fallback, payload caching. Uses `AuctionParams` and `safeDestroy()` |
+| `processors/CpmProcessor.kt` | CPM batch loading, WeightModel integration. Uses `AuctionParams` and `safeDestroy()` |
 | `stores/ReadyToShowCache.kt` | Pure FIFO cache (insertion order). `peekFirst()` returns head without removal, `popFirst()` removes |
 | `stores/RtbPayloadCache.kt` | Persists untried RTB payloads between auctions |
 | `orchestration/CallbackCoordinator.kt` | Ensures exactly-once public callback firing |
@@ -130,8 +124,11 @@ showAd()
 | No dynamic pricefloor | Always use publisher's explicit pricefloor |
 | Orchestrator owns cache insertion | Processors return results, orchestrator sorts by eCPM and inserts. Ensures per-auction ordering (expensive first) while keeping FIFO between auctions |
 | Concurrent loadAd() guard | Prevent duplicate auctions |
-| Remove LifecycleManager facade | Direct injection of lifecycle components (AdInstanceScope, PeriodicSweepJob, CancellationManager) reduces indirection |
+| Remove LifecycleManager facade | Direct injection of lifecycle components (PeriodicSweepJob, CancellationManager) reduces indirection |
 | Extract AdSourceFactory | Deduplicates ~130 lines of identical ad source creation code between CpmProcessor and RtbProcessor |
+| Inline single-use wrappers | AdInstanceScope, CleanupCoordinator, CacheStateSnapshot, WaterfallSplitter, GetTokensWithSkipUseCase all inlined into their sole callers (-345 lines, -5 files) |
+| AuctionParams data class | Bundles 8+ auction parameters into one object, reducing parameter lists in processors and orchestrator |
+| safeDestroy() extension | Replaces CleanupCoordinator class with a single extension function on AdSource using NonCancellable context |
 
 ## Stats Reporting
 
