@@ -10,7 +10,6 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
-import org.bidon.sdk.ads.cache.denis.lifecycle.AdInstanceScope
 import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
 import org.bidon.sdk.ads.cache.denis.lifecycle.PeriodicSweepJob
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
@@ -28,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Acts as facade over:
  * - CoordinationLayer: Orchestrates warm/cold start auction flow
- * - AdInstanceScope / PeriodicSweepJob / CancellationManager: Lifecycle components
+ * - PeriodicSweepJob / CancellationManager: Lifecycle components
  * - ReadyToShowCache: Stores ready-to-show ads
  *
  * Design pattern: Facade - simplifies complex subsystem interaction.
@@ -37,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class AdCacheDenisImpl(
     override val demandAd: DemandAd,
     private val coordinationLayer: CoordinationLayer,
-    private val adInstanceScope: AdInstanceScope,
     private val periodicSweepJob: PeriodicSweepJob,
     private val cancellationManager: CancellationManager,
     private val biddingConfig: BiddingConfig,

@@ -96,7 +96,6 @@ internal object AdCacheDenisFactory {
         return AdCacheDenisImpl(
             demandAd = demandAd,
             coordinationLayer = coordinationLayer,
-            adInstanceScope = adInstanceScope,
             periodicSweepJob = periodicSweepJob,
             cancellationManager = cancellationManager,
             biddingConfig = biddingConfig,
