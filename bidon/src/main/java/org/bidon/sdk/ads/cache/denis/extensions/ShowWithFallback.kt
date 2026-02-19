@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.first
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -22,14 +22,14 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * impression sending are handled by subscribeToWinner() in InterstitialImpl/RewardedImpl.
  * This function only handles the show/fallback flow and notifies via onWinnerSelected.
  *
- * @param lifecycleManager Lifecycle manager for cancelling ongoing auctions
+ * @param cancellationManager Cancellation manager for cancelling ongoing auctions
  * @param activity Activity context for showing the ad
  * @param onShowFailed Called when show fails (for each failed attempt)
  * @param onWinnerSelected Called with the AdSource that was successfully shown
  * @return Result with Ad on success, BidonError on failure
  */
 internal suspend fun showBestAdWithFallback(
-    lifecycleManager: LifecycleManager,
+    cancellationManager: CancellationManager,
     activity: Activity,
     onShowFailed: (BidonError) -> Unit,
     onWinnerSelected: (AdSource<*>) -> Unit
@@ -48,7 +48,7 @@ internal suspend fun showBestAdWithFallback(
     val auctionId = entry.auctionId
 
     // Cancel ongoing auction for this ad to prevent wasted processing
-    val wasCancelled = lifecycleManager.cancelAuction(auctionId)
+    val wasCancelled = cancellationManager.cancelIfMatching(auctionId)
     if (wasCancelled) {
         logInfo(TAG, "CANCEL: Stopped ongoing auction $auctionId for $demandId")
     }
@@ -78,7 +78,7 @@ internal suspend fun showBestAdWithFallback(
 
                 // Recursive retry with next best ad from cache
                 showBestAdWithFallback(
-                    lifecycleManager = lifecycleManager,
+                    cancellationManager = cancellationManager,
                     activity = activity,
                     onShowFailed = onShowFailed,
                     onWinnerSelected = onWinnerSelected

@@ -29,6 +29,8 @@ internal class CallbackCoordinator(
 ) {
     private val loadedCallbackFired = AtomicBoolean(false)
     private val failedCallbackFired = AtomicBoolean(false)
+
+    @Volatile
     private var cacheWasEmptyAtStart = true // Set before auction starts
 
     /**

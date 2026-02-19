@@ -1,12 +1,13 @@
 package org.bidon.sdk.ads.cache.denis.orchestration
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
@@ -55,7 +56,8 @@ internal class CoordinationLayer(
     private val getAuctionRequest: GetAuctionRequestUseCase,
     private val rtbProcessor: RtbProcessor,
     private val cpmProcessor: CpmProcessor,
-    private val lifecycleManager: LifecycleManager,
+    private val scope: CoroutineScope,
+    private val cancellationManager: CancellationManager,
     private val auctionStat: AuctionStat,
 ) {
     /**
@@ -130,8 +132,7 @@ internal class CoordinationLayer(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, BidonError) -> Unit,
     ) {
-        // Start lifecycle management (idempotent, safe to call multiple times)
-        lifecycleManager.start()
+        // Note: PeriodicSweepJob.start() is idempotent, called externally before coordinateAuction
 
         val userPricefloor = adTypeParam.pricefloor
         val (startState, snapshot) = determineStartState(userPricefloor)
@@ -198,7 +199,7 @@ internal class CoordinationLayer(
         onFailure: (AuctionInfo?, BidonError) -> Unit,
     ) {
         val auctionId = java.util.UUID.randomUUID().toString()
-        val job = lifecycleManager.getScope().launch {
+        val job = scope.launch {
             handleColdStart(
                 auctionId = auctionId,
                 skipDemandIds = skipDemandIds,
@@ -209,7 +210,7 @@ internal class CoordinationLayer(
                 onFailure = onFailure,
             )
         }
-        lifecycleManager.registerAuction(auctionId, job)
+        cancellationManager.registerAuction(auctionId, job)
     }
 
     /**
@@ -408,7 +409,7 @@ internal class CoordinationLayer(
             )
         } finally {
             // Clear auction state after completion (success or failure)
-            lifecycleManager.onAuctionCompleted(auctionId)
+            cancellationManager.onAuctionCompleted(auctionId)
         }
     }
 

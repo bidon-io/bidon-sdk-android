@@ -3,7 +3,9 @@ package org.bidon.sdk.ads.cache.denis
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.AdInstanceScope
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.PeriodicSweepJob
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
@@ -24,8 +26,8 @@ import org.bidon.sdk.utils.di.get
  * Gets V2-specific dependencies directly from DI container, keeping them
  * encapsulated within V2 implementation.
  *
- * This factory creates instance-scoped components (LifecycleManager, CoordinationLayer)
- * and wires them with processors and orchestrator.
+ * This factory creates instance-scoped components (AdInstanceScope, PeriodicSweepJob,
+ * CancellationManager, CoordinationLayer) and wires them with processors and orchestrator.
  */
 internal object AdCacheDenisFactory {
 
@@ -33,7 +35,7 @@ internal object AdCacheDenisFactory {
      * Create fully-wired V2 AdCache instance.
      *
      * Creates and assembles:
-     * - LifecycleManager (instance-scoped for ad lifecycle)
+     * - AdInstanceScope, PeriodicSweepJob, CancellationManager (instance-scoped lifecycle)
      * - RtbProcessor and CpmProcessor (shared processors for load operations)
      * - CoordinationLayer (warm/cold start orchestration, creates orchestrator per-auction)
      * - AdCacheDenisImpl (facade entry point)
@@ -63,8 +65,10 @@ internal object AdCacheDenisFactory {
             statsRequest = get<StatsRequestUseCase>(),
             resolver = resolver,
         )
-        // Create instance-scoped lifecycle manager
-        val lifecycleManager = LifecycleManager()
+        // Create instance-scoped lifecycle components
+        val adInstanceScope = AdInstanceScope()
+        val periodicSweepJob = PeriodicSweepJob(adInstanceScope)
+        val cancellationManager = CancellationManager()
 
         // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
@@ -84,14 +88,17 @@ internal object AdCacheDenisFactory {
             getAuctionRequest = getAuctionRequest,
             rtbProcessor = rtbProcessor,
             cpmProcessor = cpmProcessor,
-            lifecycleManager = lifecycleManager,
+            scope = adInstanceScope.scope,
+            cancellationManager = cancellationManager,
             auctionStat = auctionStat,
         )
 
         return AdCacheDenisImpl(
             demandAd = demandAd,
             coordinationLayer = coordinationLayer,
-            lifecycleManager = lifecycleManager,
+            adInstanceScope = adInstanceScope,
+            periodicSweepJob = periodicSweepJob,
+            cancellationManager = cancellationManager,
             biddingConfig = biddingConfig,
         )
     }

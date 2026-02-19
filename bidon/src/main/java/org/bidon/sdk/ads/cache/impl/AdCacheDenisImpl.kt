@@ -10,7 +10,9 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.AdInstanceScope
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.PeriodicSweepJob
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
@@ -26,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Acts as facade over:
  * - CoordinationLayer: Orchestrates warm/cold start auction flow
- * - LifecycleManager: Manages auction lifecycle and cancellation
+ * - AdInstanceScope / PeriodicSweepJob / CancellationManager: Lifecycle components
  * - ReadyToShowCache: Stores ready-to-show ads
  *
  * Design pattern: Facade - simplifies complex subsystem interaction.
@@ -35,7 +37,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class AdCacheDenisImpl(
     override val demandAd: DemandAd,
     private val coordinationLayer: CoordinationLayer,
-    private val lifecycleManager: LifecycleManager,
+    private val adInstanceScope: AdInstanceScope,
+    private val periodicSweepJob: PeriodicSweepJob,
+    private val cancellationManager: CancellationManager,
     private val biddingConfig: BiddingConfig,
     private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main + SupervisorJob()),
 ) : AdCache {
@@ -61,6 +65,9 @@ internal class AdCacheDenisImpl(
             logInfo(TAG, "Ignoring loadAd(): auction already running")
             return
         }
+
+        // Start periodic sweep (idempotent, safe to call multiple times)
+        periodicSweepJob.start()
 
         scope.launch {
             try {
@@ -148,7 +155,7 @@ internal class AdCacheDenisImpl(
     ) {
         scope.launch {
             showBestAdWithFallback(
-                lifecycleManager = lifecycleManager,
+                cancellationManager = cancellationManager,
                 activity = activity,
                 onShowFailed = onShowFailed,
                 onWinnerSelected = onWinnerSelected

@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.denis.stats
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.ext.asAdRequestBody
@@ -36,7 +37,7 @@ internal class CacheAuctionStat(
     private val resolver: AuctionResolver,
 ) : AuctionStat {
     private var auctionStartTs: Long = 0L
-    private val scope: CoroutineScope get() = CoroutineScope(SdkDispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + SdkDispatchers.IO)
 
     private var auctionId: String = ""
     private var bannerRequestBody: BannerRequest? = null
@@ -254,4 +255,4 @@ internal class CacheAuctionStat(
         }
 }
 
-private const val TAG = "CacheAuctionStat"
+private const val TAG = "[DenisCache] Stats"
