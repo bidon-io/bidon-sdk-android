@@ -63,13 +63,13 @@ internal class AdCacheVladimirImpl(
     // Strategy state (persisted across instance recreations via CachePersistedState)
     private var isFirstLoad = !persistedState.firstLoadCompleted
 
-    // Remaining units from a previous waterfall to try after the current round.
+    // Remaining units from previous waterfalls to try after the current round.
+    // Each unit is paired with its originating round for correct stats reporting.
     // Persists across rounds: untried units carry forward.
-    private val remainingUnits = mutableListOf<AdUnit>()
-    private var remainingRound: WaterfallLoader.AuctionRound? = null
+    private val remainingUnits = mutableListOf<RemainingUnit>()
 
     init {
-        remainingRound = persistedState.restoreInto(slots, remainingUnits)
+        persistedState.restoreInto(slots, remainingUnits)
     }
 
     // Loading guards
@@ -188,10 +188,9 @@ internal class AdCacheVladimirImpl(
         loadingJob = null
 
         val preserved = slots.extractAll()
-        persistedState.preserveOnClear(preserved, remainingUnits, remainingRound)
+        persistedState.preserveOnClear(preserved, remainingUnits)
 
         remainingUnits.clear()
-        remainingRound = null
         if (loadingState.getAndUpdate { LoadingState.IDLE } == LoadingState.LOADING) {
             logInfo(TAG, "clear(): loading was in progress, cancelled")
         }
@@ -297,10 +296,9 @@ internal class AdCacheVladimirImpl(
             // When preferRtb is active, the waterfall is incomplete (CPM units were skipped),
             // so remaining units are not saved — the next Load starts a fresh round.
             if (loadIndex < currentRound.adUnits.size && preferRtb?.get() != true) {
-                val untried = currentRound.adUnits.drop(loadIndex)
+                val untried = currentRound.adUnits.drop(loadIndex).map { RemainingUnit(it, currentRound) }
                 logInfo(TAG, "Load: saving ${untried.size} untried units for future rounds")
                 remainingUnits.addAll(0, untried) // prepend — newer waterfall units are higher priority
-                remainingRound = currentRound
             }
 
             // Walk remaining units from previous rounds only when both slots are empty
@@ -380,15 +378,14 @@ internal class AdCacheVladimirImpl(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
-        val round = remainingRound ?: return
         if (remainingUnits.isEmpty()) return
 
-        logInfo(TAG, "── Remaining | ${remainingUnits.size} units from previous waterfall ──")
+        logInfo(TAG, "── Remaining | ${remainingUnits.size} units from previous waterfalls ──")
 
         // Refresh expired RTB tokens before walking
         val rtbDemandIds = remainingUnits
-            .filter { it.bidType == BidType.RTB }
-            .map { it.demandId }
+            .filter { it.adUnit.bidType == BidType.RTB }
+            .map { it.adUnit.demandId }
             .toSet()
 
         val tokens = tokenStore.refreshExpired(rtbDemandIds) {
@@ -401,21 +398,21 @@ internal class AdCacheVladimirImpl(
         val iterator = remainingUnits.iterator()
         while (iterator.hasNext()) {
             if (slots.isFull()) break
-            val adUnit = iterator.next()
+            val entry = iterator.next()
             iterator.remove()
             index++
 
             // Skip units from networks already cached — avoids duplicate networks in slots
-            if (adUnit.demandId in slots.cachedDemandIds) {
+            if (entry.adUnit.demandId in slots.cachedDemandIds) {
                 skipCount++
                 continue
             }
 
-            val result = loader.loadUnit(adUnit, round, tokens)
+            val result = loader.loadUnit(entry.adUnit, entry.round, tokens)
             if (result?.roundStatus == RoundStatus.Successful) {
                 fillCount++
                 logInfo(TAG, "Remaining: [$index] ✓ FILL from ${result.demandId} @ ${result.price}")
-                handleFill(result, round, adTypeParam, onSuccess)
+                handleFill(result, entry.round, adTypeParam, onSuccess)
             }
         }
         logInfo(TAG, "Remaining: processed $index units, filled=$fillCount, skipped=$skipCount, ${remainingUnits.size} still remaining")

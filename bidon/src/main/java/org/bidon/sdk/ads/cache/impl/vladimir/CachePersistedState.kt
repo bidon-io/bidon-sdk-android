@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.impl.vladimir
 
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -27,19 +26,16 @@ internal class CachePersistedState private constructor() {
     private val preservedAds: MutableList<AuctionResult> = mutableListOf()
     private var preservedAdsConsumed: Boolean = false
     private var preservedByPop: Boolean = false
-    private val preservedRemainingUnits: MutableList<AdUnit> = mutableListOf()
-    private var preservedRemainingRound: WaterfallLoader.AuctionRound? = null
+    private val preservedRemainingUnits: MutableList<RemainingUnit> = mutableListOf()
 
     /**
      * Restores preserved ads and remaining units into a fresh cache instance.
      * Called from init block of [AdCacheVladimirImpl].
-     *
-     * @return the preserved remaining round if remaining units were restored, null otherwise
      */
     fun restoreInto(
         slots: CacheSlotManager,
-        remainingUnits: MutableList<AdUnit>,
-    ): WaterfallLoader.AuctionRound? {
+        remainingUnits: MutableList<RemainingUnit>,
+    ) {
         // Restore preserved ads from previous instance (saved during clear() or pop() snapshot)
         val preserved = preservedAds.toList()
         if (preserved.isNotEmpty()) {
@@ -59,17 +55,11 @@ internal class CachePersistedState private constructor() {
 
         // Restore remaining units from previous instance
         val savedUnits = preservedRemainingUnits.toList()
-        val savedRound = preservedRemainingRound
-        var restoredRound: WaterfallLoader.AuctionRound? = null
-        if (savedUnits.isNotEmpty() && savedRound != null) {
+        if (savedUnits.isNotEmpty()) {
             remainingUnits.addAll(savedUnits)
-            restoredRound = savedRound
             preservedRemainingUnits.clear()
-            preservedRemainingRound = null
             logInfo(TAG, "restoreInto: restored ${savedUnits.size} remaining units from previous instance")
         }
-
-        return restoredRound
     }
 
     /**
@@ -78,8 +68,7 @@ internal class CachePersistedState private constructor() {
      */
     fun preserveOnClear(
         extractedAds: List<AuctionResult>,
-        remainingUnits: List<AdUnit>,
-        remainingRound: WaterfallLoader.AuctionRound?,
+        remainingUnits: List<RemainingUnit>,
     ) {
         if (preservedAdsConsumed) {
             // Ads were already claimed by a new instance via pop() snapshot
@@ -96,7 +85,6 @@ internal class CachePersistedState private constructor() {
         // Preserve remaining units for next instance
         preservedRemainingUnits.clear()
         preservedRemainingUnits.addAll(remainingUnits)
-        preservedRemainingRound = remainingRound
         logInfo(TAG, "preserveOnClear(): preserved ${remainingUnits.size} remaining units for next instance")
     }
 
