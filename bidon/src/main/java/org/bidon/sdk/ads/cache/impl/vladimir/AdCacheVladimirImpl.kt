@@ -98,11 +98,12 @@ internal class AdCacheVladimirImpl(
 
         // Fire onSuccess immediately if we already have a cached ad
         val cachedResult = slots.peek()
+        val cachedInfo = slots.peekAuctionInfo()
         val hasAd = cachedResult != null
-        if (cachedResult != null) {
-            logInfo(TAG, "cache(): ad available, firing immediate onSuccess")
+        if (cachedResult != null && cachedInfo != null) {
+            logInfo(TAG, "cache(): ad available, firing immediate onSuccess (auctionId=${cachedInfo.auctionId})")
             adTypeParam.activity.runOnUiThread {
-                onSuccess(cachedResult, AuctionInfo(auctionId = "", auctionConfigurationId = null, auctionConfigurationUid = null, auctionPricefloor = 0.0, auctionTimeout = 0L, noBids = null, adUnits = null))
+                onSuccess(cachedResult, cachedInfo)
             }
         }
 
@@ -355,16 +356,16 @@ internal class AdCacheVladimirImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
         retryAttempt = 0
+        val auctionInfo = buildAuctionInfo(round.response)
         logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}, callbackFired=${callbackFired.get()}")
 
-        val primaryUpdated = slots.insert(result)
+        val primaryUpdated = slots.insert(result, auctionInfo)
         logInfo(TAG, "handleFill(): ${result.demandId} → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
         if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
             logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
-            val info = buildAuctionInfo(round.response)
-            adTypeParam.activity.runOnUiThread { onSuccess(result, info) }
+            adTypeParam.activity.runOnUiThread { onSuccess(result, auctionInfo) }
         } else if (primaryUpdated) {
             logInfo(TAG, "handleFill(): HOT-SWAP — onExpired already emitted by slot manager, caller will call cache() to get new primary")
         }

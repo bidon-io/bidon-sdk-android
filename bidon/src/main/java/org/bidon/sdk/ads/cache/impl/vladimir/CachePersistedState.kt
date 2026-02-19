@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.impl.vladimir
 
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
@@ -23,7 +22,7 @@ internal class CachePersistedState private constructor() {
     var firstLoadCompleted: Boolean = false
     val rtbTokens: MutableMap<String, RtbTokenStore.StoredToken> = mutableMapOf()
 
-    private val preservedAds: MutableList<AuctionResult> = mutableListOf()
+    private val preservedAds: MutableList<CachedAd> = mutableListOf()
     private var preservedAdsConsumed: Boolean = false
     private var preservedByPop: Boolean = false
     private val preservedRemainingUnits: MutableList<RemainingUnit> = mutableListOf()
@@ -48,7 +47,7 @@ internal class CachePersistedState private constructor() {
             }
             preservedByPop = false
             for (ad in preserved) {
-                slots.insert(ad)
+                slots.insert(ad.result, ad.auctionInfo)
             }
             logInfo(TAG, "restoreInto: restored ${preserved.size} preserved ads → ${slots.description()}")
         }
@@ -67,7 +66,7 @@ internal class CachePersistedState private constructor() {
      * Extracted ads and remaining units are saved for the next instance.
      */
     fun preserveOnClear(
-        extractedAds: List<AuctionResult>,
+        extractedAds: List<CachedAd>,
         remainingUnits: List<RemainingUnit>,
     ) {
         if (preservedAdsConsumed) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.ext.ad
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -24,6 +25,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
 
     private data class CacheSlot(
         val auctionResult: AuctionResult,
+        val auctionInfo: AuctionInfo,
         val observeJob: Job?,
         val price: Double,
         val demandId: String,
@@ -35,6 +37,8 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     // === Queries ===
 
     fun peek(): AuctionResult? = slot1.value?.auctionResult
+
+    fun peekAuctionInfo(): AuctionInfo? = slot1.value?.auctionInfo
 
     fun pop(): AuctionResult? {
         val old = slot1.getAndUpdate { slot2.value }
@@ -96,7 +100,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
      * @return `true` if the primary slot (slot1) was updated — either filled or hot-swapped.
      *         The caller can use this to decide whether to fire a callback.
      */
-    fun insert(result: AuctionResult): Boolean {
+    fun insert(result: AuctionResult, auctionInfo: AuctionInfo): Boolean {
         val price = result.price
         val demandId = result.demandId
         logInfo(TAG, "insert(): incoming $demandId @ $price, current state=${description()}")
@@ -104,6 +108,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         val observeJob = observeSlotEvents(result)
         val newSlot = CacheSlot(
             auctionResult = result,
+            auctionInfo = auctionInfo,
             observeJob = observeJob,
             price = price,
             demandId = demandId,
@@ -169,10 +174,10 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
      * Returns all slot contents WITHOUT removing them from slots.
      * Used to eagerly snapshot ads for persistence (e.g., on pop()).
      */
-    fun snapshotAll(): List<AuctionResult> {
+    fun snapshotAll(): List<CachedAd> {
         return listOfNotNull(
-            slot1.value?.auctionResult,
-            slot2.value?.auctionResult,
+            slot1.value?.let { CachedAd(it.auctionResult, it.auctionInfo) },
+            slot2.value?.let { CachedAd(it.auctionResult, it.auctionInfo) },
         )
     }
 
@@ -180,18 +185,18 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
      * Removes all ads from slots WITHOUT destroying them.
      * Cancels observe jobs but keeps ad sources alive for reuse.
      */
-    fun extractAll(): List<AuctionResult> {
+    fun extractAll(): List<CachedAd> {
         logInfo(TAG, "extractAll(): current state=${description()}")
-        val results = mutableListOf<AuctionResult>()
+        val results = mutableListOf<CachedAd>()
         val old1 = slot1.getAndUpdate { null }
         val old2 = slot2.getAndUpdate { null }
         old1?.let {
             it.observeJob?.cancel()
-            results.add(it.auctionResult)
+            results.add(CachedAd(it.auctionResult, it.auctionInfo))
         }
         old2?.let {
             it.observeJob?.cancel()
-            results.add(it.auctionResult)
+            results.add(CachedAd(it.auctionResult, it.auctionInfo))
         }
         logInfo(TAG, "extractAll(): extracted ${results.size} ads → state=${description()}")
         return results
