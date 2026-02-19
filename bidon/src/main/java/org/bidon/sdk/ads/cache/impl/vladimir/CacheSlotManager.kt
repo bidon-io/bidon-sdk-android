@@ -31,6 +31,12 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         val demandId: String,
     )
 
+    /**
+     * Called when a slot becomes empty due to expiration.
+     * The orchestrator uses this to trigger cache replenishment.
+     */
+    var onSlotVacancy: (() -> Unit)? = null
+
     private val slot1 = MutableStateFlow<CacheSlot?>(null)
     private val slot2 = MutableStateFlow<CacheSlot?>(null)
 
@@ -238,23 +244,29 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         val s1 = slot1.value
         val s2 = slot2.value
         logInfo(TAG, "removeExpiredSlot(): checking, current state=${description()}")
-        when {
+        val slotRemoved = when {
             s1?.auctionResult === result -> {
                 logInfo(TAG, "removeExpiredSlot(): slot1 expired (${s1.demandId}), promoting slot2")
                 s1.observeJob?.cancel()
                 slot1.value = s2
                 slot2.value = null
                 logInfo(TAG, "removeExpiredSlot(): after promotion → state=${description()}")
+                true
             }
             s2?.auctionResult === result -> {
                 logInfo(TAG, "removeExpiredSlot(): slot2 expired (${s2.demandId})")
                 s2.observeJob?.cancel()
                 slot2.value = null
                 logInfo(TAG, "removeExpiredSlot(): after removal → state=${description()}")
+                true
             }
             else -> {
                 logInfo(TAG, "removeExpiredSlot(): expired result not found in any slot")
+                false
             }
+        }
+        if (slotRemoved) {
+            onSlotVacancy?.invoke()
         }
     }
 

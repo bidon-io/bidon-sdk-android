@@ -69,6 +69,19 @@ internal class RtbTokenStore(
     }
 
     /**
+     * Removes the stored token for a network whose ad was shown.
+     * The token was consumed to load the shown ad and cannot produce a valid bid again.
+     */
+    fun removeToken(demandId: String) {
+        val removed = storedTokens.remove(demandId)
+        if (removed != null) {
+            logInfo(TAG, "removeToken(): removed token for $demandId (ad shown)")
+        } else {
+            logInfo(TAG, "removeToken(): no stored token for $demandId")
+        }
+    }
+
+    /**
      * Refreshes expired RTB tokens for the given demand IDs by calling the [fetcher].
      * Returns the merged map of valid + freshly fetched tokens.
      */

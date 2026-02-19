@@ -70,6 +70,7 @@ internal class AdCacheVladimirImpl(
 
     init {
         persistedState.restoreInto(slots, remainingUnits)
+        slots.onSlotVacancy = ::onSlotVacancy
         logInfo(TAG, "init: adType=${demandAd.adType}, slots=${slots.description()}, remaining=${remainingUnits.size}, isFirstLoad=$isFirstLoad")
     }
 
@@ -79,6 +80,7 @@ internal class AdCacheVladimirImpl(
     private var loadingJob: Job? = null
     private var autoRestartJob: Job? = null
     private var retryAttempt = 0
+    private var lastAdTypeParam: AdTypeParam? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
         logInfo(TAG, "withSettings(): not implemented yet, ignoring $settings")
@@ -95,16 +97,27 @@ internal class AdCacheVladimirImpl(
                 "loadingState=${loadingState.value}, retryAttempt=$retryAttempt"
         )
         slots.logCacheStatus("cache() entry")
+        lastAdTypeParam = adTypeParam
 
-        // Fire onSuccess immediately if we already have a cached ad
+        // Fire onSuccess immediately if we already have a cached ad at or above the price floor
         val cachedResult = slots.peek()
         val cachedInfo = slots.peekAuctionInfo()
-        val hasAd = cachedResult != null
-        if (cachedResult != null && cachedInfo != null) {
-            logInfo(TAG, "cache(): ad available, firing immediate onSuccess (auctionId=${cachedInfo.auctionId})")
+        val cachedPrice = cachedResult?.price ?: 0.0
+        val meetsFloor = cachedResult != null && cachedPrice >= adTypeParam.pricefloor
+        if (meetsFloor && cachedInfo != null) {
+            logInfo(TAG, "cache(): ad available at $cachedPrice >= floor ${adTypeParam.pricefloor}, firing immediate onSuccess (auctionId=${cachedInfo.auctionId})")
             adTypeParam.activity.runOnUiThread {
-                onSuccess(cachedResult, cachedInfo)
+                onSuccess(cachedResult!!, cachedInfo)
             }
+        } else if (cachedResult != null) {
+            logInfo(TAG, "cache(): ad available at $cachedPrice < floor ${adTypeParam.pricefloor}, skipping immediate onSuccess")
+        }
+
+        // Evict slot2 if both slots are full but both below the requested floor.
+        // This frees a slot so loading can try to find an ad that meets the floor.
+        if (slots.isFull() && (slots.primaryPrice ?: 0.0) < adTypeParam.pricefloor) {
+            logInfo(TAG, "cache(): EVICTION — both slots below floor ${adTypeParam.pricefloor}, destroying backup")
+            slots.evictBackup()
         }
 
         // If both slots are full, no loading needed
@@ -126,10 +139,10 @@ internal class AdCacheVladimirImpl(
             autoRestartJob = null
         }
 
-        // If onSuccess was already fired above, mark it so loading doesn't fire it again
-        callbackFired.set(hasAd)
+        // If onSuccess was already fired above (ad met the floor), mark it so loading doesn't fire it again
+        callbackFired.set(meetsFloor)
         fallbackHandler.lastActivity = adTypeParam.activity
-        logInfo(TAG, "cache(): state→LOADING, callbackFired=$hasAd, launching load")
+        logInfo(TAG, "cache(): state→LOADING, callbackFired=$meetsFloor, launching load")
 
         loadingJob = scope.launch {
             runCatching {
@@ -161,6 +174,9 @@ internal class AdCacheVladimirImpl(
         val result = slots.pop()
         if (result != null) {
             logInfo(TAG, "pop(): popped ${result.demandId} @ ${result.price}")
+
+            // Remove the shown ad's token — it was consumed and cannot produce a valid bid again
+            tokenStore.removeToken(result.demandId)
 
             fallbackHandler.observe(result)
             persistedState.snapshotOnPop(slots)
@@ -227,12 +243,6 @@ internal class AdCacheVladimirImpl(
         val validTokens = tokenStore.getValidTokens()
         logInfo(TAG, "runLoad(): ${validTokens.size} valid RTB tokens: [${validTokens.keys.joinToString()}]")
 
-        // Evict slot2 if both slots full but both below requested floor
-        if (slots.isFull() && (slots.primaryPrice ?: 0.0) < pricefloor) {
-            logInfo(TAG, "runLoad(): EVICTION — both slots below floor $pricefloor, destroying backup")
-            slots.evictBackup()
-        }
-
         // 10s timer (first load only): enables preferRtb mode if slot1 is still empty
         val preferRtb = if (isFirstLoadRun) AtomicBoolean(false) else null
         val timerJob = if (isFirstLoadRun) {
@@ -261,12 +271,12 @@ internal class AdCacheVladimirImpl(
             var fillCount = 0
             var skipCount = 0
             for (adUnit in currentRound.adUnits) {
-                loadIndex++
-
                 if (slots.isFull()) {
                     logInfo(TAG, "Load: BREAK at [$loadIndex] — both slots filled")
                     break
                 }
+
+                loadIndex++
 
                 // preferRtb: skip CPM units to reach RTB faster
                 if (preferRtb?.get() == true && adUnit.bidType == BidType.CPM) {
@@ -303,6 +313,15 @@ internal class AdCacheVladimirImpl(
                 val untried = currentRound.adUnits.drop(loadIndex).map { RemainingUnit(it, currentRound) }
                 logInfo(TAG, "Load: saving ${untried.size} untried units for future rounds")
                 remainingUnits.addAll(0, untried) // prepend — newer waterfall units are higher priority
+            }
+
+            // Fire onLoadFailed if the waterfall produced no fills — this must happen
+            // BEFORE walking remaining units, which fill silently (no callback to caller).
+            // Design: "Walk remaining units... They fill slots silently — no callback to caller."
+            if (fillCount == 0 && callbackFired.compareAndSet(false, true)) {
+                val auctionInfo = buildAuctionInfo(currentRound.response)
+                logInfo(TAG, "Load: all waterfall units failed, firing onLoadFailed before walking remaining units")
+                adTypeParam.activity.runOnUiThread { onFailure(auctionInfo, BidonError.NoAuctionResults) }
             }
 
             // Walk remaining units from previous rounds only when both slots are empty
@@ -492,6 +511,30 @@ internal class AdCacheVladimirImpl(
     private fun storeRtbTokens(round: WaterfallLoader.AuctionRound) {
         val noBidDemandIds = round.response.noBids?.map { it.demandId }?.toSet() ?: emptySet()
         tokenStore.storeFromRound(round.adUnits, noBidDemandIds, round.tokens)
+    }
+
+    // --- Slot Vacancy ---
+
+    /**
+     * Called by [CacheSlotManager] when a slot becomes empty due to expiration.
+     * Triggers cache replenishment if not already loading.
+     */
+    private fun onSlotVacancy() {
+        val adTypeParam = lastAdTypeParam
+        if (adTypeParam == null) {
+            logInfo(TAG, "onSlotVacancy(): no adTypeParam available, skipping replenishment")
+            return
+        }
+        if (loadingState.value == LoadingState.LOADING) {
+            logInfo(TAG, "onSlotVacancy(): already loading, skipping replenishment")
+            return
+        }
+        if (autoRestartJob != null) {
+            logInfo(TAG, "onSlotVacancy(): auto-restart already scheduled, skipping")
+            return
+        }
+        logInfo(TAG, "onSlotVacancy(): slot vacancy detected, scheduling replenishment")
+        scheduleAutoRestart(adTypeParam)
     }
 
     // --- Auto Restart ---
