@@ -60,7 +60,6 @@ internal object RtbPayloadCache {
             // else: Keep existing if higher eCPM
         }
 
-        logInfo(TAG, "RtbPayloadCache.putIfHigherEcpm: demandId=$demandId, ecpm=$newEcpm, inserted=$wasInserted")
         return wasInserted
     }
 
@@ -201,18 +200,13 @@ internal object RtbPayloadCache {
      */
     private fun evictExpired() {
         val now = TtlConfig.now()
-        var removed = 0
         // Using iterator instead of removeIf() for API 23 compatibility
         val iterator = cache.entries.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
             if (now > entry.value.expiresAt) {
                 iterator.remove()
-                removed++
             }
-        }
-        if (removed > 0) {
-            logInfo(TAG, "RtbPayloadCache evicted $removed expired entries")
         }
     }
 

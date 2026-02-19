@@ -33,9 +33,6 @@ internal class GetTokensWithSkipUseCase(
         // Log skip info for debugging
         val allBiddingCount = adaptersSource.adapters.count { it is Adapter.Bidding }
         logInfo(TAG, "Token collection: skipping ${effectiveSkipDemandIds.size} of $allBiddingCount bidding adapters (cached RTB payloads)")
-        effectiveSkipDemandIds.forEach { demandId ->
-            logInfo(TAG, "Skipped token collection for demandId=$demandId (cached payload)")
-        }
 
         // Create filtered adapters source (BidMachine not in skip list)
         val filteredAdaptersSource = FilteredAdaptersSource(adaptersSource, effectiveSkipDemandIds)

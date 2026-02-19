@@ -74,23 +74,14 @@ internal class ParallelAuctionOrchestrator(
         val cacheWasEmpty = ReadyToShowCache.isEmpty()
         callbackCoordinator.setCacheEmptyAtStart(cacheWasEmpty)
 
-        logInfo(
-            TAG,
-            "Starting parallel auction: auctionId=$auctionId, " +
-                "rtbAdUnits=${rtbAdUnits.size}, cpmAdUnits=${cpmAdUnits.size}, " +
-                "cacheWasEmpty=$cacheWasEmpty"
-        )
-
         coroutineScope {
             // RTB branch (independent failure domain)
             val rtbDeferred = async {
                 if (rtbAdUnits.isEmpty()) {
-                    logInfo(TAG, "Skipping RTB branch: no RTB ad units")
                     return@async null
                 }
                 // supervisorScope isolates RTB failures (doesn't cancel CPM)
                 supervisorScope {
-                    logInfo(TAG, "RTB branch starting (auctionId=$auctionId, adUnits=${rtbAdUnits.size})")
                     val result = rtbProcessor.loadBestPayload(
                         rtbAdUnits = rtbAdUnits,
                         adTypeParam = adTypeParam,
@@ -115,12 +106,10 @@ internal class ParallelAuctionOrchestrator(
             // CPM branch (independent failure domain)
             val cpmDeferred = async {
                 if (cpmAdUnits.isEmpty()) {
-                    logInfo(TAG, "Skipping CPM branch: no adUnits")
                     return@async null
                 }
                 // supervisorScope isolates CPM failures (doesn't cancel RTB)
                 supervisorScope {
-                    logInfo(TAG, "CPM branch starting (auctionId=$auctionId, adUnits=${cpmAdUnits.size})")
                     val result = cpmProcessor.loadWaterfall(
                         adUnits = cpmAdUnits,
                         adTypeParam = adTypeParam,
@@ -149,11 +138,6 @@ internal class ParallelAuctionOrchestrator(
             // Check if ANY success occurred
             val rtbSuccess = rtbResult?.isSuccess == true
             val cpmSuccess = cpmResult?.firstSuccess != null
-
-            logInfo(
-                TAG,
-                "Parallel auction completed: rtbSuccess=$rtbSuccess, cpmSuccess=$cpmSuccess"
-            )
 
             // Collect all cache entries from this auction, sort by eCPM desc, insert into cache
             val auctionEntries = mutableListOf<CacheEntry<AuctionResult>>()
@@ -205,19 +189,9 @@ internal class ParallelAuctionOrchestrator(
         auctionInfo: AuctionInfo,
         cacheWasEmpty: Boolean
     ) {
-        // Get current cache state for detailed logging
-        val cacheSize = ReadyToShowCache.size()
-        val cacheIsEmpty = ReadyToShowCache.isEmpty()
-
-        logInfo(
-            TAG,
-            "Cache observation: was_empty=$cacheWasEmpty, current_size=$cacheSize, " +
-                "current_empty=$cacheIsEmpty, rtb_success=$rtbSuccess, cpm_success=$cpmSuccess"
-        )
-
         if (rtbSuccess || cpmSuccess) {
             // Both pipelines done — pick best from cache
-            val bestEntry = ReadyToShowCache.getBest()
+            val bestEntry = ReadyToShowCache.peekFirst()
             if (bestEntry != null) {
                 logInfo(
                     TAG,
@@ -238,7 +212,7 @@ internal class ParallelAuctionOrchestrator(
             logInfo(
                 TAG,
                 "Both RTB and CPM branches failed (cache_was_empty=$cacheWasEmpty, " +
-                    "cache_size=$cacheSize)"
+                    "cache_size=${ReadyToShowCache.size()})"
             )
             callbackCoordinator.notifyFailure(auctionInfo, BidonError.NoFill(DemandId("auction")))
         }

@@ -31,23 +31,6 @@ private const val TAG = "[DenisCache] ShowWithFallback"
 internal suspend fun showBestAdWithFallback(
     lifecycleManager: LifecycleManager,
     activity: Activity,
-    onShowFailed: (BidonError) -> Unit = {},
-    onWinnerSelected: (AdSource<*>) -> Unit = {}
-): Result<Ad> {
-    return tryShowNextAd(
-        lifecycleManager = lifecycleManager,
-        activity = activity,
-        onShowFailed = onShowFailed,
-        onWinnerSelected = onWinnerSelected
-    )
-}
-
-/**
- * Internal recursive function to try showing ads from cache.
- */
-private suspend fun tryShowNextAd(
-    lifecycleManager: LifecycleManager,
-    activity: Activity,
     onShowFailed: (BidonError) -> Unit,
     onWinnerSelected: (AdSource<*>) -> Unit
 ): Result<Ad> {
@@ -69,8 +52,6 @@ private suspend fun tryShowNextAd(
     if (wasCancelled) {
         logInfo(TAG, "CANCEL: Stopped ongoing auction $auctionId for $demandId")
     }
-
-    logInfo(TAG, "SHOW: Attempting $demandId @ $${"%.2f".format(ecpm)}")
 
     // Show the ad based on type
     when (adSource) {
@@ -96,7 +77,7 @@ private suspend fun tryShowNextAd(
                 onShowFailed(event.cause)
 
                 // Recursive retry with next best ad from cache
-                tryShowNextAd(
+                showBestAdWithFallback(
                     lifecycleManager = lifecycleManager,
                     activity = activity,
                     onShowFailed = onShowFailed,

@@ -6,17 +6,11 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdProvider
-import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayload
@@ -24,11 +18,9 @@ import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
@@ -191,12 +183,6 @@ internal class RtbProcessor(
     ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
         val demandId = source.demandId
         val ecpm = source.ecpm
-        val sourceType = when (source) {
-            is RtbSource.FromAdUnit -> "new"
-            is RtbSource.FromCache -> "cached"
-        }
-
-        logInfo(TAG, "RTB loading: demandId=$demandId, ecpm=$ecpm, source=$sourceType")
 
         // Find adapter by demandId
         val adapter = adaptersSource.adapters.find { it.demandId.demandId == demandId }
@@ -212,7 +198,7 @@ internal class RtbProcessor(
         adapter.applyRegulation()
 
         // Create AdSource
-        val adSource = createAdSource(adapter, demandAd, adTypeParam)
+        val adSource = AdSourceFactory.createAdSource(adapter, demandAd, adTypeParam, TAG)
         if (adSource == null) {
             logInfo(TAG, "AdSource creation failed for demandId=$demandId")
             if (source is RtbSource.FromCache) {
@@ -231,7 +217,7 @@ internal class RtbProcessor(
             }
 
             // Apply auction parameters
-            applyParams(
+            AdSourceFactory.applyParams(
                 adSource = adSource,
                 auctionId = auctionId,
                 auctionConfigurationId = auctionConfigurationId,
@@ -276,7 +262,6 @@ internal class RtbProcessor(
 
             when (adEvent) {
                 is AdEvent.Fill -> {
-                    logInfo(TAG, "RTB loaded successfully: demandId=$demandId, source=$sourceType")
                     loadSuccess = true
 
                     // Update price to RTB eCPM
@@ -298,7 +283,6 @@ internal class RtbProcessor(
                         auctionId = auctionId,
                         uid = source.adUnit.uid
                     )
-                    logInfo(TAG, "RTB result: ready for cache $demandId $${"%.2f".format(ecpm)}")
 
                     // Remove loaded source from cache if it was cached
                     if (source is RtbSource.FromCache) {
@@ -379,7 +363,6 @@ internal class RtbProcessor(
                 val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
                 if (inserted) {
                     cachedCount++
-                    logInfo(TAG, "→ RTB_PAYLOAD: cached ${source.demandId} $${"%.2f".format(source.ecpm)}")
                 }
             }
         }
@@ -387,105 +370,6 @@ internal class RtbProcessor(
             logInfo(TAG, "RTB: cached $cachedCount new payloads for future auctions")
         }
         return cachedCount
-    }
-
-    /**
-     * Create AdSource from adapter based on ad type.
-     *
-     * @param adapter Adapter instance
-     * @param demandAd Demand ad configuration
-     * @param adTypeParam Ad type parameters
-     * @return AdSource instance or null if adapter doesn't support the ad type
-     */
-    private fun createAdSource(
-        adapter: Adapter,
-        demandAd: DemandAd,
-        adTypeParam: AdTypeParam,
-    ): AdSource<AdAuctionParams>? {
-        val adapterDemandId = adapter.demandId
-        return when (demandAd.adType) {
-            AdType.Interstitial -> {
-                (adapter as? AdProvider.Interstitial<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Rewarded -> {
-                (adapter as? AdProvider.Rewarded<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Banner -> {
-                (adapter as? AdProvider.Banner<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
-                    }.getOrNull()
-                }
-            }
-        }
-    }
-
-    /**
-     * Apply auction parameters to AdSource.
-     *
-     * @param adSource AdSource instance
-     * @param auctionId Auction identifier
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param demandAd Demand ad configuration
-     * @param pricefloor Minimum acceptable price
-     */
-    private fun applyParams(
-        adSource: AdSource<AdAuctionParams>,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        demandAd: DemandAd,
-        pricefloor: Double,
-        adTypeParam: AdTypeParam,
-    ) {
-        // Set statistic ad type (CRITICAL: must be set before show)
-        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
-
-        adSource.addRoundInfo(
-            auctionId = auctionId,
-            demandAd = demandAd,
-            auctionPricefloor = pricefloor,
-        )
-        adSource.addAuctionConfigurationId(auctionConfigurationId)
-        adSource.addAuctionConfigurationUid(auctionConfigurationUid)
-        adSource.addExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
-    }
-
-    /**
-     * Convert AdTypeParam to StatisticsCollector.AdType.
-     */
-    private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
-        return when (this) {
-            is AdTypeParam.Banner -> {
-                StatisticsCollector.AdType.Banner(
-                    format = when (bannerFormat) {
-                        BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
-                        BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
-                        BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
-                        BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
-                    }
-                )
-            }
-            is AdTypeParam.Interstitial -> StatisticsCollector.AdType.Interstitial
-            is AdTypeParam.Rewarded -> StatisticsCollector.AdType.Rewarded
-        }
     }
 }
 

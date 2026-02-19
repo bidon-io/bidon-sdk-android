@@ -8,12 +8,12 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * Lifecycle management facade that coordinates lifecycle components.
  *
  * Responsibilities:
- * - Manages AdInstanceScope (instance-scoped CoroutineScope)
+ * - Manages instance-scoped CoroutineScope with SupervisorJob and Dispatchers.Default
  * - Controls PeriodicSweepJob lifecycle (start/stop)
  * - Coordinates auction cancellation via CancellationManager
  *
  * Design pattern: Facade - single entry point for lifecycle management.
- * Encapsulates wiring between components (AdInstanceScope -> PeriodicSweepJob dependency).
+ * Encapsulates wiring between components (CoroutineScope -> PeriodicSweepJob dependency).
  *
  * CRITICAL: This is NOT a singleton. Each ad instance (Interstitial/Rewarded/Banner)
  * gets its own LifecycleManager. This aligns with Phase 4 decision:
@@ -31,13 +31,14 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 internal class LifecycleManager {
     /**
      * Instance-scoped coroutine scope for this ad instance.
-     * Provides scope for launching auctions and periodic jobs.
+     * SupervisorJob ensures child failures don't cancel siblings (sweep failure won't crash auction).
+     * Dispatchers.Default: background thread pool for non-blocking operations.
      */
     private val adInstanceScope = AdInstanceScope()
 
     /**
      * Periodic sweep job that removes expired cache entries every 5 minutes.
-     * Automatically stops when adInstanceScope is cancelled.
+     * Automatically stops when scope is cancelled.
      */
     private val periodicSweepJob = PeriodicSweepJob(adInstanceScope)
 
@@ -65,11 +66,9 @@ internal class LifecycleManager {
      */
     fun start() {
         if (isStarted) {
-            logInfo(TAG, "Lifecycle already started, skipping")
             return
         }
 
-        logInfo(TAG, "Starting lifecycle management")
         periodicSweepJob.start()
         isStarted = true
     }
@@ -77,7 +76,7 @@ internal class LifecycleManager {
     /**
      * Stop lifecycle management.
      *
-     * Stops PeriodicSweepJob and cancels AdInstanceScope.
+     * Stops PeriodicSweepJob and cancels coroutine scope.
      * Should be called on destroyAd() to prevent zombie background tasks.
      *
      * After stop(), no further auction operations should be performed.

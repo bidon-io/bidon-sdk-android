@@ -38,13 +38,10 @@ internal class PeriodicSweepJob(
      */
     fun start() {
         if (sweepJob?.isActive == true) {
-            logInfo(TAG, "Sweep job already running, skipping start")
             return
         }
 
         sweepJob = adInstanceScope.scope.launch {
-            logInfo(TAG, "Periodic sweep job started (interval=${TtlConfig.SWEEP_INTERVAL_MILLIS}ms)")
-
             while (isActive) {
                 // Wait first, then sweep (first sweep after 5 minutes)
                 delay(TtlConfig.SWEEP_INTERVAL_MILLIS)
@@ -60,7 +57,6 @@ internal class PeriodicSweepJob(
     fun stop() {
         sweepJob?.cancel()
         sweepJob = null
-        logInfo(TAG, "Periodic sweep job stopped")
     }
 
     /**
@@ -70,8 +66,6 @@ internal class PeriodicSweepJob(
      * Failures are logged but don't propagate (SupervisorJob isolation).
      */
     private suspend fun performSweep() {
-        logInfo(TAG, "Starting periodic sweep")
-
         try {
             val readyRemoved = ReadyToShowCache.sweep()
             val rtbRemoved = RtbPayloadCache.sweep()

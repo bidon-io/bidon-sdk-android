@@ -4,7 +4,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.logs.logging.impl.logError
-import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
  * Coordinates guaranteed cleanup operations during coroutine cancellation.
@@ -38,7 +37,6 @@ internal object CleanupCoordinator {
         withContext(NonCancellable) {
             try {
                 adSource.destroy()
-                logInfo(TAG, "AdSource destroyed: demandId=$demandId")
             } catch (e: Exception) {
                 logError(TAG, "AdSource.destroy() failed: demandId=$demandId", e)
                 // Log but continue - don't propagate cleanup failures

@@ -87,7 +87,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun peek(): AuctionResult? {
-        return ReadyToShowCache.getBest()?.value
+        return ReadyToShowCache.peekFirst()?.value
     }
 
     /**

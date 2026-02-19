@@ -228,7 +228,6 @@ internal class CacheAuctionStat(
     ): ResultBody {
         val isSucceed = winner?.roundStatus == RoundStatus.Successful
         val stat = winner?.adSource?.getStats()
-        logInfo(TAG, "isSucceed=$isSucceed, stat: $stat")
         return ResultBody(
             status = when {
                 winner?.roundStatus == RoundStatus.Successful -> "SUCCESS"

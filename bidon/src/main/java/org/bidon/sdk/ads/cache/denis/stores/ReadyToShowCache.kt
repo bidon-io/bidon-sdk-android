@@ -41,7 +41,6 @@ internal object ReadyToShowCache {
         synchronized(lock) {
             evictExpiredLocked()
             entries.add(entry)
-            logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, size=${entries.size}")
         }
     }
 
@@ -82,11 +81,11 @@ internal object ReadyToShowCache {
     }
 
     /**
-     * Get FIFO head (oldest entry).
+     * Peek at FIFO head (oldest entry) without removing it.
      *
      * @return Oldest entry or null if cache empty/all expired
      */
-    fun getBest(): CacheEntry<AuctionResult>? {
+    fun peekFirst(): CacheEntry<AuctionResult>? {
         synchronized(lock) {
             evictExpiredLocked()
             return entries.firstOrNull()
@@ -207,16 +206,11 @@ internal object ReadyToShowCache {
     private fun evictExpiredLocked() {
         val now = TtlConfig.now()
         val iterator = entries.iterator()
-        var removed = 0
         while (iterator.hasNext()) {
             val entry = iterator.next()
             if (now > entry.expiresAt) {
                 iterator.remove()
-                removed++
             }
-        }
-        if (removed > 0) {
-            logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
         }
     }
 }

@@ -42,7 +42,6 @@ internal class CallbackCoordinator(
      */
     fun setCacheEmptyAtStart(isEmpty: Boolean) {
         cacheWasEmptyAtStart = isEmpty
-        logInfo(TAG, "CallbackCoordinator: cacheWasEmptyAtStart=$isEmpty")
     }
 
     /**
@@ -59,8 +58,6 @@ internal class CallbackCoordinator(
         if (loadedCallbackFired.compareAndSet(false, true)) {
             logInfo(TAG, "Firing onAdLoaded callback")
             onAdLoaded(result, auctionInfo)
-        } else {
-            logInfo(TAG, "onAdLoaded already fired, skipping")
         }
     }
 
@@ -88,12 +85,6 @@ internal class CallbackCoordinator(
         ) {
             logInfo(TAG, "Firing onAdLoadFailed callback: cache was empty and both branches failed")
             onAdLoadFailed(auctionInfo, error)
-        } else {
-            logInfo(
-                TAG,
-                "Skipping onAdLoadFailed: loadedFired=${loadedCallbackFired.get()}, " +
-                    "cacheEmpty=$cacheWasEmptyAtStart, failedFired=${failedCallbackFired.get()}"
-            )
         }
     }
 }

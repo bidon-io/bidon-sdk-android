@@ -42,16 +42,7 @@ internal object WaterfallSplitter {
             .toSet()
 
         // Partition AdUnits based on adapter type
-        val rtbAdUnits = mutableListOf<AdUnit>()
-        val cpmAdUnits = mutableListOf<AdUnit>()
-
-        adUnits.forEach { adUnit ->
-            if (adUnit.demandId in biddingDemandIds) {
-                rtbAdUnits.add(adUnit)
-            } else {
-                cpmAdUnits.add(adUnit)
-            }
-        }
+        val (rtbAdUnits, cpmAdUnits) = adUnits.partition { it.demandId in biddingDemandIds }
 
         logInfo(TAG, "Waterfall split: ${rtbAdUnits.size} RTB, ${cpmAdUnits.size} CPM from ${adUnits.size} total")
 

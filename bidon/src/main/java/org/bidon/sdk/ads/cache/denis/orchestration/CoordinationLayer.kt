@@ -70,7 +70,7 @@ internal class CoordinationLayer(
      * User decision: "Cache state changes during processing are acceptable" - trust
      * snapshot for entire auction lifecycle.
      *
-     * Handles edge case: Cache isEmpty() returns false but getBest() returns null
+     * Handles edge case: Cache isEmpty() returns false but peekFirst() returns null
      * (race condition). Falls back to PureColdStart to maintain correctness.
      *
      * @param userPricefloor Publisher-configured minimum eCPM
@@ -83,7 +83,7 @@ internal class CoordinationLayer(
         val state = when {
             !snapshot.readyToShowIsEmpty -> {
                 // Warm start: serve cached ad immediately
-                val bestAd = ReadyToShowCache.getBest()
+                val bestAd = ReadyToShowCache.peekFirst()
                 if (bestAd != null) {
                     logInfo(
                         TAG,
@@ -91,7 +91,7 @@ internal class CoordinationLayer(
                     )
                     AuctionStartState.WarmStart(bestAd)
                 } else {
-                    // Edge case: Race condition between isEmpty() and getBest()
+                    // Edge case: Race condition between isEmpty() and peekFirst()
                     // Fall back to cold start
                     AuctionStartState.PureColdStart(userPricefloor)
                 }
@@ -142,53 +142,74 @@ internal class CoordinationLayer(
                 handleWarmStart(startState.bestAd, onSuccess)
 
                 // 2. Launch background auction to replenish cache (no callbacks — warm start is final)
-                val auctionId = java.util.UUID.randomUUID().toString()
-                val job = lifecycleManager.getScope().launch {
-                    handleColdStart(
-                        auctionId = auctionId,
-                        skipDemandIds = snapshot.cachedDemandIds, // Use RTB_PAYLOAD cache optimization
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        tokenTimeout = tokenTimeout,
-                        onSuccess = { _, _ -> },
-                        onFailure = { _, _ -> },
-                    )
-                }
-                lifecycleManager.registerAuction(auctionId, job)
+                launchColdStart(
+                    skipDemandIds = snapshot.cachedDemandIds, // Use RTB_PAYLOAD cache optimization
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = { _, _ -> },
+                    onFailure = { _, _ -> },
+                )
             }
             is AuctionStartState.ColdStartWithCache -> {
-                // Launch cold start on lifecycle-managed scope and register job
-                val auctionId = java.util.UUID.randomUUID().toString()
-                val job = lifecycleManager.getScope().launch {
-                    handleColdStart(
-                        auctionId = auctionId,
-                        skipDemandIds = startState.cachedDemandIds,
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        tokenTimeout = tokenTimeout,
-                        onSuccess = onSuccess,
-                        onFailure = onFailure,
-                    )
-                }
-                lifecycleManager.registerAuction(auctionId, job)
+                launchColdStart(
+                    skipDemandIds = startState.cachedDemandIds,
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
+                )
             }
             is AuctionStartState.PureColdStart -> {
-                // Launch cold start on lifecycle-managed scope and register job
-                val auctionId = java.util.UUID.randomUUID().toString()
-                val job = lifecycleManager.getScope().launch {
-                    handleColdStart(
-                        auctionId = auctionId,
-                        skipDemandIds = emptySet(),
-                        adTypeParam = adTypeParam,
-                        demandAd = demandAd,
-                        tokenTimeout = tokenTimeout,
-                        onSuccess = onSuccess,
-                        onFailure = onFailure,
-                    )
-                }
-                lifecycleManager.registerAuction(auctionId, job)
+                launchColdStart(
+                    skipDemandIds = emptySet(),
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
+                )
             }
         }
+    }
+
+    /**
+     * Launch cold start auction in background with lifecycle management.
+     *
+     * Encapsulates the pattern of:
+     * 1. Generate unique auctionId
+     * 2. Launch coroutine on lifecycle-managed scope
+     * 3. Register auction job for cancellation tracking
+     *
+     * @param skipDemandIds Demand IDs to skip in token collection (from RTB cache)
+     * @param adTypeParam Ad type parameters including pricefloor
+     * @param demandAd Ad instance configuration
+     * @param tokenTimeout Timeout for token collection
+     * @param onSuccess Callback for successful auction
+     * @param onFailure Callback for failed auction
+     */
+    private fun launchColdStart(
+        skipDemandIds: Set<String>,
+        adTypeParam: AdTypeParam,
+        demandAd: DemandAd,
+        tokenTimeout: Long,
+        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
+        onFailure: (AuctionInfo?, BidonError) -> Unit,
+    ) {
+        val auctionId = java.util.UUID.randomUUID().toString()
+        val job = lifecycleManager.getScope().launch {
+            handleColdStart(
+                auctionId = auctionId,
+                skipDemandIds = skipDemandIds,
+                adTypeParam = adTypeParam,
+                demandAd = demandAd,
+                tokenTimeout = tokenTimeout,
+                onSuccess = onSuccess,
+                onFailure = onFailure,
+            )
+        }
+        lifecycleManager.registerAuction(auctionId, job)
     }
 
     /**
@@ -201,8 +222,6 @@ internal class CoordinationLayer(
         bestAd: CacheEntry<AuctionResult>,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit
     ) {
-        logInfo(TAG, "WARM START: Serving ${bestAd.demandId} @ ${"$%.2f".format(bestAd.ecpm)}")
-
         // Build AuctionInfo from cached entry
         // Note: Warm start uses cached auctionId from when ad was originally loaded
         val auctionResult = bestAd.value
@@ -239,8 +258,6 @@ internal class CoordinationLayer(
         val pricefloor = adTypeParam.pricefloor
 
         try {
-            logInfo(TAG, "COLD START: pricefloor=${"$%.2f".format(pricefloor)}, skip=${skipDemandIds.size}")
-
             // Initialize ResultsCollector lifecycle
             resultsCollector.startRound(pricefloor)
             resultsCollector.serverBiddingStarted()
@@ -418,11 +435,6 @@ internal class CoordinationLayer(
         val cachedRtbEntries = RtbPayloadCache.getAllSortedByEcpm()
         val cachedRtbAdUnits = cachedRtbEntries.map { it.value.adUnit }
 
-        logInfo(
-            TAG,
-            "Merging RTB: server=${serverRtbAdUnits.size}, cached=${cachedRtbAdUnits.size}"
-        )
-
         // Combine both sources
         val allRtbAdUnits = serverRtbAdUnits + cachedRtbAdUnits
 
@@ -439,14 +451,6 @@ internal class CoordinationLayer(
 
         // Sort by eCPM descending (highest first)
         val sortedRtb = deduplicatedRtb.sortedByDescending { it.pricefloor }
-
-        if (sortedRtb.isNotEmpty()) {
-            val topEcpms = sortedRtb.take(3).joinToString { "${it.demandId}:$${it.pricefloor}" }
-            logInfo(
-                TAG,
-                "Merged RTB: ${sortedRtb.size} ad units (deduped), top 3 by eCPM: [$topEcpms]"
-            )
-        }
 
         return sortedRtb
     }
