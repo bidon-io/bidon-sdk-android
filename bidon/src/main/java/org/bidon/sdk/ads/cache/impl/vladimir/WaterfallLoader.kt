@@ -81,8 +81,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
      * @param existingTokens RTB tokens from previous rounds to reuse. These networks will be
      *        excluded from token fetching but their stored tokens will be sent to the server.
      * @param excludedDemandIds Networks to fully exclude — no token fetch, no token sent to server.
-     *        Used to exclude networks that already filled in a previous phase (e.g., Discovery fill
-     *        excluded from Rebid).
+     *        Used to exclude networks already cached in slots.
      */
     suspend fun startRound(
         adTypeParam: AdTypeParam,
@@ -153,6 +152,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
         adUnit: AdUnit,
         round: AuctionRound,
         tokens: Map<String, TokenInfo> = round.tokens,
+        adTypeParam: AdTypeParam = round.adTypeParam,
     ): AuctionResult? {
         logInfo(TAG, "loadUnit(): ${adUnit.demandId}/${adUnit.bidType} @ ${adUnit.pricefloor}, hasToken=${tokens.containsKey(adUnit.demandId)}")
 
@@ -160,7 +160,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
             adUnit = adUnit,
             tokens = tokens,
             auctionResponse = round.response,
-            adTypeParam = round.adTypeParam,
+            adTypeParam = adTypeParam,
         )
 
         val status = auctionResult?.roundStatus
@@ -288,33 +288,20 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     private fun Adapter.getAdSource(adType: AdType): AdSource<AdAuctionParams>? {
         val adapterDemandId = demandId
         return when (adType) {
-            AdType.Interstitial -> {
-                (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Rewarded -> {
-                (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Banner -> {
-                (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
-                    }.getOrNull()
-                }
-            }
+            AdType.Interstitial -> safeCreateAdSource<AdProvider.Interstitial<AdAuctionParams>>("interstitial") { interstitial().apply { addDemandId(adapterDemandId) } }
+            AdType.Rewarded -> safeCreateAdSource<AdProvider.Rewarded<AdAuctionParams>>("rewarded") { rewarded().apply { addDemandId(adapterDemandId) } }
+            AdType.Banner -> safeCreateAdSource<AdProvider.Banner<AdAuctionParams>>("banner") { banner().apply { addDemandId(adapterDemandId) } }
+        }
+    }
+
+    private inline fun <reified T> Adapter.safeCreateAdSource(
+        adType: String,
+        create: T.() -> AdSource<AdAuctionParams>,
+    ): AdSource<AdAuctionParams>? {
+        return (this as? T)?.let {
+            runCatching { it.create() }
+                .onFailure { logError(TAG, "Failed to create $adType ad source", it) }
+                .getOrNull()
         }
     }
 
@@ -355,4 +342,4 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     }
 }
 
-private const val TAG = "WaterfallLoader"
+private const val TAG = "AdCacheVladimir.WaterfallLoader"

@@ -203,6 +203,7 @@ internal class InterstitialImpl(
 
     private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
         require(adSource is AdSource.Interstitial<*>)
+        observeCallbacksJob?.cancel()
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
                 is AdEvent.OnReward,
