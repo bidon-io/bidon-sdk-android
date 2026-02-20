@@ -49,6 +49,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     fun pop(): AuctionResult? {
         val old = slot1.getAndUpdate { slot2.value }
         slot2.update { null }
+        old?.observeJob?.cancel()
         logInfo(TAG, "pop(): removed=${old?.demandId ?: "null"}, promoted slot2→slot1, state=${description()}")
         return old?.auctionResult
     }
@@ -248,6 +249,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
             s1?.auctionResult === result -> {
                 logInfo(TAG, "removeExpiredSlot(): slot1 expired (${s1.demandId}), promoting slot2")
                 s1.observeJob?.cancel()
+                s1.auctionResult.adSource.destroy()
                 slot1.value = s2
                 slot2.value = null
                 logInfo(TAG, "removeExpiredSlot(): after promotion → state=${description()}")
@@ -256,6 +258,7 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
             s2?.auctionResult === result -> {
                 logInfo(TAG, "removeExpiredSlot(): slot2 expired (${s2.demandId})")
                 s2.observeJob?.cancel()
+                s2.auctionResult.adSource.destroy()
                 slot2.value = null
                 logInfo(TAG, "removeExpiredSlot(): after removal → state=${description()}")
                 true

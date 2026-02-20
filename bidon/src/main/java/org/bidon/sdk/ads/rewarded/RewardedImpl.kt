@@ -166,6 +166,7 @@ internal class RewardedImpl(
 
     private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
         require(adSource is AdSource.Rewarded<*>)
+        observeCallbacksJob?.cancel()
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
                 is AdEvent.Fill -> {

@@ -68,8 +68,13 @@ internal class AdCacheVladimirImpl(
     // Persists across rounds: untried units carry forward.
     private val remainingUnits = mutableListOf<RemainingUnit>()
 
+    // Generation token identifies this instance within CachePersistedState.
+    // Used to distinguish "old instance clear()" from "same instance clear()".
+    private val instanceGeneration: Long
+
     init {
-        persistedState.restoreInto(slots, remainingUnits)
+        instanceGeneration = persistedState.restoreInto(slots, remainingUnits)
+        cleanupStaleRemainingUnits()
         slots.onSlotVacancy = ::onSlotVacancy
         logInfo(TAG, "init: adType=${demandAd.adType}, slots=${slots.description()}, remaining=${remainingUnits.size}, isFirstLoad=$isFirstLoad")
     }
@@ -205,8 +210,11 @@ internal class AdCacheVladimirImpl(
         loadingJob?.cancel()
         loadingJob = null
 
-        val preserved = slots.extractAll()
-        persistedState.preserveOnClear(preserved, remainingUnits)
+        // Extract ads without destroying — they'll be preserved for the next instance.
+        // The host app destroys and recreates the cache instance on every show cycle.
+        // Preserving ads lets the next instance serve them immediately without re-loading.
+        val extracted = slots.extractAll()
+        persistedState.preserveOnClear(extracted, remainingUnits.toList(), instanceGeneration)
 
         remainingUnits.clear()
         if (loadingState.getAndUpdate { LoadingState.IDLE } == LoadingState.LOADING) {
@@ -311,8 +319,7 @@ internal class AdCacheVladimirImpl(
             // so remaining units are not saved — the next Load starts a fresh round.
             if (loadIndex < currentRound.adUnits.size && preferRtb?.get() != true) {
                 val untried = currentRound.adUnits.drop(loadIndex).map { RemainingUnit(it, currentRound) }
-                logInfo(TAG, "Load: saving ${untried.size} untried units for future rounds")
-                remainingUnits.addAll(0, untried) // prepend — newer waterfall units are higher priority
+                mergeRemainingUnits(untried)
             }
 
             // Fire onLoadFailed if the waterfall produced no fills — this must happen
@@ -433,7 +440,7 @@ internal class AdCacheVladimirImpl(
                 continue
             }
 
-            val result = loader.loadUnit(entry.adUnit, entry.round, tokens)
+            val result = loader.loadUnit(entry.adUnit, entry.round, tokens, adTypeParam)
             if (result?.roundStatus == RoundStatus.Successful) {
                 fillCount++
                 logInfo(TAG, "Remaining: [$index] ✓ FILL from ${result.demandId} @ ${result.price}")
@@ -443,6 +450,68 @@ internal class AdCacheVladimirImpl(
             }
         }
         logInfo(TAG, "Remaining: processed $index units, filled=$fillCount, skipped=$skipCount, ${remainingUnits.size} still remaining")
+    }
+
+    /**
+     * Removes stale remaining units on init.
+     *
+     * RTB units depend on a server-side bid tied to a token. If the token expired
+     * (>15 min since last store), the unit cannot be loaded — it would need a fresh round.
+     * CPM units don't depend on tokens and are kept regardless of age.
+     */
+    private fun cleanupStaleRemainingUnits() {
+        if (remainingUnits.isEmpty()) return
+        val validTokens = tokenStore.getValidTokens()
+        val sizeBefore = remainingUnits.size
+        remainingUnits.removeAll { unit ->
+            unit.adUnit.bidType == BidType.RTB && unit.adUnit.demandId !in validTokens
+        }
+        val removed = sizeBefore - remainingUnits.size
+        if (removed > 0) {
+            logInfo(TAG, "cleanupStaleRemainingUnits(): removed $removed RTB units with expired tokens, ${remainingUnits.size} remaining")
+        }
+    }
+
+    /**
+     * Merges new untried units into [remainingUnits] with deduplication.
+     *
+     * The server returns the same networks at multiple price points across rounds.
+     * Without deduplication, identical entries accumulate since remaining units
+     * are rarely walked (only when both slots are empty).
+     *
+     * Rules (from design doc "Remaining Units Storage"):
+     * - **RTB**: one entry per network. Newer replaces older (only the latest bid matters).
+     * - **CPM**: one entry per (network, price). Newer replaces older at same network+price.
+     *   Different prices for the same network are different placements and are kept.
+     */
+    private fun mergeRemainingUnits(newUnits: List<RemainingUnit>) {
+        if (newUnits.isEmpty()) return
+
+        val sizeBefore = remainingUnits.size
+        for (unit in newUnits) {
+            val demandId = unit.adUnit.demandId
+            val isRtb = unit.adUnit.bidType == BidType.RTB
+
+            remainingUnits.removeAll { existing ->
+                if (isRtb) {
+                    // RTB: one per network — remove any existing entry for this demandId
+                    existing.adUnit.demandId == demandId && existing.adUnit.bidType == BidType.RTB
+                } else {
+                    // CPM: one per (network, price) — remove matching demandId + pricefloor
+                    existing.adUnit.demandId == demandId &&
+                        existing.adUnit.bidType == BidType.CPM &&
+                        existing.adUnit.pricefloor == unit.adUnit.pricefloor
+                }
+            }
+        }
+        val removed = sizeBefore - remainingUnits.size
+
+        // Prepend new units — newer waterfall entries are higher priority
+        remainingUnits.addAll(0, newUnits)
+        logInfo(
+            TAG,
+            "mergeRemainingUnits(): added ${newUnits.size}, deduplicated $removed, total=${remainingUnits.size}"
+        )
     }
 
     // --- Finalization ---

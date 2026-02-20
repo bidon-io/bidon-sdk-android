@@ -152,6 +152,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
         adUnit: AdUnit,
         round: AuctionRound,
         tokens: Map<String, TokenInfo> = round.tokens,
+        adTypeParam: AdTypeParam = round.adTypeParam,
     ): AuctionResult? {
         logInfo(TAG, "loadUnit(): ${adUnit.demandId}/${adUnit.bidType} @ ${adUnit.pricefloor}, hasToken=${tokens.containsKey(adUnit.demandId)}")
 
@@ -159,7 +160,7 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
             adUnit = adUnit,
             tokens = tokens,
             auctionResponse = round.response,
-            adTypeParam = round.adTypeParam,
+            adTypeParam = adTypeParam,
         )
 
         val status = auctionResult?.roundStatus
