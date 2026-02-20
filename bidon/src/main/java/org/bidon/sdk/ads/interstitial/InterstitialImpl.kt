@@ -116,29 +116,30 @@ internal class InterstitialImpl(
         // Use fallback if denis ad caching, otherwise default behavior
         if (adCache is AdCacheDenisImpl) {
             logInfo(TAG, "Using denis ad caching with fallback")
-            (adCache as AdCacheDenisImpl).showBestWithFallback(
+            observeCallbacksJob?.cancel()
+            observeCallbacksJob = (adCache as AdCacheDenisImpl).showBestWithFallback(
                 activity = activity,
-                onShown = { ad ->
-                    listener.onAdShown(ad)
-                },
-                onClicked = { ad ->
-                    listener.onAdClicked(ad)
-                },
-                onClosed = { ad ->
-                    listener.onAdClosed(ad)
-                },
-                onRevenuePaid = { ad, adValue ->
-                    listener.onRevenuePaid(ad, adValue)
-                },
-                onShowFailed = { error ->
-                    listener.onAdShowFailed(error)
-                },
                 onFailed = { error ->
                     listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
                 },
-                onWinnerSelected = { adSource ->
-                    logInfo(TAG, "Winner selected: ${adSource.demandId}")
-                    winner = adSource
+                onEvent = { adSource, event ->
+                    val source = adSource as AdSource.Interstitial<*>
+                    when (event) {
+                        is AdEvent.Shown -> {
+                            logInfo(TAG, "Winner selected: ${source.demandId}")
+                            winner = source
+                            listener.onAdShown(event.ad)
+                            source.sendShowImpression()
+                        }
+                        is AdEvent.Clicked -> {
+                            listener.onAdClicked(event.ad)
+                            source.sendClickImpression()
+                        }
+                        is AdEvent.Closed -> listener.onAdClosed(event.ad)
+                        is AdEvent.ShowFailed -> listener.onAdShowFailed(event.cause)
+                        is AdEvent.PaidRevenue -> listener.onRevenuePaid(event.ad, event.adValue)
+                        else -> {}
+                    }
                 }
             )
         } else {

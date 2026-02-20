@@ -32,11 +32,9 @@ internal sealed class AuctionStartState {
      * Skip token collection for cached adapters (partial warm start).
      *
      * @property cachedDemandIds Set of demandIds with valid RTB payloads (skip their tokens)
-     * @property maxCachedEcpm Maximum eCPM from RTB_PAYLOAD cache for pricefloor calculation
      */
     data class ColdStartWithCache(
         val cachedDemandIds: Set<String>,
-        val maxCachedEcpm: Double
     ) : AuctionStartState()
 
     /**
