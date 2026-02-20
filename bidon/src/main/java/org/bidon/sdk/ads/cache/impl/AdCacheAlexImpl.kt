@@ -5,13 +5,11 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.impl.alex.AdCacheStorage
-import org.bidon.sdk.ads.cache.impl.alex.UserFlow
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.utils.di.get
 
 /**
  * V5 implementation of AdCache with two-bucket caching strategy:
@@ -25,9 +23,9 @@ internal class AdCacheAlexImpl(
 
     private var adCache: AdCache? = null
     private var winner: AuctionResult? = null
-    private val userFlow: UserFlow by lazy {
-        get()
-    }
+//    private val userFlow: UserFlow by lazy {
+//        get()
+//    }
 
     override fun cache(
         adTypeParam: AdTypeParam,
@@ -58,11 +56,12 @@ internal class AdCacheAlexImpl(
                 is AdTypeParam.Interstitial -> {
                     AdTypeParam.Interstitial(
                         activity = adTypeParam.activity,
-                        pricefloor = if (adTypeParam.pricefloor > 1.0) {
-                            adTypeParam.pricefloor
-                        } else {
-                            userFlow.getAveragePrice(demandAd.adType) * 0.5f
-                        },
+                        pricefloor = adTypeParam.pricefloor,
+//                        pricefloor = if (adTypeParam.pricefloor > 1.0) {
+//                            adTypeParam.pricefloor
+//                        } else {
+//                            userFlow.getAveragePrice(demandAd.adType) * 0.5f
+//                        },
                         auctionKey = adTypeParam.auctionKey, // "1O16GQT380000" // adTypeParam.auctionKey,
                     ).also {
                         logInfo(
@@ -79,10 +78,10 @@ internal class AdCacheAlexImpl(
                 onSuccess(auctionResult, auctionInfo)
             },
             onFailure = { a, t ->
-                userFlow.recordImpression(
-                    demandAd.adType,
-                    userFlow.getAveragePrice(demandAd.adType) * 0.5f
-                )
+//                userFlow.recordImpression(
+//                    demandAd.adType,
+//                    userFlow.getAveragePrice(demandAd.adType) * 0.5f
+//                )
                 onFailure(a, t)
             }
         )
@@ -94,10 +93,10 @@ internal class AdCacheAlexImpl(
 
     override fun pop(): AuctionResult? {
         val winner = winner
-        userFlow.recordImpression(
-            adType = demandAd.adType,
-            price = winner?.adSource?.getAd()?.price ?: 0.0
-        )
+//        userFlow.recordImpression(
+//            adType = demandAd.adType,
+//            price = winner?.adSource?.getAd()?.price ?: 0.0
+//        )
         this.winner = null
         return winner
     }
