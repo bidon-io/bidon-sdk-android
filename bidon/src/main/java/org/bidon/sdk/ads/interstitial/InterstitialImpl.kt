@@ -191,7 +191,7 @@ internal class InterstitialImpl(
      * Private
      */
 
-    private fun subscribeToWinner(auctionInfo: AuctionInfo?, adSource: AdSource<*>) {
+    private fun subscribeToWinner(auctionInfo: AuctionInfo, adSource: AdSource<*>) {
         require(adSource is AdSource.Interstitial<*>)
         observeCallbacksJob = adSource.adEvent.onEach { adEvent ->
             when (adEvent) {
@@ -218,11 +218,7 @@ internal class InterstitialImpl(
 
                 is AdEvent.PaidRevenue -> listener.onRevenuePaid(adEvent.ad, adEvent.adValue)
                 is AdEvent.ShowFailed -> listener.onAdShowFailed(adEvent.cause)
-                is AdEvent.LoadFailed -> {
-                    if (auctionInfo != null) {
-                        listener.onAdLoadFailed(auctionInfo, adEvent.cause)
-                    }
-                }
+                is AdEvent.LoadFailed -> listener.onAdLoadFailed(auctionInfo, adEvent.cause)
                 is AdEvent.Expired -> listener.onAdExpired(adEvent.ad)
             }
         }.launchIn(scope)
