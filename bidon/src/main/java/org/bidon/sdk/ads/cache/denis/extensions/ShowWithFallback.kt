@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.denis.extensions
 
 import android.app.Activity
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -65,6 +66,13 @@ internal suspend fun showBestAdWithFallback(
         }
     }
 
+    // Start event collection BEFORE waiting for show result to avoid
+    // missing events (e.g. PaidRevenue) emitted right after Shown.
+    // Both collectors receive all events from SharedFlow (replay=0).
+    val eventJob: Job = adSource.adEvent.onEach { event ->
+        onEvent(adSource, event)
+    }.launchIn(eventScope)
+
     // Wait for show result
     return adSource.adEvent.first { event ->
         event is AdEvent.Shown || event is AdEvent.ShowFailed
@@ -72,17 +80,11 @@ internal suspend fun showBestAdWithFallback(
         when (event) {
             is AdEvent.Shown -> {
                 logInfo(TAG, "SUCCESS: $demandId displayed @ $${"%.2f".format(ecpm)}")
-                // Notify Shown event
-                onEvent(adSource, event)
-                // Subscribe to subsequent events (Clicked, Closed, PaidRevenue, etc.)
-                adSource.adEvent.onEach { subsequentEvent ->
-                    onEvent(adSource, subsequentEvent)
-                }.launchIn(eventScope)
                 Result.success(event.ad)
             }
             is AdEvent.ShowFailed -> {
                 logInfo(TAG, "FAIL: $demandId - ${event.cause}, trying fallback")
-                onEvent(adSource, event)
+                eventJob.cancel()
 
                 // Recursive retry with next best ad from cache
                 showBestAdWithFallback(
@@ -93,6 +95,7 @@ internal suspend fun showBestAdWithFallback(
                 )
             }
             else -> {
+                eventJob.cancel()
                 Result.failure(BidonError.Unspecified(demandId = adSource.demandId))
             }
         }
