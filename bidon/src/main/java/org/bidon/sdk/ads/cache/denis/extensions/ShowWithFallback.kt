@@ -1,7 +1,10 @@
 package org.bidon.sdk.ads.cache.denis.extensions
 
 import android.app.Activity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.Ad
@@ -18,21 +21,21 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * If show fails, automatically tries the next best ad from cache recursively
  * until success or cache exhaustion.
  *
- * Event callbacks (Shown, Clicked, Closed, PaidRevenue, OnReward, Expired) and
- * impression sending are handled by subscribeToWinner() in InterstitialImpl/RewardedImpl.
- * This function only handles the show/fallback flow and notifies via onWinnerSelected.
+ * After a successful show, subscribes to ad events (Shown, Clicked, Closed,
+ * PaidRevenue, ShowFailed, etc.) and dispatches them via [onEvent].
+ * Impression sending is the caller's responsibility via [onEvent].
  *
  * @param cancellationManager Cancellation manager for cancelling ongoing auctions
  * @param activity Activity context for showing the ad
- * @param onShowFailed Called when show fails (for each failed attempt)
- * @param onWinnerSelected Called with the AdSource that was successfully shown
+ * @param eventScope Scope for launching event collection after successful show
+ * @param onEvent Called for each ad event (Shown, Clicked, Closed, ShowFailed, PaidRevenue, etc.)
  * @return Result with Ad on success, BidonError on failure
  */
 internal suspend fun showBestAdWithFallback(
     cancellationManager: CancellationManager,
     activity: Activity,
-    onShowFailed: (BidonError) -> Unit,
-    onWinnerSelected: (AdSource<*>) -> Unit
+    eventScope: CoroutineScope,
+    onEvent: (AdSource<*>, AdEvent) -> Unit
 ): Result<Ad> {
     // Get best ad from cache
     val entry = ReadyToShowCache.popFirst()
@@ -69,19 +72,24 @@ internal suspend fun showBestAdWithFallback(
         when (event) {
             is AdEvent.Shown -> {
                 logInfo(TAG, "SUCCESS: $demandId displayed @ $${"%.2f".format(ecpm)}")
-                onWinnerSelected(adSource)
+                // Notify Shown event
+                onEvent(adSource, event)
+                // Subscribe to subsequent events (Clicked, Closed, PaidRevenue, etc.)
+                adSource.adEvent.onEach { subsequentEvent ->
+                    onEvent(adSource, subsequentEvent)
+                }.launchIn(eventScope)
                 Result.success(event.ad)
             }
             is AdEvent.ShowFailed -> {
                 logInfo(TAG, "FAIL: $demandId - ${event.cause}, trying fallback")
-                onShowFailed(event.cause)
+                onEvent(adSource, event)
 
                 // Recursive retry with next best ad from cache
                 showBestAdWithFallback(
                     cancellationManager = cancellationManager,
                     activity = activity,
-                    onShowFailed = onShowFailed,
-                    onWinnerSelected = onWinnerSelected
+                    eventScope = eventScope,
+                    onEvent = onEvent
                 )
             }
             else -> {

@@ -3,7 +3,9 @@ package org.bidon.sdk.ads.cache.impl
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
@@ -17,7 +19,6 @@ import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
 import java.util.concurrent.atomic.AtomicBoolean
@@ -134,29 +135,25 @@ internal class AdCacheDenisImpl(
      * - On failure, automatically tries next best ad
      * - Continues until success or cache exhaustion
      *
-     * Event callbacks and impression sending are handled by subscribeToWinner()
-     * in InterstitialImpl/RewardedImpl. This method only handles the show/fallback
-     * flow and notifies via onWinnerSelected.
-     *
-     * Denis ad caching specific feature.
+     * After a successful show, subscribes to ad events and dispatches them
+     * via [onEvent]. The returned [Job] can be cancelled to stop event collection.
      *
      * @param activity Activity context for showing the ad
-     * @param onShowFailed Callback when show fails (for each failed attempt)
      * @param onFailed Callback when all ads failed or cache empty
-     * @param onWinnerSelected Callback with the AdSource that was successfully shown
+     * @param onEvent Callback for ad events (Shown, Clicked, Closed, ShowFailed, PaidRevenue, etc.)
+     * @return Job that can be cancelled to stop event collection
      */
     fun showBestWithFallback(
         activity: Activity,
-        onShowFailed: (BidonError) -> Unit = {},
         onFailed: (Throwable) -> Unit,
-        onWinnerSelected: (AdSource<*>) -> Unit = {}
-    ) {
-        scope.launch {
+        onEvent: (AdSource<*>, AdEvent) -> Unit
+    ): Job {
+        return scope.launch {
             showBestAdWithFallback(
                 cancellationManager = cancellationManager,
                 activity = activity,
-                onShowFailed = onShowFailed,
-                onWinnerSelected = onWinnerSelected
+                eventScope = this,
+                onEvent = onEvent
             )
                 .onFailure { error ->
                     onFailed(error)
