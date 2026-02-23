@@ -23,7 +23,6 @@ import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
-import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
@@ -38,15 +37,12 @@ import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.onAny
 import java.util.UUID
 
-/**
- * Created by Aleksei Cherniaev on 06/02/2023.
- */
 internal class AuctionImpl(
     private val executionDispatcher: CoroutineDispatcher,
     private val adaptersSource: AdaptersSource,
     private val getTokens: GetTokensUseCase,
     private val getAuctionRequest: GetAuctionRequestUseCase,
-    private val executeAuction: ExecuteAuctionUseCase,
+    private val auctionExecutor: AuctionExecutor,
     private val auctionStat: AuctionStat,
     private val biddingConfig: BiddingConfig,
 ) : Auction {
@@ -203,26 +199,37 @@ internal class AuctionImpl(
         val externalWinNotificationsEnabled = auctionData.externalWinNotificationsEnabled
 
         // Start auction
-        executeAuction(
+        val auctionContext = AuctionContext(
             auctionId = auctionData.auctionId,
             auctionConfigurationId = auctionData.auctionConfigurationId ?: 0L,
             auctionConfigurationUid = auctionData.auctionConfigurationUid ?: "",
             externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-            auctionTimeout = auctionData.auctionTimeout,
-            pricefloor = auctionPriceFloor,
-            demandAd = demandAd,
-            adTypeParam = adTypeParam,
-            adUnits = auctionData.adUnits ?: emptyList(),
-            resultsCollector = resultsCollector,
-            tokens = tokens,
         )
+        val auctionResults =
+            auctionExecutor.execute(
+                context = auctionContext,
+                auctionTimeout = auctionData.auctionTimeout,
+                priceFloor = auctionPriceFloor,
+                demandAd = demandAd,
+                adTypeParam = adTypeParam,
+                adUnits = auctionData.adUnits ?: emptyList(),
+                tokens = tokens,
+            )
 
+//        resultsCollector
+//            .getRoundResults()
+//            .let { roundResult ->
+//                (roundResult as? RoundResult.Results)
+//                    ?.let { it.networkResults + (it.biddingResult as? BiddingResult.FilledAd)?.results.orEmpty() }
+//                    .orEmpty()
+//            }
+        auctionResults.forEach(resultsCollector::add)
         resultsCollector.saveWinners(auctionPriceFloor)
 
         // Save round results
         val statResult = proceedRoundResults()
         val auctionInfo =
-            getAuctionInfo(auctionData = auctionData, statResult = statResult)
+            getAuctionInfo(auctionData, statResult)
                 .also { printStatsData(auctionData, statResult, it) }
 
         logInfo(TAG, "Rounds completed")
@@ -238,11 +245,7 @@ internal class AuctionImpl(
         }
 
         // Sending auction statistics
-        auctionStat.sendAuctionStats(
-            auctionData = auctionData,
-            roundStat = statResult,
-            demandAd = demandAd,
-        )
+        auctionStat.sendAuctionStats(auctionData, statResult, demandAd)
 
         notifyWinLoss(finalResults, externalWinNotificationsEnabled)
 
@@ -250,8 +253,11 @@ internal class AuctionImpl(
         state.value = AuctionState.Finished
         // Wait for auction is completed
         state.first { it == AuctionState.Finished }
+
         val results = resultsCollector.getAll()
+
         clearData()
+
         return Pair(results, auctionInfo)
     }
 
@@ -329,8 +335,7 @@ internal class AuctionImpl(
             if (loser.roundStatus == RoundStatus.Successful) {
                 loserAdSource.markLoss()
             }
-            logInfo(TAG, "Destroying loser: ${loserAdSource.demandId}")
-            loserAdSource.destroy()
+            logInfo(TAG, "Loser notified: ${loserAdSource.demandId}")
         }
     }
 }

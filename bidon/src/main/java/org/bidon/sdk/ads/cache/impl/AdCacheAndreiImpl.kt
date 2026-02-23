@@ -19,7 +19,7 @@ import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.AuctionStopCondition
-import org.bidon.sdk.ads.cache.impl.andr.ExecuteAuctionAndreiUseCaseImpl
+import org.bidon.sdk.ads.cache.impl.andr.AuctionExecutor
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
@@ -73,7 +73,7 @@ internal class AdCacheAndreiImpl(
         logInfo(tag, "Cache ad: $adTypeParam")
 
         val executeAuction =
-            ExecuteAuctionAndreiUseCaseImpl(
+            AuctionExecutor(
                 adaptersSource = get(),
                 requestAdUnit = get(),
                 statsRepository = get(),
@@ -94,7 +94,7 @@ internal class AdCacheAndreiImpl(
                 adaptersSource = get(),
                 getTokens = get(),
                 getAuctionRequest = get(),
-                executeAuction = executeAuction,
+                auctionExecutor = executeAuction,
                 auctionStat = get(),
                 biddingConfig = get(),
             )
@@ -139,7 +139,7 @@ internal class AdCacheAndreiImpl(
                         tag, "Auction completed: ${auctionResultBuffer.peekAll().asString()}"
                     )
                 }.also { isLoading.set(false) }
-                .let { onSuccess.invoke(auctionResultBuffer.poll(), auctionInfo) }
+                .let { onSuccess.invoke(auctionResultBuffer.peek()!!, auctionInfo) }
         }
     }
 

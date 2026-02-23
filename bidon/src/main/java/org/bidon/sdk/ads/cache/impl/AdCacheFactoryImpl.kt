@@ -8,6 +8,7 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
+import org.bidon.sdk.ads.cache.impl.andr.AdCacheAndrFactory
 import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
@@ -23,14 +24,14 @@ internal class AdCacheFactoryImpl(
     override fun create(demandAd: DemandAd): AdCache {
         // Only Interstitial ads use version-based cache implementations
         // Banner and Rewarded always use default V1 implementation
-        if (demandAd.adType != AdType.Interstitial) {
+        if (demandAd.adType !in listOf(AdType.Interstitial, AdType.Banner)) {
             return AdCacheImpl(
                 demandAd = demandAd,
                 scope = CoroutineScope(SdkDispatchers.Main),
                 resolver = resolver
             )
         }
-
+        // TODO: Rollback
         val version: AdCacheVersion = AdCacheVersion.V3//extractStrategyVersion(demandAd)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
@@ -45,10 +46,8 @@ internal class AdCacheFactoryImpl(
             )
 
             AdCacheVersion.V3 -> {
-                AdCacheAndreiImpl(
+                AdCacheAndrFactory.create(
                     demandAd = demandAd,
-                    executionDispatcher = SdkDispatchers.IO,
-                    callbackDispatcher = SdkDispatchers.Main,
                     resolver = resolver
                 )
             }
