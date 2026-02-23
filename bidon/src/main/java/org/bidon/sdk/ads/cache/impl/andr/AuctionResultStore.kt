@@ -13,10 +13,10 @@ import org.bidon.sdk.utils.SdkDispatchers
 import java.util.SortedSet
 import kotlin.coroutines.CoroutineContext
 
-internal class AuctionResultBuffer(
+internal class AuctionResultStore(
     coroutineContext: CoroutineContext = SdkDispatchers.IO,
     capacity: Int = 2,
-) : AdBuffer<AuctionResult, AuctionResultBuffer.Entry>(capacity, AdBuffer.Entry.PriceComparator) {
+) : AdStore<AuctionResult, AuctionResultStore.Entry>(capacity, AdStore.Entry.PriceComparator) {
     private val coroutineScope: CoroutineScope = CoroutineScope(coroutineContext + SupervisorJob())
 
     private val observers = MutableStateFlow<MutableMap<Entry, Job>>(mutableMapOf())
@@ -80,7 +80,7 @@ internal class AuctionResultBuffer(
 
     internal class Entry(
         val result: AuctionResult,
-    ) : AdBuffer.Entry {
+    ) : AdStore.Entry {
         override val demandId: String
             get() = result.demandId
 

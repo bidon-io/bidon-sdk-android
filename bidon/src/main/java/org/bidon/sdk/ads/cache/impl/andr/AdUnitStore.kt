@@ -5,9 +5,9 @@ import kotlinx.coroutines.flow.update
 import org.bidon.sdk.auction.models.AdUnit
 import java.util.concurrent.TimeUnit
 
-internal class AdUnitBuffer(
+internal class AdUnitStore(
     private val ttlMs: Long = DEFAULT_TTL_MS,
-) : AdBuffer<AdUnit, AdUnitBuffer.Entry>(Int.MAX_VALUE, AdBuffer.Entry.PriceComparator) {
+) : AdStore<AdUnit, AdUnitStore.Entry>(Int.MAX_VALUE, AdStore.Entry.PriceComparator) {
     override fun insert(vararg items: AdUnit) {
         val now = SystemClock.elapsedRealtime()
         entries.update { old ->
@@ -32,7 +32,7 @@ internal class AdUnitBuffer(
     internal class Entry(
         val result: AdUnit,
         val expireAt: Long,
-    ) : AdBuffer.Entry {
+    ) : AdStore.Entry {
         override val demandId: String
             get() = result.demandId
 

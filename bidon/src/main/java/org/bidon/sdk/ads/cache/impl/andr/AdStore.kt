@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import java.util.SortedSet
 import java.util.TreeSet
 
-internal abstract class AdBuffer<T, E : AdBuffer.Entry>(
+internal abstract class AdStore<T, E : AdStore.Entry>(
     val capacity: Int,
     private val comparator: Comparator<in E>,
 ) {

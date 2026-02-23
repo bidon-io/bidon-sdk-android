@@ -25,32 +25,15 @@ import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 import java.util.LinkedList
 
-internal data class AuctionContext(
-    val auctionId: String,
-    val auctionConfigurationId: Long,
-    val auctionConfigurationUid: String,
-    val externalWinNotificationsEnabled: Boolean,
-)
-
 internal class AuctionExecutor(
+    private val tag: String,
     private val adaptersSource: AdaptersSource,
     private val requestAdUnit: RequestAdUnitUseCase,
     private val statsRepository: DemandStatisticsRepository,
-    private val adUnitBuffer: AdBuffer<AdUnit, *>,
+    private val adUnitBuffer: AdStore<AdUnit, *>,
     private val adUnitListMerger: AdUnitListMerger,
     private val stopCondition: AuctionStopCondition,
 ) {
-    private fun getSortedAdUnits(
-        adType: AdType,
-        adUnits: List<AdUnit>,
-    ): List<AdUnit> {
-        // UCB1 sort
-        val allStats = statsRepository.getAllStats(adType)
-        return adUnitListMerger
-            .merge(adUnitBuffer.popAll().toList(), adUnits)
-            .sortedByRankDescending(allStats)
-    }
-
     suspend fun execute(
         context: AuctionContext,
         demandAd: DemandAd,
@@ -64,11 +47,8 @@ internal class AuctionExecutor(
         val pendingMeasurements = mutableListOf<DemandMeasurement>()
 
         val adUnitQueue =
-            LinkedList(getSortedAdUnits(demandAd.adType, adUnits)).also {
-                logInfo(
-                    TAG, "AdUnits for request: ${it.size}"
-                )
-            }
+            LinkedList(getSortedAdUnits(demandAd.adType, adUnits))
+                .also { logInfo(tag, "AdUnits for request: ${it.size}") }
 
         val result =
             runCatching {
@@ -77,17 +57,17 @@ internal class AuctionExecutor(
                     while (adUnitQueue.isNotEmpty()) {
                         val adUnit = adUnitQueue.peek()
                         if (adUnit == null) {
-                            logInfo(TAG, "All adUnits were requested")
+                            logInfo(tag, "All adUnits were requested")
                             break
                         }
 
-                        logInfo(TAG, "Perform load next: \n$adUnit")
+                        logInfo(tag, "Perform load next: \n$adUnit")
 
                         val tokenInfo = tokens[adUnit.demandId]
 
                         if (adUnit.pricefloor < priceFloor) {
                             logInfo(
-                                TAG,
+                                tag,
                                 "Request was skipped since the priceFloor: $priceFloor is less than " + "the next requested adUnit: ${adUnit.pricefloor}"
                             )
                             adUnitQueue.remove()
@@ -105,7 +85,7 @@ internal class AuctionExecutor(
                                     RoundStatus.UnknownAdapter
                                 )
                             )
-                            logInfo(TAG, "AdAdapter ${adUnit.demandId} not found")
+                            logInfo(tag, "AdAdapter ${adUnit.demandId} not found")
                             continue
                         }
 
@@ -126,7 +106,7 @@ internal class AuctionExecutor(
                             successCount++
                             if (stopCondition.shouldStop(successCount, auctionResult, next)) {
                                 logInfo(
-                                    TAG,
+                                    tag,
                                     "Stop condition met after $successCount successful loads"
                                 )
                                 drainRemainingAdUnits(
@@ -150,7 +130,7 @@ internal class AuctionExecutor(
         // Save unused RTB for caching
         adUnitBuffer.insert(*(adUnitQueue.filter { it.bidType == BidType.RTB }).toTypedArray())
 
-        logInfo(TAG, "Auction was finished")
+        logInfo(tag, "Auction was finished")
 
         return result.getOrElse {
             val status =
@@ -166,6 +146,17 @@ internal class AuctionExecutor(
         }
     }
 
+    private fun getSortedAdUnits(
+        adType: AdType,
+        adUnits: List<AdUnit>,
+    ): List<AdUnit> {
+        // UCB1 sort
+        val allStats = statsRepository.getAllStats(adType)
+        return adUnitListMerger
+            .merge(adUnitBuffer.popAll().toList(), adUnits)
+            .sortedByRankDescending(allStats)
+    }
+
     private fun resolveAdSource(
         adUnit: AdUnit,
         demandAd: DemandAd,
@@ -176,7 +167,7 @@ internal class AuctionExecutor(
             adaptersSource.adapters
                 .find { it.demandId.demandId == adUnit.demandId }
                 ?.also(Adapter::applyRegulation)
-                ?.getAdSources(demandAd.adType, TAG)
+                ?.getAdSources(demandAd.adType, tag)
                 ?.also { it.setStatisticAdType(adTypeParam.asStatisticAdType()) }
 
         if (adUnit.bidType == BidType.RTB) {
@@ -238,12 +229,10 @@ internal class AuctionExecutor(
         demandAd: DemandAd,
         auctionPriceFloor: Double,
     ) = with(adSource) {
-        addRoundInfo(context.auctionId, demandAd, auctionPriceFloor)
+        addRoundInfo(context.id, demandAd, auctionPriceFloor)
         setStatisticAdType(adTypeParam.asStatisticAdType())
-        addAuctionConfigurationId(context.auctionConfigurationId)
-        addAuctionConfigurationUid(context.auctionConfigurationUid)
+        addAuctionConfigurationId(context.configurationId)
+        addAuctionConfigurationUid(context.configurationUid)
         addExternalWinNotificationsEnabled(context.externalWinNotificationsEnabled)
     }
 }
-
-private const val TAG = "ExecuteAuctionAndreiUseCase"
