@@ -6,30 +6,18 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.AdProvider
-import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdaptersSource
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.banner.BannerFormat
-import org.bidon.sdk.ads.cache.denis.lifecycle.CleanupCoordinator
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
-import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayload
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.regulation.Regulation
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
@@ -64,58 +52,41 @@ private sealed class RtbSource {
 }
 
 /**
- * RTB payload processor for loading highest-eCPM RTB payloads.
+ * RTB payload processor with waterfall fallback.
  *
  * Merges RTB AdUnits from current auction with cached payloads, sorts by eCPM,
- * loads the best one, and caches the rest for future auctions.
+ * and tries each source in order until one fills successfully.
+ * Unfilled sources from current auction are cached for future auctions.
  *
  * Thread-safety: Injected coroutine scope ensures proper cancellation support.
  * Failure handling: Invalid payloads removed from cache to prevent retry of broken bids.
  */
 internal class RtbProcessor(
     private val adaptersSource: AdaptersSource,
-    private val regulation: Regulation,
 ) {
     /**
-     * Load the highest-eCPM RTB payload with retry logic.
+     * Load RTB payload with waterfall fallback (try next on failure).
      *
      * Process:
      * 1. Merge RTB AdUnits from current auction with cached payloads
-     * 2. Sort by eCPM descending (cached payloads use pricefloor, new AdUnits use pricefloor)
-     * 3. Try each payload until success or exhaustion (retry logic)
-     * 4. Check cancellation before each load attempt
-     * 5. Create AdSource and load the ad
-     * 6. On success: Store in ReadyToShowCache, save remaining to RtbPayloadCache
-     * 7. On failure: Remove invalid payload from RtbPayloadCache, continue to next
-     * 8. Always destroy AdSource in finally block unless successfully loaded
+     * 2. Sort by eCPM descending
+     * 3. Try each source in order — on failure, fallback to next
+     * 4. Cache untried new AdUnits in RtbPayloadCache for future auctions
+     * 5. On success: Return CacheEntry (orchestrator handles cache insertion)
+     * 6. On failure: Remove from RtbPayloadCache if it was cached
      *
      * @param rtbAdUnits RTB ad units from current auction response
-     * @param adTypeParam Ad type parameters (Interstitial/Rewarded/Banner)
-     * @param demandAd Demand ad configuration
-     * @param auctionId Auction identifier for tracking
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param pricefloor Minimum acceptable price
-     * @param onFirstFill Callback to fire on successful load (for immediate onAdLoaded)
-     * @return Result with AuctionResult on success, BidonError on failure
+     * @param params Common auction parameters
+     * @return Result with Pair of AuctionResult and CacheEntry on success, BidonError on failure
      */
     suspend fun loadBestPayload(
         rtbAdUnits: List<org.bidon.sdk.auction.models.AdUnit>,
-        adTypeParam: AdTypeParam,
-        demandAd: DemandAd,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        pricefloor: Double,
-        onFirstFill: (AuctionResult) -> Unit = {},
-    ): Result<AuctionResult> = coroutineScope {
+        params: AuctionParams,
+    ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> = coroutineScope {
         // Get cached payloads (sorted by eCPM descending)
         val cachedPayloads = RtbPayloadCache.getAllSortedByEcpm()
 
         // Merge new RTB AdUnits with cached payloads and sort by eCPM
-        // New AdUnits converted to RtbSource entries
         val newRtbSources = rtbAdUnits.map { adUnit ->
             RtbSource.FromAdUnit(adUnit)
         }
@@ -133,309 +104,241 @@ internal class RtbProcessor(
 
         logInfo(
             TAG,
-            "RTB retry: ${allRtbSources.size} sources (${newRtbSources.size} new, " +
-                "${cachedRtbSources.size} cached), trying in eCPM order"
+            "RTB: ${allRtbSources.size} sources (${newRtbSources.size} new, " +
+                "${cachedRtbSources.size} cached), waterfall order: " +
+                allRtbSources.joinToString { "${it.demandId}@$${"%.2f".format(it.ecpm)}" }
         )
 
-        // Try each source until success (retry logic for RTB-03)
-        var loadedIndex = -1
-        for ((index, source) in allRtbSources.withIndex()) {
-            // Check cancellation before each load attempt
+        // Track which sources we tried (to cache the rest)
+        val triedDemandIds = mutableSetOf<String>()
+
+        for (source in allRtbSources) {
+            // Check cancellation before each attempt
             ensureActive()
 
-            val demandId = source.demandId
-            val ecpm = source.ecpm
-            val sourceType = when (source) {
-                is RtbSource.FromAdUnit -> "new"
-                is RtbSource.FromCache -> "cached"
+            triedDemandIds.add(source.demandId)
+
+            val result = tryLoadRtbSource(
+                source = source,
+                params = params,
+            )
+
+            if (result.isSuccess) {
+                val (auctionResult, cacheEntry) = result.getOrThrow()
+
+                // Cache untried new AdUnits for future auctions
+                val cachedCount = cacheUntriedSources(allRtbSources, triedDemandIds, params.auctionId)
+
+                logInfo(TAG, "RTB summary: loaded ${source.demandId}, cached $cachedCount payloads for future")
+                return@coroutineScope Result.success(auctionResult to cacheEntry)
             }
-
-            logInfo(TAG, "RTB loading: demandId=$demandId, ecpm=$ecpm, source=$sourceType")
-
-            // Find adapter by demandId
-            val adapter = adaptersSource.adapters.find { it.demandId.demandId == demandId }
-            if (adapter == null) {
-                logInfo(TAG, "Adapter not found for demandId=$demandId, trying next source")
-                // Remove from cache if it was cached
-                if (source is RtbSource.FromCache) {
-                    RtbPayloadCache.remove(demandId)
-                }
-                continue // Retry next source
-            }
-
-            // Apply regulation
-            adapter.applyRegulation()
-
-            // Create AdSource
-            val adSource = createAdSource(adapter, demandAd, adTypeParam)
-            if (adSource == null) {
-                logInfo(TAG, "AdSource creation failed for demandId=$demandId, trying next payload")
-                RtbPayloadCache.remove(demandId)
-                continue // Retry next payload
-            }
-
-            // Track if ad loaded successfully for cleanup decision
-            var loadSuccess = false
-
-            try {
-                // Set token info from source
-                source.tokenInfo?.let { tokenInfo ->
-                    adSource.setTokenInfo(tokenInfo)
-                }
-
-                // Apply auction parameters
-                applyParams(
-                    adSource = adSource,
-                    auctionId = auctionId,
-                    auctionConfigurationId = auctionConfigurationId,
-                    auctionConfigurationUid = auctionConfigurationUid,
-                    externalWinNotificationsEnabled = externalWinNotificationsEnabled,
-                    demandAd = demandAd,
-                    pricefloor = pricefloor,
-                    adTypeParam = adTypeParam,
-                )
-
-                // Get auction params
-                val adParams = adSource.getAuctionParam(
-                    org.bidon.sdk.adapter.AdAuctionParamSource(
-                        activity = adTypeParam.activity,
-                        pricefloor = pricefloor,
-                        optBannerFormat = (adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
-                        optContainerWidth = (adTypeParam as? AdTypeParam.Banner)?.containerWidth,
-                        adUnit = source.adUnit,
-                    )
-                ).getOrNull()
-
-                if (adParams == null) {
-                    logInfo(TAG, "RTB load failed: demandId=$demandId, failed to create auction params, trying next source")
-                    if (source is RtbSource.FromCache) {
-                        RtbPayloadCache.remove(demandId)
-                    }
-                    continue // Retry next source
-                }
-
-                // Mark fill started (sets adUnit in stats for getAd() calls)
-                adSource.markFillStarted(source.adUnit, pricefloor)
-
-                // Load ad with timeout (on Main thread for adapters like Admob)
-                val adEvent = withTimeout(source.adUnit.timeout) {
-                    withContext(Dispatchers.Main) {
-                        adSource.load(adParams)
-                    }
-                    adSource.adEvent.first { event ->
-                        event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired
-                    }
-                }
-
-                when (adEvent) {
-                    is AdEvent.Fill -> {
-                        logInfo(TAG, "RTB loaded successfully: demandId=$demandId, source=$sourceType")
-                        loadSuccess = true // Mark as success to prevent destroy in finally
-                        loadedIndex = index // Track which source was loaded
-
-                        // Update price to RTB eCPM
-                        adSource.markFillFinished(
-                            roundStatus = RoundStatus.Successful,
-                            price = ecpm // Use RTB eCPM (from adUnit or cache)
-                        )
-
-                        val auctionResult: AuctionResult = AuctionResult.Bidding(adSource, RoundStatus.Successful)
-
-                        // Store in ReadyToShowCache
-                        val cacheEntry: CacheEntry<AuctionResult> = CacheEntry.create(
-                            value = auctionResult,
-                            ecpm = ecpm,
-                            demandId = demandId,
-                            auctionId = auctionId,
-                            uid = source.adUnit.uid
-                        )
-                        ReadyToShowCache.put(cacheEntry)
-                        logInfo(TAG, "→ READY_TO_SHOW: stored $demandId $${"%.2f".format(ecpm)}")
-
-                        // Fire callback on successful load (for immediate onAdLoaded)
-                        onFirstFill(auctionResult)
-
-                        // Remove loaded source from cache if it was cached
-                        if (source is RtbSource.FromCache) {
-                            RtbPayloadCache.remove(demandId)
-                        }
-
-                        // Save remaining sources to RtbPayloadCache for next auction
-                        val remainingSources = allRtbSources.drop(index + 1)
-                        var cachedCount = 0
-                        remainingSources.forEach { remainingSource ->
-                            // Only cache new AdUnits, skip already cached ones
-                            if (remainingSource is RtbSource.FromAdUnit) {
-                                val payload = RtbPayload(
-                                    adUnit = remainingSource.adUnit,
-                                    tokenInfo = remainingSource.tokenInfo,
-                                    auctionId = auctionId
-                                )
-                                val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
-                                if (inserted) {
-                                    cachedCount++
-                                    logInfo(TAG, "→ RTB_PAYLOAD: cached ${remainingSource.demandId} $${"%.2f".format(remainingSource.ecpm)}")
-                                }
-                            }
-                        }
-                        logInfo(TAG, "RTB summary: loaded 1 ($demandId), cached $cachedCount payloads for future")
-
-                        return@coroutineScope Result.success(auctionResult)
-                    }
-                    is AdEvent.LoadFailed, is AdEvent.Expired -> {
-                        val error = when (adEvent) {
-                            is AdEvent.LoadFailed -> adEvent.cause
-                            is AdEvent.Expired -> BidonError.Expired(null)
-                            else -> BidonError.NoFill(DemandId(demandId))
-                        }
-                        logInfo(TAG, "RTB load failed: demandId=$demandId, removing from cache, trying next source, error=$error")
-                        if (source is RtbSource.FromCache) {
-                            RtbPayloadCache.remove(demandId)
-                        }
-                        // Continue to next source (retry)
-                    }
-                    else -> {
-                        logError(TAG, "Unexpected ad event: $adEvent", null)
-                        if (source is RtbSource.FromCache) {
-                            RtbPayloadCache.remove(demandId)
-                        }
-                        // Continue to next source (retry)
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // NEVER catch CancellationException - always rethrow
-                throw e
-            } catch (e: Exception) {
-                logInfo(TAG, "RTB load failed: demandId=$demandId, removing from cache, trying next source, exception=${e.message}")
-                if (source is RtbSource.FromCache) {
-                    RtbPayloadCache.remove(demandId)
-                }
-                // Continue to next source (retry)
-            } finally {
-                // Guaranteed cleanup even if cancelled (LIFE-06)
-                // Only destroy if load was not successful
-                if (!loadSuccess && adSource != null) {
-                    CleanupCoordinator.destroyAdSource(adSource, demandId)
-                }
-            }
+            // Failed — continue to next source
         }
 
-        // All sources exhausted - save ALL new AdUnits to cache for next auction
-        if (loadedIndex == -1) {
-            logInfo(TAG, "RTB retry exhausted: all sources failed, caching new AdUnits for next auction")
-            newRtbSources.forEach { newSource ->
-                val payload = RtbPayload(
-                    adUnit = newSource.adUnit,
-                    tokenInfo = newSource.tokenInfo,
-                    auctionId = auctionId
-                )
-                val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
-                if (inserted) {
-                    logInfo(TAG, "RTB cached (after fail): demandId=${newSource.demandId}, ecpm=${newSource.ecpm}")
-                }
-            }
-        }
+        // All sources failed — cache any untried new AdUnits (shouldn't be any, but safe)
+        cacheUntriedSources(allRtbSources, triedDemandIds, params.auctionId)
 
         return@coroutineScope Result.failure(BidonError.NoFill(DemandId("RTB")))
     }
 
     /**
-     * Create AdSource from adapter based on ad type.
+     * Try to load a single RTB source.
      *
-     * @param adapter Adapter instance
-     * @param demandAd Demand ad configuration
-     * @param adTypeParam Ad type parameters
-     * @return AdSource instance or null if adapter doesn't support the ad type
+     * @return Result with AuctionResult on success, BidonError on failure
      */
-    private fun createAdSource(
-        adapter: Adapter,
-        demandAd: DemandAd,
-        adTypeParam: AdTypeParam,
-    ): AdSource<AdAuctionParams>? {
-        val adapterDemandId = adapter.demandId
-        return when (demandAd.adType) {
-            AdType.Interstitial -> {
-                (adapter as? AdProvider.Interstitial<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
-                    }.getOrNull()
-                }
+    private suspend fun tryLoadRtbSource(
+        source: RtbSource,
+        params: AuctionParams,
+    ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> {
+        val demandId = source.demandId
+        val ecpm = source.ecpm
+
+        // Find adapter by demandId
+        val adapter = adaptersSource.adapters.find { it.demandId.demandId == demandId }
+        if (adapter == null) {
+            logInfo(TAG, "Adapter not found for demandId=$demandId")
+            if (source is RtbSource.FromCache) {
+                RtbPayloadCache.remove(demandId)
             }
-            AdType.Rewarded -> {
-                (adapter as? AdProvider.Rewarded<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
-                    }.getOrNull()
-                }
-            }
-            AdType.Banner -> {
-                (adapter as? AdProvider.Banner<AdAuctionParams>)?.let { provider ->
-                    runCatching {
-                        provider.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
-                    }.getOrNull()
-                }
-            }
+            return Result.failure(BidonError.NoFill(DemandId(demandId)))
         }
-    }
 
-    /**
-     * Apply auction parameters to AdSource.
-     *
-     * @param adSource AdSource instance
-     * @param auctionId Auction identifier
-     * @param auctionConfigurationId Auction configuration ID
-     * @param auctionConfigurationUid Auction configuration UID
-     * @param externalWinNotificationsEnabled Win notification flag
-     * @param demandAd Demand ad configuration
-     * @param pricefloor Minimum acceptable price
-     */
-    private fun applyParams(
-        adSource: AdSource<AdAuctionParams>,
-        auctionId: String,
-        auctionConfigurationId: Long,
-        auctionConfigurationUid: String,
-        externalWinNotificationsEnabled: Boolean,
-        demandAd: DemandAd,
-        pricefloor: Double,
-        adTypeParam: AdTypeParam,
-    ) {
-        // Set statistic ad type (CRITICAL: must be set before show)
-        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
+        // Apply regulation
+        adapter.applyRegulation()
 
-        adSource.addRoundInfo(
-            auctionId = auctionId,
-            demandAd = demandAd,
-            auctionPricefloor = pricefloor,
-        )
-        adSource.addAuctionConfigurationId(auctionConfigurationId)
-        adSource.addAuctionConfigurationUid(auctionConfigurationUid)
-        adSource.addExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
-    }
+        // Create AdSource
+        val adSource = AdSourceFactory.createAdSource(adapter, params.demandAd, params.adTypeParam, TAG)
+        if (adSource == null) {
+            logInfo(TAG, "AdSource creation failed for demandId=$demandId")
+            if (source is RtbSource.FromCache) {
+                RtbPayloadCache.remove(demandId)
+            }
+            return Result.failure(BidonError.NoFill(DemandId(demandId)))
+        }
 
-    /**
-     * Convert AdTypeParam to StatisticsCollector.AdType.
-     */
-    private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
-        return when (this) {
-            is AdTypeParam.Banner -> {
-                StatisticsCollector.AdType.Banner(
-                    format = when (bannerFormat) {
-                        BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
-                        BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
-                        BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
-                        BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
-                    }
+        // Track if ad loaded successfully for cleanup decision
+        var loadSuccess = false
+
+        try {
+            // Set token info from source
+            source.tokenInfo?.let { tokenInfo ->
+                adSource.setTokenInfo(tokenInfo)
+            }
+
+            // Apply auction parameters
+            AdSourceFactory.applyParams(
+                adSource = adSource,
+                auctionId = params.auctionId,
+                auctionConfigurationId = params.auctionConfigurationId,
+                auctionConfigurationUid = params.auctionConfigurationUid,
+                externalWinNotificationsEnabled = params.externalWinNotificationsEnabled,
+                demandAd = params.demandAd,
+                pricefloor = params.pricefloor,
+                adTypeParam = params.adTypeParam,
+            )
+
+            // Get auction params
+            val adParams = adSource.getAuctionParam(
+                org.bidon.sdk.adapter.AdAuctionParamSource(
+                    activity = params.adTypeParam.activity,
+                    pricefloor = params.pricefloor,
+                    optBannerFormat = (params.adTypeParam as? AdTypeParam.Banner)?.bannerFormat,
+                    optContainerWidth = (params.adTypeParam as? AdTypeParam.Banner)?.containerWidth,
+                    adUnit = source.adUnit,
                 )
+            ).getOrNull()
+
+            if (adParams == null) {
+                logInfo(TAG, "RTB load failed: demandId=$demandId, failed to create auction params")
+                if (source is RtbSource.FromCache) {
+                    RtbPayloadCache.remove(demandId)
+                }
+                return Result.failure(BidonError.NoFill(DemandId(demandId)))
             }
-            is AdTypeParam.Interstitial -> StatisticsCollector.AdType.Interstitial
-            is AdTypeParam.Rewarded -> StatisticsCollector.AdType.Rewarded
+
+            // Mark fill started (sets adUnit in stats for getAd() calls)
+            adSource.markFillStarted(source.adUnit, params.pricefloor)
+
+            // Load ad with timeout (on Main thread for adapters like Admob)
+            val adEvent = withTimeout(source.adUnit.timeout) {
+                withContext(Dispatchers.Main) {
+                    adSource.load(adParams)
+                }
+                adSource.adEvent.first { event ->
+                    event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired
+                }
+            }
+
+            when (adEvent) {
+                is AdEvent.Fill -> {
+                    loadSuccess = true
+
+                    // Update price to RTB eCPM
+                    adSource.markFillFinished(
+                        roundStatus = RoundStatus.Successful,
+                        price = ecpm
+                    )
+
+                    val auctionResult: AuctionResult = AuctionResult.Bidding(adSource, RoundStatus.Successful)
+
+                    // Report successful RTB result to ResultsCollector
+                    params.resultsCollector.add(auctionResult)
+
+                    // Create CacheEntry — orchestrator will sort and cache after both pipelines complete
+                    val cacheEntry: CacheEntry<AuctionResult> = CacheEntry.create(
+                        value = auctionResult,
+                        ecpm = ecpm,
+                        demandId = demandId,
+                        auctionId = params.auctionId,
+                        uid = source.adUnit.uid
+                    )
+
+                    // Remove loaded source from cache if it was cached
+                    if (source is RtbSource.FromCache) {
+                        RtbPayloadCache.remove(demandId)
+                    }
+
+                    return Result.success(auctionResult to cacheEntry)
+                }
+                is AdEvent.LoadFailed, is AdEvent.Expired -> {
+                    val error = when (adEvent) {
+                        is AdEvent.LoadFailed -> adEvent.cause
+                        is AdEvent.Expired -> BidonError.Expired(null)
+                        else -> BidonError.NoFill(DemandId(demandId))
+                    }
+                    logInfo(TAG, "RTB load failed: demandId=$demandId, error=$error")
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = source.adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = source.tokenInfo
+                    )
+                    params.resultsCollector.add(failedResult)
+                    if (source is RtbSource.FromCache) {
+                        RtbPayloadCache.remove(demandId)
+                    }
+                }
+                else -> {
+                    logError(TAG, "Unexpected ad event: $adEvent", null)
+                    val failedResult = AuctionResult.AuctionFailed(
+                        adUnit = source.adUnit, roundStatus = RoundStatus.NoFill, tokenInfo = source.tokenInfo
+                    )
+                    params.resultsCollector.add(failedResult)
+                    if (source is RtbSource.FromCache) {
+                        RtbPayloadCache.remove(demandId)
+                    }
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logInfo(TAG, "RTB load failed: demandId=$demandId, exception=${e.message}")
+            val roundStatus = if (e is kotlinx.coroutines.TimeoutCancellationException) {
+                RoundStatus.FillTimeoutReached
+            } else {
+                RoundStatus.NoFill
+            }
+            val failedResult = AuctionResult.AuctionFailed(
+                adUnit = source.adUnit, roundStatus = roundStatus, tokenInfo = source.tokenInfo
+            )
+            params.resultsCollector.add(failedResult)
+            if (source is RtbSource.FromCache) {
+                RtbPayloadCache.remove(demandId)
+            }
+        } finally {
+            if (!loadSuccess) {
+                adSource.safeDestroy(demandId)
+            }
         }
+
+        return Result.failure(BidonError.NoFill(DemandId(demandId)))
+    }
+
+    /**
+     * Cache untried new AdUnit sources for future auctions.
+     *
+     * @return Number of sources cached
+     */
+    private fun cacheUntriedSources(
+        allSources: List<RtbSource>,
+        triedDemandIds: Set<String>,
+        auctionId: String,
+    ): Int {
+        var cachedCount = 0
+        allSources.forEach { source ->
+            if (source is RtbSource.FromAdUnit && source.demandId !in triedDemandIds) {
+                val payload = RtbPayload(
+                    adUnit = source.adUnit,
+                    tokenInfo = source.tokenInfo,
+                    auctionId = auctionId
+                )
+                val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
+                if (inserted) {
+                    cachedCount++
+                }
+            }
+        }
+        if (cachedCount > 0) {
+            logInfo(TAG, "RTB: cached $cachedCount new payloads for future auctions")
+        }
+        return cachedCount
     }
 }
 

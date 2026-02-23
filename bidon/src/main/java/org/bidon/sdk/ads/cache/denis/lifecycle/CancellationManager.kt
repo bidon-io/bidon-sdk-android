@@ -51,7 +51,6 @@ internal class CancellationManager {
 
             currentAuctionId = auctionId
             currentAuctionJob = job
-            logInfo(TAG, "Auction registered: auctionId=$auctionId")
         }
     }
 
@@ -70,13 +69,11 @@ internal class CancellationManager {
         synchronized(lock) {
             // Only cancel if auctionId matches current auction
             if (currentAuctionId != auctionId) {
-                logInfo(TAG, "No cancellation: auctionId mismatch (showing=$auctionId, current=$currentAuctionId)")
                 return false
             }
 
             val job = currentAuctionJob
             if (job == null || !job.isActive) {
-                logInfo(TAG, "No cancellation: auction already completed (auctionId=$auctionId)")
                 return false
             }
 
@@ -104,7 +101,6 @@ internal class CancellationManager {
         synchronized(lock) {
             val job = currentAuctionJob
             if (job == null || !job.isActive) {
-                logInfo(TAG, "No active auction to cancel")
                 return false
             }
 
@@ -120,28 +116,6 @@ internal class CancellationManager {
     }
 
     /**
-     * Check if auction is currently running.
-     *
-     * @return true if an active auction job exists
-     */
-    fun isAuctionRunning(): Boolean {
-        synchronized(lock) {
-            return currentAuctionJob?.isActive == true
-        }
-    }
-
-    /**
-     * Get current auction ID (for logging/debugging).
-     *
-     * @return Current auction ID or null if no auction running
-     */
-    fun getCurrentAuctionId(): String? {
-        synchronized(lock) {
-            return if (currentAuctionJob?.isActive == true) currentAuctionId else null
-        }
-    }
-
-    /**
      * Clear state when auction completes normally.
      *
      * Called when auction finishes successfully (not cancelled).
@@ -152,7 +126,6 @@ internal class CancellationManager {
     fun onAuctionCompleted(auctionId: String) {
         synchronized(lock) {
             if (currentAuctionId == auctionId) {
-                logInfo(TAG, "Auction completed normally: auctionId=$auctionId")
                 currentAuctionJob = null
                 currentAuctionId = null
             }

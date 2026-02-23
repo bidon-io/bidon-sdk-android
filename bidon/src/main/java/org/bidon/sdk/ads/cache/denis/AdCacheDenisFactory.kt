@@ -1,19 +1,23 @@
 package org.bidon.sdk.ads.cache.denis
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.PeriodicSweepJob
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
-import org.bidon.sdk.ads.cache.denis.usecases.GetTokensWithSkipUseCase
+import org.bidon.sdk.ads.cache.denis.stats.CacheAuctionStat
 import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.get
 
 /**
@@ -23,8 +27,8 @@ import org.bidon.sdk.utils.di.get
  * Gets V2-specific dependencies directly from DI container, keeping them
  * encapsulated within V2 implementation.
  *
- * This factory creates instance-scoped components (LifecycleManager, CoordinationLayer)
- * and wires them with processors and orchestrator.
+ * This factory creates instance-scoped components (CoroutineScope, PeriodicSweepJob,
+ * CancellationManager, CoordinationLayer) and wires them with processors and orchestrator.
  */
 internal object AdCacheDenisFactory {
 
@@ -32,7 +36,7 @@ internal object AdCacheDenisFactory {
      * Create fully-wired V2 AdCache instance.
      *
      * Creates and assembles:
-     * - LifecycleManager (instance-scoped for ad lifecycle)
+     * - CoroutineScope, PeriodicSweepJob, CancellationManager (instance-scoped lifecycle)
      * - RtbProcessor and CpmProcessor (shared processors for load operations)
      * - CoordinationLayer (warm/cold start orchestration, creates orchestrator per-auction)
      * - AdCacheDenisImpl (facade entry point)
@@ -45,7 +49,7 @@ internal object AdCacheDenisFactory {
      * polluting AdCacheFactoryImpl with V2-only dependencies.
      *
      * @param demandAd Ad instance configuration
-     * @param resolver Auction resolver (V1 compatibility - unused in V2)
+     * @param resolver Auction resolver for CacheAuctionStat winner sorting
      * @return Fully-wired AdCache instance
      */
     fun create(
@@ -57,37 +61,41 @@ internal object AdCacheDenisFactory {
         val getTokens = get<GetTokensUseCase>()
         val getAuctionRequest = get<GetAuctionRequestUseCase>()
         val biddingConfig = get<BiddingConfig>()
-        val regulation = get<Regulation>()
-        // Create instance-scoped lifecycle manager
-        val lifecycleManager = LifecycleManager()
+        // Use cache-specific AuctionStat that preserves Successful status for non-winner cached ads
+        val auctionStat = CacheAuctionStat(
+            statsRequest = get<StatsRequestUseCase>(),
+            resolver = resolver,
+        )
+        // Instance-scoped CoroutineScope: SupervisorJob isolates child failures
+        val instanceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val periodicSweepJob = PeriodicSweepJob(instanceScope)
+        val cancellationManager = CancellationManager()
 
         // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
-            regulation = regulation,
         )
         val cpmProcessor = CpmProcessor(
             adaptersSource = adaptersSource,
         )
 
-        // Create V2-specific token wrapper that filters cached demand IDs
-        val getTokensWithSkip = GetTokensWithSkipUseCase(delegate = getTokens)
-
         // Create coordination layer with processors (orchestrator created per-auction)
         val coordinationLayer = CoordinationLayer(
             adaptersSource = adaptersSource,
-            getTokensWithSkip = getTokensWithSkip,
+            getTokens = getTokens,
             getAuctionRequest = getAuctionRequest,
             rtbProcessor = rtbProcessor,
             cpmProcessor = cpmProcessor,
-            lifecycleManager = lifecycleManager,
+            scope = instanceScope,
+            cancellationManager = cancellationManager,
+            auctionStat = auctionStat,
         )
 
         return AdCacheDenisImpl(
             demandAd = demandAd,
-            resolver = resolver,
             coordinationLayer = coordinationLayer,
-            lifecycleManager = lifecycleManager,
+            periodicSweepJob = periodicSweepJob,
+            cancellationManager = cancellationManager,
             biddingConfig = biddingConfig,
         )
     }

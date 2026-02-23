@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.lifecycle
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -18,13 +19,13 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * - SupervisorJob isolation: sweep failures don't crash ad instance
  * - Logs sweep results for monitoring
  *
- * CRITICAL: Job automatically stops when AdInstanceScope is cancelled (LIFE-04).
+ * CRITICAL: Job automatically stops when parent scope is cancelled.
  * No zombie background tasks after ad instance destroyed.
  *
  * Thread-safety: Coroutine-based, runs on Dispatchers.Default.
  */
 internal class PeriodicSweepJob(
-    private val adInstanceScope: AdInstanceScope,
+    private val scope: CoroutineScope,
 ) {
     private var sweepJob: Job? = null
 
@@ -38,13 +39,10 @@ internal class PeriodicSweepJob(
      */
     fun start() {
         if (sweepJob?.isActive == true) {
-            logInfo(TAG, "Sweep job already running, skipping start")
             return
         }
 
-        sweepJob = adInstanceScope.scope.launch {
-            logInfo(TAG, "Periodic sweep job started (interval=${TtlConfig.SWEEP_INTERVAL_MILLIS}ms)")
-
+        sweepJob = scope.launch {
             while (isActive) {
                 // Wait first, then sweep (first sweep after 5 minutes)
                 delay(TtlConfig.SWEEP_INTERVAL_MILLIS)
@@ -60,7 +58,6 @@ internal class PeriodicSweepJob(
     fun stop() {
         sweepJob?.cancel()
         sweepJob = null
-        logInfo(TAG, "Periodic sweep job stopped")
     }
 
     /**
@@ -70,19 +67,12 @@ internal class PeriodicSweepJob(
      * Failures are logged but don't propagate (SupervisorJob isolation).
      */
     private suspend fun performSweep() {
-        logInfo(TAG, "Starting periodic sweep")
-
         try {
-            // Step 1: Sweep expired entries from caches
             val readyRemoved = ReadyToShowCache.sweep()
             val rtbRemoved = RtbPayloadCache.sweep()
-
-            // Step 2: Validate WeakReferences and remove invalid entries (LIFE-07)
-            val contextInvalid = WeakContextValidator.validateAndCleanup()
-
             logInfo(
                 TAG,
-                "Sweep completed: expired=$readyRemoved+$rtbRemoved, contextInvalid=$contextInvalid, " +
+                "Sweep completed: expired=$readyRemoved+$rtbRemoved, " +
                     "ReadyToShow size=${ReadyToShowCache.size()}, RtbPayload size=${RtbPayloadCache.size()}"
             )
         } catch (e: Exception) {

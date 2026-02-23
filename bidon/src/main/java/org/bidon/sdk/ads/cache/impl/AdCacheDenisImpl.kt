@@ -3,31 +3,32 @@ package org.bidon.sdk.ads.cache.impl
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.Ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.denis.extensions.showBestAdWithFallback
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.PeriodicSweepJob
 import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.bidding.BiddingConfig
-import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * V2 implementation of AdCache that delegates to Phase 1-4 components.
  *
  * Acts as facade over:
  * - CoordinationLayer: Orchestrates warm/cold start auction flow
- * - LifecycleManager: Manages auction lifecycle and cancellation
+ * - PeriodicSweepJob / CancellationManager: Lifecycle components
  * - ReadyToShowCache: Stores ready-to-show ads
  *
  * Design pattern: Facade - simplifies complex subsystem interaction.
@@ -35,16 +36,19 @@ import org.bidon.sdk.utils.SdkDispatchers
  */
 internal class AdCacheDenisImpl(
     override val demandAd: DemandAd,
-    private val resolver: AuctionResolver, // V1 compatibility - unused in V2
     private val coordinationLayer: CoordinationLayer,
-    private val lifecycleManager: LifecycleManager,
+    private val periodicSweepJob: PeriodicSweepJob,
+    private val cancellationManager: CancellationManager,
     private val biddingConfig: BiddingConfig,
     private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main + SupervisorJob()),
 ) : AdCache {
 
+    private val isAuctionRunning = AtomicBoolean(false)
+
     /**
      * Start auction to cache ads.
      *
+     * Ignores concurrent calls while an auction is already running.
      * Delegates to CoordinationLayer which handles:
      * - Warm start: serve cached ad immediately
      * - Cold start: run full auction flow
@@ -56,18 +60,28 @@ internal class AdCacheDenisImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit
     ) {
+        if (!isAuctionRunning.compareAndSet(false, true)) {
+            logInfo(TAG, "Ignoring loadAd(): auction already running")
+            return
+        }
+
+        // Start periodic sweep (idempotent, safe to call multiple times)
+        periodicSweepJob.start()
+
         scope.launch {
-            val tokenTimeout = biddingConfig.tokenTimeout
+            try {
+                val tokenTimeout = biddingConfig.tokenTimeout
 
-            val completionType = coordinationLayer.coordinateAuction(
-                adTypeParam = adTypeParam,
-                demandAd = demandAd,
-                tokenTimeout = tokenTimeout,
-                onSuccess = { result, info -> onSuccess(result, info) },
-                onFailure = { info, error -> onFailure(info, error) },
-            )
-
-            // Completion type logged by CoordinationLayer
+                coordinationLayer.coordinateAuction(
+                    adTypeParam = adTypeParam,
+                    demandAd = demandAd,
+                    tokenTimeout = tokenTimeout,
+                    onSuccess = { result, info -> onSuccess(result, info) },
+                    onFailure = { info, error -> onFailure(info, error) },
+                )
+            } finally {
+                isAuctionRunning.set(false)
+            }
         }
     }
 
@@ -79,7 +93,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun peek(): AuctionResult? {
-        return ReadyToShowCache.peekBest()
+        return ReadyToShowCache.peekFirst()?.value
     }
 
     /**
@@ -90,7 +104,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun pop(): AuctionResult? {
-        val entry = ReadyToShowCache.popBest()
+        val entry = ReadyToShowCache.popFirst()
         return entry?.value
     }
 
@@ -120,43 +134,27 @@ internal class AdCacheDenisImpl(
      * - Tries to show best ad from ReadyToShowCache
      * - On failure, automatically tries next best ad
      * - Continues until success or cache exhaustion
-     * - Handles all ad lifecycle events (Shown, Clicked, Closed, PaidRevenue)
      *
-     * Denis ad caching specific feature.
+     * After a successful show, subscribes to ad events and dispatches them
+     * via [onEvent]. The returned [Job] can be cancelled to stop event collection.
      *
      * @param activity Activity context for showing the ad
-     * @param onShown Callback when ad shown successfully
-     * @param onClicked Callback when ad is clicked
-     * @param onClosed Callback when ad is closed
-     * @param onRevenuePaid Callback when revenue is paid
-     * @param onShowFailed Callback when show fails (for each failed attempt)
      * @param onFailed Callback when all ads failed or cache empty
-     * @param onWinnerSelected Callback with the AdSource that was successfully shown
+     * @param onEvent Callback for ad events (Shown, Clicked, Closed, ShowFailed, PaidRevenue, etc.)
+     * @return Job that can be cancelled to stop event collection
      */
     fun showBestWithFallback(
         activity: Activity,
-        onShown: (Ad) -> Unit,
-        onClicked: (Ad) -> Unit = {},
-        onClosed: (Ad) -> Unit = {},
-        onRevenuePaid: (Ad, AdValue) -> Unit = { _, _ -> },
-        onShowFailed: (BidonError) -> Unit = {},
         onFailed: (Throwable) -> Unit,
-        onWinnerSelected: (AdSource.Interstitial<*>) -> Unit = {}
-    ) {
-        scope.launch {
+        onEvent: (AdSource<*>, AdEvent) -> Unit
+    ): Job {
+        return scope.launch {
             showBestAdWithFallback(
-                lifecycleManager = lifecycleManager,
+                cancellationManager = cancellationManager,
                 activity = activity,
-                onShown = onShown,
-                onClicked = onClicked,
-                onClosed = onClosed,
-                onRevenuePaid = onRevenuePaid,
-                onShowFailed = onShowFailed,
-                onWinnerSelected = onWinnerSelected
+                eventScope = this,
+                onEvent = onEvent
             )
-                .onSuccess { ad ->
-                    // onShown already called inside extension
-                }
                 .onFailure { error ->
                     onFailed(error)
                 }

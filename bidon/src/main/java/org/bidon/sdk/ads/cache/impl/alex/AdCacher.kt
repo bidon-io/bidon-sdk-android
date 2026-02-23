@@ -37,7 +37,7 @@ internal class AdCacher(
     override fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
-        onFailure: (AuctionInfo?, Throwable) -> Unit
+        onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         logInfo(
             TAG,
@@ -51,12 +51,14 @@ internal class AdCacher(
 
         scope.launch {
             // Check for existing ads before starting a new auction
-            val bestResult = pop()
-            if (bestResult != null) {
-                val auctionInfo = createEmptyAuctionInfo(bestResult)
-                succeeded.set(true)
-                logInfo(TAG, "Found existing result in storage: ${bestResult.adSource.getAd()}")
-                onSuccess(bestResult, auctionInfo)
+            if ((peek()?.adSource?.getAd()?.price ?: 0.0) >= adTypeParam.pricefloor) {
+                val bestResult = pop()
+                if (bestResult != null) {
+                    val auctionInfo = createEmptyAuctionInfo(bestResult)
+                    succeeded.set(true)
+                    logInfo(TAG, "Found existing result in storage: ${bestResult.adSource.getAd()}")
+                    onSuccess(bestResult, auctionInfo)
+                }
             }
 
             // Start a new auction

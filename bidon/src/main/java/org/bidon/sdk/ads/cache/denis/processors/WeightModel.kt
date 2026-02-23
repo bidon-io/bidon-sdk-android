@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.denis.processors
 
 import org.bidon.sdk.auction.models.AdUnit
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Thread-safe singleton for tracking CPM fill rate weights per demandId.
@@ -20,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - Weight 10 → 1.0x multiplier (neutral, default)
  * - Weight 20 → 2.0x multiplier (highly rewarded, many fills)
  *
- * Thread-safety: Uses ConcurrentHashMap + AtomicInteger for lock-free concurrent access.
+ * Thread-safety: Uses synchronized blocks for thread-safe concurrent access.
  * Storage: In-memory only (resets on app restart).
  */
 internal object WeightModel {
@@ -32,7 +31,7 @@ internal object WeightModel {
     /**
      * Thread-safe storage: demandId -> weight
      */
-    private val weights = ConcurrentHashMap<String, Int>()
+    private val weights = HashMap<String, Int>()
 
     /**
      * Record successful fill for demandId.
@@ -43,7 +42,7 @@ internal object WeightModel {
      */
     fun recordFill(demandId: String) {
         synchronized(weights) {
-            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            val current = weights[demandId] ?: DEFAULT_WEIGHT
             weights[demandId] = (current + 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
@@ -57,7 +56,7 @@ internal object WeightModel {
      */
     fun recordNoFill(demandId: String) {
         synchronized(weights) {
-            val current = weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            val current = weights[demandId] ?: DEFAULT_WEIGHT
             weights[demandId] = (current - 1).coerceIn(MIN_WEIGHT, MAX_WEIGHT)
         }
     }
@@ -72,7 +71,7 @@ internal object WeightModel {
      */
     fun getWeight(demandId: String): Int {
         return synchronized(weights) {
-            weights.getOrDefault(demandId, DEFAULT_WEIGHT)
+            weights[demandId] ?: DEFAULT_WEIGHT
         }
     }
 

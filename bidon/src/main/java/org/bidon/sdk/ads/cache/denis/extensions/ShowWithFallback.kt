@@ -1,18 +1,18 @@
 package org.bidon.sdk.ads.cache.denis.extensions
 
 import android.app.Activity
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.Ad
-import org.bidon.sdk.ads.cache.denis.lifecycle.LifecycleManager
+import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.config.BidonError
-import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.utils.SdkDispatchers
 
 private const val TAG = "[DenisCache] ShowWithFallback"
 
@@ -22,77 +22,24 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * If show fails, automatically tries the next best ad from cache recursively
  * until success or cache exhaustion.
  *
- * Thread-safety: Coroutine-based, safe for concurrent access.
- * Integration: Works with denis ad caching (ReadyToShowCache).
+ * After a successful show, subscribes to ad events (Shown, Clicked, Closed,
+ * PaidRevenue, ShowFailed, etc.) and dispatches them via [onEvent].
+ * Impression sending is the caller's responsibility via [onEvent].
  *
- * Usage:
- * ```kotlin
- * scope.launch {
- *     val result = showBestAdWithFallback(
- *         lifecycleManager = lifecycleManager,
- *         activity = activity,
- *         onShown = { ad -> },
- *         onClicked = { ad -> },
- *         onClosed = { ad -> },
- *         onRevenuePaid = { ad, adValue -> },
- *         onShowFailed = { error -> },
- *         onWinnerSelected = { adSource -> }
- *     )
- *     result.onSuccess { ad ->
- *         // Ad shown successfully
- *     }.onFailure { error ->
- *         // All ads failed or cache empty
- *     }
- * }
- * ```
- *
- * @param lifecycleManager Lifecycle manager for cancelling ongoing auctions
+ * @param cancellationManager Cancellation manager for cancelling ongoing auctions
  * @param activity Activity context for showing the ad
- * @param onShown Called when ad is shown successfully
- * @param onClicked Called when ad is clicked
- * @param onClosed Called when ad is closed
- * @param onRevenuePaid Called when revenue is paid
- * @param onShowFailed Called when show fails (for each failed attempt)
- * @param onWinnerSelected Called with the AdSource that was successfully shown
+ * @param eventScope Scope for launching event collection after successful show
+ * @param onEvent Called for each ad event (Shown, Clicked, Closed, ShowFailed, PaidRevenue, etc.)
  * @return Result with Ad on success, BidonError on failure
  */
 internal suspend fun showBestAdWithFallback(
-    lifecycleManager: LifecycleManager,
+    cancellationManager: CancellationManager,
     activity: Activity,
-    onShown: (Ad) -> Unit = {},
-    onClicked: (Ad) -> Unit = {},
-    onClosed: (Ad) -> Unit = {},
-    onRevenuePaid: (Ad, AdValue) -> Unit = { _, _ -> },
-    onShowFailed: (BidonError) -> Unit = {},
-    onWinnerSelected: (AdSource.Interstitial<*>) -> Unit = {}
-): Result<Ad> {
-    return tryShowNextAd(
-        lifecycleManager = lifecycleManager,
-        activity = activity,
-        onShown = onShown,
-        onClicked = onClicked,
-        onClosed = onClosed,
-        onRevenuePaid = onRevenuePaid,
-        onShowFailed = onShowFailed,
-        onWinnerSelected = onWinnerSelected
-    )
-}
-
-/**
- * Internal recursive function to try showing ads from cache.
- */
-private suspend fun tryShowNextAd(
-    lifecycleManager: LifecycleManager,
-    activity: Activity,
-    onShown: (Ad) -> Unit,
-    onClicked: (Ad) -> Unit,
-    onClosed: (Ad) -> Unit,
-    onRevenuePaid: (Ad, AdValue) -> Unit,
-    onShowFailed: (BidonError) -> Unit,
-    onWinnerSelected: (AdSource.Interstitial<*>) -> Unit
+    eventScope: CoroutineScope,
+    onEvent: (AdSource<*>, AdEvent) -> Unit
 ): Result<Ad> {
     // Get best ad from cache
-    val entry = ReadyToShowCache.popBest()
+    val entry = ReadyToShowCache.popFirst()
 
     if (entry == null) {
         logInfo(TAG, "EXHAUSTED: No more ads in cache")
@@ -105,12 +52,10 @@ private suspend fun tryShowNextAd(
     val auctionId = entry.auctionId
 
     // Cancel ongoing auction for this ad to prevent wasted processing
-    val wasCancelled = lifecycleManager.cancelAuction(auctionId)
+    val wasCancelled = cancellationManager.cancelIfMatching(auctionId)
     if (wasCancelled) {
         logInfo(TAG, "CANCEL: Stopped ongoing auction $auctionId for $demandId")
     }
-
-    logInfo(TAG, "SHOW: Attempting $demandId @ $${"%.2f".format(ecpm)}")
 
     // Show the ad based on type
     when (adSource) {
@@ -121,6 +66,13 @@ private suspend fun tryShowNextAd(
         }
     }
 
+    // Start event collection BEFORE waiting for show result to avoid
+    // missing events (e.g. PaidRevenue) emitted right after Shown.
+    // Both collectors receive all events from SharedFlow (replay=0).
+    val eventJob: Job = adSource.adEvent.onEach { event ->
+        onEvent(adSource, event)
+    }.launchIn(eventScope)
+
     // Wait for show result
     return adSource.adEvent.first { event ->
         event is AdEvent.Shown || event is AdEvent.ShowFailed
@@ -128,80 +80,23 @@ private suspend fun tryShowNextAd(
         when (event) {
             is AdEvent.Shown -> {
                 logInfo(TAG, "SUCCESS: $demandId displayed @ $${"%.2f".format(ecpm)}")
-
-                // Notify winner to update in InterstitialImpl
-                if (adSource is AdSource.Interstitial<*>) {
-                    onWinnerSelected(adSource)
-                }
-
-                // Call onShown
-                onShown(event.ad)
-
-                // Listen to post-show events in background
-                listenToPostShowEvents(
-                    adSource = adSource,
-                    onClicked = onClicked,
-                    onClosed = onClosed,
-                    onRevenuePaid = onRevenuePaid
-                )
-
                 Result.success(event.ad)
             }
             is AdEvent.ShowFailed -> {
                 logInfo(TAG, "FAIL: $demandId - ${event.cause}, trying fallback")
-                onShowFailed(event.cause)
+                eventJob.cancel()
 
                 // Recursive retry with next best ad from cache
-                tryShowNextAd(
-                    lifecycleManager = lifecycleManager,
+                showBestAdWithFallback(
+                    cancellationManager = cancellationManager,
                     activity = activity,
-                    onShown = onShown,
-                    onClicked = onClicked,
-                    onClosed = onClosed,
-                    onRevenuePaid = onRevenuePaid,
-                    onShowFailed = onShowFailed,
-                    onWinnerSelected = onWinnerSelected
+                    eventScope = eventScope,
+                    onEvent = onEvent
                 )
             }
             else -> {
+                eventJob.cancel()
                 Result.failure(BidonError.Unspecified(demandId = adSource.demandId))
-            }
-        }
-    }
-}
-
-/**
- * Listen to post-show events (Clicked, Closed, PaidRevenue) from the ad source.
- * Automatically cancels subscription when ad is closed.
- */
-private fun listenToPostShowEvents(
-    adSource: AdSource<*>,
-    onClicked: (Ad) -> Unit,
-    onClosed: (Ad) -> Unit,
-    onRevenuePaid: (Ad, AdValue) -> Unit
-) {
-    val scope = CoroutineScope(SdkDispatchers.Main)
-    scope.launch {
-        adSource.adEvent.collect { event ->
-            when (event) {
-                is AdEvent.Clicked -> {
-                    logInfo(TAG, "CLICK: ${adSource.demandId}")
-                    onClicked(event.ad)
-                    adSource.sendClickImpression()
-                }
-                is AdEvent.Closed -> {
-                    logInfo(TAG, "CLOSE: ${adSource.demandId}")
-                    onClosed(event.ad)
-                    // Stop listening after close
-                    return@collect
-                }
-                is AdEvent.PaidRevenue -> {
-                    logInfo(TAG, "REVENUE: ${adSource.demandId} @ ${event.adValue}")
-                    onRevenuePaid(event.ad, event.adValue)
-                }
-                else -> {
-                    // Ignore other events (Shown, ShowFailed, etc.)
-                }
             }
         }
     }

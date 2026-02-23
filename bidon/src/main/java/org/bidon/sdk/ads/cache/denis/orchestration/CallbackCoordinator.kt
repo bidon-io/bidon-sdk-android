@@ -29,6 +29,8 @@ internal class CallbackCoordinator(
 ) {
     private val loadedCallbackFired = AtomicBoolean(false)
     private val failedCallbackFired = AtomicBoolean(false)
+
+    @Volatile
     private var cacheWasEmptyAtStart = true // Set before auction starts
 
     /**
@@ -42,7 +44,6 @@ internal class CallbackCoordinator(
      */
     fun setCacheEmptyAtStart(isEmpty: Boolean) {
         cacheWasEmptyAtStart = isEmpty
-        logInfo(TAG, "CallbackCoordinator: cacheWasEmptyAtStart=$isEmpty")
     }
 
     /**
@@ -59,9 +60,6 @@ internal class CallbackCoordinator(
         if (loadedCallbackFired.compareAndSet(false, true)) {
             logInfo(TAG, "Firing onAdLoaded callback")
             onAdLoaded(result, auctionInfo)
-        } else {
-            logInfo(TAG, "onAdLoaded already fired, skipping")
-            logCacheState()
         }
     }
 
@@ -89,45 +87,7 @@ internal class CallbackCoordinator(
         ) {
             logInfo(TAG, "Firing onAdLoadFailed callback: cache was empty and both branches failed")
             onAdLoadFailed(auctionInfo, error)
-        } else {
-            logInfo(
-                TAG,
-                "Skipping onAdLoadFailed: loadedFired=${loadedCallbackFired.get()}, " +
-                    "cacheEmpty=$cacheWasEmptyAtStart, failedFired=${failedCallbackFired.get()}"
-            )
         }
-    }
-
-    /**
-     * Reset coordinator state for new auction.
-     *
-     * Resets both atomic flags and cache state.
-     * Call this when starting a new auction.
-     */
-    fun reset() {
-        loadedCallbackFired.set(false)
-        failedCallbackFired.set(false)
-        cacheWasEmptyAtStart = true
-        logInfo(TAG, "CallbackCoordinator reset")
-    }
-
-    /**
-     * Check if success callback has fired.
-     *
-     * Used for external state checks (e.g., cancellation logic).
-     *
-     * @return true if onAdLoaded has been called
-     */
-    fun hasSuccessCallbackFired(): Boolean = loadedCallbackFired.get()
-
-    /**
-     * Log current state of ReadyToShowCache.
-     *
-     * Logs cache size, max eCPM, and details of all cached entries.
-     */
-    private fun logCacheState() {
-        // Cache state logging removed for cleaner logs
-        // Use ReadyToShowCache.getAll() directly when debugging
     }
 }
 

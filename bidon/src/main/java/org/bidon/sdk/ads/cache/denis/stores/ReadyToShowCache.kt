@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.denis.stores
 
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Thread-safe singleton cache for storing loaded ads ready to show.
@@ -10,44 +9,39 @@ import java.util.concurrent.ConcurrentHashMap
  * Stores AuctionResult entries that have been successfully loaded and are ready for display.
  * Enables warm start optimization - when cache is not empty, onAdLoaded fires immediately.
  *
- * Thread-safety: Uses ConcurrentHashMap for lock-free concurrent access.
- * Expiration: Lazy eviction on access (CACHE-05) + periodic sweep via external job.
- * Capacity: Limited to MAX_CACHE_SIZE=10 with lowest-eCPM eviction policy.
- * Duplicate policy: Replaces only if new eCPM is higher (CACHE-07).
+ * Ordering: Pure FIFO (insertion order). No sorting inside cache.
+ * Sorting by price/weight happens before cache in processors (CpmProcessor, RtbProcessor).
+ * popFirst() returns the oldest ad.
  *
- * Application-wide scope: Singleton object persists between ad instances (CACHE-03).
+ * Thread-safety: Uses synchronized blocks for consistent read/write access.
+ * Expiration: Lazy eviction on access + periodic sweep via external job.
+ * Capacity: No limit.
+ *
+ * Application-wide scope: Singleton object persists between ad instances.
  */
 internal object ReadyToShowCache {
     private const val TAG = "[DenisCache] ReadyToShowCache"
-    private const val MAX_CACHE_SIZE = 10
 
     /**
-     * Thread-safe storage: uid -> CacheEntry<AuctionResult>
-     * Key is AdUnit.uid for true uniqueness (allows multiple ads from same demandId)
+     * Thread-safe FIFO list: entries stored in insertion order (oldest first).
+     * All access must be synchronized on [lock].
      */
-    private val cache = ConcurrentHashMap<String, CacheEntry<AuctionResult>>()
+    private val entries = mutableListOf<CacheEntry<AuctionResult>>()
+    private val lock = Any()
 
     /**
-     * Store an ad in cache.
+     * Store an ad in cache (FIFO append).
      *
      * - Evicts expired entries first (lazy cleanup)
-     * - Evicts lowest eCPM entry if at capacity (MAX_CACHE_SIZE=10)
-     * - Stores entry keyed by uid (unique per ad unit)
-     *
-     * Thread-safe: ConcurrentHashMap operations are atomic.
+     * - Appends entry at end (insertion order)
      *
      * @param entry Cache entry to store
      */
     fun put(entry: CacheEntry<AuctionResult>) {
-        evictExpired()
-
-        // Check capacity, evict lowest eCPM if at limit
-        if (cache.size >= MAX_CACHE_SIZE) {
-            evictLowestEcpm()
+        synchronized(lock) {
+            evictExpiredLocked()
+            entries.add(entry)
         }
-
-        cache[entry.uid] = entry
-        logInfo(TAG, "ReadyToShowCache.put: demandId=${entry.demandId}, uid=${entry.uid}, ecpm=${entry.ecpm}, size=${cache.size}")
     }
 
     /**
@@ -59,12 +53,14 @@ internal object ReadyToShowCache {
      * @return Cached AuctionResult or null
      */
     fun get(uid: String): AuctionResult? {
-        val entry = cache[uid] ?: return null
-        return if (entry.isExpired()) {
-            cache.remove(uid)
-            null
-        } else {
-            entry.value
+        synchronized(lock) {
+            val entry = entries.find { it.uid == uid } ?: return null
+            return if (entry.isExpired()) {
+                entries.remove(entry)
+                null
+            } else {
+                entry.value
+            }
         }
     }
 
@@ -77,20 +73,23 @@ internal object ReadyToShowCache {
      * @return Cached AuctionResult or null
      */
     fun removeByUid(uid: String): AuctionResult? {
-        val entry = cache.remove(uid) ?: return null
-        return if (entry.isExpired()) null else entry.value
+        synchronized(lock) {
+            val entry = entries.find { it.uid == uid } ?: return null
+            entries.remove(entry)
+            return if (entry.isExpired()) null else entry.value
+        }
     }
 
     /**
-     * Get entry with highest eCPM.
+     * Peek at FIFO head (oldest entry) without removing it.
      *
-     * Used for LIFE-01 showAd() selection - choose best ad to display.
-     *
-     * @return Entry with highest eCPM or null if cache empty/all expired
+     * @return Oldest entry or null if cache empty/all expired
      */
-    fun getBest(): CacheEntry<AuctionResult>? {
-        evictExpired()
-        return cache.values.maxByOrNull { it.ecpm }
+    fun peekFirst(): CacheEntry<AuctionResult>? {
+        synchronized(lock) {
+            evictExpiredLocked()
+            return entries.firstOrNull()
+        }
     }
 
     /**
@@ -99,8 +98,10 @@ internal object ReadyToShowCache {
      * @return List of all valid entries
      */
     fun getAll(): List<CacheEntry<AuctionResult>> {
-        evictExpired()
-        return cache.values.toList()
+        synchronized(lock) {
+            evictExpiredLocked()
+            return entries.toList()
+        }
     }
 
     /**
@@ -109,8 +110,10 @@ internal object ReadyToShowCache {
      * @return true if no valid entries remain
      */
     fun isEmpty(): Boolean {
-        evictExpired()
-        return cache.isEmpty()
+        synchronized(lock) {
+            evictExpiredLocked()
+            return entries.isEmpty()
+        }
     }
 
     /**
@@ -119,80 +122,52 @@ internal object ReadyToShowCache {
      * @return Number of entries in cache
      */
     fun size(): Int {
-        evictExpired()
-        return cache.size
+        synchronized(lock) {
+            evictExpiredLocked()
+            return entries.size
+        }
     }
 
     /**
      * Get maximum eCPM across all entries.
      *
-     * Used for dynamic pricefloor calculation (AUCTION-05).
-     *
      * @return Highest eCPM in cache or 0.0 if empty
      */
     fun getMaxEcpm(): Double {
-        evictExpired()
-        return cache.values.maxOfOrNull { it.ecpm } ?: 0.0
-    }
-
-    /**
-     * Peek at ad by uid without removing it.
-     *
-     * Non-destructive read for checking cache state.
-     *
-     * @param uid Unique ad unit identifier
-     * @return Cached AuctionResult or null if not found/expired
-     */
-    fun peek(uid: String): AuctionResult? {
-        val entry = cache[uid] ?: return null
-        return if (entry.isExpired()) {
-            cache.remove(uid)
-            null
-        } else {
-            entry.value
+        synchronized(lock) {
+            evictExpiredLocked()
+            return entries.maxOfOrNull { it.ecpm } ?: 0.0
         }
     }
 
     /**
-     * Peek at best ad without removing it.
+     * Remove and return FIFO head (oldest ad).
      *
-     * Non-destructive read for checking best available ad.
-     *
-     * @return AuctionResult with highest eCPM or null if empty
+     * @return Oldest entry or null if empty
      */
-    fun peekBest(): AuctionResult? = getBest()?.value
-
-    /**
-     * Remove and return best ad (highest eCPM).
-     *
-     * Used in showAd() flow to atomically remove winner ad from cache.
-     *
-     * @return Entry with highest eCPM or null if empty
-     */
-    fun popBest(): CacheEntry<AuctionResult>? {
-        evictExpired()
-        val best = cache.entries.maxByOrNull { it.value.ecpm }
-        return best?.let {
-            cache.remove(it.key)
-            it.value
+    fun popFirst(): CacheEntry<AuctionResult>? {
+        synchronized(lock) {
+            evictExpiredLocked()
+            if (entries.isEmpty()) return null
+            return entries.removeAt(0)
         }
     }
 
     /**
      * Check if ad exists in cache without retrieving it.
      *
-     * Quick existence check with expiration validation.
-     *
      * @param uid Unique ad unit identifier
      * @return true if valid (non-expired) entry exists
      */
     fun contains(uid: String): Boolean {
-        val entry = cache[uid] ?: return false
-        return if (entry.isExpired()) {
-            cache.remove(uid)
-            false
-        } else {
-            true
+        synchronized(lock) {
+            val entry = entries.find { it.uid == uid } ?: return false
+            return if (entry.isExpired()) {
+                entries.remove(entry)
+                false
+            } else {
+                true
+            }
         }
     }
 
@@ -200,7 +175,9 @@ internal object ReadyToShowCache {
      * Clear all entries from cache.
      */
     fun clear() {
-        cache.clear()
+        synchronized(lock) {
+            entries.clear()
+        }
     }
 
     /**
@@ -210,82 +187,30 @@ internal object ReadyToShowCache {
      * @return Number of entries removed
      */
     fun sweep(): Int {
-        val sizeBefore = cache.size
-        evictExpired()
-        val removed = sizeBefore - cache.size
-        if (removed > 0) {
-            logInfo(TAG, "ReadyToShowCache sweep: removed $removed expired entries")
+        synchronized(lock) {
+            val sizeBefore = entries.size
+            evictExpiredLocked()
+            val removed = sizeBefore - entries.size
+            if (removed > 0) {
+                logInfo(TAG, "ReadyToShowCache sweep: removed $removed expired entries")
+            }
+            return removed
         }
-        return removed
     }
 
     /**
      * Remove all expired entries from cache (lazy eviction).
      *
-     * Called internally before query operations to ensure clean state.
+     * Must be called while holding [lock].
      */
-    private fun evictExpired() {
+    private fun evictExpiredLocked() {
         val now = TtlConfig.now()
-        var removed = 0
-        // Using iterator instead of removeIf() for API 23 compatibility
-        val iterator = cache.entries.iterator()
+        val iterator = entries.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
-            if (now > entry.value.expiresAt) {
+            if (now > entry.expiresAt) {
                 iterator.remove()
-                removed++
             }
         }
-        if (removed > 0) {
-            logInfo(TAG, "ReadyToShowCache evicted $removed expired entries")
-        }
-    }
-
-    /**
-     * Evict entry with lowest eCPM when cache is at capacity.
-     *
-     * Called when cache.size >= MAX_CACHE_SIZE to make room for new entry.
-     * Keeps highest eCPM ads (better revenue optimization).
-     */
-    private fun evictLowestEcpm() {
-        val lowest = cache.entries.minByOrNull { it.value.ecpm }
-        lowest?.let {
-            cache.remove(it.key)
-            logInfo(TAG, "EVICT: Removed lowest eCPM ad: demandId=${it.value.demandId}, ecpm=${"$%.2f".format(it.value.ecpm)}, size=${cache.size}")
-        }
-    }
-
-    /**
-     * Log detailed cache state for debugging.
-     *
-     * Shows full cache contents with all ads sorted by eCPM descending.
-     * Useful for understanding cache composition and troubleshooting.
-     *
-     * Usage: ReadyToShowCache.logDetailedState()
-     */
-    fun logDetailedState() {
-        evictExpired()
-        val allEntries = cache.values.toList().sortedByDescending { it.ecpm }
-        val maxEcpm = allEntries.firstOrNull()?.ecpm ?: 0.0
-
-        logInfo(TAG, "=== CACHE STATE: size=${allEntries.size}, maxEcpm=${"$%.2f".format(maxEcpm)} ===")
-
-        allEntries.forEachIndexed { index, entry ->
-            val timeLeft = (entry.expiresAt - TtlConfig.now()) / 1000 // seconds
-            logInfo(
-                TAG,
-                "  [${index + 1}] ${entry.demandId}: " +
-                    "ecpm=${"$%.2f".format(entry.ecpm)}, " +
-                    "uid=${entry.uid.take(8)}..., " +
-                    "auctionId=${entry.auctionId.take(8)}..., " +
-                    "ttl=${timeLeft}s"
-            )
-        }
-
-        if (allEntries.isEmpty()) {
-            logInfo(TAG, "  (cache is empty)")
-        }
-
-        logInfo(TAG, "=== END CACHE STATE ===")
     }
 }
