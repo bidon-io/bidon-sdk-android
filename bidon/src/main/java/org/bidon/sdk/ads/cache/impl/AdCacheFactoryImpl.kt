@@ -31,7 +31,7 @@ internal class AdCacheFactoryImpl(
             )
         }
 
-        val version = extractStrategyVersion(demandAd)
+        val version: AdCacheVersion = AdCacheVersion.V3//extractStrategyVersion(demandAd)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,
@@ -47,7 +47,8 @@ internal class AdCacheFactoryImpl(
             AdCacheVersion.V3 -> {
                 AdCacheAndreiImpl(
                     demandAd = demandAd,
-                    scope = CoroutineScope(SdkDispatchers.Main),
+                    executionDispatcher = SdkDispatchers.IO,
+                    callbackDispatcher = SdkDispatchers.Main,
                     resolver = resolver
                 )
             }

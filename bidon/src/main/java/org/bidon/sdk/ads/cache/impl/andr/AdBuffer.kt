@@ -2,6 +2,7 @@ package org.bidon.sdk.ads.cache.impl.andr
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.updateAndGet
 import java.util.SortedSet
 import java.util.TreeSet
 
@@ -21,8 +22,9 @@ internal abstract class AdBuffer<T, E : AdBuffer.Entry>(
         get() = entries.value.mapTo(mutableSetOf(), Entry::demandId)
 
     fun peek(): T? =
-        entries.value
-            .firstNotExpiredOrNull()
+        entries
+            .evictExpiredGet()
+            .firstOrNull()
             ?.unwrap()
 
     fun pop(): T? =
@@ -36,13 +38,14 @@ internal abstract class AdBuffer<T, E : AdBuffer.Entry>(
     fun poll(): T = pop()!!
 
     fun peekAll(): Set<T> =
-        entries.value
+        entries
+            .evictExpiredGet()
             .map { it.unwrap() }
             .toSet()
 
     fun popAll(): Set<T> =
         entries
-            .getAndUpdate { entrySet() }
+            .evictExpiredGetAndUpdate { entrySet() }
             .map { it.unwrap() }
             .toSet()
 
@@ -53,6 +56,18 @@ internal abstract class AdBuffer<T, E : AdBuffer.Entry>(
     protected abstract fun E.unwrap(): T
 
     protected fun entrySet(vararg elements: E): SortedSet<E> = elements.toCollection(TreeSet(comparator))
+
+    protected fun MutableStateFlow<SortedSet<E>>.evictExpiredGet(): SortedSet<E> = updateAndGet { sortedSetOf(*it.filterNot(Entry::isExpired).toTypedArray()) }
+
+    protected fun MutableStateFlow<SortedSet<E>>.evictExpiredGetAndUpdate(function: (SortedSet<E>) -> SortedSet<E>): SortedSet<E> {
+        while (true) {
+            val prevValue = sortedSetOf(*(value.filterNot(Entry::isExpired)).toTypedArray())
+            val nextValue = function(prevValue)
+            if (compareAndSet(prevValue, nextValue)) {
+                return prevValue
+            }
+        }
+    }
 
     protected fun Iterable<E>.filterNotExpired(): List<E> = filterNot(Entry::isExpired)
 

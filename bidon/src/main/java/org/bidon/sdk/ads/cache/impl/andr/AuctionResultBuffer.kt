@@ -35,7 +35,7 @@ internal class AuctionResultBuffer(
         entries.update { old ->
             val updated =
                 entrySet().apply {
-                    addAll(items.toList().filterNotExpired().map(::Entry))
+                    addAll(items.map(::Entry))
                     addAll(old.filterNotExpired())
                 }
             while (updated.size > capacity) {
@@ -77,8 +77,6 @@ internal class AuctionResultBuffer(
             function(mutableMapOf())
         }
     }
-
-    private fun Iterable<AuctionResult>.filterNotExpired(): List<AuctionResult> = filterNot(AuctionResult::isExpired)
 
     internal class Entry(
         val result: AuctionResult,

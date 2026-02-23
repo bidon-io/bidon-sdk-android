@@ -1,6 +1,7 @@
 package org.bidon.sdk.stats.models
 
 import org.bidon.sdk.config.BidonError
+import org.bidon.sdk.stats.models.RoundStatus.*
 
 /**
  * Created by Bidon Team on 06/02/2023.
@@ -36,15 +37,15 @@ internal fun Throwable.asRoundStatus(): RoundStatus = when (this as? BidonError)
     is BidonError.NoBid -> RoundStatus.NoBid
     BidonError.AuctionCancelled -> RoundStatus.AuctionCancelled
 
-    is BidonError.AppKeyIsInvalid -> RoundStatus.UnspecifiedException("AppKeyIsInvalid")
-    is BidonError.AdNotReady -> RoundStatus.UnspecifiedException("AdNotReady")
-    is BidonError.NoAuctionResults -> RoundStatus.UnspecifiedException("NoAuctionResults")
-    is BidonError.NoContextFound -> RoundStatus.UnspecifiedException("NoContextFound")
-    is BidonError.NoRoundResults -> RoundStatus.UnspecifiedException("NoRoundResults")
-    is BidonError.Expired -> RoundStatus.UnspecifiedException("Expired")
-    is BidonError.AuctionInProgress -> RoundStatus.UnspecifiedException("AuctionInProgress")
-    is BidonError.SdkNotInitialized -> RoundStatus.UnspecifiedException("SdkNotInitialized")
-    is BidonError.Unspecified -> RoundStatus.UnspecifiedException((this as BidonError.Unspecified).cause?.message)
+    is BidonError.AppKeyIsInvalid -> UnspecifiedException("AppKeyIsInvalid")
+    is BidonError.AdNotReady -> UnspecifiedException("AdNotReady")
+    is BidonError.NoAuctionResults -> UnspecifiedException("NoAuctionResults")
+    is BidonError.NoContextFound -> UnspecifiedException("NoContextFound")
+    is BidonError.NoRoundResults -> UnspecifiedException("NoRoundResults")
+    is BidonError.Expired -> UnspecifiedException("Expired")
+    is BidonError.AuctionInProgress -> UnspecifiedException("AuctionInProgress")
+    is BidonError.SdkNotInitialized -> UnspecifiedException("SdkNotInitialized")
+    is BidonError.Unspecified -> UnspecifiedException((this as BidonError.Unspecified).cause?.message)
     is BidonError.IncorrectAdUnit -> RoundStatus.IncorrectAdUnit((this as BidonError.IncorrectAdUnit).message)
-    null -> RoundStatus.UnspecifiedException(message ?: "NO_EXPLANATION_AVAILABLE")
+    else -> UnspecifiedException(message ?: "NO_EXPLANATION_AVAILABLE")
 }

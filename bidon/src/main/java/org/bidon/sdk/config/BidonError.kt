@@ -1,6 +1,7 @@
 package org.bidon.sdk.config
 
 import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.banner.BannerFormat
 
 /**
@@ -23,6 +24,11 @@ public sealed class BidonError : Throwable() {
     public object AuctionCancelled : BidonError()
     public object NoAuctionResults : BidonError()
     public object NoRoundResults : BidonError()
+
+    public class AuctionFailed(
+        public val info: AuctionInfo?,
+        override val cause: Throwable?
+    ) : BidonError()
 
     public object NoContextFound : BidonError()
     public object NoBid : BidonError()

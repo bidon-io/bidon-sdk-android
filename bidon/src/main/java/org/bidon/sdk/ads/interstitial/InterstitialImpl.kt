@@ -73,7 +73,7 @@ internal class InterstitialImpl(
                         adTypeParam = AdTypeParam.Interstitial(
                             activity = activity,
                             pricefloor = pricefloor,
-                            auctionKey = auctionKey,
+                            auctionKey = "1O16JOGPG0400", // TODO : REMOVE
                         ),
                         onSuccess = { auctionResult, auctionInfo ->
                             subscribeToWinner(auctionInfo, auctionResult.adSource)
