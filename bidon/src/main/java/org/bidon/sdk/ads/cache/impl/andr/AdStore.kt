@@ -2,11 +2,13 @@ package org.bidon.sdk.ads.cache.impl.andr
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
+import org.bidon.sdk.auction.models.TokenInfo
 import java.util.SortedSet
 import java.util.TreeSet
 
-internal abstract class AdStore<T, E : AdStore.Entry>(
+internal abstract class AdStore<E : AdStore.Entry>(
     val capacity: Int,
     private val comparator: Comparator<in E>,
 ) {
@@ -15,58 +17,43 @@ internal abstract class AdStore<T, E : AdStore.Entry>(
     val size: Int
         get() = entries.value.size
 
-    val peekPrice: Double?
-        get() = entries.value.firstNotExpiredOrNull()?.price
+    fun peek(): E? = entries.evictExpiredGet().firstOrNull()
 
-    val demandIds: Set<String>
-        get() = entries.value.mapTo(mutableSetOf(), Entry::demandId)
-
-    fun peek(): T? =
+    fun pop(): E? =
         entries
-            .evictExpiredGet()
-            .firstOrNull()
-            ?.unwrap()
-
-    fun pop(): T? =
-        entries
-            .getAndUpdate { old ->
-                val first = old.firstNotExpiredOrNull()
-                if (first != null) entrySet(*(old - first).toTypedArray()) else old
+            .getAndUpdate {
+                val first = it.firstNotExpiredOrNull()
+                if (first != null) entrySet(*(it - first).toTypedArray()) else it
             }.firstNotExpiredOrNull()
-            ?.unwrap()
 
-    fun poll(): T = pop()!!
+    fun poll(): E = pop()!!
 
-    fun peekAll(): Set<T> =
-        entries
-            .evictExpiredGet()
-            .map { it.unwrap() }
-            .toSet()
+    fun peekAll(): Set<E> = entries.evictExpiredGet()
 
-    fun popAll(): Set<T> =
-        entries
-            .evictExpiredGetAndUpdate { entrySet() }
-            .map { it.unwrap() }
-            .toSet()
+    fun popAll(): Set<E> = entries.evictExpiredGetAndUpdate { entrySet() }
 
-    abstract fun insert(vararg items: T)
+    abstract fun <T> insert(
+        items: Collection<T>,
+        transform: (T) -> E,
+    )
+
+    open fun remove(entry: E) {
+        entries.update { entrySet(*(it - entry).toTypedArray()) }
+    }
 
     abstract fun clear()
-
-    protected abstract fun E.unwrap(): T
 
     protected fun entrySet(vararg elements: E): SortedSet<E> = elements.toCollection(TreeSet(comparator))
 
     protected fun MutableStateFlow<SortedSet<E>>.evictExpiredGet(): SortedSet<E> = updateAndGet { sortedSetOf(*it.filterNot(Entry::isExpired).toTypedArray()) }
 
     protected fun MutableStateFlow<SortedSet<E>>.evictExpiredGetAndUpdate(function: (SortedSet<E>) -> SortedSet<E>): SortedSet<E> {
-        while (true) {
-            val prevValue = sortedSetOf(*(value.filterNot(Entry::isExpired)).toTypedArray())
-            val nextValue = function(prevValue)
-            if (compareAndSet(prevValue, nextValue)) {
-                return prevValue
-            }
+        var filtered: SortedSet<E> = entrySet()
+        getAndUpdate { current ->
+            filtered = current.filterNotExpired().toCollection(TreeSet(comparator))
+            function(filtered)
         }
+        return filtered
     }
 
     protected fun Iterable<E>.filterNotExpired(): List<E> = filterNot(Entry::isExpired)
@@ -74,7 +61,11 @@ internal abstract class AdStore<T, E : AdStore.Entry>(
     protected fun Iterable<E>.firstNotExpiredOrNull(): E? = firstOrNull { !it.isExpired }
 
     interface Entry : Comparable<Entry> {
+        val auctionId: String
+
         val demandId: String
+
+        val tokenInfo: TokenInfo?
 
         val price: Double
 
@@ -84,8 +75,7 @@ internal abstract class AdStore<T, E : AdStore.Entry>(
 
         companion object {
             val PriceComparator: Comparator<Entry> =
-                compareByDescending(Entry::price)
-                    .thenBy(Entry::demandId)
+                compareByDescending(Entry::price).thenBy(Entry::demandId).thenBy(Entry::auctionId)
         }
     }
 }

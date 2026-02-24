@@ -1,7 +1,6 @@
 package org.bidon.sdk.ads.cache.impl.andr
 
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
@@ -12,7 +11,6 @@ import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.ext.mapFailure
@@ -21,11 +19,11 @@ import java.util.UUID
 
 internal class AuctionRunner(
     private val tag: String,
+    private val infoFactory: AuctionInfoFactory,
+    private val statistics: AuctionStat,
     private val configurator: AuctionConfigurator,
     private val executor: AuctionExecutor,
     private val resultsCollector: ResultsCollector,
-    private val auctionStat: AuctionStat,
-    private val auctionInfoFactory: AuctionInfoFactory,
 ) {
     suspend fun run(
         demandAd: DemandAd,
@@ -33,14 +31,19 @@ internal class AuctionRunner(
     ): Result<Pair<AuctionInfo, List<AuctionResult>>> {
         logInfo(tag, "Auction started $adTypeParam")
 
-        val auctionId = UUID.randomUUID().toString()
+        // Initialize ResultsCollector lifecycle
+        initCollector(adTypeParam)
 
-        auctionStat.markAuctionStarted(auctionId, adTypeParam)
-
+        val auctionId =
+            UUID
+                .randomUUID()
+                .toString()
+                .also { statistics.markAuctionStarted(it, adTypeParam) }
         return configurator
             .configure(auctionId, demandAd, adTypeParam)
+            .onSuccess { (response, _) -> startCollector(response) }
             .mapCatching { (response, tokens) -> execute(demandAd, adTypeParam, response, tokens) }
-            .mapFailure { BidonError.AuctionFailed(auctionInfoFactory.createFailure(null), it) }
+            .mapFailure { BidonError.AuctionFailed(infoFactory.create(), it) }
             .onAny { clearCollector() }
     }
 
@@ -50,71 +53,59 @@ internal class AuctionRunner(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): Pair<AuctionInfo, List<AuctionResult>> {
-        val priceFloor = response.pricefloor
-
-        startCollector(priceFloor, response)
-
-        val context =
-            AuctionContext(
-                response.auctionId,
-                response.auctionConfigurationId ?: 0L,
-                response.auctionConfigurationUid ?: "",
-                response.externalWinNotificationsEnabled
-            )
-        val rawResults =
-            executor.execute(
-                context,
-                demandAd,
-                adTypeParam,
-                response.pricefloor,
-                response.auctionTimeout,
-                response.adUnits ?: emptyList(),
-                tokens
-            )
-
-        val results =
-            finalizeCollector(rawResults, priceFloor)
-                .also { notifyWinLoss(it, response.externalWinNotificationsEnabled) }
-
+        val rawResults = executor.execute(demandAd, adTypeParam, response, tokens)
+        val finalResults = finalizeCollector(rawResults)
         val roundStat =
             proceedRoundResults()
-                .also { auctionStat.sendAuctionStats(response, it, demandAd) }
+                .also { statistics.sendAuctionStats(response, it, demandAd) }
+        val info =
+            infoFactory
+                .create(response, roundStat)
+                ?.also { printStatsData(response, roundStat, it) }
 
-        return if (results.isNotEmpty()) {
-            auctionInfoFactory.createSuccess(response, roundStat) to results
+        logInfo(tag, "Rounds completed")
+
+        return if (info != null && finalResults.isNotEmpty()) {
+            info to finalResults
         } else {
-            throw BidonError.AuctionFailed(
-                auctionInfoFactory.createFailure(response, roundStat),
-                BidonError.NoAuctionResults
-            )
+            throw BidonError.AuctionFailed(info, BidonError.NoAuctionResults)
         }
+    }
+
+    private fun initCollector(adTypeParam: AdTypeParam) {
+        clearCollector()
+        resultsCollector.startRound(adTypeParam.pricefloor)
+        resultsCollector.serverBiddingStarted()
     }
 
     private fun startCollector(
-        priceFloor: Double,
-        response: AuctionResponse
+        response: AuctionResponse,
     ) {
-        resultsCollector.startRound(priceFloor)
-        resultsCollector.serverBiddingStarted()
-        resultsCollector.serverBiddingFinished(response.adUnits?.filter { it.bidType == BidType.RTB })
+        resultsCollector.serverBiddingFinished(response.rtbAdUnits())
         resultsCollector.setNoBidInfo(response.noBids)
     }
 
-    private suspend fun finalizeCollector(
+    protected fun finalizeCollector(
         rawResults: List<AuctionResult>,
-        priceFloor: Double,
     ): List<AuctionResult> {
         rawResults.forEach(resultsCollector::add)
-        resultsCollector.saveWinners(priceFloor)
 
-        val results =
-            resultsCollector
-                .getAll()
-                .also { logInfo(tag, "Action finished with ${it.size} results") }
-        results.forEachIndexed { index, auctionResult ->
+        val roundResults = resultsCollector.getRoundResults()
+        val finalResults =
+            if (roundResults is RoundResult.Results) {
+                roundResults
+                    .getAuctionResults()
+                    .filter { it.roundStatus == RoundStatus.Successful }
+            } else {
+                emptyList()
+            }
+
+        logInfo(tag, "Action finished with ${finalResults.size} results")
+        finalResults.forEachIndexed { index, auctionResult ->
             logInfo(tag, "Action result #$index: $auctionResult")
         }
-        return results
+
+        return finalResults
     }
 
     private fun clearCollector() {
@@ -123,56 +114,18 @@ internal class AuctionRunner(
 
     private suspend fun proceedRoundResults(): RoundStat? =
         (resultsCollector.getRoundResults() as? RoundResult.Results)
-            ?.let { auctionStat.addRoundResults(it) }
+            ?.let { statistics.addRoundResults(it) }
 
-    private fun notifyWinLoss(
-        finalResults: List<AuctionResult>,
-        externalWinNotificationsEnabled: Boolean,
+    private fun printStatsData(
+        auctionData: AuctionResponse,
+        statResult: RoundStat?,
+        auctionInfo: AuctionInfo,
     ) {
-        val winner = finalResults.getOrNull(0) ?: return
-        val winnerAdSource = winner.adSource
-
-        // For internal statistics
-        winnerAdSource.markWin()
-
-        // For AdNetworks - notify winner only if external notifications are disabled
-        // Bidding demands should not be notified (server notifies them)
-        if (!externalWinNotificationsEnabled) {
-            if (winner !is AuctionResult.Bidding && winnerAdSource is WinLossNotifiable) {
-                winnerAdSource.notifyWin()
-                logInfo(
-                    tag,
-                    "Notified win to adapter: ${winnerAdSource.demandId} (external_win_notifications=false)"
-                )
-            } else if (winner is AuctionResult.Bidding) {
-                logInfo(
-                    tag, "Skipped win notification for bidding demand: ${winnerAdSource.demandId}"
-                )
-            }
-        } else {
-            logInfo(
-                tag,
-                "Skipped win notification to adapter: ${winnerAdSource.demandId} (external_win_notifications=true, will be notified externally)"
-            )
-        }
-
-        // Notify all losers regardless of external_win_notifications flag
-        finalResults
-            .drop(1)
-            .forEach { loser ->
-                val loserAdSource = loser.adSource
-                // Bidding demands should not be notified.
-                // All losers should be notified immediately regardless of external_win_notifications
-                if (loser !is AuctionResult.Bidding && loserAdSource is WinLossNotifiable) {
-                    logInfo(tag, "Notified loss: ${loserAdSource.demandId}")
-                    loserAdSource.notifyLoss(
-                        winnerAdSource.demandId.demandId, winnerAdSource.getStats().price
-                    )
-                }
-                if (loser.roundStatus == RoundStatus.Successful) {
-                    loserAdSource.markLoss()
-                }
-                logInfo(tag, "Loser notified: ${loserAdSource.demandId}")
-            }
+        logInfo(
+            tag,
+            "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
+                "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
+                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
+        )
     }
 }
