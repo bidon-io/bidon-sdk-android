@@ -37,9 +37,9 @@ internal object AdCacheAndrFactory {
                     biddingConfig = get<BiddingConfig>()
                 ),
             auctionResolver = resolver,
-            auctionResultStore = AuctionResultStore(),
+            auctionResultStore = get<AuctionResultStore>(),
             resultsCollector = get<ResultsCollector>(),
-            rtbResultsStore = RtbResultStore(),
+            rtbResultsStore = get<RtbResultStore>(),
         )
     }
 }

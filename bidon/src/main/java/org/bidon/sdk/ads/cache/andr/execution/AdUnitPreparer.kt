@@ -13,7 +13,7 @@ import org.bidon.sdk.stats.models.BidType
 internal class AdUnitPreparer(
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
-    private val statsRepository: DemandStatistics,
+    private val demandStatistics: DemandStatistics,
 ) {
     data class Result(
         val context: AuctionContext,
@@ -41,7 +41,7 @@ internal class AdUnitPreparer(
         val (mergedRtbAdUnits, mergedTokens) =
             rtbResultsMerger.merge(cachedRtbResults, serverRtbAdUnits, tokens)
 
-        val allStats = statsRepository.getAllStats(demandAd.adType)
+        val allStats = demandStatistics.getAllStats(demandAd.adType)
         val sortedAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats)
 
         return Result(context, sortedAdUnits, mergedTokens)
