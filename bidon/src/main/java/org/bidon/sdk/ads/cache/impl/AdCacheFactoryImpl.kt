@@ -24,15 +24,14 @@ internal class AdCacheFactoryImpl(
     override fun create(demandAd: DemandAd): AdCache {
         // Only Interstitial ads use version-based cache implementations
         // Banner and Rewarded always use default V1 implementation
-        if (demandAd.adType !in listOf(AdType.Interstitial, AdType.Banner)) {
+        if (demandAd.adType != AdType.Interstitial) {
             return AdCacheImpl(
                 demandAd = demandAd,
                 scope = CoroutineScope(SdkDispatchers.Main),
                 resolver = resolver
             )
         }
-        // TODO: Rollback
-        val version: AdCacheVersion = AdCacheVersion.V3//extractStrategyVersion(demandAd)
+        val version: AdCacheVersion = extractStrategyVersion(demandAd)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,

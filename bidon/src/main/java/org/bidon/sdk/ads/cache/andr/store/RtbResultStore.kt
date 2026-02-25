@@ -73,7 +73,6 @@ internal class RtbResultStore(
 
 internal fun Collection<RtbResultStore.Entry>.unwrap(): Map<AdUnit, TokenInfo> = associate(RtbResultStore.Entry::unwrap)
 
-// TODO:
 internal fun Collection<RtbResultStore.Entry>.asString(): String =
     buildString {
         append("(${this@asString.size}) ")

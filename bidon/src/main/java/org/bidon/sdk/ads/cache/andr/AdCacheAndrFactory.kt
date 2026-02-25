@@ -22,7 +22,6 @@ internal object AdCacheAndrFactory {
     ): AdCache {
         val tag = "AndrCache_${demandAd.adType.code}"
         val adaptersSource = get<AdaptersSource>()
-        // TODO : Add AdType
         return AdCacheAndreiImpl(
             demandAd = demandAd,
             tag = tag,
