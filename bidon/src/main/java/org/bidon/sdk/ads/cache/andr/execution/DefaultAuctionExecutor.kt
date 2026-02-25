@@ -6,17 +6,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Adapter
-import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.adapter.WinLossNotifiable
-import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
-import org.bidon.sdk.ads.cache.andr.ext.getAdSources
-import org.bidon.sdk.ads.cache.andr.ext.rtb
-import org.bidon.sdk.ads.cache.andr.ext.sortedByRankDescending
-import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
+import org.bidon.sdk.ads.cache.andr.ext.rtb
+import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
@@ -36,10 +30,11 @@ import java.util.LinkedList
 
 internal class DefaultAuctionExecutor(
     private val tag: String,
-    private val adaptersSource: AdaptersSource,
+    private val adUnitPreparer: AdUnitPreparer,
+    private val adSourceResolver: AdSourceResolver,
+    private val winLossNotifier: WinLossNotifier,
     private val requestAdUnit: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
-    private val rtbResultsMerger: RtbResultsMerger,
     private val statsRepository: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
 ) : AuctionExecutor {
@@ -49,23 +44,8 @@ internal class DefaultAuctionExecutor(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
-        val context =
-            AuctionContext(
-                response.auctionId,
-                response.auctionConfigurationId ?: 0L,
-                response.auctionConfigurationUid ?: "",
-                response.externalWinNotificationsEnabled
-            )
-        // Pop cached RTB, merge with server RTB, sort
-        val cachedRtbResults = rtbResultStore.popAll().map(RtbResultStore.Entry::unwrap)
-        val (serverRtbAdUnits, cpmAdUnits) =
-            (response.adUnits ?: emptyList())
-                .partition { it.bidType == BidType.RTB }
-        val (mergedRtbAdUnits, mergedTokens) =
-            rtbResultsMerger.merge(cachedRtbResults, serverRtbAdUnits, tokens)
-
-        val allStats = statsRepository.getAllStats(demandAd.adType)
-        val sortedAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats)
+        val (context, sortedAdUnits, mergedTokens) =
+            adUnitPreparer.prepare(demandAd, response, tokens)
 
         val executionResult =
             execute(
@@ -77,7 +57,7 @@ internal class DefaultAuctionExecutor(
                 sortedAdUnits,
                 mergedTokens
             )
-        return executionResult.also { notifyWinLoss(it, response.externalWinNotificationsEnabled) }
+        return executionResult.also { winLossNotifier.notify(it, response.externalWinNotificationsEnabled) }
     }
 
     private suspend fun execute(
@@ -190,25 +170,6 @@ internal class DefaultAuctionExecutor(
         }
     }
 
-    private fun resolveAdSource(
-        adUnit: AdUnit,
-        demandAd: DemandAd,
-        adTypeParam: AdTypeParam,
-        tokenInfo: TokenInfo?,
-    ): AdSource<AdAuctionParams>? {
-        val adSource =
-            adaptersSource.adapters
-                .find { it.demandId.demandId == adUnit.demandId }
-                ?.also(Adapter::applyRegulation)
-                ?.getAdSources(demandAd.adType, tag)
-                ?.also { it.setStatisticAdType(adTypeParam.asStatisticAdType()) }
-
-        if (adUnit.bidType == BidType.RTB) {
-            tokenInfo?.let { adSource?.setTokenInfo(it) }
-        }
-        return adSource
-    }
-
     private fun collectBatch(
         queue: LinkedList<AdUnit>,
         demandAd: DemandAd,
@@ -234,7 +195,7 @@ internal class DefaultAuctionExecutor(
                 continue
             }
 
-            val adSource = resolveAdSource(adUnit, demandAd, adTypeParam, tokenInfo)
+            val adSource = adSourceResolver.resolve(adUnit, demandAd, adTypeParam, tokenInfo)
             if (adSource == null) {
                 iterator.remove()
                 auctionResults.add(
@@ -312,61 +273,6 @@ internal class DefaultAuctionExecutor(
         addAuctionConfigurationId(context.configurationId)
         addAuctionConfigurationUid(context.configurationUid)
         addExternalWinNotificationsEnabled(context.externalWinNotificationsEnabled)
-    }
-
-    private fun notifyWinLoss(
-        finalResults: List<AuctionResult>,
-        externalWinNotificationsEnabled: Boolean,
-    ) {
-        val winners =
-            finalResults
-                .filter { it.roundStatus == RoundStatus.Successful }
-
-        winners.forEach {
-            val adSource = it.adSource
-            // For internal statistics
-            adSource.markWin()
-            // For AdNetworks - notify winner only if external notifications are disabled
-            // Bidding demands should not be notified (server notifies them)
-            if (!externalWinNotificationsEnabled) {
-                if (it !is AuctionResult.Bidding && adSource is WinLossNotifiable) {
-                    adSource.notifyWin()
-                    logInfo(
-                        tag,
-                        "Notified win to adapter: ${adSource.demandId} (external_win_notifications=false)"
-                    )
-                } else if (it is AuctionResult.Bidding) {
-                    logInfo(
-                        tag,
-                        "Skipped win notification for bidding demand: ${adSource.demandId}"
-                    )
-                }
-            } else {
-                logInfo(
-                    tag,
-                    "Skipped win notification to adapter: ${adSource.demandId} (external_win_notifications=true, will be notified externally)"
-                )
-            }
-        }
-
-        val winnerAdSource = winners.firstOrNull()?.adSource ?: return
-
-        // Notify all losers regardless of external_win_notifications flag
-        (finalResults - winners.toSet())
-            .filterIsInstance<AuctionResult.Network>()
-            .forEach {
-                val loserAdSource = it.adSource
-                // Bidding demands should not be notified.
-                // All losers should be notified immediately regardless of external_win_notifications
-                if (loserAdSource is WinLossNotifiable) {
-                    logInfo(tag, "Notified loss: ${loserAdSource.demandId}")
-                    loserAdSource.notifyLoss(
-                        winnerAdSource.demandId.demandId,
-                        winnerAdSource.getStats().price
-                    )
-                }
-                logInfo(tag, "Loser notified: ${loserAdSource.demandId}")
-            }
     }
 
     private companion object {

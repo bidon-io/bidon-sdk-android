@@ -11,15 +11,18 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
+import org.bidon.sdk.ads.cache.andr.analytics.AuctionStatistics
+import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
+import org.bidon.sdk.ads.cache.andr.execution.AdUnitPreparer
 import org.bidon.sdk.ads.cache.andr.execution.DefaultAuctionExecutor
 import org.bidon.sdk.ads.cache.andr.execution.RtbResultsMerger
+import org.bidon.sdk.ads.cache.andr.execution.WinLossNotifier
 import org.bidon.sdk.ads.cache.andr.orchestration.AuctionConfigurator
 import org.bidon.sdk.ads.cache.andr.orchestration.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunner
-import org.bidon.sdk.ads.cache.andr.analytics.AuctionStatistics
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
-import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.ads.cache.andr.store.asString
 import org.bidon.sdk.auction.AdTypeParam
@@ -117,23 +120,26 @@ internal class AdCacheAndreiImpl(
         logInfo(tag, "Auction canceled")
     }
 
-    private fun createRunner(): AuctionRunner =
-        AuctionRunner(
+    private fun createRunner(): AuctionRunner {
+        val demandStatistics = get<DemandStatistics>()
+        return AuctionRunner(
             tag,
             AuctionInfoFactory(),
             AuctionStatistics(get<StatsRequestUseCase>(), auctionResolver),
             auctionConfigurator,
             DefaultAuctionExecutor(
                 tag = tag,
-                adaptersSource = adaptersSource,
+                adUnitPreparer = AdUnitPreparer(rtbResultsStore, RtbResultsMerger(), demandStatistics),
+                adSourceResolver = AdSourceResolver(tag, adaptersSource),
+                winLossNotifier = WinLossNotifier(tag),
                 requestAdUnit = get<RequestAdUnitUseCase>(),
                 rtbResultStore = rtbResultsStore,
-                rtbResultsMerger = RtbResultsMerger(),
-                statsRepository = get<DemandStatistics>(),
+                statsRepository = demandStatistics,
                 stopCondition = this,
             ),
             resultsCollector,
         )
+    }
 
     private fun processAuctionResult(
         auctionInfo: AuctionInfo?,
