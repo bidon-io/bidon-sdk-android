@@ -1,4 +1,4 @@
-package org.bidon.sdk.stats.impl
+package org.bidon.sdk.ads.cache.andr.analytics
 
 import android.content.ContentValues
 import android.content.Context
@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 /**
  * SQLite repository for persisting and querying demand network statistics.
  */
-internal class DemandStatisticsRepository(
+internal class DemandStatistics(
     context: Context,
 ) {
     private val dbHelper = DemandStatisticsDatabaseHelper(context.applicationContext)

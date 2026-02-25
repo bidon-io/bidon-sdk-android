@@ -1,4 +1,4 @@
-package org.bidon.sdk.ads.cache.impl.andr
+package org.bidon.sdk.ads.cache.andr.ext
 
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider

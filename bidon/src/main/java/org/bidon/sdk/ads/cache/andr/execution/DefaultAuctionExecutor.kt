@@ -1,4 +1,4 @@
-package org.bidon.sdk.ads.cache.impl.andr
+package org.bidon.sdk.ads.cache.andr.execution
 
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -11,6 +11,13 @@ import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.adapter.ext.applyRegulation
+import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
+import org.bidon.sdk.ads.cache.andr.ext.getAdSources
+import org.bidon.sdk.ads.cache.andr.ext.rtb
+import org.bidon.sdk.ads.cache.andr.ext.sortedByRankDescending
+import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -20,7 +27,6 @@ import org.bidon.sdk.auction.usecases.AuctionStopCondition
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.impl.DemandStatisticsRepository
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.DemandMeasurement
 import org.bidon.sdk.stats.models.RoundStatus
@@ -34,7 +40,7 @@ internal class DefaultAuctionExecutor(
     private val requestAdUnit: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
-    private val statsRepository: DemandStatisticsRepository,
+    private val statsRepository: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
 ) : AuctionExecutor {
     override suspend fun execute(

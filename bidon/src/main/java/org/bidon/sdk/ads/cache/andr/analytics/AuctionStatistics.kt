@@ -1,4 +1,4 @@
-package org.bidon.sdk.ads.cache.impl.andr
+package org.bidon.sdk.ads.cache.andr.analytics
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob

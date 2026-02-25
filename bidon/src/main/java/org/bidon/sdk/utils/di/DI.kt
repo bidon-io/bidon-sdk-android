@@ -18,6 +18,7 @@ import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
+import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.impl.AdCacheFactoryImpl
 import org.bidon.sdk.ads.cache.impl.alex.UserFlow
 import org.bidon.sdk.auction.Auction
@@ -81,7 +82,6 @@ import org.bidon.sdk.regulation.impl.RegulationImpl
 import org.bidon.sdk.segment.Segment
 import org.bidon.sdk.segment.SegmentSynchronizer
 import org.bidon.sdk.segment.impl.SegmentImpl
-import org.bidon.sdk.stats.impl.DemandStatisticsRepository
 import org.bidon.sdk.stats.impl.SendImpressionRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.SendWinLossRequestUseCaseImpl
 import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
@@ -169,7 +169,7 @@ internal object DI {
 
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
-            singleton<DemandStatisticsRepository> { DemandStatisticsRepository(context = get()) }
+            singleton<DemandStatistics> { DemandStatistics(context = get()) }
 
             /**
              * Factories

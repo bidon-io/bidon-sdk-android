@@ -1,4 +1,4 @@
-package org.bidon.sdk.ads.cache.impl.andr
+package org.bidon.sdk.ads.cache.andr.ext
 
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.AdTypeParam

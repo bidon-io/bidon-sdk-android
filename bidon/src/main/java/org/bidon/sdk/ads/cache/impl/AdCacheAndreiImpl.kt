@@ -6,28 +6,32 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.impl.andr.AdStore
-import org.bidon.sdk.ads.cache.impl.andr.AuctionConfigurator
-import org.bidon.sdk.ads.cache.impl.andr.AuctionInfoFactory
-import org.bidon.sdk.ads.cache.impl.andr.AuctionResultStore
-import org.bidon.sdk.ads.cache.impl.andr.AuctionRunner
-import org.bidon.sdk.ads.cache.impl.andr.DefaultAuctionExecutor
-import org.bidon.sdk.ads.cache.impl.andr.RtbResultStore
-import org.bidon.sdk.ads.cache.impl.andr.RtbResultsMerger
-import org.bidon.sdk.ads.cache.impl.andr.asString
+import org.bidon.sdk.ads.cache.andr.execution.DefaultAuctionExecutor
+import org.bidon.sdk.ads.cache.andr.execution.RtbResultsMerger
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionConfigurator
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionInfoFactory
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunner
+import org.bidon.sdk.ads.cache.andr.analytics.AuctionStatistics
+import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
+import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
+import org.bidon.sdk.ads.cache.andr.store.asString
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.AuctionStopCondition
+import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.get
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -39,9 +43,10 @@ internal class AdCacheAndreiImpl(
     private val tag: String,
     private val ioDispatcher: CoroutineDispatcher,
     private val mainDispatcher: CoroutineDispatcher,
+    private val adaptersSource: AdaptersSource,
     private val auctionConfigurator: AuctionConfigurator,
+    private val auctionResolver: AuctionResolver,
     private val auctionResultStore: AdStore<AuctionResultStore.Entry>,
-    private val auctionStatistics: AuctionStat,
     private val resultsCollector: ResultsCollector,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
 ) : AdCache,
@@ -116,15 +121,15 @@ internal class AdCacheAndreiImpl(
         AuctionRunner(
             tag,
             AuctionInfoFactory(),
-            auctionStatistics,
+            AuctionStatistics(get<StatsRequestUseCase>(), auctionResolver),
             auctionConfigurator,
             DefaultAuctionExecutor(
                 tag = tag,
-                adaptersSource = get(),
-                requestAdUnit = get(),
+                adaptersSource = adaptersSource,
+                requestAdUnit = get<RequestAdUnitUseCase>(),
                 rtbResultStore = rtbResultsStore,
                 rtbResultsMerger = RtbResultsMerger(),
-                statsRepository = get(),
+                statsRepository = get<DemandStatistics>(),
                 stopCondition = this,
             ),
             resultsCollector,
@@ -152,5 +157,5 @@ internal class AdCacheAndreiImpl(
         successCount: Int,
         lastResult: AuctionResult,
         next: AdUnit?
-    ): Boolean = successCount >= auctionResultStore.capacity
+    ): Boolean = successCount + auctionResultStore.size >= auctionResultStore.capacity
 }
