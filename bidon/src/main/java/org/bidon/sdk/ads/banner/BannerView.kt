@@ -183,6 +183,9 @@ public class BannerView @JvmOverloads constructor(
 
             AdLifecycle.Loaded -> {
                 val auctionResult = adCache.pop()
+                val isLoaded = auctionResult != null &&
+                    auctionResult.adSource.isAdReadyToShow &&
+                    adLifecycleFlow.compareAndSet(
                         expect = AdLifecycle.Loaded,
                         update = AdLifecycle.Displaying
                     )
