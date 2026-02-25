@@ -33,8 +33,8 @@ import org.bidon.sdk.ads.banner.ext.width
 import org.bidon.sdk.ads.banner.helper.AdLifecycle
 import org.bidon.sdk.ads.banner.helper.LogLifecycleAdStateUseCase
 import org.bidon.sdk.ads.banner.helper.wrapUserBannerListener
+import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -72,7 +72,7 @@ public class BannerView @JvmOverloads constructor(
     private val listener by lazy { wrapUserBannerListener(userListener = { userListener }) }
     private var loadingError: BidonError? = null
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
-    private val auction: Auction by lazy { get() }
+    private val adCache: AdCache by lazy { get { params(demandAd) } }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
     private var winner: AuctionResult? = null
@@ -131,7 +131,7 @@ public class BannerView @JvmOverloads constructor(
                             }
 
                             AdLifecycle.Loaded -> {
-                                winner?.adSource?.ad?.let {
+                                adCache.peek()?.adSource?.ad?.let {
                                     logInfo(TAG, "Banner loaded")
                                     withContext(Dispatchers.Main) {
                                         userListener?.onAdLoaded(
@@ -164,7 +164,7 @@ public class BannerView @JvmOverloads constructor(
     }
 
     override fun isReady(): Boolean {
-        return winner?.adSource?.isAdReadyToShow == true
+        return adCache.peek()?.adSource?.isAdReadyToShow == true
     }
 
     override fun showAd() {
@@ -182,8 +182,7 @@ public class BannerView @JvmOverloads constructor(
             }
 
             AdLifecycle.Loaded -> {
-                val isLoaded =
-                    isReady() && adLifecycleFlow.compareAndSet(
+                val auctionResult = adCache.pop()
                         expect = AdLifecycle.Loaded,
                         update = AdLifecycle.Displaying
                     )
@@ -193,13 +192,14 @@ public class BannerView @JvmOverloads constructor(
                     userListener?.onAdShowFailed(loadingError ?: BidonError.AdNotReady)
                     return
                 }
-                val bannerSource = (winner?.adSource as? AdSource.Banner) ?: run {
-                    logInfo(TAG, "AdSource(${winner?.adSource}: no ad view.")
+                val bannerSource = (auctionResult!!.adSource as? AdSource.Banner) ?: run {
+                    logInfo(TAG, "AdSource(${auctionResult.adSource}): no ad view.")
                     LogLifecycleAdStateUseCase.invoke(adLifecycle = adLifecycleFlow.value)
                     userListener?.onAdShowFailed(loadingError ?: BidonError.AdNotReady)
                     return
                 }
                 // Success
+                winner = auctionResult
                 addViewOnScreen(bannerSource)
             }
 
@@ -233,7 +233,7 @@ public class BannerView @JvmOverloads constructor(
 
             AdLifecycle.Loaded -> {
                 if (!wasNotified.getAndSet(true)) {
-                    winner?.adSource?.notifyExternalLoss(winnerDemandId, winnerPrice)
+                    adCache.pop()?.adSource?.notifyExternalLoss(winnerDemandId, winnerPrice)
                     destroyAd()
                 }
             }
@@ -250,7 +250,7 @@ public class BannerView @JvmOverloads constructor(
             logInfo(TAG, "Sdk is not initialized")
             return
         }
-        val adSource = winner?.adSource
+        val adSource = winner?.adSource ?: adCache.peek()?.adSource
         if (adSource?.canSendWinLoseNotifications() == true &&
             !wasNotified.getAndSet(true)
         ) {
@@ -267,9 +267,9 @@ public class BannerView @JvmOverloads constructor(
         scope.launch(Dispatchers.Main.immediate) {
             adLifecycleFlow.value = AdLifecycle.Destroyed
             visibilityTracker.stop()
-            auction.cancel()
             winner?.adSource?.destroy()
             winner = null
+            adCache.clear()
             winnerSubscriberJob?.cancel()
             winnerSubscriberJob = null
             removeAllViews()
@@ -308,8 +308,7 @@ public class BannerView @JvmOverloads constructor(
     private fun conductAuction(activity: Activity, pricefloor: Double) {
         this.pricefloor = pricefloor
         logInfo(TAG, "Load (pricefloor=$pricefloor)")
-        auction.start(
-            demandAd = demandAd,
+        adCache.cache(
             adTypeParam = AdTypeParam.Banner(
                 activity = activity,
                 pricefloor = pricefloor,
@@ -317,19 +316,16 @@ public class BannerView @JvmOverloads constructor(
                 bannerFormat = format,
                 containerWidth = width.toFloat()
             ),
-            onSuccess = { winners, auctionInfo ->
-                /**
-                 * Winner found
-                 */
-                val winner = winners.first().also {
-                    winner = it
-                }
-                winners.drop(1).forEach { it.adSource.destroy() }
+            /**
+             * Winner found
+             */
+            onSuccess = { auctionResult, auctionInfo ->
+                winner = auctionResult
                 this.auctionInfo = auctionInfo
-                subscribeToWinner(winner.adSource)
+                subscribeToWinner(auctionResult.adSource)
                 adLifecycleFlow.value = AdLifecycle.Loaded
                 listener.onAdLoaded(
-                    ad = requireNotNull(winner.adSource.ad) {
+                    ad = requireNotNull(auctionResult.adSource.ad) {
                         "[Ad] should exist when action succeeds"
                     },
                     auctionInfo = auctionInfo
@@ -350,6 +346,7 @@ public class BannerView @JvmOverloads constructor(
     }
 
     private fun subscribeToWinner(adSource: AdSource<*>) {
+        winnerSubscriberJob?.cancel()
         winnerSubscriberJob = adSource.adEvent.onEach { adEvent ->
             logInfo(TAG, "$adEvent")
             when (adEvent) {

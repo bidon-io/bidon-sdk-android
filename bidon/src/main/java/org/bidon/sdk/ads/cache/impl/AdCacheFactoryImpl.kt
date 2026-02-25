@@ -21,9 +21,9 @@ internal class AdCacheFactoryImpl(
 ) : AdCacheFactory {
 
     override fun create(demandAd: DemandAd): AdCache {
-        // Only Interstitial ads use version-based cache implementations
-        // Banner and Rewarded always use default V1 implementation
-        if (demandAd.adType != AdType.Interstitial) {
+        // Only Interstitial and Banner ads use version-based cache implementations
+        // Rewarded always use default V1 implementation
+        if (demandAd.adType != AdType.Interstitial && demandAd.adType != AdType.Banner) {
             return AdCacheImpl(
                 demandAd = demandAd,
                 scope = CoroutineScope(SdkDispatchers.Main),
