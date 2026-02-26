@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.andr.execution
 
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
-import org.bidon.sdk.ads.cache.andr.ext.sortedByRankDescending
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.models.AdUnit

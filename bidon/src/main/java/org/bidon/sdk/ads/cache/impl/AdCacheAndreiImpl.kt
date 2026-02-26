@@ -9,7 +9,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.AuctionRunnerFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.asString

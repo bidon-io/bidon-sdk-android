@@ -11,7 +11,7 @@ import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
-import org.bidon.sdk.ads.cache.andr.orchestration.AdaptersCollector
+import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam

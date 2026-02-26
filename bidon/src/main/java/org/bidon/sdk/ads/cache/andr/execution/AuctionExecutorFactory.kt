@@ -1,11 +1,7 @@
-package org.bidon.sdk.ads.cache.andr.orchestration
+package org.bidon.sdk.ads.cache.andr.execution
 
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
-import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
-import org.bidon.sdk.ads.cache.andr.execution.AdUnitPreparer
-import org.bidon.sdk.ads.cache.andr.execution.AuctionExecutor
-import org.bidon.sdk.ads.cache.andr.execution.DefaultAuctionExecutor
-import org.bidon.sdk.ads.cache.andr.execution.WinLossNotifier
+import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.usecases.AuctionStopCondition
