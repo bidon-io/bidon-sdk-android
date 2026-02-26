@@ -6,8 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.sqlite.transaction
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.stats.models.DemandMeasurement
-import org.bidon.sdk.stats.models.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
 import java.util.concurrent.TimeUnit
 
 /**
@@ -16,7 +15,7 @@ import java.util.concurrent.TimeUnit
 internal class DemandStatistics(
     context: Context,
 ) {
-    private val dbHelper = DemandStatisticsDatabaseHelper(context.applicationContext)
+    private val dbHelper = DatabaseHelper(context.applicationContext)
 
     /**
      * Records a batch of measurements to the database.
@@ -48,8 +47,8 @@ internal class DemandStatistics(
     /**
      * Returns aggregated statistics for all demand networks for the given ad type.
      */
-    fun getAllStats(adType: AdType): List<DemandStatistics> {
-        val stats = mutableListOf<DemandStatistics>()
+    fun getAllStats(adType: AdType): List<Entry> {
+        val stats = mutableListOf<Entry>()
 
         val query =
             """
@@ -71,7 +70,7 @@ internal class DemandStatistics(
             .use {
                 while (it.moveToNext()) {
                     stats.add(
-                        DemandStatistics(
+                        Entry(
                             demandId = it.getString(0),
                             sampleCount = it.getInt(1),
                             fillRate = it.getDouble(2),
@@ -159,12 +158,16 @@ internal class DemandStatistics(
         return distribution
     }
 
-    fun savePriceFloor(adType: AdType, priceFloor: Double) {
-        val values = ContentValues().apply {
-            put(COL_PF_AD_TYPE, adType.code)
-            put(COL_PF_PRICE_FLOOR, priceFloor)
-            put(COL_PF_UPDATED_AT, System.currentTimeMillis())
-        }
+    fun savePriceFloor(
+        adType: AdType,
+        priceFloor: Double
+    ) {
+        val values =
+            ContentValues().apply {
+                put(COL_PF_AD_TYPE, adType.code)
+                put(COL_PF_PRICE_FLOOR, priceFloor)
+                put(COL_PF_UPDATED_AT, System.currentTimeMillis())
+            }
         dbHelper.writableDatabase.insertWithOnConflict(
             TABLE_PRICE_FLOORS, null, values, SQLiteDatabase.CONFLICT_REPLACE
         )
@@ -177,14 +180,14 @@ internal class DemandStatistics(
             .use { if (it.moveToFirst()) it.getDouble(0) else 0.0 }
     }
 
-    private class DemandStatisticsDatabaseHelper(
+    private class DatabaseHelper(
         context: Context
     ) : SQLiteOpenHelper(
-        context,
-        DATABASE_NAME,
-        null,
-        DATABASE_VERSION
-    ) {
+            context,
+            DATABASE_NAME,
+            null,
+            DATABASE_VERSION
+        ) {
         override fun onCreate(db: SQLiteDatabase) {
             with(db) {
                 execSQL(
@@ -252,4 +255,25 @@ internal class DemandStatistics(
         private const val COL_PF_PRICE_FLOOR = "price_floor"
         private const val COL_PF_UPDATED_AT = "updated_at"
     }
+
+    /**
+     * Aggregated statistics for a demand network.
+     *
+     * @property demandId Unique identifier for the demand network
+     * @property sampleCount Total number of recorded measurements
+     * @property fillRate Percentage of requests that were filled (0.0 to 1.0)
+     * @property avgBidPrice Average eCPM bid price in USD (null if no bids)
+     * @property avgLatencyMs Average response latency in milliseconds
+     * @property minBidPrice Minimum recorded bid price in USD (null if no bids)
+     * @property maxBidPrice Maximum recorded bid price in USD (null if no bids)
+     */
+    data class Entry(
+        val demandId: String,
+        val sampleCount: Int,
+        val fillRate: Double,
+        val avgBidPrice: Double?,
+        val avgLatencyMs: Double,
+        val minBidPrice: Double?,
+        val maxBidPrice: Double?
+    )
 }

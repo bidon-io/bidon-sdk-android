@@ -19,8 +19,7 @@ import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
-import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
-import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
+import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
 import org.bidon.sdk.ads.cache.impl.AdCacheFactoryImpl
 import org.bidon.sdk.ads.cache.impl.alex.UserFlow
 import org.bidon.sdk.auction.Auction
@@ -172,8 +171,7 @@ internal object DI {
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
             singleton<DemandStatistics> { DemandStatistics(context = get()) }
-            singleton<AuctionResultStore> { AuctionResultStore() }
-            singleton<RtbResultStore> { RtbResultStore() }
+            singleton<AdStoreProvider> { AdStoreProvider() }
 
             /**
              * Factories

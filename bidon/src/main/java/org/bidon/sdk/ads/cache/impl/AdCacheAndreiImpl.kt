@@ -6,36 +6,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.andr.analytics.AuctionStatistics
-import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
-import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
-import org.bidon.sdk.ads.cache.andr.execution.AdUnitPreparer
-import org.bidon.sdk.ads.cache.andr.execution.DefaultAuctionExecutor
-import org.bidon.sdk.ads.cache.andr.execution.RtbResultsMerger
-import org.bidon.sdk.ads.cache.andr.execution.WinLossNotifier
-import org.bidon.sdk.ads.cache.andr.orchestration.AuctionConfigurator
-import org.bidon.sdk.ads.cache.andr.orchestration.AuctionInfoFactory
-import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunner
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunnerFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
-import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.ads.cache.andr.store.asString
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.AuctionStopCondition
-import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.usecases.StatsRequestUseCase
-import org.bidon.sdk.utils.di.get
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -46,12 +30,8 @@ internal class AdCacheAndreiImpl(
     private val tag: String,
     private val ioDispatcher: CoroutineDispatcher,
     private val mainDispatcher: CoroutineDispatcher,
-    private val adaptersSource: AdaptersSource,
-    private val auctionConfigurator: AuctionConfigurator,
-    private val auctionResolver: AuctionResolver,
     private val auctionResultStore: AdStore<AuctionResultStore.Entry>,
-    private val resultsCollector: ResultsCollector,
-    private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
+    private val auctionRunnerFactory: AuctionRunnerFactory,
 ) : AdCache,
     AuctionStopCondition {
     private val scope: CoroutineScope by lazy {
@@ -83,7 +63,11 @@ internal class AdCacheAndreiImpl(
         auctionJob =
             scope.launch {
                 val runResult =
-                    withContext(ioDispatcher) { createRunner().run(demandAd, adTypeParam) }
+                    withContext(ioDispatcher) {
+                        auctionRunnerFactory
+                            .create(this@AdCacheAndreiImpl)
+                            .run(demandAd, adTypeParam)
+                    }
                 runResult.fold(
                     { (info, results) ->
                         auctionResultStore
@@ -105,9 +89,6 @@ internal class AdCacheAndreiImpl(
     override suspend fun poll(): AuctionResult = auctionResultStore.poll().unwrap()
 
     override fun clear() {
-        rtbResultsStore.clear()
-        auctionResultStore.clear()
-
         if (!isLoading.getAndSet(false)) {
             return
         }
@@ -118,27 +99,6 @@ internal class AdCacheAndreiImpl(
         auctionJob = null
 
         logInfo(tag, "Auction canceled")
-    }
-
-    private fun createRunner(): AuctionRunner {
-        val demandStatistics = get<DemandStatistics>()
-        return AuctionRunner(
-            tag,
-            AuctionInfoFactory(),
-            AuctionStatistics(get<StatsRequestUseCase>(), auctionResolver),
-            auctionConfigurator,
-            DefaultAuctionExecutor(
-                tag = tag,
-                adUnitPreparer = AdUnitPreparer(rtbResultsStore, RtbResultsMerger(), demandStatistics),
-                adSourceResolver = AdSourceResolver(tag, adaptersSource),
-                winLossNotifier = WinLossNotifier(tag),
-                requestAdUnit = get<RequestAdUnitUseCase>(),
-                rtbResultStore = rtbResultsStore,
-                statsRepository = demandStatistics,
-                stopCondition = this,
-            ),
-            resultsCollector,
-        )
     }
 
     private fun processAuctionResult(

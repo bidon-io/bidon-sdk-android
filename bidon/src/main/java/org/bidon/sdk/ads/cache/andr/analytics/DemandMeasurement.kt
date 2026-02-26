@@ -1,4 +1,4 @@
-package org.bidon.sdk.stats.models
+package org.bidon.sdk.ads.cache.andr.analytics
 
 import org.bidon.sdk.ads.AdType
 

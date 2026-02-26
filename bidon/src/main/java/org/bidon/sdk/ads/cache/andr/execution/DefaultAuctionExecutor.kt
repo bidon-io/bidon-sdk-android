@@ -7,6 +7,7 @@ import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
@@ -22,7 +23,6 @@ import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
-import org.bidon.sdk.stats.models.DemandMeasurement
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.utils.ext.SystemTimeNow
@@ -30,13 +30,13 @@ import java.util.LinkedList
 
 internal class DefaultAuctionExecutor(
     private val tag: String,
-    private val adUnitPreparer: AdUnitPreparer,
     private val adSourceResolver: AdSourceResolver,
-    private val winLossNotifier: WinLossNotifier,
+    private val adUnitPreparer: AdUnitPreparer,
     private val requestAdUnit: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
     private val statsRepository: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
+    private val winLossNotifier: WinLossNotifier,
 ) : AuctionExecutor {
     override suspend fun execute(
         demandAd: DemandAd,
@@ -44,9 +44,8 @@ internal class DefaultAuctionExecutor(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
-        val (context, sortedAdUnits, mergedTokens) =
+        val (context, mergedAdUnits, mergedTokens) =
             adUnitPreparer.prepare(demandAd, response, tokens)
-
         val executionResult =
             execute(
                 context,
@@ -54,10 +53,12 @@ internal class DefaultAuctionExecutor(
                 adTypeParam,
                 response.pricefloor,
                 response.auctionTimeout,
-                sortedAdUnits,
+                mergedAdUnits,
                 mergedTokens
             )
-        return executionResult.also { winLossNotifier.notify(it, response.externalWinNotificationsEnabled) }
+        return executionResult.also {
+            winLossNotifier.notify(it, response.externalWinNotificationsEnabled)
+        }
     }
 
     private suspend fun execute(

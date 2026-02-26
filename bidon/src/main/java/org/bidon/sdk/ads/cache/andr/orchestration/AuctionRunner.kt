@@ -21,11 +21,11 @@ import java.util.UUID
 
 internal class AuctionRunner(
     private val tag: String,
-    private val infoFactory: AuctionInfoFactory,
-    private val statistics: AuctionStat,
     private val configurator: AuctionConfigurator,
     private val executor: AuctionExecutor,
+    private val infoFactory: AuctionInfoFactory,
     private val resultsCollector: ResultsCollector,
+    private val statistics: AuctionStat,
 ) {
     suspend fun run(
         demandAd: DemandAd,
@@ -37,10 +37,9 @@ internal class AuctionRunner(
         initCollector(adTypeParam)
 
         val auctionId =
-            UUID
-                .randomUUID()
-                .toString()
-                .also { statistics.markAuctionStarted(it, adTypeParam) }
+            UUID.randomUUID().toString().also {
+                statistics.markAuctionStarted(it, adTypeParam)
+            }
         return configurator
             .configure(auctionId, demandAd, adTypeParam)
             .onSuccess { (response, _) -> startCollector(response) }

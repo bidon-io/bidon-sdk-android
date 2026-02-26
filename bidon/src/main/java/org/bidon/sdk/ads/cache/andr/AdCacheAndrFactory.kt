@@ -3,9 +3,14 @@ package org.bidon.sdk.ads.cache.andr
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
+import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
+import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
+import org.bidon.sdk.ads.cache.andr.execution.RtbResultsMerger
+import org.bidon.sdk.ads.cache.andr.execution.WinLossNotifier
 import org.bidon.sdk.ads.cache.andr.orchestration.AuctionConfigurator
-import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
-import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionInfoFactory
+import org.bidon.sdk.ads.cache.andr.orchestration.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
 import org.bidon.sdk.ads.cache.impl.AdCacheAndreiImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -20,26 +25,36 @@ internal object AdCacheAndrFactory {
         demandAd: DemandAd,
         resolver: AuctionResolver,
     ): AdCache {
-        val tag = "AndrCache_${demandAd.adType.code}"
+        val adType = demandAd.adType
+        val tag = "AndrCache_${adType.code}"
         val adaptersSource = get<AdaptersSource>()
+        val adStoreProvider = get<AdStoreProvider>()
         return AdCacheAndreiImpl(
             demandAd = demandAd,
             tag = tag,
             ioDispatcher = SdkDispatchers.IO,
             mainDispatcher = SdkDispatchers.Main,
-            adaptersSource = adaptersSource,
-            auctionConfigurator =
-                AuctionConfigurator(
+            auctionResultStore = adStoreProvider.auctionResultStore(adType),
+            auctionRunnerFactory =
+                AuctionRunnerFactory(
                     tag = tag,
-                    adaptersSource = adaptersSource,
-                    getTokens = get<GetTokensUseCase>(),
-                    getAuctionRequest = get<GetAuctionRequestUseCase>(),
-                    biddingConfig = get<BiddingConfig>()
+                    adSourceResolver = AdSourceResolver(tag = tag, adaptersSource = adaptersSource),
+                    auctionConfigurator =
+                        AuctionConfigurator(
+                            tag = tag,
+                            adaptersSource = adaptersSource,
+                            getTokens = get<GetTokensUseCase>(),
+                            getAuctionRequest = get<GetAuctionRequestUseCase>(),
+                            biddingConfig = get<BiddingConfig>()
+                        ),
+                    auctionResolver = resolver,
+                    demandStatistics = get<DemandStatistics>(),
+                    infoFactory = AuctionInfoFactory(),
+                    resultsCollector = get<ResultsCollector>(),
+                    rtbResultsMerger = RtbResultsMerger(),
+                    rtbResultsStore = adStoreProvider.rtbResultStore(adType),
+                    winLossNotifier = WinLossNotifier(tag = tag),
                 ),
-            auctionResolver = resolver,
-            auctionResultStore = get<AuctionResultStore>(),
-            resultsCollector = get<ResultsCollector>(),
-            rtbResultsStore = get<RtbResultStore>(),
         )
     }
 }

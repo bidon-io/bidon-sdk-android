@@ -15,11 +15,6 @@ internal class AdUnitPreparer(
     private val rtbResultsMerger: RtbResultsMerger,
     private val demandStatistics: DemandStatistics,
 ) {
-    data class Result(
-        val context: AuctionContext,
-        val sortedAdUnits: List<AdUnit>,
-        val tokens: Map<AdUnit, TokenInfo>,
-    )
 
     fun prepare(
         demandAd: DemandAd,
@@ -35,15 +30,18 @@ internal class AdUnitPreparer(
             )
 
         val cachedRtbResults = rtbResultStore.popAll().map(RtbResultStore.Entry::unwrap)
-        val (serverRtbAdUnits, cpmAdUnits) =
-            (response.adUnits ?: emptyList())
-                .partition { it.bidType == BidType.RTB }
-        val (mergedRtbAdUnits, mergedTokens) =
-            rtbResultsMerger.merge(cachedRtbResults, serverRtbAdUnits, tokens)
+        val (serverRtbAdUnits, cpmAdUnits) = (response.adUnits ?: emptyList()).partition { it.bidType == BidType.RTB }
+        val (mergedRtbAdUnits, mergedTokens) = rtbResultsMerger.merge(cachedRtbResults, serverRtbAdUnits, tokens)
 
         val allStats = demandStatistics.getAllStats(demandAd.adType)
-        val sortedAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats)
+        val sortedAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats, demandAd.adType)
 
         return Result(context, sortedAdUnits, mergedTokens)
     }
+
+    data class Result(
+        val context: AuctionContext,
+        val sortedAdUnits: List<AdUnit>,
+        val tokens: Map<AdUnit, TokenInfo>,
+    )
 }
