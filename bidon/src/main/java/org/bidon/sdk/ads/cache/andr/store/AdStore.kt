@@ -1,7 +1,9 @@
 package org.bidon.sdk.ads.cache.andr.store
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import org.bidon.sdk.auction.models.TokenInfo
@@ -26,7 +28,7 @@ internal abstract class AdStore<E : AdStore.Entry>(
                 if (first != null) entrySet(*(it - first).toTypedArray()) else it
             }.firstNotExpiredOrNull()
 
-    fun poll(): E = pop()!!
+    suspend fun poll(): E = entries.mapNotNull { it.firstNotExpired() }.first()
 
     fun peekAll(): Set<E> = entries.evictExpiredGet()
 
@@ -57,6 +59,8 @@ internal abstract class AdStore<E : AdStore.Entry>(
     }
 
     protected fun Iterable<E>.filterNotExpired(): List<E> = filterNot(Entry::isExpired)
+
+    protected fun Iterable<E>.firstNotExpired(): E = first { !it.isExpired }
 
     protected fun Iterable<E>.firstNotExpiredOrNull(): E? = firstOrNull { !it.isExpired }
 

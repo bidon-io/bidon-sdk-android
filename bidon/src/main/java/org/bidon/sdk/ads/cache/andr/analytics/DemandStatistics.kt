@@ -55,6 +55,7 @@ internal class DemandStatistics(
             SELECT
                 $COL_DEMAND_ID,
                 COUNT(*) as sample_count,
+                SUM($COL_FILLED) as fill_count,
                 AVG($COL_FILLED) as fill_rate,
                 AVG($COL_BID_PRICE) as avg_bid,
                 AVG($COL_LATENCY_MS) as avg_latency,
@@ -73,11 +74,12 @@ internal class DemandStatistics(
                         Entry(
                             demandId = it.getString(0),
                             sampleCount = it.getInt(1),
-                            fillRate = it.getDouble(2),
-                            avgBidPrice = if (it.isNull(3)) null else it.getDouble(3),
-                            avgLatencyMs = it.getDouble(4),
-                            minBidPrice = if (it.isNull(5)) null else it.getDouble(5),
-                            maxBidPrice = if (it.isNull(6)) null else it.getDouble(6)
+                            fillCount = it.getInt(2),
+                            fillRate = it.getDouble(3),
+                            avgBidPrice = if (it.isNull(4)) null else it.getDouble(4),
+                            avgLatencyMs = it.getDouble(5),
+                            minBidPrice = if (it.isNull(6)) null else it.getDouble(6),
+                            maxBidPrice = if (it.isNull(7)) null else it.getDouble(7)
                         )
                     )
                 }
@@ -270,6 +272,7 @@ internal class DemandStatistics(
     data class Entry(
         val demandId: String,
         val sampleCount: Int,
+        val fillCount: Int,
         val fillRate: Double,
         val avgBidPrice: Double?,
         val avgLatencyMs: Double,

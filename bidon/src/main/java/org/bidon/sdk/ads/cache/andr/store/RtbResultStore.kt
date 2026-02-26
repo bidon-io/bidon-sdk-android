@@ -67,7 +67,7 @@ internal class RtbResultStore(
     }
 
     companion object {
-        private val DEFAULT_TTL_MS = TimeUnit.MINUTES.toMillis(29)
+        private val DEFAULT_TTL_MS = TimeUnit.MINUTES.toMillis(14)
     }
 }
 

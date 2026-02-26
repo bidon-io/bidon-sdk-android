@@ -11,6 +11,7 @@ import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
+import org.bidon.sdk.ads.cache.andr.orchestration.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam
@@ -37,6 +38,7 @@ internal class DefaultAuctionExecutor(
     private val statsRepository: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
     private val winLossNotifier: WinLossNotifier,
+    private val adaptersCollector: AdaptersCollector,
 ) : AuctionExecutor {
     override suspend fun execute(
         demandAd: DemandAd,
@@ -196,7 +198,14 @@ internal class DefaultAuctionExecutor(
                 continue
             }
 
-            val adSource = adSourceResolver.resolve(adUnit, demandAd, adTypeParam, tokenInfo)
+            val adSource =
+                adSourceResolver.resolve(
+                    adUnit,
+                    demandAd,
+                    adTypeParam,
+                    adaptersCollector.collectAll(),
+                    tokenInfo
+                )
             if (adSource == null) {
                 iterator.remove()
                 auctionResults.add(

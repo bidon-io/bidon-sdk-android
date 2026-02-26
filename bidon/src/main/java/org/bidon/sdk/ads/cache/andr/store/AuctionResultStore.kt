@@ -18,7 +18,7 @@ import kotlin.coroutines.CoroutineContext
 
 internal class AuctionResultStore(
     coroutineContext: CoroutineContext = SdkDispatchers.IO,
-    capacity: Int = 2,
+    capacity: Int = 5,
 ) : AdStore<AuctionResultStore.Entry>(capacity, AdStore.Entry.PriceComparator) {
     private val coroutineScope: CoroutineScope = CoroutineScope(coroutineContext + SupervisorJob())
 

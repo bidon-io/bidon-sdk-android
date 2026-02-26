@@ -11,11 +11,10 @@ import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.stats.models.BidType
 
 internal class AdUnitPreparer(
-    private val rtbResultStore: AdStore<RtbResultStore.Entry>,
+    private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
     private val demandStatistics: DemandStatistics,
 ) {
-
     fun prepare(
         demandAd: DemandAd,
         response: AuctionResponse,
@@ -29,12 +28,20 @@ internal class AdUnitPreparer(
                 response.externalWinNotificationsEnabled
             )
 
-        val cachedRtbResults = rtbResultStore.popAll().map(RtbResultStore.Entry::unwrap)
-        val (serverRtbAdUnits, cpmAdUnits) = (response.adUnits ?: emptyList()).partition { it.bidType == BidType.RTB }
-        val (mergedRtbAdUnits, mergedTokens) = rtbResultsMerger.merge(cachedRtbResults, serverRtbAdUnits, tokens)
+        val cachedRtbResults = rtbResultsStore.popAll().map(RtbResultStore.Entry::unwrap)
+        val (serverRtbAdUnits, cpmAdUnits) =
+            (response.adUnits
+                ?: emptyList()).partition { it.bidType == BidType.RTB }
+        val (mergedRtbAdUnits, mergedTokens) =
+            rtbResultsMerger.merge(
+                cachedRtbResults,
+                serverRtbAdUnits,
+                tokens
+            )
 
         val allStats = demandStatistics.getAllStats(demandAd.adType)
-        val sortedAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats, demandAd.adType)
+        val sortedAdUnits =
+            (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats, demandAd.adType)
 
         return Result(context, sortedAdUnits, mergedTokens)
     }

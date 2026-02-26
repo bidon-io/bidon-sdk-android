@@ -5,7 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
@@ -30,7 +29,7 @@ internal class AdCacheAndreiImpl(
     private val tag: String,
     private val ioDispatcher: CoroutineDispatcher,
     private val mainDispatcher: CoroutineDispatcher,
-    private val auctionResultStore: AdStore<AuctionResultStore.Entry>,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val auctionRunnerFactory: AuctionRunnerFactory,
 ) : AdCache,
     AuctionStopCondition {
@@ -51,42 +50,45 @@ internal class AdCacheAndreiImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        logInfo(tag, "Cache started: ${auctionResultStore.peekAll().asString()}")
+        val storedEntries =
+            auctionResultsStore.peekAll().filter { it.price >= adTypeParam.pricefloor }
+
+        logInfo(tag, "Cache started: ${storedEntries.asString()}")
 
         if (isLoading.getAndSet(true)) {
             logInfo(tag, "Ad is already loading")
             return
         }
 
-        logInfo(tag, "Cache ad: $adTypeParam")
-
-        auctionJob =
-            scope.launch {
-                val runResult =
-                    withContext(ioDispatcher) {
-                        auctionRunnerFactory
-                            .create(this@AdCacheAndreiImpl)
-                            .run(demandAd, adTypeParam)
-                    }
-                runResult.fold(
-                    { (info, results) ->
-                        auctionResultStore
-                            .insert(results) { AuctionResultStore.Entry(it, info) }
-                        processAuctionResult(info, null, onSuccess, onFailure)
-                    },
-                    {
-                        val info = (it as? BidonError.AuctionFailed)?.info
-                        processAuctionResult(info, it, onSuccess, onFailure)
-                    },
-                )
-            }
+        val storedEntry = auctionResultsStore.peek()
+        if (storedEntry != null) {
+            processAuctionResult(storedEntry, null, onSuccess, onFailure)
+        } else {
+            auctionJob =
+                scope.launch(ioDispatcher) {
+                    auctionRunnerFactory
+                        .create(this@AdCacheAndreiImpl)
+                        .run(demandAd, adTypeParam)
+                        .fold(
+                            { (info, results) ->
+                                auctionResultsStore
+                                    .insert(results) { AuctionResultStore.Entry(it, info) }
+                                val result = auctionResultsStore.poll()
+                                processAuctionResult(result, null, onSuccess, onFailure)
+                            },
+                            {
+                                processAuctionResult(null, it, onSuccess, onFailure)
+                            },
+                        )
+                }
+        }
     }
 
-    override fun peek(): AuctionResult? = auctionResultStore.peek()?.unwrap()
+    override fun peek(): AuctionResult? = auctionResultsStore.peek()?.unwrap()
 
-    override fun pop(): AuctionResult? = auctionResultStore.pop()?.unwrap()
+    override fun pop(): AuctionResult? = auctionResultsStore.pop()?.unwrap()
 
-    override suspend fun poll(): AuctionResult = auctionResultStore.poll().unwrap()
+    override suspend fun poll(): AuctionResult = auctionResultsStore.poll().unwrap()
 
     override fun clear() {
         if (!isLoading.getAndSet(false)) {
@@ -102,19 +104,23 @@ internal class AdCacheAndreiImpl(
     }
 
     private fun processAuctionResult(
-        auctionInfo: AuctionInfo?,
+        entry: AuctionResultStore.Entry?,
         cause: Throwable?,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        val stored = auctionResultStore.peekAll()
-        val first = stored.firstOrNull()
-        if (first != null) {
-            logInfo(tag, "Auction completed: ${stored.asString()}")
-            onSuccess(first.auctionResult, first.auctionInfo)
+        val auctionResult = entry?.auctionResult
+        val auctionInfo = entry?.auctionInfo
+        if (auctionResult != null && auctionInfo != null) {
+            logInfo(tag, "Cache completed: ${auctionResultsStore.peekAll().asString()}")
+            scope.launch(mainDispatcher) {
+                onSuccess(auctionResult, auctionInfo)
+            }
         } else {
-            logInfo(tag, "Auction failed: ${stored.asString()}")
-            onFailure.invoke(auctionInfo, cause ?: BidonError.AuctionFailed(auctionInfo, null))
+            logInfo(tag, "Auction failed: ${auctionResultsStore.peekAll().asString()}")
+            scope.launch(mainDispatcher) {
+                onFailure(auctionInfo, cause ?: BidonError.Unspecified(null))
+            }
         }
         isLoading.set(false)
     }
@@ -123,5 +129,5 @@ internal class AdCacheAndreiImpl(
         successCount: Int,
         lastResult: AuctionResult,
         next: AdUnit?
-    ): Boolean = successCount + auctionResultStore.size >= auctionResultStore.capacity
+    ): Boolean = successCount + auctionResultsStore.size >= auctionResultsStore.capacity
 }

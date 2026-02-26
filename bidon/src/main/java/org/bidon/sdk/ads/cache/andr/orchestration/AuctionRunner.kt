@@ -15,13 +15,12 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
-import org.bidon.sdk.utils.ext.mapFailure
 import org.bidon.sdk.utils.ext.onAny
 import java.util.UUID
 
 internal class AuctionRunner(
     private val tag: String,
-    private val configurator: AuctionConfigurator,
+    private val auctionConfigurator: AuctionConfigurator,
     private val executor: AuctionExecutor,
     private val infoFactory: AuctionInfoFactory,
     private val resultsCollector: ResultsCollector,
@@ -40,11 +39,11 @@ internal class AuctionRunner(
             UUID.randomUUID().toString().also {
                 statistics.markAuctionStarted(it, adTypeParam)
             }
-        return configurator
+
+        return auctionConfigurator
             .configure(auctionId, demandAd, adTypeParam)
             .onSuccess { (response, _) -> startCollector(response) }
             .mapCatching { (response, tokens) -> execute(demandAd, adTypeParam, response, tokens) }
-            .mapFailure { BidonError.AuctionFailed(infoFactory.create(), it) }
             .onAny { clearCollector() }
     }
 
@@ -69,7 +68,7 @@ internal class AuctionRunner(
         return if (info != null && finalResults.isNotEmpty()) {
             info to finalResults
         } else {
-            throw BidonError.AuctionFailed(info, BidonError.NoAuctionResults)
+            throw BidonError.NoAuctionResults
         }
     }
 
@@ -86,7 +85,7 @@ internal class AuctionRunner(
         resultsCollector.setNoBidInfo(response.noBids)
     }
 
-    protected fun finalizeCollector(
+    private fun finalizeCollector(
         rawResults: List<AuctionResult>,
     ): List<AuctionResult> {
         rawResults.forEach(resultsCollector::add)
