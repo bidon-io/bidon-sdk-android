@@ -53,7 +53,7 @@ internal class AdCacheAndreiImpl(
         val storedEntries =
             auctionResultsStore.peekAll().filter { it.price >= adTypeParam.pricefloor }
 
-        logInfo(tag, "Cache started: ${storedEntries.asString()}")
+        logInfo(tag, "Cache: ${storedEntries.size}/${auctionResultsStore.peekAll().size} above pricefloor(${adTypeParam.pricefloor}), entries=${storedEntries.asString()}")
 
         if (isLoading.getAndSet(true)) {
             logInfo(tag, "Ad is already loading")
@@ -62,8 +62,10 @@ internal class AdCacheAndreiImpl(
 
         val storedEntry = auctionResultsStore.peek()
         if (storedEntry != null) {
+            logInfo(tag, "Reusing stored entry: ${storedEntry.demandId}:${storedEntry.price}")
             processAuctionResult(storedEntry, null, onSuccess, onFailure)
         } else {
+            logInfo(tag, "No stored entry, starting auction")
             auctionJob =
                 scope.launch(ioDispatcher) {
                     auctionRunnerFactory
@@ -73,6 +75,10 @@ internal class AdCacheAndreiImpl(
                             { (info, results) ->
                                 auctionResultsStore
                                     .insert(results) { AuctionResultStore.Entry(it, info) }
+                                logInfo(
+                                    tag,
+                                    "Auction succeeded, inserted ${results.size} results into store"
+                                )
                                 val result = auctionResultsStore.poll()
                                 processAuctionResult(result, null, onSuccess, onFailure)
                             },
@@ -95,8 +101,6 @@ internal class AdCacheAndreiImpl(
             return
         }
 
-        logInfo(tag, "Ad is loading, cancel auction")
-
         auctionJob?.cancel()
         auctionJob = null
 
@@ -117,7 +121,7 @@ internal class AdCacheAndreiImpl(
                 onSuccess(auctionResult, auctionInfo)
             }
         } else {
-            logInfo(tag, "Auction failed: ${auctionResultsStore.peekAll().asString()}")
+            logInfo(tag, "Auction failed: ${cause?.message}, store=${auctionResultsStore.peekAll().asString()}")
             scope.launch(mainDispatcher) {
                 onFailure(auctionInfo, cause ?: BidonError.Unspecified(null))
             }
@@ -128,6 +132,10 @@ internal class AdCacheAndreiImpl(
     override fun shouldStop(
         successCount: Int,
         lastResult: AuctionResult,
-        next: AdUnit?
-    ): Boolean = successCount + auctionResultsStore.size >= auctionResultsStore.capacity
+        next: AdUnit?,
+    ): Boolean {
+        val shouldStop = successCount >= auctionResultsStore.capacity
+        logInfo(tag, "shouldStop: successCount=$successCount, capacity=${auctionResultsStore.capacity} -> $shouldStop")
+        return shouldStop
+    }
 }

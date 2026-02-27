@@ -1,15 +1,19 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.cache.andr.AdCacheConfig
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 
 internal class AdUnitPreparer(
+    private val tag: String,
+    private val adCacheConfig: AdCacheConfig,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
     private val demandStatistics: DemandStatistics,
@@ -28,9 +32,15 @@ internal class AdUnitPreparer(
             )
 
         val cachedRtbResults = rtbResultsStore.popAll().map(RtbResultStore.Entry::unwrap)
+
+        logInfo(tag, "Popped ${cachedRtbResults.size} cached RTB results")
+
         val (serverRtbAdUnits, cpmAdUnits) =
             (response.adUnits
                 ?: emptyList()).partition { it.bidType == BidType.RTB }
+
+        logInfo(tag, "Server: ${serverRtbAdUnits.size} RTB, ${cpmAdUnits.size} CPM")
+
         val (mergedRtbAdUnits, mergedTokens) =
             rtbResultsMerger.merge(
                 cachedRtbResults,
@@ -38,9 +48,19 @@ internal class AdUnitPreparer(
                 tokens
             )
 
+        logInfo(tag, "Merged: ${mergedRtbAdUnits.size} RTB units, ${mergedTokens.size} tokens")
+
         val allStats = demandStatistics.getAllStats(demandAd.adType)
         val sortedAdUnits =
-            (mergedRtbAdUnits + cpmAdUnits).sortedByRankDescending(allStats, demandAd.adType)
+            (mergedRtbAdUnits + cpmAdUnits)
+                .sortedByRankDescending(allStats, adCacheConfig.rankingWeights)
+
+        logInfo(
+            tag,
+            "Ranked ${sortedAdUnits.size} units. Top: ${
+                sortedAdUnits.take(3).joinToString { "${it.demandId}:${it.pricefloor}" }
+            }"
+        )
 
         return Result(context, sortedAdUnits, mergedTokens)
     }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.stats.models.BidStat
@@ -17,6 +18,7 @@ import java.util.SortedSet
 import kotlin.coroutines.CoroutineContext
 
 internal class AuctionResultStore(
+    private val tag: String,
     coroutineContext: CoroutineContext = SdkDispatchers.IO,
     capacity: Int = 5,
 ) : AdStore<AuctionResultStore.Entry>(capacity, AdStore.Entry.PriceComparator) {
@@ -56,16 +58,19 @@ internal class AuctionResultStore(
             updated
         }
         evicted.forEach { it.auctionResult.adSource.destroy() }
+        logInfo(tag, "AuctionResultStore.insert: +${items.size}, evicted=${evicted.size}, total=${entries.value.size}")
     }
 
     override fun remove(entry: Entry) {
         super.remove(entry)
-
         entry.auctionResult.adSource.destroy()
+        logInfo(tag, "AuctionResultStore.remove: ${entry.demandId}:${entry.price}")
     }
 
     override fun clear() {
+        val count = entries.value.size
         entries.getAndUpdate { entrySet() }.forEach { it.auctionResult.adSource.destroy() }
+        logInfo(tag, "AuctionResultStore.clear: removed $count entries")
     }
 
     private suspend fun createObservers(entries: SortedSet<Entry>) {
@@ -77,7 +82,10 @@ internal class AuctionResultStore(
     private fun createObserver(entry: Entry): Job =
         coroutineScope.launch {
             entry.auctionResult.adSource.adEvent.collect {
-                if (it is AdEvent.Expired) remove(entry)
+                if (it is AdEvent.Expired) {
+                    logInfo(tag, "AuctionResultStore.expired: ${entry.demandId}:${entry.price}")
+                    remove(entry)
+                }
             }
         }
 

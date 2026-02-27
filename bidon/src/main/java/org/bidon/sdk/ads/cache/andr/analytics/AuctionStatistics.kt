@@ -64,7 +64,7 @@ internal class AuctionStatistics(
                     .firstOrNull { it.roundStatus == RoundStatus.Successful }
             )
 
-        logInfo(TAG, "Winner: $roundWinner")
+        logInfo(TAG, "Winner: ${roundWinner?.adSource?.demandId}:${roundWinner?.adSource?.getStats()?.price}")
 
         val results: List<StatsAdUnit> =
             roundResults
@@ -160,6 +160,7 @@ internal class AuctionStatistics(
                 winnerPrice = winner?.adSource?.getStats()?.price,
             )
 
+        logInfo(TAG, "Sending stats: auctionId=$auctionId, winner=${winner?.adSource?.demandId}")
         val statsRequestBody =
             roundResults?.asStatsRequestBody(
                 auctionId = auctionId,

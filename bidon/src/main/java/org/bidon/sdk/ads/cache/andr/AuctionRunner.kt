@@ -32,8 +32,6 @@ internal class AuctionRunner(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
     ): Result<Pair<AuctionInfo, List<AuctionResult>>> {
-        logInfo(tag, "Auction started $adTypeParam")
-
         // Initialize ResultsCollector lifecycle
         initCollector(adTypeParam)
 
@@ -41,9 +39,11 @@ internal class AuctionRunner(
             UUID.randomUUID().toString().also {
                 statistics.markAuctionStarted(it, adTypeParam)
             }
+        logInfo(tag, "Auction started: $adTypeParam, auctionId=$auctionId")
 
         return auctionConfigurator
             .configure(auctionId, demandAd, adTypeParam)
+            .onFailure { logInfo(tag, "Auction configuration failed: ${it.message}") }
             .onSuccess { (response, _) -> startCollector(response) }
             .mapCatching { (response, tokens) -> execute(demandAd, adTypeParam, response, tokens) }
             .onAny { clearCollector() }
@@ -70,6 +70,7 @@ internal class AuctionRunner(
         return if (info != null && finalResults.isNotEmpty()) {
             info to finalResults
         } else {
+            logInfo(tag, "No auction results: info=${info != null}, finalResults=${finalResults.size}")
             throw BidonError.NoAuctionResults
         }
     }
@@ -102,9 +103,9 @@ internal class AuctionRunner(
                 emptyList()
             }
 
-        logInfo(tag, "Action finished with ${finalResults.size} results")
+        logInfo(tag, "Auction finished with ${finalResults.size} results")
         finalResults.forEachIndexed { index, auctionResult ->
-            logInfo(tag, "Action result #$index: $auctionResult")
+            logInfo(tag, "Result #$index: ${auctionResult.adSource.demandId}:${auctionResult.adSource.getStats().price} (${auctionResult.roundStatus})")
         }
 
         return finalResults
@@ -123,11 +124,6 @@ internal class AuctionRunner(
         statResult: RoundStat?,
         auctionInfo: AuctionInfo,
     ) {
-        logInfo(
-            tag,
-            "Was received: \nAdUnits: ${auctionData.adUnits?.size} \nNoBids: ${auctionData.noBids?.size}" +
-                "\nWas sent:\nStats: ${statResult?.demands?.size} \nAuctionInfo AdUnits: ${auctionInfo.adUnits?.size} \n" +
-                "AuctionInfo NoBids: ${auctionInfo.noBids?.size}"
-        )
+        logInfo(tag, "Stats: received=${auctionData.adUnits?.size} adUnits, ${auctionData.noBids?.size} noBids | sent=${statResult?.demands?.size} stats, ${auctionInfo.adUnits?.size} adUnits, ${auctionInfo.noBids?.size} noBids")
     }
 }

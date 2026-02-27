@@ -11,6 +11,7 @@ import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.logs.logging.impl.logError
+import org.bidon.sdk.logs.logging.impl.logInfo
 
 internal class AuctionConfigurator(
     private val tag: String,
@@ -29,14 +30,17 @@ internal class AuctionConfigurator(
             rtbResultsStore
                 .peekAll()
                 .filter { it.price >= adTypeParam.pricefloor }
+        logInfo(tag, "Cached RTB above pricefloor(${adTypeParam.pricefloor}): ${cachedRtbAdUnits.size}")
         val biddingAdapters = adaptersCollector.collectBidding()
         val (adaptersInfo, tokens) =
             if (cachedRtbAdUnits.isNotEmpty()) {
+                logInfo(tag, "Using cached RTB tokens, skipping token collection")
                 mapOf<String, AdapterInfo>() to mapOf<String, TokenInfo>()
             } else {
                 val cachedDemandIds =
                     cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet()
                 val adapters = biddingAdapters.filterNot { it.demandId.demandId in cachedDemandIds }
+                logInfo(tag, "Collecting tokens from ${adapters.size} adapters (${cachedDemandIds.size} cached excluded)")
                 val adaptersInfo = adaptersInfoCollector.collect(adapters)
                 val tokens = tokensCollector.collect(adTypeParam, adapters)
                 adaptersInfo to tokens
@@ -51,10 +55,12 @@ internal class AuctionConfigurator(
         adaptersInfo: Map<String, AdapterInfo>,
         tokens: Map<String, TokenInfo>,
     ): Result<Pair<AuctionResponse, Map<String, TokenInfo>>> {
+        logInfo(tag, "Requesting auction (auctionId=$auctionId)")
         val response =
             getAuctionRequestUseCase
                 .request(adTypeParam, auctionId, demandAd, adaptersInfo, tokens)
                 .onSuccess {
+                    logInfo(tag, "Auction response: ${it.adUnits?.size ?: 0} adUnits, pricefloor=${it.pricefloor}")
                     if (auctionId != it.auctionId) {
                         logError(
                             tag,

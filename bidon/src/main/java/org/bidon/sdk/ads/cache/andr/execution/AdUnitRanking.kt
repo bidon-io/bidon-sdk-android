@@ -1,6 +1,6 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
-import org.bidon.sdk.ads.AdType
+import org.bidon.sdk.ads.cache.andr.AdCacheConfig
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
@@ -17,23 +17,9 @@ private const val SPEED_FLOOR = 0.1
 
 private const val COLD_START_SPEED_PRIOR = 0.5
 
-private data class RankingWeights(
-    val alpha: Double,
-    val beta: Double,
-    val gamma: Double,
-    val fillPrior: Double,
-)
-
-private fun RankingWeights(adType: AdType): RankingWeights =
-    when (adType) {
-        AdType.Banner -> RankingWeights(alpha = 3.0, beta = 0.5, gamma = 0.5, fillPrior = 0.7)
-        AdType.Interstitial -> RankingWeights(alpha = 2.0, beta = 2.0, gamma = 1.5, fillPrior = 0.6)
-        AdType.Rewarded -> RankingWeights(alpha = 2.5, beta = 1.5, gamma = 1.0, fillPrior = 0.5)
-    }
-
 internal fun List<AdUnit>.sortedByRankDescending(
     stats: List<DemandStatistics.Entry>,
-    adType: AdType,
+    weights: AdCacheConfig.RankingWeights,
 ): List<AdUnit> {
     val statsMap = stats.associateBy(DemandStatistics.Entry::demandId)
     val statsWithData = stats.filter { it.sampleCount > 0 }
@@ -44,17 +30,14 @@ internal fun List<AdUnit>.sortedByRankDescending(
             ?.coerceAtLeast(0.01) ?: 1.0
     val minLatency =
         statsWithData.minOfOrNull(DemandStatistics.Entry::avgLatencyMs)?.coerceAtLeast(1.0) ?: 1.0
-    val weights = RankingWeights(adType)
-    return sortedByDescending {
-        it.score(statsMap[it.demandId], maxPrice, minLatency, weights)
-    }
+    return sortedByDescending { it.score(statsMap[it.demandId], maxPrice, minLatency, weights) }
 }
 
 private fun AdUnit.score(
     demandStats: DemandStatistics.Entry?,
     maxPrice: Double,
     minLatency: Double,
-    weights: RankingWeights,
+    weights: AdCacheConfig.RankingWeights,
 ): Double {
     val price =
         when (bidType) {

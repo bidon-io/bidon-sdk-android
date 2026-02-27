@@ -1,12 +1,14 @@
 package org.bidon.sdk.ads.cache.andr.store
 
 import kotlinx.coroutines.flow.update
+import org.bidon.sdk.ads.cache.andr.DEFAULT_TTL_MS
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.ext.SystemTimeNow
-import java.util.concurrent.TimeUnit
 
 internal class RtbResultStore(
+    private val tag: String,
     val ttlMs: Long = DEFAULT_TTL_MS,
 ) : AdStore<RtbResultStore.Entry>(Int.MAX_VALUE, AdStore.Entry.PriceComparator) {
     override fun <T> insert(
@@ -24,10 +26,13 @@ internal class RtbResultStore(
             }
             updated
         }
+        logInfo(tag, "RtbResultStore.insert: +${items.size}, total=${entries.value.size}")
     }
 
     override fun clear() {
+        val count = entries.value.size
         entries.update { entrySet() }
+        logInfo(tag, "RtbResultStore.clear: removed $count entries")
     }
 
     internal class Entry(
@@ -64,10 +69,6 @@ internal class RtbResultStore(
             result = 31 * result + demandId.hashCode()
             return result
         }
-    }
-
-    companion object {
-        private val DEFAULT_TTL_MS = TimeUnit.MINUTES.toMillis(14)
     }
 }
 

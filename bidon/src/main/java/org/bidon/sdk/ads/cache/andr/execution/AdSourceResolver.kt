@@ -9,6 +9,7 @@ import org.bidon.sdk.ads.cache.andr.ext.getAdSources
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 
 internal class AdSourceResolver(
@@ -28,6 +29,11 @@ internal class AdSourceResolver(
                 ?.also { it.setStatisticAdType(adTypeParam.asStatisticAdType()) }
         if (adUnit.bidType == BidType.RTB) {
             tokenInfo?.let { adSource?.setTokenInfo(it) }
+        }
+        if (adSource != null) {
+            logInfo(tag, "Resolved ${adUnit.demandId} (bidType=${adUnit.bidType})")
+        } else {
+            logInfo(tag, "No adapter for ${adUnit.demandId} among ${adapters.size} adapters")
         }
         return adSource
     }

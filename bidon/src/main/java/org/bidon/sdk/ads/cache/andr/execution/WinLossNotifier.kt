@@ -53,13 +53,12 @@ internal class WinLossNotifier(
                 // Bidding demands should not be notified.
                 // All losers should be notified immediately regardless of external_win_notifications
                 if (loserAdSource is WinLossNotifiable) {
-                    logInfo(tag, "Notified loss: ${loserAdSource.demandId}")
                     loserAdSource.notifyLoss(
                         winnerAdSource.demandId.demandId,
                         winnerAdSource.getStats().price
                     )
+                    logInfo(tag, "Notified loss to ${loserAdSource.demandId} (winner=${winnerAdSource.demandId.demandId}, price=${winnerAdSource.getStats().price})")
                 }
-                logInfo(tag, "Loser notified: ${loserAdSource.demandId}")
             }
     }
 }

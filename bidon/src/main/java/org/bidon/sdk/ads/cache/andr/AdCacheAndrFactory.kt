@@ -6,16 +6,16 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
 import org.bidon.sdk.ads.cache.andr.execution.AdUnitPreparer
+import org.bidon.sdk.ads.cache.andr.execution.AuctionExecutorFactory
 import org.bidon.sdk.ads.cache.andr.execution.RtbResultsMerger
 import org.bidon.sdk.ads.cache.andr.execution.WinLossNotifier
-import org.bidon.sdk.ads.cache.andr.execution.AuctionExecutorFactory
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersInfoCollector
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionConfigurator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
+import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
 import org.bidon.sdk.ads.cache.andr.token.TokenCollector
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
-import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
 import org.bidon.sdk.ads.cache.impl.AdCacheAndreiImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
@@ -33,13 +33,24 @@ internal object AdCacheAndrFactory {
         val adType = demandAd.adType
         val tag = "AndrCache_${adType.code}"
 
+        val adCacheConfig = AdCacheConfigFactory().create(demandAd)
+
         val adaptersSource = get<AdaptersSource>()
         val adStoreProvider = get<AdStoreProvider>()
-        val auctionResultsStore = adStoreProvider.auctionResultStore(adType)
-        val rtbResultsStore = adStoreProvider.rtbResultStore(adType)
+        val auctionResultsStore =
+            adStoreProvider.auctionResultStore(
+                adCacheConfig = adCacheConfig,
+                adType = adType
+            )
+        val rtbResultsStore =
+            adStoreProvider.rtbResultStore(
+                adCacheConfig = adCacheConfig,
+                adType = adType
+            )
         val demandStatistics = get<DemandStatistics>()
         val adaptersCollector =
             AdaptersCollector(
+                tag = tag,
                 adaptersSource = adaptersSource,
                 rtbResultsStore = rtbResultsStore,
             )
@@ -58,6 +69,7 @@ internal object AdCacheAndrFactory {
                             adaptersCollector = adaptersCollector,
                             adaptersInfoCollector =
                                 AdaptersInfoCollector(
+                                    tag = tag,
                                     rtbResultsStore = rtbResultsStore,
                                 ),
                             getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
@@ -67,7 +79,7 @@ internal object AdCacheAndrFactory {
                                     tag = tag,
                                     ioDispatcher = SdkDispatchers.IO,
                                     biddingConfig = get<BiddingConfig>(),
-                                    tokenCollector = TokenCollector(),
+                                    tokenCollector = TokenCollector(tag = tag),
                                 ),
                         ),
                     auctionExecutorFactory =
@@ -76,6 +88,8 @@ internal object AdCacheAndrFactory {
                             adSourceResolver = AdSourceResolver(tag = tag),
                             adUnitPreparer =
                                 AdUnitPreparer(
+                                    tag = tag,
+                                    adCacheConfig = adCacheConfig,
                                     rtbResultsStore = rtbResultsStore,
                                     rtbResultsMerger = RtbResultsMerger(),
                                     demandStatistics = demandStatistics,

@@ -77,7 +77,7 @@ internal class DefaultAuctionExecutor(
 
         val adUnitQueue =
             LinkedList(adUnits)
-                .also { logInfo(tag, "AdUnits for request: ${it.size}") }
+                .also { logInfo(tag, "Prepared: ${it.size} adUnits, ${tokens.size} tokens, pricefloor=$priceFloor, timeout=${auctionTimeout}ms") }
 
         val result =
             runCatching {
@@ -143,6 +143,7 @@ internal class DefaultAuctionExecutor(
 
         // Batch record stats
         statsRepository.record(pendingMeasurements)
+        logInfo(tag, "Recorded ${pendingMeasurements.size} measurements")
 
         // Save unused RTB for caching
         val rtbAdUnits =
@@ -156,8 +157,7 @@ internal class DefaultAuctionExecutor(
                     acc
                 })
         rtbResultStore.insert(rtbAdUnits) { it }
-
-        logInfo(tag, "Auction was finished")
+        logInfo(tag, "Auction finished. Saved ${rtbAdUnits.size} unused RTB units to cache")
 
         return result.getOrElse {
             val status =
@@ -166,6 +166,7 @@ internal class DefaultAuctionExecutor(
                 } else {
                     it.asBidonErrorOrUnspecified().asRoundStatus()
                 }
+            logInfo(tag, "Auction error: ${it::class.simpleName}, draining ${adUnitQueue.size} remaining, status=$status")
             drainRemainingAdUnits(adUnitQueue, tokens, auctionResults) { adUnit, token ->
                 AuctionResult.AuctionFailed(adUnit, token, status)
             }
@@ -189,11 +190,7 @@ internal class DefaultAuctionExecutor(
 
             if (adUnit.pricefloor < priceFloor) {
                 iterator.remove()
-                logInfo(
-                    tag,
-                    "Request was skipped since the priceFloor: $priceFloor is less than " +
-                        "the next requested adUnit: ${adUnit.pricefloor}"
-                )
+                logInfo(tag, "Skipped ${adUnit.demandId}: pricefloor ${adUnit.pricefloor} < auction floor $priceFloor")
                 auctionResults.add(getBelowPriceFloorResult(adUnit, tokenInfo))
                 continue
             }
@@ -215,7 +212,6 @@ internal class DefaultAuctionExecutor(
                         RoundStatus.UnknownAdapter
                     )
                 )
-                logInfo(tag, "AdAdapter ${adUnit.demandId} not found")
                 continue
             }
 
@@ -238,6 +234,7 @@ internal class DefaultAuctionExecutor(
         val startTime = SystemTimeNow
         val auctionResult = requestAdUnit.invoke(adSource, adUnit, adTypeParam, priceFloor)
         val latencyMs = SystemTimeNow - startTime
+        logInfo(tag, "Loaded ${adUnit.demandId}: status=${auctionResult.roundStatus}, price=${auctionResult.adSource.getStats().price}, latency=${latencyMs}ms")
 
         val measurement =
             DemandMeasurement(

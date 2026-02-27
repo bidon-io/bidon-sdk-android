@@ -27,7 +27,7 @@ internal class TokensCollector(
                 .map { collect(adTypeParam, it.demandId.demandId, it) }
                 .awaitAll()
                 .toMap()
-                .onEach { (demanId, tokenInfo) -> logToken(demanId, tokenInfo) }
+                .also { logInfo(tag, "Collected ${it.size} tokens") }
         }
 
     private fun CoroutineScope.collect(
@@ -39,10 +39,4 @@ internal class TokensCollector(
             demandId to tokenCollector.collect(adapter, adTypeParam, biddingConfig.tokenTimeout)
         }
 
-    private fun logToken(
-        demanId: String,
-        tokenInfo: TokenInfo,
-    ) {
-        logInfo(tag, "#$demanId: status: ${tokenInfo.status}, token: ${tokenInfo.token}")
-    }
 }
