@@ -8,6 +8,7 @@ internal data class AdCacheConfig(
     val auctionResultStoreCapacity: Int,
     val rtbResultsStoreTtl: Long,
     val rankingWeights: RankingWeights,
+    val refillThreshold: Int,
 ) {
     data class RankingWeights(
         val alpha: Double,
@@ -32,7 +33,8 @@ internal class AdCacheConfigFactory {
                             beta = 0.5,
                             gamma = 0.5,
                             fillPrior = 0.7
-                        )
+                        ),
+                    refillThreshold = 1,
                 )
             }
 
@@ -46,7 +48,8 @@ internal class AdCacheConfigFactory {
                             beta = 2.0,
                             gamma = 1.5,
                             fillPrior = 0.6
-                        )
+                        ),
+                    refillThreshold = -1,
                 )
             }
 
@@ -60,7 +63,8 @@ internal class AdCacheConfigFactory {
                             beta = 1.5,
                             gamma = 1.0,
                             fillPrior = 0.5
-                        )
+                        ),
+                    refillThreshold = -1,
                 )
             }
         }

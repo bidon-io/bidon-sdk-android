@@ -16,7 +16,6 @@ internal class AuctionRunnerFactory(
     private val auctionExecutorFactory: AuctionExecutorFactory,
     private val auctionResolver: AuctionResolver,
     private val infoFactory: AuctionInfoFactory,
-    private val resultsCollector: ResultsCollector,
 ) {
     fun create(stopCondition: AuctionStopCondition): AuctionRunner =
         AuctionRunner(
@@ -29,6 +28,6 @@ internal class AuctionRunnerFactory(
                     resolver = auctionResolver
                 ),
             executor = auctionExecutorFactory.create(stopCondition),
-            resultsCollector = resultsCollector,
+            resultsCollector = get<ResultsCollector>(),
         )
 }

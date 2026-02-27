@@ -18,7 +18,6 @@ import org.bidon.sdk.ads.cache.andr.token.TokenCollector
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
 import org.bidon.sdk.ads.cache.impl.AdCacheAndreiImpl
 import org.bidon.sdk.auction.AuctionResolver
-import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.bidding.BiddingConfig
@@ -60,6 +59,7 @@ internal object AdCacheAndrFactory {
             ioDispatcher = SdkDispatchers.IO,
             mainDispatcher = SdkDispatchers.Main,
             auctionResultsStore = auctionResultsStore,
+            refillThreshold = adCacheConfig.refillThreshold,
             auctionRunnerFactory =
                 AuctionRunnerFactory(
                     tag = tag,
@@ -102,7 +102,6 @@ internal object AdCacheAndrFactory {
                         ),
                     auctionResolver = resolver,
                     infoFactory = AuctionInfoFactory(),
-                    resultsCollector = get<ResultsCollector>(),
                 ),
         )
     }
