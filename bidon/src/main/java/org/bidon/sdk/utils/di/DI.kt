@@ -89,6 +89,7 @@ import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
+import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -171,7 +172,7 @@ internal object DI {
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
             singleton<DemandStatistics> { DemandStatistics(context = get()) }
-            singleton<AdStoreProvider> { AdStoreProvider() }
+            singleton<AdStoreProvider> { AdStoreProvider(coroutineContext = SdkDispatchers.IO) }
 
             /**
              * Factories

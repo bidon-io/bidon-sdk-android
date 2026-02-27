@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.andr
 
+import kotlinx.coroutines.Dispatchers
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
@@ -31,19 +32,20 @@ internal object AdCacheAndrFactory {
     ): AdCache {
         val adType = demandAd.adType
         val tag = "AndrCache_${adType.code}"
+        val ioDispatcher = Dispatchers.IO
 
-        val adCacheConfig = AdCacheConfigFactory().create(demandAd)
+        val adCacheStrategy = AdCacheStrategyFactory().create(demandAd)
 
         val adaptersSource = get<AdaptersSource>()
         val adStoreProvider = get<AdStoreProvider>()
         val auctionResultsStore =
             adStoreProvider.auctionResultStore(
-                adCacheConfig = adCacheConfig,
+                adCacheStrategy = adCacheStrategy,
                 adType = adType
             )
         val rtbResultsStore =
             adStoreProvider.rtbResultStore(
-                adCacheConfig = adCacheConfig,
+                adCacheStrategy = adCacheStrategy,
                 adType = adType
             )
         val demandStatistics = get<DemandStatistics>()
@@ -56,13 +58,14 @@ internal object AdCacheAndrFactory {
         return AdCacheAndreiImpl(
             demandAd = demandAd,
             tag = tag,
-            ioDispatcher = SdkDispatchers.IO,
+            ioDispatcher = ioDispatcher,
             mainDispatcher = SdkDispatchers.Main,
+            adCacheStrategy = adCacheStrategy,
             auctionResultsStore = auctionResultsStore,
-            refillThreshold = adCacheConfig.refillThreshold,
             auctionRunnerFactory =
                 AuctionRunnerFactory(
                     tag = tag,
+                    ioDispatcher = ioDispatcher,
                     auctionConfigurator =
                         AuctionConfigurator(
                             tag = tag,
@@ -77,7 +80,7 @@ internal object AdCacheAndrFactory {
                             tokensCollector =
                                 TokensCollector(
                                     tag = tag,
-                                    ioDispatcher = SdkDispatchers.IO,
+                                    ioDispatcher = ioDispatcher,
                                     biddingConfig = get<BiddingConfig>(),
                                     tokenCollector = TokenCollector(tag = tag),
                                 ),
@@ -85,16 +88,17 @@ internal object AdCacheAndrFactory {
                     auctionExecutorFactory =
                         AuctionExecutorFactory(
                             tag = tag,
+                            adCacheStrategy = adCacheStrategy,
+                            adaptersCollector = adaptersCollector,
                             adSourceResolver = AdSourceResolver(tag = tag),
                             adUnitPreparer =
                                 AdUnitPreparer(
                                     tag = tag,
-                                    adCacheConfig = adCacheConfig,
+                                    adCacheStrategy = adCacheStrategy,
                                     rtbResultsStore = rtbResultsStore,
                                     rtbResultsMerger = RtbResultsMerger(),
                                     demandStatistics = demandStatistics,
                                 ),
-                            adaptersCollector = adaptersCollector,
                             demandStatistics = demandStatistics,
                             requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
                             rtbResultsStore = rtbResultsStore,

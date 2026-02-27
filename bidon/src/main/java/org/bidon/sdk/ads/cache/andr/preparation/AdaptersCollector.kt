@@ -4,8 +4,8 @@ import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.cache.andr.store.AdStore
-import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
+import org.bidon.sdk.logs.logging.impl.logInfo
 
 internal class AdaptersCollector(
     private val tag: String,
@@ -20,8 +20,13 @@ internal class AdaptersCollector(
         val cachedDemandIds =
             rtbResultsStore.peekAll().map(RtbResultStore.Entry::demandId).toSet()
         // Filter and apply regulations to adapters
-        val result = collectBidding().filterNot { it.demandId.demandId in cachedDemandIds }
-        logInfo(tag, "Cached demand IDs: $cachedDemandIds, bidding after filter: ${result.size}")
-        return result
+        return collectBidding()
+            .filterNot { it.demandId.demandId in cachedDemandIds }
+            .also {
+                logInfo(
+                    tag,
+                    "Cached demand IDs: $cachedDemandIds, bidding after filter: ${it.size}"
+                )
+            }
     }
 }

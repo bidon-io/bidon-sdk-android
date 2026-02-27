@@ -1,7 +1,7 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.cache.andr.AdCacheConfig
+import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
@@ -13,7 +13,7 @@ import org.bidon.sdk.stats.models.BidType
 
 internal class AdUnitPreparer(
     private val tag: String,
-    private val adCacheConfig: AdCacheConfig,
+    private val adCacheStrategy: AdCacheStrategy,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
     private val demandStatistics: DemandStatistics,
@@ -53,7 +53,7 @@ internal class AdUnitPreparer(
         val allStats = demandStatistics.getAllStats(demandAd.adType)
         val sortedAdUnits =
             (mergedRtbAdUnits + cpmAdUnits)
-                .sortedByRankDescending(allStats, adCacheConfig.rankingWeights)
+                .sortedByRankDescending(allStats, adCacheStrategy.rankingWeights)
 
         logInfo(
             tag,

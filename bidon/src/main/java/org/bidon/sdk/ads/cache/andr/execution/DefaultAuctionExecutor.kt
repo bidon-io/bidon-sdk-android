@@ -33,12 +33,13 @@ internal class DefaultAuctionExecutor(
     private val tag: String,
     private val adSourceResolver: AdSourceResolver,
     private val adUnitPreparer: AdUnitPreparer,
-    private val requestAdUnit: RequestAdUnitUseCase,
+    private val adaptersCollector: AdaptersCollector,
+    private val batchSize: Int,
+    private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
-    private val statsRepository: DemandStatistics,
+    private val demandStatistics: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
     private val winLossNotifier: WinLossNotifier,
-    private val adaptersCollector: AdaptersCollector,
 ) : AuctionExecutor {
     override suspend fun execute(
         demandAd: DemandAd,
@@ -76,8 +77,12 @@ internal class DefaultAuctionExecutor(
         val pendingMeasurements = mutableListOf<DemandMeasurement>()
 
         val adUnitQueue =
-            LinkedList(adUnits)
-                .also { logInfo(tag, "Prepared: ${it.size} adUnits, ${tokens.size} tokens, pricefloor=$priceFloor, timeout=${auctionTimeout}ms") }
+            LinkedList(adUnits).also {
+                logInfo(
+                    tag,
+                    "Prepared: ${it.size} adUnits, ${tokens.size} tokens, pricefloor=$priceFloor, timeout=${auctionTimeout}ms"
+                )
+            }
 
         val result =
             runCatching {
@@ -98,6 +103,7 @@ internal class DefaultAuctionExecutor(
                         }
 
                         logInfo(tag, "Loading batch of ${batch.size} ad units")
+
                         val results =
                             batch
                                 .map { (adUnit, adSource) ->
@@ -142,7 +148,8 @@ internal class DefaultAuctionExecutor(
             }
 
         // Batch record stats
-        statsRepository.record(pendingMeasurements)
+        demandStatistics.record(pendingMeasurements)
+
         logInfo(tag, "Recorded ${pendingMeasurements.size} measurements")
 
         // Save unused RTB for caching
@@ -157,6 +164,7 @@ internal class DefaultAuctionExecutor(
                     acc
                 })
         rtbResultStore.insert(rtbAdUnits) { it }
+
         logInfo(tag, "Auction finished. Saved ${rtbAdUnits.size} unused RTB units to cache")
 
         return result.getOrElse {
@@ -166,7 +174,10 @@ internal class DefaultAuctionExecutor(
                 } else {
                     it.asBidonErrorOrUnspecified().asRoundStatus()
                 }
-            logInfo(tag, "Auction error: ${it::class.simpleName}, draining ${adUnitQueue.size} remaining, status=$status")
+            logInfo(
+                tag,
+                "Auction error: $it, draining ${adUnitQueue.size} remaining, status=$status"
+            )
             drainRemainingAdUnits(adUnitQueue, tokens, auctionResults) { adUnit, token ->
                 AuctionResult.AuctionFailed(adUnit, token, status)
             }
@@ -184,13 +195,16 @@ internal class DefaultAuctionExecutor(
     ): List<Pair<AdUnit, AdSource<AdAuctionParams>>> {
         val batch = mutableListOf<Pair<AdUnit, AdSource<AdAuctionParams>>>()
         val iterator = queue.iterator()
-        while (iterator.hasNext() && batch.size < BATCH_SIZE) {
+        while (iterator.hasNext() && batch.size < batchSize) {
             val adUnit = iterator.next()
             val tokenInfo = tokens[adUnit]
 
             if (adUnit.pricefloor < priceFloor) {
                 iterator.remove()
-                logInfo(tag, "Skipped ${adUnit.demandId}: pricefloor ${adUnit.pricefloor} < auction floor $priceFloor")
+                logInfo(
+                    tag,
+                    "Skipped ${adUnit.demandId}: pricefloor ${adUnit.pricefloor} < auction floor $priceFloor"
+                )
                 auctionResults.add(getBelowPriceFloorResult(adUnit, tokenInfo))
                 continue
             }
@@ -232,9 +246,12 @@ internal class DefaultAuctionExecutor(
         applyParams(context, adSource, adTypeParam, demandAd, priceFloor)
 
         val startTime = SystemTimeNow
-        val auctionResult = requestAdUnit.invoke(adSource, adUnit, adTypeParam, priceFloor)
+        val auctionResult = requestAdUnitUseCase.invoke(adSource, adUnit, adTypeParam, priceFloor)
         val latencyMs = SystemTimeNow - startTime
-        logInfo(tag, "Loaded ${adUnit.demandId}: status=${auctionResult.roundStatus}, price=${auctionResult.adSource.getStats().price}, latency=${latencyMs}ms")
+        logInfo(
+            tag,
+            "Loaded ${adUnit.demandId}: status=${auctionResult.roundStatus}, price=${auctionResult.adSource.getStats().price}, latency=${latencyMs}ms"
+        )
 
         val measurement =
             DemandMeasurement(
@@ -245,6 +262,7 @@ internal class DefaultAuctionExecutor(
                 auctionResult.roundStatus == RoundStatus.Successful,
                 latencyMs
             )
+
         return auctionResult to measurement
     }
 
@@ -282,7 +300,4 @@ internal class DefaultAuctionExecutor(
         addExternalWinNotificationsEnabled(context.externalWinNotificationsEnabled)
     }
 
-    private companion object {
-        const val BATCH_SIZE = 2
-    }
 }

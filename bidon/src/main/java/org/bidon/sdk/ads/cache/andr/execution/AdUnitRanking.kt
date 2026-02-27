@@ -1,6 +1,6 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
-import org.bidon.sdk.ads.cache.andr.AdCacheConfig
+import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.stats.models.BidType
@@ -19,7 +19,7 @@ private const val COLD_START_SPEED_PRIOR = 0.5
 
 internal fun List<AdUnit>.sortedByRankDescending(
     stats: List<DemandStatistics.Entry>,
-    weights: AdCacheConfig.RankingWeights,
+    weights: AdCacheStrategy.RankingWeights,
 ): List<AdUnit> {
     val statsMap = stats.associateBy(DemandStatistics.Entry::demandId)
     val statsWithData = stats.filter { it.sampleCount > 0 }
@@ -37,7 +37,7 @@ private fun AdUnit.score(
     demandStats: DemandStatistics.Entry?,
     maxPrice: Double,
     minLatency: Double,
-    weights: AdCacheConfig.RankingWeights,
+    weights: AdCacheStrategy.RankingWeights,
 ): Double {
     val price =
         when (bidType) {

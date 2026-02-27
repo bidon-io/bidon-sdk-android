@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
+import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
@@ -9,6 +10,7 @@ import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 
 internal class AuctionExecutorFactory(
     private val tag: String,
+    private val adCacheStrategy: AdCacheStrategy,
     private val adSourceResolver: AdSourceResolver,
     private val adUnitPreparer: AdUnitPreparer,
     private val adaptersCollector: AdaptersCollector,
@@ -23,10 +25,11 @@ internal class AuctionExecutorFactory(
             adaptersCollector = adaptersCollector,
             adSourceResolver = adSourceResolver,
             adUnitPreparer = adUnitPreparer,
+            batchSize = adCacheStrategy.batchSize,
             winLossNotifier = winLossNotifier,
-            requestAdUnit = requestAdUnitUseCase,
+            requestAdUnitUseCase = requestAdUnitUseCase,
             rtbResultStore = rtbResultsStore,
-            statsRepository = demandStatistics,
+            demandStatistics = demandStatistics,
             stopCondition = stopCondition,
         )
 }

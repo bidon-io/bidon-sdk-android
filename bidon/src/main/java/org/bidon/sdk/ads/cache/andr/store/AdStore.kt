@@ -83,3 +83,5 @@ internal abstract class AdStore<E : AdStore.Entry>(
         }
     }
 }
+
+internal fun <E : AdStore.Entry> Collection<E>.filterPrice(price: Double): Collection<E> = filter { it.price >= price }

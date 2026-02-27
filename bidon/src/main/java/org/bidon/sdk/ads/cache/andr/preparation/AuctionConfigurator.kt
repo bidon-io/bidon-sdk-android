@@ -5,6 +5,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
+import org.bidon.sdk.ads.cache.andr.store.filterPrice
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -29,8 +30,9 @@ internal class AuctionConfigurator(
         val cachedRtbAdUnits =
             rtbResultsStore
                 .peekAll()
-                .filter { it.price >= adTypeParam.pricefloor }
+                .filterPrice(adTypeParam.pricefloor)
         logInfo(tag, "Cached RTB above pricefloor(${adTypeParam.pricefloor}): ${cachedRtbAdUnits.size}")
+
         val biddingAdapters = adaptersCollector.collectBidding()
         val (adaptersInfo, tokens) =
             if (cachedRtbAdUnits.isNotEmpty()) {

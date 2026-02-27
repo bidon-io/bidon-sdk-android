@@ -57,7 +57,10 @@ internal class WinLossNotifier(
                         winnerAdSource.demandId.demandId,
                         winnerAdSource.getStats().price
                     )
-                    logInfo(tag, "Notified loss to ${loserAdSource.demandId} (winner=${winnerAdSource.demandId.demandId}, price=${winnerAdSource.getStats().price})")
+                    logInfo(
+                        tag,
+                        "Notified loss to ${loserAdSource.demandId} (winner=${winnerAdSource.demandId.demandId}, price=${winnerAdSource.getStats().price})"
+                    )
                 }
             }
     }

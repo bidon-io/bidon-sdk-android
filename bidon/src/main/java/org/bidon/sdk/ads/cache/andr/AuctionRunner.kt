@@ -70,7 +70,10 @@ internal class AuctionRunner(
         return if (info != null && finalResults.isNotEmpty()) {
             info to finalResults
         } else {
-            logInfo(tag, "No auction results: info=${info != null}, finalResults=${finalResults.size}")
+            logInfo(
+                tag,
+                "No auction results: info=${info != null}, finalResults=${finalResults.size}"
+            )
             throw BidonError.NoAuctionResults
         }
     }
@@ -105,7 +108,10 @@ internal class AuctionRunner(
 
         logInfo(tag, "Auction finished with ${finalResults.size} results")
         finalResults.forEachIndexed { index, auctionResult ->
-            logInfo(tag, "Result #$index: ${auctionResult.adSource.demandId}:${auctionResult.adSource.getStats().price} (${auctionResult.roundStatus})")
+            logInfo(
+                tag,
+                "Result #$index: ${auctionResult.adSource.demandId}:${auctionResult.adSource.getStats().price} (${auctionResult.roundStatus})"
+            )
         }
 
         return finalResults
@@ -124,6 +130,9 @@ internal class AuctionRunner(
         statResult: RoundStat?,
         auctionInfo: AuctionInfo,
     ) {
-        logInfo(tag, "Stats: received=${auctionData.adUnits?.size} adUnits, ${auctionData.noBids?.size} noBids | sent=${statResult?.demands?.size} stats, ${auctionInfo.adUnits?.size} adUnits, ${auctionInfo.noBids?.size} noBids")
+        logInfo(
+            tag,
+            "Stats: received=${auctionData.adUnits?.size} adUnits, ${auctionData.noBids?.size} noBids | sent=${statResult?.demands?.size} stats, ${auctionInfo.adUnits?.size} adUnits, ${auctionInfo.noBids?.size} noBids"
+        )
     }
 }

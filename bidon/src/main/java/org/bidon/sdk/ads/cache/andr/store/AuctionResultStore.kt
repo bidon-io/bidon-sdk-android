@@ -9,18 +9,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
+import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidStat
-import org.bidon.sdk.utils.SdkDispatchers
 import java.util.SortedSet
 import kotlin.coroutines.CoroutineContext
 
 internal class AuctionResultStore(
     private val tag: String,
-    coroutineContext: CoroutineContext = SdkDispatchers.IO,
-    capacity: Int = 5,
+    coroutineContext: CoroutineContext,
+    capacity: Int,
 ) : AdStore<AuctionResultStore.Entry>(capacity, AdStore.Entry.PriceComparator) {
     private val coroutineScope: CoroutineScope = CoroutineScope(coroutineContext + SupervisorJob())
 
@@ -58,7 +57,10 @@ internal class AuctionResultStore(
             updated
         }
         evicted.forEach { it.auctionResult.adSource.destroy() }
-        logInfo(tag, "AuctionResultStore.insert: +${items.size}, evicted=${evicted.size}, total=${entries.value.size}")
+        logInfo(
+            tag,
+            "AuctionResultStore.insert: +${items.size}, evicted=${evicted.size}, total=${entries.value.size}"
+        )
     }
 
     override fun remove(entry: Entry) {
