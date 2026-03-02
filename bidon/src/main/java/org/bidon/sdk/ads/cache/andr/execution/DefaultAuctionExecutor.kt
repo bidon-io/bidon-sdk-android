@@ -299,5 +299,4 @@ internal class DefaultAuctionExecutor(
         addAuctionConfigurationUid(context.configurationUid)
         addExternalWinNotificationsEnabled(context.externalWinNotificationsEnabled)
     }
-
 }

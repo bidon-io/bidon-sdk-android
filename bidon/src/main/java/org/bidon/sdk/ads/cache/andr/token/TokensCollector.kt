@@ -38,5 +38,4 @@ internal class TokensCollector(
         async {
             demandId to tokenCollector.collect(adapter, adTypeParam, biddingConfig.tokenTimeout)
         }
-
 }

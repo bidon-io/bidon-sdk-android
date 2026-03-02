@@ -6,7 +6,6 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.sqlite.transaction
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
 import java.util.concurrent.TimeUnit
 
 /**
@@ -185,11 +184,11 @@ internal class DemandStatistics(
     private class DatabaseHelper(
         context: Context
     ) : SQLiteOpenHelper(
-            context,
-            DATABASE_NAME,
-            null,
-            DATABASE_VERSION
-        ) {
+        context,
+        DATABASE_NAME,
+        null,
+        DATABASE_VERSION
+    ) {
         override fun onCreate(db: SQLiteDatabase) {
             with(db) {
                 execSQL(

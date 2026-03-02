@@ -29,12 +29,12 @@ internal class AdCacheStrategyFactory {
                     auctionResultStoreCapacity = 6,
                     rtbResultsStoreTtl = DEFAULT_TTL_MS,
                     rankingWeights =
-                        AdCacheStrategy.RankingWeights(
-                            alpha = 3.0,
-                            beta = 0.5,
-                            gamma = 0.5,
-                            fillPrior = 0.7
-                        ),
+                    AdCacheStrategy.RankingWeights(
+                        alpha = 3.0,
+                        beta = 0.5,
+                        gamma = 0.5,
+                        fillPrior = 0.7
+                    ),
                     refillThreshold = 1,
                     batchSize = 3,
                 )
@@ -45,12 +45,12 @@ internal class AdCacheStrategyFactory {
                     auctionResultStoreCapacity = 2,
                     rtbResultsStoreTtl = DEFAULT_TTL_MS,
                     rankingWeights =
-                        AdCacheStrategy.RankingWeights(
-                            alpha = 2.0,
-                            beta = 2.0,
-                            gamma = 1.5,
-                            fillPrior = 0.6
-                        ),
+                    AdCacheStrategy.RankingWeights(
+                        alpha = 2.0,
+                        beta = 2.0,
+                        gamma = 1.5,
+                        fillPrior = 0.6
+                    ),
                     refillThreshold = -1,
                     batchSize = 2,
                 )
@@ -61,12 +61,12 @@ internal class AdCacheStrategyFactory {
                     auctionResultStoreCapacity = 2,
                     rtbResultsStoreTtl = DEFAULT_TTL_MS,
                     rankingWeights =
-                        AdCacheStrategy.RankingWeights(
-                            alpha = 2.5,
-                            beta = 1.5,
-                            gamma = 1.0,
-                            fillPrior = 0.5
-                        ),
+                    AdCacheStrategy.RankingWeights(
+                        alpha = 2.5,
+                        beta = 1.5,
+                        gamma = 1.0,
+                        fillPrior = 0.5
+                    ),
                     refillThreshold = -1,
                     batchSize = 2,
                 )

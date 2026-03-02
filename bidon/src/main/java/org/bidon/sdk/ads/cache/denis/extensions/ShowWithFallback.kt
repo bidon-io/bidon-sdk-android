@@ -1,8 +1,8 @@
 package org.bidon.sdk.ads.cache.denis.extensions
 
 import android.app.Activity
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach

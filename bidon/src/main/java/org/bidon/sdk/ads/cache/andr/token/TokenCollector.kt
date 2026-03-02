@@ -30,7 +30,7 @@ internal class TokenCollector(
                 }
             } ?: (null to TokenInfo.Status.TIMEOUT_REACHED)
 
-        logInfo(tag, "Token ${adapter.demandId.demandId}: status=${status}, hasToken=${token != null}")
+        logInfo(tag, "Token ${adapter.demandId.demandId}: status=$status, hasToken=${token != null}")
         return TokenInfo(token, tokenStartTs, SystemTimeNow, status.code)
     }
 }

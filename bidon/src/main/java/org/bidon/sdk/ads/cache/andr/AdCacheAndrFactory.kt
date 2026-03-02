@@ -63,50 +63,50 @@ internal object AdCacheAndrFactory {
             adCacheStrategy = adCacheStrategy,
             auctionResultsStore = auctionResultsStore,
             auctionRunnerFactory =
-                AuctionRunnerFactory(
+            AuctionRunnerFactory(
+                tag = tag,
+                ioDispatcher = ioDispatcher,
+                auctionConfigurator =
+                AuctionConfigurator(
                     tag = tag,
-                    ioDispatcher = ioDispatcher,
-                    auctionConfigurator =
-                        AuctionConfigurator(
-                            tag = tag,
-                            adaptersCollector = adaptersCollector,
-                            adaptersInfoCollector =
-                                AdaptersInfoCollector(
-                                    tag = tag,
-                                    rtbResultsStore = rtbResultsStore,
-                                ),
-                            getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
-                            rtbResultsStore = rtbResultsStore,
-                            tokensCollector =
-                                TokensCollector(
-                                    tag = tag,
-                                    ioDispatcher = ioDispatcher,
-                                    biddingConfig = get<BiddingConfig>(),
-                                    tokenCollector = TokenCollector(tag = tag),
-                                ),
-                        ),
-                    auctionExecutorFactory =
-                        AuctionExecutorFactory(
-                            tag = tag,
-                            adCacheStrategy = adCacheStrategy,
-                            adaptersCollector = adaptersCollector,
-                            adSourceResolver = AdSourceResolver(tag = tag),
-                            adUnitPreparer =
-                                AdUnitPreparer(
-                                    tag = tag,
-                                    adCacheStrategy = adCacheStrategy,
-                                    rtbResultsStore = rtbResultsStore,
-                                    rtbResultsMerger = RtbResultsMerger(),
-                                    demandStatistics = demandStatistics,
-                                ),
-                            demandStatistics = demandStatistics,
-                            requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
-                            rtbResultsStore = rtbResultsStore,
-                            winLossNotifier = WinLossNotifier(tag = tag),
-                        ),
-                    auctionResolver = resolver,
-                    infoFactory = AuctionInfoFactory(),
+                    adaptersCollector = adaptersCollector,
+                    adaptersInfoCollector =
+                    AdaptersInfoCollector(
+                        tag = tag,
+                        rtbResultsStore = rtbResultsStore,
+                    ),
+                    getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
+                    rtbResultsStore = rtbResultsStore,
+                    tokensCollector =
+                    TokensCollector(
+                        tag = tag,
+                        ioDispatcher = ioDispatcher,
+                        biddingConfig = get<BiddingConfig>(),
+                        tokenCollector = TokenCollector(tag = tag),
+                    ),
                 ),
+                auctionExecutorFactory =
+                AuctionExecutorFactory(
+                    tag = tag,
+                    adCacheStrategy = adCacheStrategy,
+                    adaptersCollector = adaptersCollector,
+                    adSourceResolver = AdSourceResolver(tag = tag),
+                    adUnitPreparer =
+                    AdUnitPreparer(
+                        tag = tag,
+                        adCacheStrategy = adCacheStrategy,
+                        rtbResultsStore = rtbResultsStore,
+                        rtbResultsMerger = RtbResultsMerger(),
+                        demandStatistics = demandStatistics,
+                    ),
+                    demandStatistics = demandStatistics,
+                    requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
+                    rtbResultsStore = rtbResultsStore,
+                    winLossNotifier = WinLossNotifier(tag = tag),
+                ),
+                auctionResolver = resolver,
+                infoFactory = AuctionInfoFactory(),
+            ),
         )
     }
 }
