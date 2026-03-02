@@ -28,7 +28,7 @@ internal abstract class AdStore<E : AdStore.Entry>(
                 if (first != null) entrySet(*(it - first).toTypedArray()) else it
             }.firstNotExpiredOrNull()
 
-    suspend fun poll(): E = entries.mapNotNull { it.firstNotExpired() }.first()
+    suspend fun poll(): E = entries.mapNotNull { it.firstNotExpiredOrNull() }.first()
 
     fun peekAll(): Set<E> = entries.evictExpiredGet()
 

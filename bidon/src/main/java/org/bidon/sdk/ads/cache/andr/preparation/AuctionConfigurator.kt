@@ -27,20 +27,17 @@ internal class AuctionConfigurator(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
     ): Result<Pair<AuctionResponse, Map<String, TokenInfo>>> {
-        val cachedRtbAdUnits =
-            rtbResultsStore
-                .peekAll()
-                .filterPrice(adTypeParam.pricefloor)
+        val cachedRtbAdUnits = rtbResultsStore.peekAll()
+        val filteredRtbAdUnits = cachedRtbAdUnits.filterPrice(adTypeParam.pricefloor)
         logInfo(tag, "Cached RTB above pricefloor(${adTypeParam.pricefloor}): ${cachedRtbAdUnits.size}")
 
         val biddingAdapters = adaptersCollector.collectBidding()
         val (adaptersInfo, tokens) =
-            if (cachedRtbAdUnits.isNotEmpty()) {
+            if (filteredRtbAdUnits.isNotEmpty()) {
                 logInfo(tag, "Using cached RTB tokens, skipping token collection")
                 mapOf<String, AdapterInfo>() to mapOf<String, TokenInfo>()
             } else {
-                val cachedDemandIds =
-                    cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet()
+                val cachedDemandIds = cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet()
                 val adapters = biddingAdapters.filterNot { it.demandId.demandId in cachedDemandIds }
                 logInfo(tag, "Collecting tokens from ${adapters.size} adapters (${cachedDemandIds.size} cached excluded)")
                 val adaptersInfo = adaptersInfoCollector.collect(adapters)

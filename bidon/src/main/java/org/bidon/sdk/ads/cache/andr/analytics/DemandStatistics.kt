@@ -110,7 +110,7 @@ internal class DemandStatistics(
         windowMinutes: Long
     ): Double? {
         val cutoffTime =
-            System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(windowMinutes)
+            System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(windowMinutes)
 
         val query =
             """
