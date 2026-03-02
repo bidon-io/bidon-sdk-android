@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.notifyExternalLoss
+import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
@@ -147,6 +148,13 @@ internal class AdCacher(
             val results = source
                 .sortedByDescending { it.adSource.getStats().price }
                 .distinctBy { it.adSource.demandId }
+                .take(
+                    when (demandAd.adType) {
+                        AdType.Banner -> 5
+                        AdType.Interstitial -> 2
+                        AdType.Rewarded -> 2
+                    }
+                )
             (source - results.toSet()).onEach {
                 logInfo(TAG, "Destroying duplicate ad from ${it.adSource.demandId.demandId}")
                 it.adSource.notifyExternalLoss(
