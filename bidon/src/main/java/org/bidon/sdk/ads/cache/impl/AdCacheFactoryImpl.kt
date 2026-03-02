@@ -8,6 +8,7 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
 import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
+import org.bidon.sdk.ads.cache.andr.AdCacheAndrFactory
 import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
@@ -30,8 +31,7 @@ internal class AdCacheFactoryImpl(
                 resolver = resolver
             )
         }
-
-        val version = extractStrategyVersion(demandAd)
+        val version: AdCacheVersion = extractStrategyVersion(demandAd)
         return when (version) {
             AdCacheVersion.V1 -> AdCacheImpl(
                 demandAd = demandAd,
@@ -45,10 +45,9 @@ internal class AdCacheFactoryImpl(
             )
 
             AdCacheVersion.V3 -> {
-                AdCacheAndreiImpl(
+                AdCacheAndrFactory.create(
                     demandAd = demandAd,
-                    scope = CoroutineScope(SdkDispatchers.Main),
-                    resolver = resolver
+                    resolver = resolver,
                 )
             }
 
