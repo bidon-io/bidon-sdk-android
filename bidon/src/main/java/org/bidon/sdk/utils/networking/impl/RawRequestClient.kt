@@ -22,6 +22,15 @@ internal class RawRequestClient {
                 urlConnection = it
             }
             connection.requestRawData(rawRequest)
+        } catch (e: Exception) {
+            Result.success(
+                RawResponse.Failure(
+                    headers = mapOf(),
+                    code = NoResponseCode,
+                    responseBody = null,
+                    httpError = HttpError.UncaughtException(e)
+                )
+            )
         } finally {
             (urlConnection as? HttpURLConnection)?.disconnect()
         }
