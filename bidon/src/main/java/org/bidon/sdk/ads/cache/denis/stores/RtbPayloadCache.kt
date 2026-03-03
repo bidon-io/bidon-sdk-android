@@ -15,11 +15,11 @@ import java.util.concurrent.ConcurrentHashMap
  * - Limited to MAX_RTB_PAYLOADS=10 with lowest-eCPM eviction policy
  * - Thread-safe using ConcurrentHashMap with atomic compute()
  */
-internal object RtbPayloadCache {
+internal class RtbPayloadCache {
     private val cache = ConcurrentHashMap<String, CacheEntry<RtbPayload>>()
 
-    private const val TAG = "[DenisCache] RtbPayloadCache"
-    private const val MAX_RTB_PAYLOADS = 10
+    private val TAG = "[DenisCache] RtbPayloadCache"
+    private val MAX_RTB_PAYLOADS = 10
 
     /**
      * Inserts payload only if new eCPM is higher than existing (atomic operation).

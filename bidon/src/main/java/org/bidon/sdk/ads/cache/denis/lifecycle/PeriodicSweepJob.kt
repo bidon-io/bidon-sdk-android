@@ -26,6 +26,8 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  */
 internal class PeriodicSweepJob(
     private val scope: CoroutineScope,
+    private val readyToShowCache: ReadyToShowCache,
+    private val rtbPayloadCache: RtbPayloadCache,
 ) {
     private var sweepJob: Job? = null
 
@@ -63,17 +65,17 @@ internal class PeriodicSweepJob(
     /**
      * Perform cache sweep operation.
      *
-     * Sweeps both ReadyToShowCache and RtbPayloadCache.
+     * Sweeps both ReadyToShowCache and rtbPayloadCache.
      * Failures are logged but don't propagate (SupervisorJob isolation).
      */
     private suspend fun performSweep() {
         try {
-            val readyRemoved = ReadyToShowCache.sweep()
-            val rtbRemoved = RtbPayloadCache.sweep()
+            val readyRemoved = readyToShowCache.sweep()
+            val rtbRemoved = rtbPayloadCache.sweep()
             logInfo(
                 TAG,
                 "Sweep completed: expired=$readyRemoved+$rtbRemoved, " +
-                    "ReadyToShow size=${ReadyToShowCache.size()}, RtbPayload size=${RtbPayloadCache.size()}"
+                    "ReadyToShow size=${readyToShowCache.size()}, RtbPayload size=${rtbPayloadCache.size()}"
             )
         } catch (e: Exception) {
             // Log but don't propagate - SupervisorJob prevents crash

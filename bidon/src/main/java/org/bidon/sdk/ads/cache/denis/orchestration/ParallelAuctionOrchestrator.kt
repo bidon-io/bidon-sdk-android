@@ -26,6 +26,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 internal class ParallelAuctionOrchestrator(
     private val rtbProcessor: RtbProcessor,
     private val cpmProcessor: CpmProcessor,
+    private val readyToShowCache: ReadyToShowCache,
 ) {
     /**
      * Execute parallel auction (RTB + CPM).
@@ -59,7 +60,7 @@ internal class ParallelAuctionOrchestrator(
                         rtbAdUnits = rtbAdUnits,
                         params = params,
                     )
-                    val cacheSize = ReadyToShowCache.size()
+                    val cacheSize = readyToShowCache.size()
                     logInfo(
                         TAG,
                         "RTB branch completed: success=${result.isSuccess}, " +
@@ -80,7 +81,7 @@ internal class ParallelAuctionOrchestrator(
                         adUnits = cpmAdUnits,
                         params = params,
                     )
-                    val cacheSize = ReadyToShowCache.size()
+                    val cacheSize = readyToShowCache.size()
                     logInfo(
                         TAG,
                         "CPM branch completed: success=${result.successCount}, " +
@@ -108,7 +109,7 @@ internal class ParallelAuctionOrchestrator(
             if (auctionEntries.isNotEmpty()) {
                 val sorted = auctionEntries.sortedByDescending { it.ecpm }
                 sorted.forEach { entry ->
-                    ReadyToShowCache.put(entry)
+                    readyToShowCache.put(entry)
                 }
                 logInfo(
                     TAG,

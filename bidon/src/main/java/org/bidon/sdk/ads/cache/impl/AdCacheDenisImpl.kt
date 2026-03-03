@@ -40,6 +40,7 @@ internal class AdCacheDenisImpl(
     private val periodicSweepJob: PeriodicSweepJob,
     private val cancellationManager: CancellationManager,
     private val biddingConfig: BiddingConfig,
+    private val readyToShowCache: ReadyToShowCache,
     private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main + SupervisorJob()),
 ) : AdCache {
 
@@ -88,12 +89,12 @@ internal class AdCacheDenisImpl(
     /**
      * Peek at best ad without removing it.
      *
-     * Non-destructive read from ReadyToShowCache.
+     * Non-destructive read from readyToShowCache.
      *
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun peek(): AuctionResult? {
-        return ReadyToShowCache.peekFirst()?.value
+        return readyToShowCache.peekFirst()?.value
     }
 
     /**
@@ -104,7 +105,7 @@ internal class AdCacheDenisImpl(
      * @return AuctionResult with highest eCPM or null if cache empty
      */
     override fun pop(): AuctionResult? {
-        val entry = ReadyToShowCache.popFirst()
+        val entry = readyToShowCache.popFirst()
         return entry?.value
     }
 
@@ -151,6 +152,7 @@ internal class AdCacheDenisImpl(
         return scope.launch {
             showBestAdWithFallback(
                 cancellationManager = cancellationManager,
+                readyToShowCache = readyToShowCache,
                 activity = activity,
                 eventScope = this,
                 onEvent = onEvent

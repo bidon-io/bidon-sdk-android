@@ -62,6 +62,8 @@ internal class CoordinationLayer(
     private val scope: CoroutineScope,
     private val cancellationManager: CancellationManager,
     private val auctionStat: AuctionStat,
+    private val readyToShowCache: ReadyToShowCache,
+    private val rtbPayloadCache: RtbPayloadCache,
 ) {
     /**
      * Determine auction start state based on cache contents.
@@ -83,12 +85,12 @@ internal class CoordinationLayer(
      */
     private fun determineStartState(userPricefloor: Double): Pair<AuctionStartState, CacheStateSnapshot> {
         // Capture cache state BEFORE any async operations
-        val snapshot = CacheStateSnapshot.capture()
+        val snapshot = CacheStateSnapshot.capture(readyToShowCache, rtbPayloadCache)
 
         val state = when {
             !snapshot.readyToShowIsEmpty -> {
                 // Warm start: serve cached ad immediately
-                val bestAd = ReadyToShowCache.peekFirst()
+                val bestAd = readyToShowCache.peekFirst()
                 if (bestAd != null) {
                     logInfo(
                         TAG,
@@ -323,6 +325,7 @@ internal class CoordinationLayer(
                     val orchestrator = ParallelAuctionOrchestrator(
                         rtbProcessor = rtbProcessor,
                         cpmProcessor = cpmProcessor,
+                        readyToShowCache = readyToShowCache,
                     )
 
                     // Build common auction parameters for processors
@@ -351,7 +354,7 @@ internal class CoordinationLayer(
                     }
 
                     // Cache path: do NOT call saveWinners() — it marks non-winners as LOSE
-                    // and destroys their ad sources, but cached ads stay alive in ReadyToShowCache.
+                    // and destroys their ad sources, but cached ads stay alive in readyToShowCache.
 
                     // Collect round results AFTER fill completes (mirrors AuctionImpl pattern)
                     val roundStat = proceedRoundResults(resultsCollector)
@@ -369,7 +372,7 @@ internal class CoordinationLayer(
                     )
 
                     // Fire callback based on cache state
-                    val bestEntry = ReadyToShowCache.peekFirst()
+                    val bestEntry = readyToShowCache.peekFirst()
                     if (bestEntry != null) {
                         onSuccess(bestEntry.value, auctionInfo)
                     } else {
@@ -463,11 +466,14 @@ private data class CacheStateSnapshot(
     val cachedDemandIds: Set<String>,
 ) {
     companion object {
-        fun capture(): CacheStateSnapshot = CacheStateSnapshot(
-            readyToShowIsEmpty = ReadyToShowCache.isEmpty(),
-            rtbPayloadIsEmpty = RtbPayloadCache.isEmpty(),
-            rtbPayloadMaxEcpm = RtbPayloadCache.getMaxEcpm(),
-            cachedDemandIds = RtbPayloadCache.getCachedDemandIds()
+        fun capture(
+            readyToShowCache: ReadyToShowCache,
+            rtbPayloadCache: RtbPayloadCache,
+        ): CacheStateSnapshot = CacheStateSnapshot(
+            readyToShowIsEmpty = readyToShowCache.isEmpty(),
+            rtbPayloadIsEmpty = rtbPayloadCache.isEmpty(),
+            rtbPayloadMaxEcpm = rtbPayloadCache.getMaxEcpm(),
+            cachedDemandIds = rtbPayloadCache.getCachedDemandIds()
         )
     }
 }

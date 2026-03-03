@@ -34,12 +34,13 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  */
 internal suspend fun showBestAdWithFallback(
     cancellationManager: CancellationManager,
+    readyToShowCache: ReadyToShowCache,
     activity: Activity,
     eventScope: CoroutineScope,
     onEvent: (AdSource<*>, AdEvent) -> Unit
 ): Result<Ad> {
     // Get best ad from cache
-    val entry = ReadyToShowCache.popFirst()
+    val entry = readyToShowCache.popFirst()
 
     if (entry == null) {
         logInfo(TAG, "EXHAUSTED: No more ads in cache")
@@ -89,6 +90,7 @@ internal suspend fun showBestAdWithFallback(
                 // Recursive retry with next best ad from cache
                 showBestAdWithFallback(
                     cancellationManager = cancellationManager,
+                    readyToShowCache = readyToShowCache,
                     activity = activity,
                     eventScope = eventScope,
                     onEvent = onEvent

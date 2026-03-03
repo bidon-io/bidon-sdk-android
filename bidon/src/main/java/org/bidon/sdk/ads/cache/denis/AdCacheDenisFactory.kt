@@ -12,6 +12,8 @@ import org.bidon.sdk.ads.cache.denis.orchestration.CoordinationLayer
 import org.bidon.sdk.ads.cache.denis.processors.CpmProcessor
 import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stats.CacheAuctionStat
+import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
+import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
 import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
@@ -66,17 +68,23 @@ internal object AdCacheDenisFactory {
             statsRequest = get<StatsRequestUseCase>(),
             resolver = resolver,
         )
+        // Instance-scoped caches: each ad type gets its own cache
+        val readyToShowCache = ReadyToShowCache()
+        val rtbPayloadCache = RtbPayloadCache()
+
         // Instance-scoped CoroutineScope: SupervisorJob isolates child failures
         val instanceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val periodicSweepJob = PeriodicSweepJob(instanceScope)
+        val periodicSweepJob = PeriodicSweepJob(instanceScope, readyToShowCache, rtbPayloadCache)
         val cancellationManager = CancellationManager()
 
         // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
+            rtbPayloadCache = rtbPayloadCache,
         )
         val cpmProcessor = CpmProcessor(
             adaptersSource = adaptersSource,
+            readyToShowCache = readyToShowCache,
         )
 
         // Create coordination layer with processors (orchestrator created per-auction)
@@ -89,6 +97,8 @@ internal object AdCacheDenisFactory {
             scope = instanceScope,
             cancellationManager = cancellationManager,
             auctionStat = auctionStat,
+            readyToShowCache = readyToShowCache,
+            rtbPayloadCache = rtbPayloadCache,
         )
 
         return AdCacheDenisImpl(
@@ -97,6 +107,7 @@ internal object AdCacheDenisFactory {
             periodicSweepJob = periodicSweepJob,
             cancellationManager = cancellationManager,
             biddingConfig = biddingConfig,
+            readyToShowCache = readyToShowCache,
         )
     }
 }

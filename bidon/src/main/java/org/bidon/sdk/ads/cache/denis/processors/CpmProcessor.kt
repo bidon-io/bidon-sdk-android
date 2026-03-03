@@ -36,6 +36,7 @@ import kotlin.coroutines.coroutineContext
  */
 internal class CpmProcessor(
     private val adaptersSource: AdaptersSource,
+    private val readyToShowCache: ReadyToShowCache,
 ) {
     /**
      * Load CPM waterfall in batches of [BATCH_SIZE] with early-stop logic.
@@ -75,7 +76,7 @@ internal class CpmProcessor(
             coroutineContext.ensureActive()
 
             // Early stop: if batch's highest pricefloor <= best cached eCPM, stop
-            val bestCachedEcpm = ReadyToShowCache.getMaxEcpm()
+            val bestCachedEcpm = readyToShowCache.getMaxEcpm()
             val batchHighestPricefloor = batch.first().pricefloor
             if (bestCachedEcpm > 0.0 && batchHighestPricefloor <= bestCachedEcpm) {
                 logInfo(

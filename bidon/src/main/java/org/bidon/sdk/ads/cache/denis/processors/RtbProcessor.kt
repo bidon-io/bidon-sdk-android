@@ -41,7 +41,7 @@ private sealed class RtbSource {
     }
 
     /**
-     * RTB payload from RtbPayloadCache.
+     * RTB payload from rtbPayloadCache.
      */
     data class FromCache(val entry: CacheEntry<RtbPayload>) : RtbSource() {
         override val ecpm: Double get() = entry.ecpm
@@ -63,6 +63,7 @@ private sealed class RtbSource {
  */
 internal class RtbProcessor(
     private val adaptersSource: AdaptersSource,
+    private val rtbPayloadCache: RtbPayloadCache,
 ) {
     /**
      * Load RTB payload with waterfall fallback (try next on failure).
@@ -84,7 +85,7 @@ internal class RtbProcessor(
         params: AuctionParams,
     ): Result<Pair<AuctionResult, CacheEntry<AuctionResult>>> = coroutineScope {
         // Get cached payloads (sorted by eCPM descending)
-        val cachedPayloads = RtbPayloadCache.getAllSortedByEcpm()
+        val cachedPayloads = rtbPayloadCache.getAllSortedByEcpm()
 
         // Merge new RTB AdUnits with cached payloads and sort by eCPM
         val newRtbSources = rtbAdUnits.map { adUnit ->
@@ -158,7 +159,7 @@ internal class RtbProcessor(
         if (adapter == null) {
             logInfo(TAG, "Adapter not found for demandId=$demandId")
             if (source is RtbSource.FromCache) {
-                RtbPayloadCache.remove(demandId)
+                rtbPayloadCache.remove(demandId)
             }
             return Result.failure(BidonError.NoFill(DemandId(demandId)))
         }
@@ -171,7 +172,7 @@ internal class RtbProcessor(
         if (adSource == null) {
             logInfo(TAG, "AdSource creation failed for demandId=$demandId")
             if (source is RtbSource.FromCache) {
-                RtbPayloadCache.remove(demandId)
+                rtbPayloadCache.remove(demandId)
             }
             return Result.failure(BidonError.NoFill(DemandId(demandId)))
         }
@@ -211,7 +212,7 @@ internal class RtbProcessor(
             if (adParams == null) {
                 logInfo(TAG, "RTB load failed: demandId=$demandId, failed to create auction params")
                 if (source is RtbSource.FromCache) {
-                    RtbPayloadCache.remove(demandId)
+                    rtbPayloadCache.remove(demandId)
                 }
                 return Result.failure(BidonError.NoFill(DemandId(demandId)))
             }
@@ -255,7 +256,7 @@ internal class RtbProcessor(
 
                     // Remove loaded source from cache if it was cached
                     if (source is RtbSource.FromCache) {
-                        RtbPayloadCache.remove(demandId)
+                        rtbPayloadCache.remove(demandId)
                     }
 
                     return Result.success(auctionResult to cacheEntry)
@@ -272,7 +273,7 @@ internal class RtbProcessor(
                     )
                     params.resultsCollector.add(failedResult)
                     if (source is RtbSource.FromCache) {
-                        RtbPayloadCache.remove(demandId)
+                        rtbPayloadCache.remove(demandId)
                     }
                 }
                 else -> {
@@ -282,7 +283,7 @@ internal class RtbProcessor(
                     )
                     params.resultsCollector.add(failedResult)
                     if (source is RtbSource.FromCache) {
-                        RtbPayloadCache.remove(demandId)
+                        rtbPayloadCache.remove(demandId)
                     }
                 }
             }
@@ -300,7 +301,7 @@ internal class RtbProcessor(
             )
             params.resultsCollector.add(failedResult)
             if (source is RtbSource.FromCache) {
-                RtbPayloadCache.remove(demandId)
+                rtbPayloadCache.remove(demandId)
             }
         } finally {
             if (!loadSuccess) {
@@ -329,7 +330,7 @@ internal class RtbProcessor(
                     tokenInfo = source.tokenInfo,
                     auctionId = auctionId
                 )
-                val inserted = RtbPayloadCache.putIfHigherEcpm(payload)
+                val inserted = rtbPayloadCache.putIfHigherEcpm(payload)
                 if (inserted) {
                     cachedCount++
                 }
