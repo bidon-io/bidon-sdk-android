@@ -8,5 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [13.6.0.0] - 2026-03-03
+### Changed
+- Updated SDK dependency from 13.5.1 to 13.6.0
+
 ## [13.5.1.0]
 - Updated AppLovin SDK to 13.5.1
