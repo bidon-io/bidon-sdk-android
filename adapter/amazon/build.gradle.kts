@@ -1,12 +1,11 @@
 import ext.ADAPTER_VERSION
-import ext.Dependencies
 import ext.Versions
 
 plugins {
     id("adapter")
 }
 
-val adapterSdkVersion = "11.1.1"
+val adapterSdkVersion = "11.1.2"
 val adapterMinor = 0
 val adapterSemantic = Versions.semanticVersion
 
@@ -27,6 +26,5 @@ android {
 
 dependencies {
     implementation("com.amazon.android:aps-sdk:$adapterSdkVersion")
-    implementation(Dependencies.Others.IabTcfDecoder)
     implementation("androidx.appcompat:appcompat:1.6.1")
 }
