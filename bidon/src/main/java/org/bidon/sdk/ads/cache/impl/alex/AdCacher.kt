@@ -167,9 +167,9 @@ internal class AdCacher(
                 .distinctBy { it.adSource.demandId }
                 .take(
                     when (demandAd.adType) {
-                        AdType.Banner -> 5
-                        AdType.Interstitial -> 2
-                        AdType.Rewarded -> 2
+                        AdType.Banner -> 6
+                        AdType.Interstitial -> 3
+                        AdType.Rewarded -> 3
                     }
                 )
             (source - results.toSet()).onEach {
