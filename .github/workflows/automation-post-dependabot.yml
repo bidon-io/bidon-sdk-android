@@ -169,6 +169,13 @@ jobs:
       needs.check-state.outputs.tests_failed != 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -266,7 +273,7 @@ jobs:
         if: steps.versions.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
@@ -281,7 +288,7 @@ jobs:
         if: steps.versions.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const label = {
               name: 'bot:changelog-updated',
@@ -326,6 +333,13 @@ jobs:
       needs.check-state.outputs.adapters != '[]'
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -444,7 +458,7 @@ jobs:
         if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
@@ -458,7 +472,7 @@ jobs:
       - name: Add attempted label
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const label = {
               name: 'bot:build-attempted',
@@ -504,6 +518,13 @@ jobs:
       needs.check-state.outputs.adapters != '[]'
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -622,7 +643,7 @@ jobs:
         if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
@@ -636,7 +657,7 @@ jobs:
       - name: Add attempted label
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const label = {
               name: 'bot:deprecated-attempted',
@@ -683,6 +704,13 @@ jobs:
       needs.check-state.outputs.adapters != '[]'
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -809,7 +837,7 @@ jobs:
         if: steps.collect.outputs.has_issues == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
@@ -823,7 +851,7 @@ jobs:
       - name: Add attempted label
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DEPENDABOT_PAT }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const label = {
               name: 'bot:tests-attempted',

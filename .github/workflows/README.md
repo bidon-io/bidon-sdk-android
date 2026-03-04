@@ -51,7 +51,8 @@
 
 **Requirements:**
 - `CLAUDE_API_KEY_SDK` secret in Repository secrets (not Dependabot secrets)
-- `DEPENDABOT_PAT` secret in Repository secrets (not Dependabot secrets)
+- `BIDON_BOT_APP_ID` secret in Repository secrets (GitHub App ID)
+- `BIDON_BOT_PRIVATE_KEY` secret in Repository secrets (GitHub App private key)
 
 ### `automation-publish-adapters.yml` - **Automation Publish Adapters**
 **Triggers**: Push to develop (adapter build.gradle.kts changes)
@@ -284,7 +285,7 @@ automation-publish-adapters.yml
 
 ### Claude fix not working
 - Verify `CLAUDE_API_KEY_SDK` secret is in **Repository secrets** (not Dependabot secrets)
-- Verify `DEPENDABOT_PAT` secret is in **Repository secrets** (not Dependabot secrets)
+- Verify `BIDON_BOT_APP_ID` and `BIDON_BOT_PRIVATE_KEY` secrets are in **Repository secrets**
 - Check if artifacts were uploaded by CI
 - Review Claude action logs for API errors
 - Ensure CHANGELOG has valid Release Notes URL
