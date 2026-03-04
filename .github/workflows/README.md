@@ -35,7 +35,7 @@
 **Purpose**: Orchestrates all Dependabot PR automation
 
 **Flow (sequential with state machine):**
-1. **check-state**: Determines PR info, labels, job statuses, and available artifacts
+1. **check-state**: Determines PR info, labels, job statuses, available artifacts, and requests team review
 2. **update-changelog**: Updates CHANGELOG for Dependabot PRs (adds `bot:changelog-updated` label)
 3. **fix-build**: If build failed, calls Claude to fix (adds `bot:build-attempted` label)
 4. **fix-deprecated**: If deprecated check failed, calls Claude to fix (adds `bot:deprecated-attempted` label)
@@ -208,7 +208,7 @@ automation-publish-adapters.yml
 ## Dependabot Workflow
 
 **Configuration**: `.github/dependabot.yml`
-- 22 adapters monitored weekly (Monday 03:00 UTC)
+- 22 adapters monitored weekly (Wednesday 03:00 UTC)
 - PRs created to `develop` branch
 - Custom Maven registries: Google Maven, Bidon Artifactory
 
@@ -223,6 +223,7 @@ automation-publish-adapters.yml
    - Runs quality checks (build, deprecated warnings, unit tests)
    - Uploads artifacts for any failures
 5. `automation-post-dependabot.yml` triggers (workflow_run):
+   - Requests team review from `bidon-android` via GitHub App
    - Updates CHANGELOG automatically
    - If build failed → Claude fixes build errors
    - If deprecated check failed → Claude fixes deprecated code
