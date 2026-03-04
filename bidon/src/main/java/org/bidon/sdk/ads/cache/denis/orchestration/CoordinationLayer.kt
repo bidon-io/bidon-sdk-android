@@ -6,6 +6,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.denis.lifecycle.CancellationManager
 import org.bidon.sdk.ads.cache.denis.processors.AuctionParams
@@ -14,7 +16,7 @@ import org.bidon.sdk.ads.cache.denis.processors.RtbProcessor
 import org.bidon.sdk.ads.cache.denis.stores.CacheEntry
 import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.ads.cache.denis.stores.RtbPayloadCache
-import org.bidon.sdk.ads.ext.toAdUnitInfo
+import org.bidon.sdk.ads.ext.toAuctionInfo
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
@@ -27,6 +29,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
+import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.di.get
 import kotlin.math.max
 
@@ -222,14 +225,26 @@ internal class CoordinationLayer(
         // Build AuctionInfo from cached entry
         // Note: Warm start uses cached auctionId from when ad was originally loaded
         val auctionResult = bestAd.value
+        val stats = auctionResult.adSource.getStats()
+        val winnerAdUnitInfo = AdUnitInfo(
+            demandId = stats.demandId.demandId,
+            label = stats.adUnit?.label,
+            price = stats.price,
+            uid = stats.adUnit?.uid,
+            bidType = stats.bidType?.code,
+            fillStartTs = stats.fillStartTs,
+            fillFinishTs = stats.fillFinishTs,
+            status = RoundStatus.Win.code,
+            ext = stats.adUnit?.extra?.toString(),
+        )
         val auctionInfo = AuctionInfo(
             auctionId = bestAd.auctionId,
             auctionConfigurationId = null, // Not stored in cache entry
             auctionConfigurationUid = null, // Not stored in cache entry
             auctionTimeout = 0L, // Not relevant for cached ad
             auctionPricefloor = bestAd.ecpm, // Use cached eCPM
-            noBids = null,
-            adUnits = null,
+            noBids = null, // Not relevant for warm start
+            adUnits = listOf(winnerAdUnitInfo),
         )
 
         // Fire callback immediately
@@ -305,26 +320,9 @@ internal class CoordinationLayer(
                         MIN_AUCTION_TIMEOUT_MS
                     )
 
-                    // Build AuctionInfo for callbacks
-                    val auctionInfo = AuctionInfo(
-                        auctionId = auctionId,
-                        auctionConfigurationId = response.auctionConfigurationId,
-                        auctionConfigurationUid = response.auctionConfigurationUid,
-                        auctionTimeout = effectiveTimeout,
-                        auctionPricefloor = response.pricefloor,
-                        noBids = response.noBids?.map { it.toAuctionNoBidInfo() },
-                        adUnits = response.adUnits?.map { it.toAdUnitInfo() },
-                    )
-
-                    // Create per-auction orchestrator with callbacks
-                    val callbackCoordinator = CallbackCoordinator(
-                        onAdLoaded = onSuccess,
-                        onAdLoadFailed = { info, error -> onFailure(info, error) },
-                    )
                     val orchestrator = ParallelAuctionOrchestrator(
                         rtbProcessor = rtbProcessor,
                         cpmProcessor = cpmProcessor,
-                        callbackCoordinator = callbackCoordinator,
                     )
 
                     // Build common auction parameters for processors
@@ -346,7 +344,6 @@ internal class CoordinationLayer(
                                 rtbAdUnits = rtbAdUnits,
                                 cpmAdUnits = cpmAdUnits,
                                 params = auctionParams,
-                                auctionInfo = auctionInfo,
                             )
                         }
                     } catch (_: TimeoutCancellationException) {
@@ -356,8 +353,29 @@ internal class CoordinationLayer(
                     // Cache path: do NOT call saveWinners() — it marks non-winners as LOSE
                     // and destroys their ad sources, but cached ads stay alive in ReadyToShowCache.
 
-                    // Collect round results and send auction stats (mirrors AuctionImpl pattern)
+                    // Collect round results AFTER fill completes (mirrors AuctionImpl pattern)
                     val roundStat = proceedRoundResults(resultsCollector)
+
+                    // Build AuctionInfo AFTER fill — so adUnits have status, fillStartTs, fillFinishTs
+                    // (mirrors AuctionImpl.getAuctionInfo)
+                    val auctionInfo = AuctionInfo(
+                        auctionId = auctionId,
+                        auctionConfigurationId = response.auctionConfigurationId,
+                        auctionConfigurationUid = response.auctionConfigurationUid,
+                        auctionTimeout = effectiveTimeout,
+                        auctionPricefloor = response.pricefloor,
+                        noBids = roundStat?.noBids?.map { it.toAuctionNoBidInfo() },
+                        adUnits = roundStat?.demands?.map { it.toAuctionInfo() },
+                    )
+
+                    // Fire callback based on cache state
+                    val bestEntry = ReadyToShowCache.peekFirst()
+                    if (bestEntry != null) {
+                        onSuccess(bestEntry.value, auctionInfo)
+                    } else {
+                        onFailure(auctionInfo, BidonError.NoFill(DemandId("auction")))
+                    }
+
                     auctionStat.sendAuctionStats(
                         auctionData = response,
                         roundStat = roundStat,

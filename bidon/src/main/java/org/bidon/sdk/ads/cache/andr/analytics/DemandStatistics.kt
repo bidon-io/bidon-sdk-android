@@ -1,4 +1,4 @@
-package org.bidon.sdk.stats.impl
+package org.bidon.sdk.ads.cache.andr.analytics
 
 import android.content.ContentValues
 import android.content.Context
@@ -6,17 +6,15 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.sqlite.transaction
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.stats.models.DemandMeasurement
-import org.bidon.sdk.stats.models.DemandStatistics
 import java.util.concurrent.TimeUnit
 
 /**
  * SQLite repository for persisting and querying demand network statistics.
  */
-internal class DemandStatisticsRepository(
+internal class DemandStatistics(
     context: Context,
 ) {
-    private val dbHelper = DemandStatisticsDatabaseHelper(context.applicationContext)
+    private val dbHelper = DatabaseHelper(context.applicationContext)
 
     /**
      * Records a batch of measurements to the database.
@@ -48,14 +46,15 @@ internal class DemandStatisticsRepository(
     /**
      * Returns aggregated statistics for all demand networks for the given ad type.
      */
-    fun getAllStats(adType: AdType): List<DemandStatistics> {
-        val stats = mutableListOf<DemandStatistics>()
+    fun getAllStats(adType: AdType): List<Entry> {
+        val stats = mutableListOf<Entry>()
 
         val query =
             """
             SELECT
                 $COL_DEMAND_ID,
                 COUNT(*) as sample_count,
+                SUM($COL_FILLED) as fill_count,
                 AVG($COL_FILLED) as fill_rate,
                 AVG($COL_BID_PRICE) as avg_bid,
                 AVG($COL_LATENCY_MS) as avg_latency,
@@ -71,14 +70,15 @@ internal class DemandStatisticsRepository(
             .use {
                 while (it.moveToNext()) {
                     stats.add(
-                        DemandStatistics(
+                        Entry(
                             demandId = it.getString(0),
                             sampleCount = it.getInt(1),
-                            fillRate = it.getDouble(2),
-                            avgBidPrice = if (it.isNull(3)) null else it.getDouble(3),
-                            avgLatencyMs = it.getDouble(4),
-                            minBidPrice = if (it.isNull(5)) null else it.getDouble(5),
-                            maxBidPrice = if (it.isNull(6)) null else it.getDouble(6)
+                            fillCount = it.getInt(2),
+                            fillRate = it.getDouble(3),
+                            avgBidPrice = if (it.isNull(4)) null else it.getDouble(4),
+                            avgLatencyMs = it.getDouble(5),
+                            minBidPrice = if (it.isNull(6)) null else it.getDouble(6),
+                            maxBidPrice = if (it.isNull(7)) null else it.getDouble(7)
                         )
                     )
                 }
@@ -109,7 +109,7 @@ internal class DemandStatisticsRepository(
         windowMinutes: Long
     ): Double? {
         val cutoffTime =
-            System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(windowMinutes)
+            System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(windowMinutes)
 
         val query =
             """
@@ -159,12 +159,16 @@ internal class DemandStatisticsRepository(
         return distribution
     }
 
-    fun savePriceFloor(adType: AdType, priceFloor: Double) {
-        val values = ContentValues().apply {
-            put(COL_PF_AD_TYPE, adType.code)
-            put(COL_PF_PRICE_FLOOR, priceFloor)
-            put(COL_PF_UPDATED_AT, System.currentTimeMillis())
-        }
+    fun savePriceFloor(
+        adType: AdType,
+        priceFloor: Double
+    ) {
+        val values =
+            ContentValues().apply {
+                put(COL_PF_AD_TYPE, adType.code)
+                put(COL_PF_PRICE_FLOOR, priceFloor)
+                put(COL_PF_UPDATED_AT, System.currentTimeMillis())
+            }
         dbHelper.writableDatabase.insertWithOnConflict(
             TABLE_PRICE_FLOORS, null, values, SQLiteDatabase.CONFLICT_REPLACE
         )
@@ -177,7 +181,7 @@ internal class DemandStatisticsRepository(
             .use { if (it.moveToFirst()) it.getDouble(0) else 0.0 }
     }
 
-    private class DemandStatisticsDatabaseHelper(
+    private class DatabaseHelper(
         context: Context
     ) : SQLiteOpenHelper(
         context,
@@ -252,4 +256,26 @@ internal class DemandStatisticsRepository(
         private const val COL_PF_PRICE_FLOOR = "price_floor"
         private const val COL_PF_UPDATED_AT = "updated_at"
     }
+
+    /**
+     * Aggregated statistics for a demand network.
+     *
+     * @property demandId Unique identifier for the demand network
+     * @property sampleCount Total number of recorded measurements
+     * @property fillRate Percentage of requests that were filled (0.0 to 1.0)
+     * @property avgBidPrice Average eCPM bid price in USD (null if no bids)
+     * @property avgLatencyMs Average response latency in milliseconds
+     * @property minBidPrice Minimum recorded bid price in USD (null if no bids)
+     * @property maxBidPrice Maximum recorded bid price in USD (null if no bids)
+     */
+    data class Entry(
+        val demandId: String,
+        val sampleCount: Int,
+        val fillCount: Int,
+        val fillRate: Double,
+        val avgBidPrice: Double?,
+        val avgLatencyMs: Double,
+        val minBidPrice: Double?,
+        val maxBidPrice: Double?
+    )
 }
