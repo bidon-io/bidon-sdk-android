@@ -27,6 +27,5 @@ android {
 
 dependencies {
     implementation("com.amazon.android:aps-sdk:$adapterSdkVersion")
-    implementation(Dependencies.Others.IabTcfDecoder)
     implementation("androidx.appcompat:appcompat:1.6.1")
 }
