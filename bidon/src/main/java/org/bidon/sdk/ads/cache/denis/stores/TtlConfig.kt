@@ -11,7 +11,7 @@ internal object TtlConfig {
     /**
      * Time-to-live for cache entries in milliseconds (30 minutes).
      */
-    const val TTL_MILLIS = 30 * 60 * 1000L // 30 minutes
+    const val TTL_MILLIS = 15 * 60 * 1000L // 15 minutes
 
     /**
      * Interval between periodic sweep operations in milliseconds (5 minutes).

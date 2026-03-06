@@ -240,7 +240,11 @@ internal class CacheAuctionStat(
             price = stat?.price.takeIf { isSucceed },
             auctionStartTs = auctionStartTs,
             auctionFinishTs = auctionFinishTs,
-            bidType = stat?.bidType?.code,
+            bidType = when (winner) {
+                is AuctionResult.Bidding -> BidType.RTB.code
+                is AuctionResult.Network -> BidType.CPM.code
+                else -> stat?.bidType?.code
+            },
             winnerAdUnitUid = stat?.adUnit?.uid,
             winnerAdUnitLabel = stat?.adUnit?.label,
             banner = bannerRequestBody,

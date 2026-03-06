@@ -27,7 +27,6 @@ import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
-import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.di.get
@@ -304,17 +303,19 @@ internal class CoordinationLayer(
             auctionResponse.fold(
                 onSuccess = { response ->
                     // Report server bidding finished to ResultsCollector
-                    resultsCollector.serverBiddingFinished(
-                        response.adUnits?.filter { it.bidType == BidType.RTB }
-                    )
-                    resultsCollector.setNoBidInfo(response.noBids)
-
-                    // Step 3a: Split waterfall into RTB and CPM groups
-                    val adUnits = response.adUnits ?: emptyList()
+                    // Use same criteria as partition (adapter type) to avoid mismatch
+                    // where ResultsCollector silently drops RTB results if biddingResult != FilledAd
                     val biddingDemandIds = adaptersSource.adapters
                         .filterIsInstance<org.bidon.sdk.adapter.Adapter.Bidding>()
                         .map { it.demandId.demandId }
                         .toSet()
+                    resultsCollector.serverBiddingFinished(
+                        response.adUnits?.filter { it.demandId in biddingDemandIds }
+                    )
+                    resultsCollector.setNoBidInfo(response.noBids)
+
+                    // Step 3a: Split waterfall into RTB and CPM groups (reuses biddingDemandIds from above)
+                    val adUnits = response.adUnits ?: emptyList()
                     val (rtbAdUnits, cpmAdUnits) = adUnits.partition { it.demandId in biddingDemandIds }
 
                     logInfo(TAG, "Waterfall: ${rtbAdUnits.size} RTB, ${cpmAdUnits.size} CPM")
@@ -359,6 +360,9 @@ internal class CoordinationLayer(
 
                     // Cache path: do NOT call saveWinners() — it marks non-winners as LOSE
                     // and destroys their ad sources, but cached ads stay alive in readyToShowCache.
+
+                    // Log full cache contents after auction
+                    logCacheContents()
 
                     // Collect round results AFTER fill completes (mirrors AuctionImpl pattern)
                     val roundStat = proceedRoundResults(resultsCollector)
@@ -448,6 +452,20 @@ internal class CoordinationLayer(
         }
 
         return getTokens(adTypeParam, filteredAdaptersSource, tokenTimeout)
+    }
+
+    private fun logCacheContents() {
+        val readyAds = readyToShowCache.getAll()
+        val rtbPayloads = rtbPayloadCache.getAllSortedByEcpm()
+        val now = org.bidon.sdk.ads.cache.denis.stores.TtlConfig.now()
+        logInfo(
+            TAG,
+            "Cache state: ReadyToShow=${readyAds.size} [${
+                readyAds.joinToString { "${it.demandId}@${"$%.2f".format(it.ecpm)} ttl=${(it.expiresAt - now) / 1000}s" }
+            }], RtbPayload=${rtbPayloads.size} [${
+                rtbPayloads.joinToString { "${it.demandId}@${"$%.2f".format(it.ecpm)}" }
+            }]"
+        )
     }
 
     companion object {
