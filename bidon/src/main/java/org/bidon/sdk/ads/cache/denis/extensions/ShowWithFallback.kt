@@ -3,9 +3,11 @@ package org.bidon.sdk.ads.cache.denis.extensions
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.ads.Ad
@@ -75,33 +77,50 @@ internal suspend fun showBestAdWithFallback(
         onEvent(adSource, event)
     }.launchIn(eventScope)
 
-    // Wait for show result
-    return adSource.adEvent.first { event ->
-        event is AdEvent.Shown || event is AdEvent.ShowFailed
-    }.let { event ->
-        when (event) {
-            is AdEvent.Shown -> {
-                logInfo(TAG, "SUCCESS: $demandId displayed @ $${"%.2f".format(ecpm)}")
-                Result.success(event.ad)
+    // Wait for show result with timeout
+    val event = try {
+        withTimeout(SHOW_TIMEOUT_MS) {
+            adSource.adEvent.first { event ->
+                event is AdEvent.Shown || event is AdEvent.ShowFailed
             }
-            is AdEvent.ShowFailed -> {
-                logInfo(TAG, "FAIL: $demandId - ${event.cause}, trying fallback")
-                eventJob.cancel()
+        }
+    } catch (_: TimeoutCancellationException) {
+        logInfo(TAG, "TIMEOUT: $demandId didn't respond in ${SHOW_TIMEOUT_MS}ms, trying fallback")
+        eventJob.cancel()
+        return showBestAdWithFallback(
+            cancellationManager = cancellationManager,
+            readyToShowCache = readyToShowCache,
+            activity = activity,
+            eventScope = eventScope,
+            onEvent = onEvent,
+            adTypeLabel = adTypeLabel,
+        )
+    }
 
-                // Recursive retry with next best ad from cache
-                showBestAdWithFallback(
-                    cancellationManager = cancellationManager,
-                    readyToShowCache = readyToShowCache,
-                    activity = activity,
-                    eventScope = eventScope,
-                    onEvent = onEvent,
-                    adTypeLabel = adTypeLabel,
-                )
-            }
-            else -> {
-                eventJob.cancel()
-                Result.failure(BidonError.Unspecified(demandId = adSource.demandId))
-            }
+    return when (event) {
+        is AdEvent.Shown -> {
+            logInfo(TAG, "SUCCESS: $demandId displayed @ $${"%.2f".format(ecpm)}")
+            Result.success(event.ad)
+        }
+        is AdEvent.ShowFailed -> {
+            logInfo(TAG, "FAIL: $demandId - ${event.cause}, trying fallback")
+            eventJob.cancel()
+
+            // Recursive retry with next best ad from cache
+            showBestAdWithFallback(
+                cancellationManager = cancellationManager,
+                readyToShowCache = readyToShowCache,
+                activity = activity,
+                eventScope = eventScope,
+                onEvent = onEvent,
+                adTypeLabel = adTypeLabel,
+            )
+        }
+        else -> {
+            eventJob.cancel()
+            Result.failure(BidonError.Unspecified(demandId = adSource.demandId))
         }
     }
 }
+
+private const val SHOW_TIMEOUT_MS = 5_000L

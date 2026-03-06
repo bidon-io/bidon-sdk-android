@@ -62,6 +62,7 @@ internal class JsonHttpRequest(
             }
         }.onSuccess { jsonString ->
             withContext(SdkDispatchers.IO) {
+                if (jsonString.isBlank()) return@withContext
                 JSONObject(jsonString).optString("token", "").takeIf { !it.isNullOrBlank() }?.let {
                     logInfo(TAG, "New token saved: $it")
                     tokenDataSource.token = Token(token = it)
