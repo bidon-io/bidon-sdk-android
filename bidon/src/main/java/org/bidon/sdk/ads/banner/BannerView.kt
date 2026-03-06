@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.AttrRes
 import kotlinx.coroutines.CoroutineScope
@@ -289,6 +290,7 @@ public class BannerView @JvmOverloads constructor(
             return
         }
         val layoutParams = LayoutParams(adSize.widthDp.dpToPx, adSize.heightDp.dpToPx, Gravity.CENTER)
+        (adViewHolder.networkAdview.parent as? ViewGroup)?.removeView(adViewHolder.networkAdview)
         addView(adViewHolder.networkAdview, layoutParams)
         this.visibility = VISIBLE
         adViewHolder.networkAdview.visibility = VISIBLE
