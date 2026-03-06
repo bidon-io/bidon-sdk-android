@@ -21,6 +21,7 @@ import org.bidon.sdk.auction.usecases.GetTokensUseCase
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.get
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Factory for creating V2 AdCache instances with all denis package dependencies.
@@ -29,59 +30,61 @@ import org.bidon.sdk.utils.di.get
  * Gets V2-specific dependencies directly from DI container, keeping them
  * encapsulated within V2 implementation.
  *
- * This factory creates instance-scoped components (CoroutineScope, PeriodicSweepJob,
- * CancellationManager, CoordinationLayer) and wires them with processors and orchestrator.
+ * Shared components (caches, sweep job, scope) are keyed by ad type so that
+ * multiple AdCache instances for the same ad type share a single cache.
+ * Per-instance components (CancellationManager, CoordinationLayer, etc.)
+ * are created fresh for each instance.
  */
 internal object AdCacheDenisFactory {
 
     /**
-     * Create fully-wired V2 AdCache instance.
+     * Cached AdCache instances keyed by ad type label (e.g., "BANNER", "INTERSTITIAL").
+     * All callers requesting the same ad type get the same AdCache instance.
+     */
+    private val instancesByAdType = ConcurrentHashMap<String, AdCache>()
+
+    /**
+     * Get or create AdCache instance for the given ad type.
      *
-     * Creates and assembles:
-     * - CoroutineScope, PeriodicSweepJob, CancellationManager (instance-scoped lifecycle)
-     * - RtbProcessor and CpmProcessor (shared processors for load operations)
-     * - CoordinationLayer (warm/cold start orchestration, creates orchestrator per-auction)
-     * - AdCacheDenisImpl (facade entry point)
-     *
-     * Note: CallbackCoordinator and ParallelAuctionOrchestrator are created per-auction
-     * inside CoordinationLayer.handleColdStart() with actual callbacks from cache() call.
-     * This ensures multiple cache() calls fire their own callbacks correctly.
-     *
-     * V2-specific dependencies are obtained directly from DI container to avoid
-     * polluting AdCacheFactoryImpl with V2-only dependencies.
+     * Returns the same instance for the same ad type — all InterstitialImpl
+     * instances share one AdCache with one cache, one sweep job, etc.
      *
      * @param demandAd Ad instance configuration
      * @param resolver Auction resolver for CacheAuctionStat winner sorting
-     * @return Fully-wired AdCache instance
+     * @return AdCache instance (shared per ad type)
      */
     fun create(
         demandAd: DemandAd,
         resolver: AuctionResolver,
     ): AdCache {
-        // Ad type label for log disambiguation (e.g., "BANNER", "INTERSTITIAL", "REWARDED")
         val adTypeLabel = demandAd.adType.code.uppercase()
+        return instancesByAdType.getOrPut(adTypeLabel) {
+            createNew(demandAd, resolver, adTypeLabel)
+        }
+    }
 
+    private fun createNew(
+        demandAd: DemandAd,
+        resolver: AuctionResolver,
+        adTypeLabel: String,
+    ): AdCache {
         // Get V2-specific dependencies from DI container
         val adaptersSource = get<AdaptersSource>()
         val getTokens = get<GetTokensUseCase>()
         val getAuctionRequest = get<GetAuctionRequestUseCase>()
         val biddingConfig = get<BiddingConfig>()
-        // Use cache-specific AuctionStat that preserves Successful status for non-winner cached ads
         val auctionStat = CacheAuctionStat(
             statsRequest = get<StatsRequestUseCase>(),
             resolver = resolver,
             adTypeLabel = adTypeLabel,
         )
-        // Instance-scoped caches: each ad type gets its own cache
         val readyToShowCache = ReadyToShowCache(adTypeLabel)
         val rtbPayloadCache = RtbPayloadCache(adTypeLabel)
 
-        // Instance-scoped CoroutineScope: SupervisorJob isolates child failures
         val instanceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val periodicSweepJob = PeriodicSweepJob(instanceScope, readyToShowCache, rtbPayloadCache, adTypeLabel)
         val cancellationManager = CancellationManager(adTypeLabel)
 
-        // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
             rtbPayloadCache = rtbPayloadCache,
@@ -93,7 +96,6 @@ internal object AdCacheDenisFactory {
             adTypeLabel = adTypeLabel,
         )
 
-        // Create coordination layer with processors (orchestrator created per-auction)
         val coordinationLayer = CoordinationLayer(
             adaptersSource = adaptersSource,
             getTokens = getTokens,
