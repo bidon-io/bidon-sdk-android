@@ -52,7 +52,7 @@ internal class AdCacheAlexImpl(
         }
         adCache.cache(
             adTypeParam = when (adTypeParam) {
-                is AdTypeParam.Banner -> error("Not implemented yet")
+                is AdTypeParam.Banner -> adTypeParam
                 is AdTypeParam.Interstitial -> {
                     AdTypeParam.Interstitial(
                         activity = adTypeParam.activity,
@@ -63,15 +63,10 @@ internal class AdCacheAlexImpl(
 //                            userFlow.getAveragePrice(demandAd.adType) * 0.5f
 //                        },
                         auctionKey = adTypeParam.auctionKey, // "1O16GQT380000" // adTypeParam.auctionKey,
-                    ).also {
-                        logInfo(
-                            TAG,
-                            "Transformed Interstitial AdTypeParam with new pricefloor=${it.pricefloor} for auctionKey=${it.auctionKey}"
-                        )
-                    }
+                    )
                 }
 
-                is AdTypeParam.Rewarded -> error("Not implemented yet")
+                is AdTypeParam.Rewarded -> adTypeParam
             },
             onSuccess = { auctionResult, auctionInfo ->
                 winner = auctionResult

@@ -75,7 +75,17 @@ internal class AdCacher(
                 demandAd = demandAd,
                 existingResults = _results.value,
                 adTypeParam = when (adTypeParam) {
-                    is AdTypeParam.Banner -> TODO("Not implemented yet")
+                    is AdTypeParam.Banner -> AdTypeParam.Banner(
+                        pricefloor = max(
+                            a = adTypeParam.pricefloor,
+                            b = _results.value.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
+                        ),
+                        bannerFormat = adTypeParam.bannerFormat,
+                        containerWidth = adTypeParam.containerWidth,
+                        activity = adTypeParam.activity,
+                        auctionKey = adTypeParam.auctionKey,
+                    )
+
                     is AdTypeParam.Interstitial -> {
                         /**
                          * Pricefloor for the auction is set to the max of:
@@ -92,7 +102,14 @@ internal class AdCacher(
                         )
                     }
 
-                    is AdTypeParam.Rewarded -> TODO("Not implemented yet")
+                    is AdTypeParam.Rewarded -> AdTypeParam.Rewarded(
+                        activity = adTypeParam.activity,
+                        pricefloor = max(
+                            a = adTypeParam.pricefloor,
+                            b = _results.value.firstOrNull()?.adSource?.getAd()?.price ?: 0.0
+                        ),
+                        auctionKey = adTypeParam.auctionKey,
+                    )
                 },
                 onResult = { auctionResult, auctionInfo ->
                     logInfo(TAG, "Result received: ${auctionResult.adSource.getStats().demandId}")
@@ -150,9 +167,9 @@ internal class AdCacher(
                 .distinctBy { it.adSource.demandId }
                 .take(
                     when (demandAd.adType) {
-                        AdType.Banner -> 5
-                        AdType.Interstitial -> 2
-                        AdType.Rewarded -> 2
+                        AdType.Banner -> 6
+                        AdType.Interstitial -> 3
+                        AdType.Rewarded -> 3
                     }
                 )
             (source - results.toSet()).onEach {
