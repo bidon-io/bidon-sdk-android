@@ -58,6 +58,9 @@ internal object AdCacheDenisFactory {
         demandAd: DemandAd,
         resolver: AuctionResolver,
     ): AdCache {
+        // Ad type label for log disambiguation (e.g., "BANNER", "INTERSTITIAL", "REWARDED")
+        val adTypeLabel = demandAd.adType.code.uppercase()
+
         // Get V2-specific dependencies from DI container
         val adaptersSource = get<AdaptersSource>()
         val getTokens = get<GetTokensUseCase>()
@@ -67,24 +70,27 @@ internal object AdCacheDenisFactory {
         val auctionStat = CacheAuctionStat(
             statsRequest = get<StatsRequestUseCase>(),
             resolver = resolver,
+            adTypeLabel = adTypeLabel,
         )
         // Instance-scoped caches: each ad type gets its own cache
-        val readyToShowCache = ReadyToShowCache()
-        val rtbPayloadCache = RtbPayloadCache()
+        val readyToShowCache = ReadyToShowCache(adTypeLabel)
+        val rtbPayloadCache = RtbPayloadCache(adTypeLabel)
 
         // Instance-scoped CoroutineScope: SupervisorJob isolates child failures
         val instanceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val periodicSweepJob = PeriodicSweepJob(instanceScope, readyToShowCache, rtbPayloadCache)
-        val cancellationManager = CancellationManager()
+        val periodicSweepJob = PeriodicSweepJob(instanceScope, readyToShowCache, rtbPayloadCache, adTypeLabel)
+        val cancellationManager = CancellationManager(adTypeLabel)
 
         // Create processors with dependencies (shared across auctions)
         val rtbProcessor = RtbProcessor(
             adaptersSource = adaptersSource,
             rtbPayloadCache = rtbPayloadCache,
+            adTypeLabel = adTypeLabel,
         )
         val cpmProcessor = CpmProcessor(
             adaptersSource = adaptersSource,
             readyToShowCache = readyToShowCache,
+            adTypeLabel = adTypeLabel,
         )
 
         // Create coordination layer with processors (orchestrator created per-auction)
@@ -99,6 +105,7 @@ internal object AdCacheDenisFactory {
             auctionStat = auctionStat,
             readyToShowCache = readyToShowCache,
             rtbPayloadCache = rtbPayloadCache,
+            adTypeLabel = adTypeLabel,
         )
 
         return AdCacheDenisImpl(
@@ -108,6 +115,7 @@ internal object AdCacheDenisFactory {
             cancellationManager = cancellationManager,
             biddingConfig = biddingConfig,
             readyToShowCache = readyToShowCache,
+            adTypeLabel = adTypeLabel,
         )
     }
 }

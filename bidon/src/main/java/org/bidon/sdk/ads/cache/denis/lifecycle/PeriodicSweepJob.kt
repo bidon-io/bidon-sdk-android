@@ -28,7 +28,9 @@ internal class PeriodicSweepJob(
     private val scope: CoroutineScope,
     private val readyToShowCache: ReadyToShowCache,
     private val rtbPayloadCache: RtbPayloadCache,
+    adTypeLabel: String = "",
 ) {
+    private val TAG = "[DenisCache] PeriodicSweepJob/$adTypeLabel"
     private var sweepJob: Job? = null
 
     /**
@@ -81,9 +83,5 @@ internal class PeriodicSweepJob(
             // Log but don't propagate - SupervisorJob prevents crash
             logError(TAG, "Sweep failed, will retry next interval", e)
         }
-    }
-
-    companion object {
-        private const val TAG = "[DenisCache] PeriodicSweepJob"
     }
 }

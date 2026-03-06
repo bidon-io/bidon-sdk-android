@@ -27,7 +27,10 @@ internal class ParallelAuctionOrchestrator(
     private val rtbProcessor: RtbProcessor,
     private val cpmProcessor: CpmProcessor,
     private val readyToShowCache: ReadyToShowCache,
+    adTypeLabel: String = "",
 ) {
+    private val TAG = "[DenisCache] Orchestrator/$adTypeLabel"
+
     /**
      * Execute parallel auction (RTB + CPM).
      *
@@ -120,5 +123,3 @@ internal class ParallelAuctionOrchestrator(
         }
     }
 }
-
-private const val TAG = "[DenisCache] Orchestrator"

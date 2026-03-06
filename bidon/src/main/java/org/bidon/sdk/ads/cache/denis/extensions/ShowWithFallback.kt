@@ -14,8 +14,6 @@ import org.bidon.sdk.ads.cache.denis.stores.ReadyToShowCache
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
-private const val TAG = "[DenisCache] ShowWithFallback"
-
 /**
  * Show best ad from ReadyToShowCache with automatic fallback on failure.
  *
@@ -30,6 +28,7 @@ private const val TAG = "[DenisCache] ShowWithFallback"
  * @param activity Activity context for showing the ad
  * @param eventScope Scope for launching event collection after successful show
  * @param onEvent Called for each ad event (Shown, Clicked, Closed, ShowFailed, PaidRevenue, etc.)
+ * @param adTypeLabel Ad type label for log messages (e.g., "BANNER", "INTERSTITIAL")
  * @return Result with Ad on success, BidonError on failure
  */
 internal suspend fun showBestAdWithFallback(
@@ -37,8 +36,10 @@ internal suspend fun showBestAdWithFallback(
     readyToShowCache: ReadyToShowCache,
     activity: Activity,
     eventScope: CoroutineScope,
-    onEvent: (AdSource<*>, AdEvent) -> Unit
+    onEvent: (AdSource<*>, AdEvent) -> Unit,
+    adTypeLabel: String = "",
 ): Result<Ad> {
+    val TAG = "[DenisCache] ShowWithFallback/$adTypeLabel"
     // Get best ad from cache
     val entry = readyToShowCache.popFirst()
 
@@ -93,7 +94,8 @@ internal suspend fun showBestAdWithFallback(
                     readyToShowCache = readyToShowCache,
                     activity = activity,
                     eventScope = eventScope,
-                    onEvent = onEvent
+                    onEvent = onEvent,
+                    adTypeLabel = adTypeLabel,
                 )
             }
             else -> {

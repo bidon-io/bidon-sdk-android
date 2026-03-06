@@ -41,6 +41,7 @@ internal class AdCacheDenisImpl(
     private val cancellationManager: CancellationManager,
     private val biddingConfig: BiddingConfig,
     private val readyToShowCache: ReadyToShowCache,
+    private val adTypeLabel: String = "",
     private val scope: CoroutineScope = CoroutineScope(SdkDispatchers.Main + SupervisorJob()),
 ) : AdCache {
 
@@ -155,7 +156,8 @@ internal class AdCacheDenisImpl(
                 readyToShowCache = readyToShowCache,
                 activity = activity,
                 eventScope = this,
-                onEvent = onEvent
+                onEvent = onEvent,
+                adTypeLabel = adTypeLabel,
             )
                 .onFailure { error ->
                     onFailed(error)

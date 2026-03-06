@@ -35,7 +35,9 @@ import org.bidon.sdk.utils.ext.SystemTimeNow
 internal class CacheAuctionStat(
     private val statsRequest: StatsRequestUseCase,
     private val resolver: AuctionResolver,
+    adTypeLabel: String = "",
 ) : AuctionStat {
+    private val TAG = "[DenisCache] Stats/$adTypeLabel"
     private var auctionStartTs: Long = 0L
     private val scope = CoroutineScope(SupervisorJob() + SdkDispatchers.IO)
 
@@ -254,5 +256,3 @@ internal class CacheAuctionStat(
             else -> null
         }
 }
-
-private const val TAG = "[DenisCache] Stats"

@@ -16,7 +16,9 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  *
  * Thread-safety: Uses synchronized blocks for atomic state updates.
  */
-internal class CancellationManager {
+internal class CancellationManager(adTypeLabel: String = "") {
+    private val TAG = "[DenisCache] CancellationManager/$adTypeLabel"
+
     /**
      * Current auction job (nullable when no auction running).
      */
@@ -130,9 +132,5 @@ internal class CancellationManager {
                 currentAuctionId = null
             }
         }
-    }
-
-    companion object {
-        private const val TAG = "[DenisCache] CancellationManager"
     }
 }

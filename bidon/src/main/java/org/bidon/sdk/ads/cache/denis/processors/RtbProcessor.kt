@@ -64,7 +64,10 @@ private sealed class RtbSource {
 internal class RtbProcessor(
     private val adaptersSource: AdaptersSource,
     private val rtbPayloadCache: RtbPayloadCache,
+    adTypeLabel: String = "",
 ) {
+    private val TAG = "[DenisCache] RTB/$adTypeLabel"
+
     /**
      * Load RTB payload with waterfall fallback (try next on failure).
      *
@@ -342,5 +345,3 @@ internal class RtbProcessor(
         return cachedCount
     }
 }
-
-private const val TAG = "[DenisCache] RTB"

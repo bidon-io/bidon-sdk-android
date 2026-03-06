@@ -64,7 +64,10 @@ internal class CoordinationLayer(
     private val auctionStat: AuctionStat,
     private val readyToShowCache: ReadyToShowCache,
     private val rtbPayloadCache: RtbPayloadCache,
+    private val adTypeLabel: String = "",
 ) {
+    private val TAG = "[DenisCache] Coordination/$adTypeLabel"
+
     /**
      * Determine auction start state based on cache contents.
      *
@@ -326,6 +329,7 @@ internal class CoordinationLayer(
                         rtbProcessor = rtbProcessor,
                         cpmProcessor = cpmProcessor,
                         readyToShowCache = readyToShowCache,
+                        adTypeLabel = adTypeLabel,
                     )
 
                     // Build common auction parameters for processors
@@ -447,8 +451,6 @@ internal class CoordinationLayer(
     }
 
     companion object {
-        private const val TAG = "[DenisCache] Coordination"
-
         // Reduce auction timeout for faster response when RTB is available in cache
         private const val AUCTION_TIMEOUT_REDUCTION_MS = 5_000L
         private const val MIN_AUCTION_TIMEOUT_MS = 5_000L

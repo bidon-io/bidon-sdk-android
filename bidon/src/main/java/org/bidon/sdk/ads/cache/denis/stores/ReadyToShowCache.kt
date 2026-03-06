@@ -19,8 +19,8 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  *
  * Application-wide scope: Singleton object persists between ad instances.
  */
-internal class ReadyToShowCache {
-    private val TAG = "[DenisCache] ReadyToShowCache"
+internal class ReadyToShowCache(private val adTypeLabel: String = "") {
+    private val TAG = "[DenisCache] ReadyToShowCache/$adTypeLabel"
 
     /**
      * Thread-safe FIFO list: entries stored in insertion order (oldest first).

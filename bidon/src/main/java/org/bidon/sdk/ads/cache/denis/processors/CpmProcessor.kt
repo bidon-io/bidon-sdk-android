@@ -37,7 +37,10 @@ import kotlin.coroutines.coroutineContext
 internal class CpmProcessor(
     private val adaptersSource: AdaptersSource,
     private val readyToShowCache: ReadyToShowCache,
+    adTypeLabel: String = "",
 ) {
+    private val TAG = "[DenisCache] CPM/$adTypeLabel"
+
     /**
      * Load CPM waterfall in batches of [BATCH_SIZE] with early-stop logic.
      *
@@ -335,5 +338,4 @@ internal data class CpmWaterfallResult(
     val cacheEntries: List<CacheEntry<AuctionResult>>, // Entries for orchestrator to cache
 )
 
-private const val TAG = "[DenisCache] CPM"
 private const val BATCH_SIZE = 2
