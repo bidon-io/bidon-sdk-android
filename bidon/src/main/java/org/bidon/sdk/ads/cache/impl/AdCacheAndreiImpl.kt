@@ -198,8 +198,10 @@ internal class AdCacheAndreiImpl(
         successCount: Int,
         lastResult: AuctionResult,
         next: AdUnit?,
-    ): Boolean =
-        (successCount >= capacity()).also {
-            logInfo(tag, "shouldStop: successCount=$successCount, capacity=${capacity()} -> $it")
+    ): Boolean {
+        val threshold = capacity() + adCacheStrategy.explorationBudget
+        return (successCount >= threshold).also {
+            logInfo(tag, "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}+exploration=${adCacheStrategy.explorationBudget}) -> $it")
         }
+    }
 }
