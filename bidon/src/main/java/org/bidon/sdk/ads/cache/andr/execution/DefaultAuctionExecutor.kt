@@ -7,8 +7,6 @@ import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
-import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
@@ -37,7 +35,6 @@ internal class DefaultAuctionExecutor(
     private val batchSize: Int,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
-    private val demandStatistics: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
     private val winLossNotifier: WinLossNotifier,
 ) : AuctionExecutor {
@@ -74,7 +71,6 @@ internal class DefaultAuctionExecutor(
         tokens: Map<AdUnit, TokenInfo>
     ): List<AuctionResult> {
         val auctionResults = mutableListOf<AuctionResult>()
-        val pendingMeasurements = mutableListOf<DemandMeasurement>()
 
         val adUnitQueue =
             LinkedList(adUnits).also {
@@ -119,16 +115,15 @@ internal class DefaultAuctionExecutor(
                                     }
                                 }.awaitAll()
 
-                        for ((auctionResult, measurement) in results) {
+                        for (auctionResult in results) {
                             adUnitQueue.poll()
                             auctionResults.add(auctionResult)
-                            pendingMeasurements.add(measurement)
                             if (auctionResult.roundStatus == RoundStatus.Successful) successCount++
                         }
 
                         if (stopCondition.shouldStop(
                                 successCount,
-                                results.last().first,
+                                results.last(),
                                 adUnitQueue.peek()
                             )
                         ) {
@@ -146,11 +141,6 @@ internal class DefaultAuctionExecutor(
                     auctionResults
                 }
             }
-
-        // Batch record stats
-        demandStatistics.record(pendingMeasurements)
-
-        logInfo(tag, "Recorded ${pendingMeasurements.size} measurements")
 
         // Save unused RTB for caching
         val rtbAdUnits =
@@ -242,7 +232,7 @@ internal class DefaultAuctionExecutor(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-    ): Pair<AuctionResult, DemandMeasurement> {
+    ): AuctionResult {
         applyParams(context, adSource, adTypeParam, demandAd, priceFloor)
 
         val startTime = SystemTimeNow
@@ -253,17 +243,7 @@ internal class DefaultAuctionExecutor(
             "Loaded ${adUnit.demandId}: status=${auctionResult.roundStatus}, price=${auctionResult.adSource.getStats().price}, latency=${latencyMs}ms"
         )
 
-        val measurement =
-            DemandMeasurement(
-                adUnit.demandId,
-                demandAd.adType,
-                SystemTimeNow,
-                auctionResult.adSource.getStats().price,
-                auctionResult.roundStatus == RoundStatus.Successful,
-                latencyMs
-            )
-
-        return auctionResult to measurement
+        return auctionResult
     }
 
     private fun drainRemainingAdUnits(

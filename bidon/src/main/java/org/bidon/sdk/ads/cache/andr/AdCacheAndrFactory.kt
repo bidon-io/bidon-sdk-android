@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.execution.AdSourceResolver
 import org.bidon.sdk.ads.cache.andr.execution.AdUnitPreparer
 import org.bidon.sdk.ads.cache.andr.execution.AuctionExecutorFactory
@@ -48,7 +47,6 @@ internal object AdCacheAndrFactory {
                 adCacheStrategy = adCacheStrategy,
                 adType = adType
             )
-        val demandStatistics = get<DemandStatistics>()
         val adaptersCollector =
             AdaptersCollector(
                 tag = tag,
@@ -94,12 +92,9 @@ internal object AdCacheAndrFactory {
                     adUnitPreparer =
                     AdUnitPreparer(
                         tag = tag,
-                        adCacheStrategy = adCacheStrategy,
                         rtbResultsStore = rtbResultsStore,
                         rtbResultsMerger = RtbResultsMerger(),
-                        demandStatistics = demandStatistics,
                     ),
-                    demandStatistics = demandStatistics,
                     requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
                     rtbResultsStore = rtbResultsStore,
                     winLossNotifier = WinLossNotifier(tag = tag),
