@@ -182,11 +182,9 @@ internal class AdCacheVladimirImpl(
 
     override suspend fun poll(): AuctionResult {
         logInfo(TAG, "poll(): suspending until ad available...")
-        val result = slots.poll()
+        slots.awaitAvailable()
+        val result = pop()!!
         logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
-
-        fallbackHandler.observe(result)
-
         return result
     }
 

@@ -54,6 +54,16 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         return old?.auctionResult
     }
 
+    /**
+     * Suspends until slot1 becomes non-null.
+     * Does NOT pop — the caller decides how to consume.
+     */
+    suspend fun awaitAvailable() {
+        logInfo(TAG, "awaitAvailable(): waiting for slot1 to be non-null...")
+        slot1.first { it != null }
+        logInfo(TAG, "awaitAvailable(): slot1 available")
+    }
+
     suspend fun poll(): AuctionResult {
         logInfo(TAG, "poll(): waiting for slot1 to be non-null...")
         slot1.first { it != null }

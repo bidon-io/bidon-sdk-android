@@ -491,6 +491,18 @@ pop():
   └─ return old.auctionResult (or null if slot1 was empty)
 ```
 
+### awaitAvailable() (suspend)
+
+```
+awaitAvailable():
+  │
+  │  Suspend until slot1 becomes non-null.
+  │  Uses Flow.first { it != null } on the slot1 StateFlow.
+  │  Does NOT pop — the caller decides how to consume.
+  │
+  └─ return
+```
+
 ### poll() → AuctionResult (suspend)
 
 ```
