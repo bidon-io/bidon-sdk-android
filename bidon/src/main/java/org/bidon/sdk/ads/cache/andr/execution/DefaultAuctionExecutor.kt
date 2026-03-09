@@ -33,6 +33,7 @@ internal class DefaultAuctionExecutor(
     private val adUnitPreparer: AdUnitPreparer,
     private val adaptersCollector: AdaptersCollector,
     private val batchSize: Int,
+    private val rtbResultsStoreTtl: Long,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
     private val stopCondition: AuctionStopCondition,
@@ -149,7 +150,7 @@ internal class DefaultAuctionExecutor(
                 .fold(mutableSetOf<RtbResultStore.Entry>(), { acc, adUnit ->
                     val tokenInfo = tokens[adUnit]
                     if (tokenInfo != null) {
-                        acc.add(RtbResultStore.Entry(context.id, tokenInfo, adUnit))
+                        acc.add(RtbResultStore.Entry(context.id, tokenInfo, adUnit, expireAt = SystemTimeNow + rtbResultsStoreTtl))
                     }
                     acc
                 })

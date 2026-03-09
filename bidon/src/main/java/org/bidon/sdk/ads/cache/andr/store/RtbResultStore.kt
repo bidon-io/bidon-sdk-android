@@ -39,7 +39,7 @@ internal class RtbResultStore(
         override val auctionId: String,
         override val tokenInfo: TokenInfo,
         val adUnit: AdUnit,
-        val expireAt: Long = SystemTimeNow + DEFAULT_TTL_MS,
+        val expireAt: Long,
     ) : AdStore.Entry {
         override val demandId: String
             get() = adUnit.demandId

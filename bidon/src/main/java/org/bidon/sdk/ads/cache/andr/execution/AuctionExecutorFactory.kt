@@ -24,6 +24,7 @@ internal class AuctionExecutorFactory(
             adSourceResolver = adSourceResolver,
             adUnitPreparer = adUnitPreparer,
             batchSize = adCacheStrategy.batchSize,
+            rtbResultsStoreTtl = adCacheStrategy.rtbResultsStoreTtl,
             winLossNotifier = winLossNotifier,
             requestAdUnitUseCase = requestAdUnitUseCase,
             rtbResultStore = rtbResultsStore,
