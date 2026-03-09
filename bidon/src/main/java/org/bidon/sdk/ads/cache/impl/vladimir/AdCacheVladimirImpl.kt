@@ -392,8 +392,6 @@ internal class AdCacheVladimirImpl(
         if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
             logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
             adTypeParam.activity.runOnUiThread { onSuccess(result, auctionInfo) }
-        } else if (primaryUpdated) {
-            logInfo(TAG, "handleFill(): HOT-SWAP — onExpired already emitted by slot manager, caller will call cache() to get new primary")
         }
     }
 
