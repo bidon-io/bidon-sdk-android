@@ -81,31 +81,6 @@ internal class RtbTokenStore(
         }
     }
 
-    /**
-     * Refreshes expired RTB tokens for the given demand IDs by calling the [fetcher].
-     * Returns the merged map of valid + freshly fetched tokens.
-     */
-    suspend fun refreshExpired(
-        rtbDemandIds: Set<String>,
-        fetcher: suspend () -> Map<String, TokenInfo>,
-    ): Map<String, TokenInfo> {
-        val validTokens = getValidTokens()
-        val expiredRtbDemandIds = rtbDemandIds - validTokens.keys
-
-        return if (expiredRtbDemandIds.isNotEmpty()) {
-            logInfo(TAG, "refreshExpired(): refreshing tokens for: $expiredRtbDemandIds")
-            val freshTokens = fetcher()
-                .filterKeys { it in expiredRtbDemandIds }
-            val now = System.currentTimeMillis()
-            freshTokens.forEach { (demandId, token) ->
-                storedTokens[demandId] = StoredToken(token, now)
-            }
-            logInfo(TAG, "refreshExpired(): refreshed ${freshTokens.size} tokens")
-            validTokens + freshTokens
-        } else {
-            validTokens
-        }
-    }
 }
 
 private const val TAG = "AdCacheVladimir.RtbTokenStore"
