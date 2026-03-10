@@ -27,9 +27,9 @@ internal class AdUnitPreparer(
                 response.externalWinNotificationsEnabled
             )
 
-        val cachedRtbResults = rtbResultsStore.popAll().map(RtbResultStore.Entry::unwrap)
+        val cachedRtbEntries = rtbResultsStore.popAll()
 
-        logInfo(tag, "Popped ${cachedRtbResults.size} cached RTB results")
+        logInfo(tag, "Popped ${cachedRtbEntries.size} cached RTB results")
 
         val (serverRtbAdUnits, cpmAdUnits) =
             (response.adUnits
@@ -39,7 +39,7 @@ internal class AdUnitPreparer(
 
         val (mergedRtbAdUnits, mergedTokens) =
             rtbResultsMerger.merge(
-                cachedRtbResults,
+                cachedRtbEntries,
                 serverRtbAdUnits,
                 tokens
             )
