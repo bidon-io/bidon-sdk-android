@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import android.view.ViewGroup
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.AuctionInfo
@@ -167,6 +169,12 @@ internal class AdCacheVladimirImpl(
         val result = slots.pop()
         if (result != null) {
             logInfo(TAG, "pop(): popped ${result.demandId} @ ${result.price}")
+
+            // Banner views may get re-parented by ad network SDKs during Activity lifecycle.
+            // Detach the view from any internal SDK container before returning to caller.
+            (result.adSource as? AdSource.Banner<*>)?.getAdView()?.networkAdview?.let { view ->
+                (view.parent as? ViewGroup)?.removeView(view)
+            }
 
             // Remove the shown ad's token — it was consumed and cannot produce a valid bid again
             tokenStore.removeToken(result.demandId)
