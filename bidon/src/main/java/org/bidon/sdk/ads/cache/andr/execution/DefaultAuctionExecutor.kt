@@ -45,8 +45,15 @@ internal class DefaultAuctionExecutor(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
-        val (context, mergedAdUnits, mergedTokens) =
-            adUnitPreparer.prepare(demandAd, response, tokens)
+        val context =
+            AuctionContext(
+                response.auctionId,
+                response.auctionConfigurationId ?: 0L,
+                response.auctionConfigurationUid ?: "",
+                response.externalWinNotificationsEnabled
+            )
+        val (mergedAdUnits, mergedTokens) =
+            adUnitPreparer.prepare(response, tokens)
         val executionResult =
             execute(
                 context,
@@ -150,7 +157,14 @@ internal class DefaultAuctionExecutor(
                 .fold(mutableSetOf<RtbResultStore.Entry>(), { acc, adUnit ->
                     val tokenInfo = tokens[adUnit]
                     if (tokenInfo != null) {
-                        acc.add(RtbResultStore.Entry(context.id, tokenInfo, adUnit, expireAt = SystemTimeNow + rtbResultsStoreTtl))
+                        acc.add(
+                            RtbResultStore.Entry(
+                                context.id,
+                                tokenInfo,
+                                adUnit,
+                                expireAt = SystemTimeNow + rtbResultsStoreTtl
+                            )
+                        )
                     }
                     acc
                 })

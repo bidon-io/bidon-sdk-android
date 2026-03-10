@@ -1,6 +1,5 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
-import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.models.AdUnit
@@ -15,39 +14,21 @@ internal class AdUnitPreparer(
     private val rtbResultsMerger: RtbResultsMerger,
 ) {
     fun prepare(
-        demandAd: DemandAd,
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
-    ): Result {
-        val context =
-            AuctionContext(
-                response.auctionId,
-                response.auctionConfigurationId ?: 0L,
-                response.auctionConfigurationUid ?: "",
-                response.externalWinNotificationsEnabled
-            )
-
+    ): Pair<List<AdUnit>, Map<AdUnit, TokenInfo>> {
         val cachedRtbEntries = rtbResultsStore.popAll()
-
         logInfo(tag, "Popped ${cachedRtbEntries.size} cached RTB results")
 
         val (serverRtbAdUnits, cpmAdUnits) =
-            (response.adUnits
-                ?: emptyList()).partition { it.bidType == BidType.RTB }
-
+            (response.adUnits ?: emptyList()).partition { it.bidType == BidType.RTB }
         logInfo(tag, "Server: ${serverRtbAdUnits.size} RTB, ${cpmAdUnits.size} CPM")
 
         val (mergedRtbAdUnits, mergedTokens) =
-            rtbResultsMerger.merge(
-                cachedRtbEntries,
-                serverRtbAdUnits,
-                tokens
-            )
-
+            rtbResultsMerger.merge(cachedRtbEntries, serverRtbAdUnits, tokens)
         logInfo(tag, "Merged: ${mergedRtbAdUnits.size} RTB units, ${mergedTokens.size} tokens")
 
-        val allAdUnits = mergedRtbAdUnits + cpmAdUnits
-
+        val allAdUnits = (mergedRtbAdUnits + cpmAdUnits).sortedByDescending { it.pricefloor }
         logInfo(
             tag,
             "Prepared ${allAdUnits.size} units. Top: ${
@@ -55,12 +36,6 @@ internal class AdUnitPreparer(
             }"
         )
 
-        return Result(context, allAdUnits, mergedTokens)
+        return allAdUnits to mergedTokens
     }
-
-    data class Result(
-        val context: AuctionContext,
-        val sortedAdUnits: List<AdUnit>,
-        val tokens: Map<AdUnit, TokenInfo>,
-    )
 }

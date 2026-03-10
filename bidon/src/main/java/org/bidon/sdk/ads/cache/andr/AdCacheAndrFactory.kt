@@ -53,6 +53,8 @@ internal object AdCacheAndrFactory {
                 adaptersSource = adaptersSource,
                 rtbResultsStore = rtbResultsStore,
             )
+        val infoFactory = AuctionInfoFactory()
+
         return AdCacheAndreiImpl(
             demandAd = demandAd,
             tag = tag,
@@ -60,48 +62,49 @@ internal object AdCacheAndrFactory {
             mainDispatcher = SdkDispatchers.Main,
             adCacheStrategy = adCacheStrategy,
             auctionResultsStore = auctionResultsStore,
+            auctionInfoFactory = infoFactory,
             auctionRunnerFactory =
-            AuctionRunnerFactory(
-                tag = tag,
-                ioDispatcher = ioDispatcher,
-                auctionConfigurator =
-                AuctionConfigurator(
+                AuctionRunnerFactory(
                     tag = tag,
-                    adaptersCollector = adaptersCollector,
-                    adaptersInfoCollector =
-                    AdaptersInfoCollector(
-                        tag = tag,
-                        rtbResultsStore = rtbResultsStore,
-                    ),
-                    getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
-                    rtbResultsStore = rtbResultsStore,
-                    tokensCollector =
-                    TokensCollector(
-                        tag = tag,
-                        ioDispatcher = ioDispatcher,
-                        biddingConfig = get<BiddingConfig>(),
-                        tokenCollector = TokenCollector(tag = tag),
-                    ),
+                    ioDispatcher = ioDispatcher,
+                    auctionConfigurator =
+                        AuctionConfigurator(
+                            tag = tag,
+                            adaptersCollector = adaptersCollector,
+                            adaptersInfoCollector =
+                                AdaptersInfoCollector(
+                                    tag = tag,
+                                    rtbResultsStore = rtbResultsStore,
+                                ),
+                            getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
+                            rtbResultsStore = rtbResultsStore,
+                            tokensCollector =
+                                TokensCollector(
+                                    tag = tag,
+                                    ioDispatcher = ioDispatcher,
+                                    biddingConfig = get<BiddingConfig>(),
+                                    tokenCollector = TokenCollector(tag = tag),
+                                ),
+                        ),
+                    auctionExecutorFactory =
+                        AuctionExecutorFactory(
+                            tag = tag,
+                            adCacheStrategy = adCacheStrategy,
+                            adaptersCollector = adaptersCollector,
+                            adSourceResolver = AdSourceResolver(tag = tag),
+                            adUnitPreparer =
+                                AdUnitPreparer(
+                                    tag = tag,
+                                    rtbResultsStore = rtbResultsStore,
+                                    rtbResultsMerger = RtbResultsMerger(),
+                                ),
+                            requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
+                            rtbResultsStore = rtbResultsStore,
+                            winLossNotifier = WinLossNotifier(tag = tag),
+                        ),
+                    auctionResolver = resolver,
+                    infoFactory = infoFactory,
                 ),
-                auctionExecutorFactory =
-                AuctionExecutorFactory(
-                    tag = tag,
-                    adCacheStrategy = adCacheStrategy,
-                    adaptersCollector = adaptersCollector,
-                    adSourceResolver = AdSourceResolver(tag = tag),
-                    adUnitPreparer =
-                    AdUnitPreparer(
-                        tag = tag,
-                        rtbResultsStore = rtbResultsStore,
-                        rtbResultsMerger = RtbResultsMerger(),
-                    ),
-                    requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
-                    rtbResultsStore = rtbResultsStore,
-                    winLossNotifier = WinLossNotifier(tag = tag),
-                ),
-                auctionResolver = resolver,
-                infoFactory = AuctionInfoFactory(),
-            ),
         )
     }
 }

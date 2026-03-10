@@ -11,6 +11,7 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.asString
@@ -34,6 +35,7 @@ internal class AdCacheAndreiImpl(
     private val adCacheStrategy: AdCacheStrategy,
     private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val auctionRunnerFactory: AuctionRunnerFactory,
+    private val auctionInfoFactory: AuctionInfoFactory,
 ) : AdCache,
     AuctionStopCondition {
     private val scope: CoroutineScope by lazy {
@@ -43,8 +45,14 @@ internal class AdCacheAndreiImpl(
     private val isLoading = AtomicBoolean(false)
 
     private var auctionJob: Job? = null
+
     private var refillJob: Job? = null
+
+    @Volatile
     private var lastAdTypeParam: AdTypeParam? = null
+
+    @Volatile
+    private var lastAuctionId: String? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
         // Ignore
@@ -118,7 +126,9 @@ internal class AdCacheAndreiImpl(
     override fun clear() {
         refillJob?.cancel()
         refillJob = null
+
         lastAdTypeParam = null
+        lastAuctionId = null
 
         if (!isLoading.getAndSet(false)) {
             return
@@ -143,6 +153,9 @@ internal class AdCacheAndreiImpl(
             .create(this@AdCacheAndreiImpl)
             .run(demandAd, adTypeParam)
             .onSuccess { (info, results) ->
+                // Save last info
+                lastAuctionId = info.auctionId
+                // Fill store
                 auctionResultsStore.insert(results) { AuctionResultStore.Entry(it, info) }
                 logInfo(
                     tag,
@@ -179,7 +192,9 @@ internal class AdCacheAndreiImpl(
     ) {
         val cachedLog = peekAllEntries().asString()
         val auctionResult = entry?.auctionResult
-        val auctionInfo = entry?.auctionInfo
+        val auctionInfo =
+            entry?.auctionInfo?.takeIf { lastAuctionId == null || it.auctionId == lastAuctionId }
+                ?: auctionResult?.let(auctionInfoFactory::create)
         if (auctionResult != null && auctionInfo != null) {
             logInfo(tag, "Cache completed: $cachedLog")
             scope.launch(mainDispatcher) {
@@ -188,7 +203,7 @@ internal class AdCacheAndreiImpl(
         } else {
             logInfo(tag, "Auction failed: ${cause?.message}, store=$cachedLog")
             scope.launch(mainDispatcher) {
-                onFailure(auctionInfo, cause ?: BidonError.Unspecified(null))
+                onFailure(null, cause ?: BidonError.Unspecified(null))
             }
         }
         isLoading.set(false)
@@ -201,7 +216,10 @@ internal class AdCacheAndreiImpl(
     ): Boolean {
         val threshold = capacity() + adCacheStrategy.explorationBudget
         return (successCount >= threshold).also {
-            logInfo(tag, "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}+exploration=${adCacheStrategy.explorationBudget}) -> $it")
+            logInfo(
+                tag,
+                "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}+exploration=${adCacheStrategy.explorationBudget}) -> $it"
+            )
         }
     }
 }
