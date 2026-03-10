@@ -186,10 +186,15 @@ internal class AdCacheVladimirImpl(
 
     override suspend fun poll(): AuctionResult {
         logInfo(TAG, "poll(): suspending until ad available...")
-        slots.awaitAvailable()
-        val result = pop()!!
-        logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
-        return result
+        while (true) {
+            slots.awaitAvailable()
+            val result = pop()
+            if (result != null) {
+                logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
+                return result
+            }
+            logInfo(TAG, "poll(): slot expired before pop, retrying...")
+        }
     }
 
     override fun clear() {
