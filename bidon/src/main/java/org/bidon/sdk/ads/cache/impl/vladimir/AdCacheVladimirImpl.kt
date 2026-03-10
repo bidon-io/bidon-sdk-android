@@ -18,7 +18,6 @@ import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.ext.toAuctionInfo
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
@@ -46,7 +45,6 @@ import kotlin.math.pow
  */
 internal class AdCacheVladimirImpl(
     override val demandAd: DemandAd,
-    @Suppress("unused") private val resolver: AuctionResolver,
 ) : AdCache {
 
     private enum class LoadingState { IDLE, LOADING }
@@ -76,7 +74,7 @@ internal class AdCacheVladimirImpl(
     private var lastAdTypeParam: AdTypeParam? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
-        logInfo(TAG, "withSettings(): not implemented yet, ignoring $settings")
+        // TODO: not implemented yet — two-slot design is hardcoded
     }
 
     override fun cache(

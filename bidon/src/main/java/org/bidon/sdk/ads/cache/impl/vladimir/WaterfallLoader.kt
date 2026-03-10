@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package org.bidon.sdk.ads.cache.impl.vladimir
 
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -221,8 +219,6 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
                 tokenInfo = tokens[adUnit.demandId],
             )
         }
-
-        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
 
         if (adUnit.bidType == BidType.RTB) {
             val tokenInfo = tokens[adUnit.demandId]

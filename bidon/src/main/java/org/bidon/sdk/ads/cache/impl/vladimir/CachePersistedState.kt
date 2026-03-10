@@ -60,18 +60,6 @@ internal class CachePersistedState private constructor() {
     }
 
     /**
-     * Wipes all persisted state for this ad type.
-     * Called during permanent teardown to ensure
-     * no ad sources or metadata leak in the static state map.
-     */
-    fun wipe() {
-        preservedAds.clear()
-        rtbTokens.clear()
-        firstLoadCompleted = false
-        logInfo(TAG, "wipe(): all persisted state cleared")
-    }
-
-    /**
      * Eagerly preserves remaining ads for next instance after pop().
      * Protects against new instance creation before clear() is called.
      *
