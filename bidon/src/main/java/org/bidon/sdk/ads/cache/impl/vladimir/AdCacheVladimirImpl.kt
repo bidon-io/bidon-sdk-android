@@ -35,15 +35,14 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * V4 implementation of AdCache with two-slot caching and show fallback.
+ * V4 implementation of AdCache with two-slot caching.
  *
  * Load flow: Auction at caller-provided pricefloor, reuses stored RTB tokens,
  * excludes cached networks, fills empty slots. On the first load only, a 10s timer
  * enables preferRtb mode (skipping CPM units) if slot1 is still empty.
  *
  * Delegates slot management to [CacheSlotManager], auction mechanics to [WaterfallLoader],
- * token storage to [RtbTokenStore], show fallback to [ShowFallbackHandler],
- * and cross-instance persistence to [CachePersistedState].
+ * token storage to [RtbTokenStore], and cross-instance persistence to [CachePersistedState].
  */
 internal class AdCacheVladimirImpl(
     override val demandAd: DemandAd,
@@ -58,7 +57,6 @@ internal class AdCacheVladimirImpl(
     private val slots = CacheSlotManager(scope)
     private val loader = WaterfallLoader(demandAd)
     private val tokenStore = RtbTokenStore(persistedState.rtbTokens)
-    private val fallbackHandler = ShowFallbackHandler(scope, slots)
 
     // Strategy state (persisted across instance recreations via CachePersistedState)
     private var isFirstLoad = !persistedState.firstLoadCompleted
@@ -136,7 +134,6 @@ internal class AdCacheVladimirImpl(
 
         // If onSuccess was already fired above (ad met the floor), mark it so loading doesn't fire it again
         callbackFired.set(meetsFloor)
-        fallbackHandler.lastActivity = adTypeParam.activity
         logInfo(TAG, "cache(): state→LOADING, callbackFired=$meetsFloor, launching load")
 
         loadingJob = scope.launch {
@@ -179,7 +176,6 @@ internal class AdCacheVladimirImpl(
             // Remove the shown ad's token — it was consumed and cannot produce a valid bid again
             tokenStore.removeToken(result.demandId)
 
-            fallbackHandler.observe(result)
             persistedState.snapshotOnPop(slots)
         } else {
             logInfo(TAG, "pop(): nothing to pop")

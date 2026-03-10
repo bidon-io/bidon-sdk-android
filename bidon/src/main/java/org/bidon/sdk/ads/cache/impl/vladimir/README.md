@@ -31,10 +31,6 @@ The host app recreates the cache instance on every show cycle (`clear()` → new
 - RTB tokens (15-min per-network expiration)
 - Cached ads (eagerly snapshot on `pop()`, extracted on `clear()`, restored in `init`)
 
-### Show Fallback
-
-For fullscreen ads (interstitial/rewarded): if the primary ad fails to show, `ShowFallbackHandler` automatically pops and shows the backup from slot2.
-
 ## Files
 
 | File | Purpose |
@@ -43,6 +39,5 @@ For fullscreen ads (interstitial/rewarded): if the primary ad fails to show, `Sh
 | `CacheSlotManager.kt` | Two-slot cache with expiration and promotion |
 | `WaterfallLoader.kt` | Auction round lifecycle (tokens, server request, per-unit loading, stats) |
 | `RtbTokenStore.kt` | RTB token storage with 15-min TTL |
-| `ShowFallbackHandler.kt` | Fullscreen show retry on backup slot |
 | `CachePersistedState.kt` | Cross-instance ad and token preservation |
 | `Extensions.kt` | `AuctionResult` extensions and `CachedAd` data class |

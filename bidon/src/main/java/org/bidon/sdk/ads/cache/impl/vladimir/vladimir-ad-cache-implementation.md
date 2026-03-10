@@ -26,11 +26,11 @@
 │  │                  │  │ + unit load)  │  │                  │  │
 │  └────────┬─────────┘  └───────────────┘  └────────┬─────────┘  │
 │           │                                        │            │
-│  ┌────────┴───────────┐  ┌─────────────────────────┴──┐         │
-│  │ShowFallbackHandler │  │   CachePersistedState      │         │
-│  │(fullscreen show    │  │   (cross-instance ads +    │         │
-│  │ retry on backup)   │  │    tokens preservation)    │         │
-│  └────────────────────┘  └────────────────────────────┘         │
+│           │                ┌─────────────────────────┴──┐       │
+│           │                │   CachePersistedState      │       │
+│           │                │   (cross-instance ads +    │       │
+│           │                │    tokens preservation)    │       │
+│           │                └────────────────────────────┘       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,7 +83,7 @@ data class StoredToken(
 
 ## 1. AdCacheVladimirImpl — Orchestrator
 
-Implements `AdCache`. Coordinates all subsystems: slot management, waterfall loading, token storage, show fallback, and cross-instance persistence.
+Implements `AdCache`. Coordinates all subsystems: slot management, waterfall loading, token storage, and cross-instance persistence.
 
 ### LoadingState
 
@@ -106,7 +106,6 @@ class AdCacheVladimirImpl(
     private val slots = CacheSlotManager(scope)
     private val loader = WaterfallLoader(demandAd)
     private val tokenStore = RtbTokenStore(persistedState.rtbTokens)
-    private val fallbackHandler = ShowFallbackHandler(scope, slots)
 
     private var isFirstLoad: Boolean           // true until first load completes
     private val loadingState: MutableStateFlow<LoadingState>  // IDLE or LOADING
@@ -161,7 +160,6 @@ cache(adTypeParam, onSuccess, onFailure):
   │
   │  6. SET UP STATE
   │     callbackFired = (true if immediate callback fired, false otherwise)
-  │     fallbackHandler.lastActivity = adTypeParam.activity
   │     Save lastAdTypeParam for future vacancy-triggered restarts.
   │
   │  7. LAUNCH runLoad()
@@ -334,10 +332,6 @@ pop():
   │     │
   │     ├─ tokenStore.removeToken(result.demandId)
   │     │    The shown ad's token was consumed — cannot be reused.
-  │     │
-  │     ├─ fallbackHandler.observe(result)
-  │     │    For fullscreen ads: watch the popped ad for ShowFailed events.
-  │     │    If show fails, automatically pop and show the backup (now slot1).
   │     │
   │     └─ persistedState.snapshotOnPop(slots)
   │          Eagerly save remaining slot(s) to persisted state.
@@ -817,72 +811,7 @@ removeToken(demandId):
 
 ---
 
-## 5. ShowFallbackHandler — Show Retry for Fullscreen Ads
-
-For interstitial and rewarded ads: if the primary ad's show() fails, automatically pop the backup ad from slot1 (which was promoted from slot2 after the initial pop) and show it. Forwards the backup's events to the primary's event flow so the host app receives them transparently.
-
-### Fields
-
-```kotlin
-class ShowFallbackHandler(
-    private val scope: CoroutineScope,
-    private val slots: CacheSlotManager,
-) {
-    var lastActivity: Activity?   // set by cache(), used for backup show
-}
-```
-
-### observe(result)
-
-Called after pop(). Subscribes to the popped ad's event flow to watch for ShowFailed.
-
-```
-observe(result):
-  │
-  │  Subscribe to result.adSource.adEvent flow:
-  │
-  │  On each event:
-  │    │
-  │    ├─ If ShowFailed AND fallback not yet attempted:
-  │    │   │
-  │    │   │  Mark fallback attempted (only try once).
-  │    │   │
-  │    │   │  backup = slots.pop()
-  │    │   │    ← Pop the backup (which was promoted to slot1 by the earlier pop).
-  │    │   │
-  │    │   │  If backup != null AND lastActivity != null:
-  │    │   │    │
-  │    │   │    │  Subscribe to backup.adSource.adEvent:
-  │    │   │    │    Forward every event to primary's flow via source.emitEvent(event).
-  │    │   │    │    On Closed: clear lastActivity.
-  │    │   │    │
-  │    │   │    │  Show backup:
-  │    │   │    │    If Interstitial → backupSource.show(activity)
-  │    │   │    │    If Rewarded → backupSource.show(activity)
-  │    │   │    │    Else → cannot show (e.g., Banner)
-  │    │   │    │
-  │    │   │  If backup == null OR lastActivity == null:
-  │    │   │    → Fallback failed (no backup available or no activity).
-  │    │   │      Clear lastActivity.
-  │    │   │
-  │    │
-  │    └─ If Closed:
-  │         Clear lastActivity.
-  │
-  └─ return
-```
-
-**Event flow to host app:**
-
-```
-Primary succeeds:       Shown → Closed  (normal flow)
-Primary fails, backup:  ShowFailed → Shown → Closed  (ShowFailed from primary, then backup events)
-Both fail:              ShowFailed → ShowFailed  (primary fails, backup also fails)
-```
-
----
-
-## 6. CachePersistedState — Cross-Instance Preservation
+## 5. CachePersistedState — Cross-Instance Preservation
 
 Static singleton per AdType. Preserves ads and RTB tokens across cache instance recreations. The host app creates a new cache instance on every show cycle (clear → new), so this state ensures continuity.
 
@@ -1023,7 +952,6 @@ Host app                   AdCacheVladimirImpl          CacheSlotManager
    │                              │  slot2 → slot1            │
    │                              │<──────────────────────────│
    │                              │                           │
-   │                              │  fallbackHandler.observe()│
    │                              │  persistedState.snapshot()│
    │                              │                           │
    │  adSource.show(activity)     │                           │
@@ -1157,36 +1085,6 @@ Host app                   AdCacheVladimirImpl          CacheSlotManager
   Store tokens, collect stats.   │
   Start fresh round for slot2.   │
   → runLoad() recursion          │
-```
-
-### Flow 7: ShowFallbackHandler (Fullscreen)
-
-```
-Host app                   ShowFallbackHandler         CacheSlotManager
-   │                              │                           │
-   │  pop() → primary ad          │                           │
-   │  State: [backup | empty]     │                           │
-   │                              │                           │
-   │  observe(primary)            │                           │
-   │─────────────────────────────>│                           │
-   │                              │  subscribe to primary     │
-   │                              │  adEvent flow             │
-   │                              │                           │
-   │  primary.show(activity)      │                           │
-   │         │                    │                           │
-   │  ShowFailed ────────────────>│                           │
-   │                              │  pop() backup             │
-   │                              │──────────────────────────>│
-   │                              │  backup returned          │
-   │                              │<──────────────────────────│
-   │                              │                           │
-   │                              │  subscribe to backup      │
-   │                              │  forward events to primary│
-   │                              │                           │
-   │                              │  backup.show(activity)    │
-   │                              │                           │
-   │  Shown (from backup) ◄───────│  (forwarded)              │
-   │  Closed (from backup) ◄──────│  (forwarded)              │
 ```
 
 ---
