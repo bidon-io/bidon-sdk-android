@@ -439,7 +439,6 @@ class CacheSlotManager(private val scope: CoroutineScope) {
 
 ```kotlin
 val primaryPrice: Double?           // slot1 price, or null if empty
-val bestPrice: Double               // max(slot1.price, slot2.price), or 0.0
 val cachedDemandIds: Set<String>    // {slot1.demandId, slot2.demandId} (non-null)
 val slotCount: Int                  // 0, 1, or 2
 ```
@@ -501,16 +500,6 @@ awaitAvailable():
   │  Does NOT pop — the caller decides how to consume.
   │
   └─ return
-```
-
-### poll() → AuctionResult (suspend)
-
-```
-poll():
-  │
-  │  1. Suspend on slot1 Flow until non-null.
-  │
-  └─ return pop()!!
 ```
 
 ### isFull() → Boolean
@@ -609,19 +598,6 @@ extractAll():
   │    Add CachedAd(result, auctionInfo) to result list.
   │
   └─ return list (0, 1, or 2 elements)
-```
-
-### clear()
-
-```
-clear():
-  │
-  │  Atomically read and clear both slots.
-  │  For each non-null slot:
-  │    Cancel observeJob.
-  │    Destroy ad source.
-  │
-  └─ return
 ```
 
 ### Expiration Handling (internal)
@@ -754,16 +730,6 @@ loadUnit(adUnit, round, tokens=round.tokens, adTypeParam=round.adTypeParam):
   │  2. Add result to stats collector (if non-null).
   │
   └─ return result (or null)
-```
-
-### fetchTokens(adTypeParam) → Map\<String, TokenInfo\>
-
-```
-fetchTokens(adTypeParam):
-  │
-  │  Call getTokens() from all registered adapters.
-  │
-  └─ return Map<demandId, TokenInfo>
 ```
 
 ### collectStats(round) → RoundStat?

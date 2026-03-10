@@ -64,22 +64,9 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         logInfo(TAG, "awaitAvailable(): slot1 available")
     }
 
-    suspend fun poll(): AuctionResult {
-        logInfo(TAG, "poll(): waiting for slot1 to be non-null...")
-        slot1.first { it != null }
-        logInfo(TAG, "poll(): slot1 available, popping")
-        return pop()!!
-    }
-
     fun isFull(): Boolean = slot1.value != null && slot2.value != null
 
     val primaryPrice: Double? get() = slot1.value?.price
-
-    val bestPrice: Double
-        get() = maxOf(
-            slot1.value?.price ?: 0.0,
-            slot2.value?.price ?: 0.0,
-        )
 
     val cachedDemandIds: Set<String>
         get() = setOfNotNull(
@@ -208,15 +195,6 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
             old.observeJob?.cancel()
             old.auctionResult.adSource.destroy()
         }
-    }
-
-    fun clear() {
-        logInfo(TAG, "clear(): destroying all slots, current state=${description()}")
-        val old1 = slot1.getAndUpdate { null }
-        val old2 = slot2.getAndUpdate { null }
-        old1?.let { destroySlot(it) }
-        old2?.let { destroySlot(it) }
-        logInfo(TAG, "clear(): done → state=${description()}")
     }
 
     // === Internal ===

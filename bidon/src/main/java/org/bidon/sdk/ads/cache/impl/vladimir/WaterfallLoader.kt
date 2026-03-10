@@ -60,21 +60,6 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     // === Public API ===
 
     /**
-     * Fetches RTB tokens from all adapters. Used to refresh expired tokens
-     * before walking remaining units from a previous waterfall.
-     */
-    suspend fun fetchTokens(adTypeParam: AdTypeParam): Map<String, TokenInfo> {
-        logInfo(TAG, "fetchTokens(): fetching fresh RTB tokens...")
-        val tokens = getTokens(
-            adTypeParam = adTypeParam,
-            adaptersSource = adaptersSource,
-            tokenTimeout = biddingConfig.tokenTimeout,
-        )
-        logInfo(TAG, "fetchTokens(): got ${tokens.size} tokens: [${tokens.keys.joinToString()}]")
-        return tokens
-    }
-
-    /**
      * Creates and starts a new auction round:
      * generates UUID, marks started, fetches tokens, sends server request, initializes collector.
      *
