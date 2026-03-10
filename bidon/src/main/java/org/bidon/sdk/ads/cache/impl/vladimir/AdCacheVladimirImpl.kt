@@ -200,6 +200,7 @@ internal class AdCacheVladimirImpl(
     override fun clear() {
         logInfo(TAG, "clear(): slots=${slots.description()}, loadingState=${loadingState.value}")
         retryAttempt = 0
+        lastAdTypeParam = null
         autoRestartJob?.cancel()
         autoRestartJob = null
         loadingJob?.cancel()
@@ -363,6 +364,9 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "handleFill(): ${result.demandId} → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
+        // Every cached ad will be shown — notify as winner at insert time
+        notifyAsWinner(result, round.response.externalWinNotificationsEnabled)
+
         if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
             logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
             adTypeParam.activity.runOnUiThread { onSuccess(result, auctionInfo) }
@@ -381,7 +385,6 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "finalizeLoad(): callbackFired=${callbackFired.get()}")
         slots.logCacheStatus("finalizeLoad")
 
-        notifyWinner(round.response.externalWinNotificationsEnabled)
         loadingState.value = LoadingState.IDLE
         logInfo(TAG, "finalizeLoad(): state→IDLE")
 
@@ -409,23 +412,13 @@ internal class AdCacheVladimirImpl(
 
     // --- Win Notification ---
 
-    private fun notifyWinner(externalWinNotificationsEnabled: Boolean) {
-        val winner = slots.peek()
-        if (winner == null) {
-            logInfo(TAG, "notifyWinner(): no winner (slot1 empty)")
-            return
-        }
-        logInfo(TAG, "notifyWinner(): winner=${winner.demandId} @ ${winner.price}, externalWinNotifications=$externalWinNotificationsEnabled")
-
-        winner.adSource.markWin()
-        logInfo(TAG, "notifyWinner(): markWin() called on ${winner.demandId}")
-
+    private fun notifyAsWinner(result: AuctionResult, externalWinNotificationsEnabled: Boolean) {
+        logInfo(TAG, "notifyAsWinner(): ${result.demandId} @ ${result.price}, externalWinNotifications=$externalWinNotificationsEnabled")
+        result.adSource.markWin()
         if (!externalWinNotificationsEnabled) {
-            if (winner !is AuctionResult.Bidding && winner.adSource is WinLossNotifiable) {
-                (winner.adSource as WinLossNotifiable).notifyWin()
-                logInfo(TAG, "notifyWinner(): notifyWin() sent to ${winner.demandId}")
-            } else {
-                logInfo(TAG, "notifyWinner(): skipped notifyWin() (isBidding=${winner is AuctionResult.Bidding}, isWinLossNotifiable=${winner.adSource is WinLossNotifiable})")
+            if (result !is AuctionResult.Bidding && result.adSource is WinLossNotifiable) {
+                (result.adSource as WinLossNotifiable).notifyWin()
+                logInfo(TAG, "notifyAsWinner(): notifyWin() sent to ${result.demandId}")
             }
         }
     }
