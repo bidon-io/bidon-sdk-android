@@ -685,13 +685,23 @@ startRound(adTypeParam, pricefloor, existingTokens, excludedDemandIds):
   │       - adTypeParam (ad type, pricefloor, activity)
   │       - auctionId
   │       - demandAd
-  │       - registered adapters info
+  │       - registered adapters info (only currently initialized adapters from adaptersSource)
   │       - merged tokens
   │     Server responds with:
   │       - Ordered list of adUnits (waterfall, highest price first)
   │       - pricefloor
   │       - auctionTimeout
   │       - noBids (networks that declined)
+  │
+  │     NOTE: Adapter availability depends on initialization ordering.
+  │     The config response assigns each adapter an "order" value (0, 1, 2, 3...).
+  │     Order 0 (critical) adapters are initialized synchronously before SDK signals ready.
+  │     Higher-order adapters initialize in background asynchronously and are added to
+  │     adaptersSource incrementally as each completes. The first auction round may fire
+  │     before all adapters finish initializing, so only a subset appears in the request.
+  │     The server only returns ad_units for adapters present in the request — it does NOT
+  │     include ad_units for missing adapters. Subsequent rounds include all adapters once
+  │     background initialization completes.
   │
   │  6. INITIALIZE STATS COLLECTOR
   │     Clear previous results.
