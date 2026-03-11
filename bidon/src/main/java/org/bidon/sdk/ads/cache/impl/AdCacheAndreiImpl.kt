@@ -115,13 +115,11 @@ internal class AdCacheAndreiImpl(
 
     override fun peek(): AuctionResult? = peekEntry()?.unwrap()
 
-    override fun pop(): AuctionResult? {
-        val entry = auctionResultsStore.pop()
-        if (entry != null) {
-            maybeStartBackgroundRefill()
-        }
-        return entry?.unwrap()
-    }
+    override fun pop(): AuctionResult? =
+        auctionResultsStore
+            .pop()
+            ?.unwrap()
+            ?.also { maybeStartBackgroundRefill() }
 
     override suspend fun poll(): AuctionResult = auctionResultsStore.poll().unwrap()
 
