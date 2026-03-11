@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.andr
 
 import kotlinx.coroutines.Dispatchers
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
@@ -23,6 +24,7 @@ import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.di.get
+import org.json.JSONObject
 
 internal object AdCacheAndrFactory {
     fun create(
@@ -33,7 +35,8 @@ internal object AdCacheAndrFactory {
         val tag = "AndrCache_${adType.code}"
         val ioDispatcher = Dispatchers.IO
 
-        val adCacheStrategy = AdCacheStrategyFactory().create(demandAd)
+        val cacheSettingsJson = BidonSdk.getExtras()["cache_settings"] as? JSONObject
+        val adCacheStrategy = AdCacheStrategyFactory().create(demandAd, cacheSettingsJson)
 
         val adaptersSource = get<AdaptersSource>()
         val adStoreProvider = get<AdStoreProvider>()
