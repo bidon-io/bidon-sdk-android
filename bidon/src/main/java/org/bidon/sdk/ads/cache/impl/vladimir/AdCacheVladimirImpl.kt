@@ -294,7 +294,7 @@ internal class AdCacheVladimirImpl(
                 if (result?.roundStatus == RoundStatus.Successful) {
                     fillCount++
                     logInfo(TAG, "Load: [$loadIndex] ✓ FILL from ${result.demandId} @ ${result.price}")
-                    handleFill(result, currentRound, adTypeParam, onSuccess)
+                    handleFill(result, currentRound)
                     if (preferRtb?.get() == true) {
                         logInfo(TAG, "Load: preferRtb fill — abandoning waterfall")
                         break
@@ -313,10 +313,8 @@ internal class AdCacheVladimirImpl(
             }
             logInfo(TAG, "Load: processed $loadIndex/${currentRound.adUnits.size} units, filled=$fillCount, skipped=$skipCount")
 
-            if (fillCount == 0 && callbackFired.compareAndSet(false, true)) {
-                val auctionInfo = buildAuctionInfo(currentRound.response)
-                logInfo(TAG, "Load: all waterfall units failed, firing onFailure")
-                adTypeParam.activity.runOnUiThread { onFailure(auctionInfo, BidonError.NoAuctionResults) }
+            if (fillCount == 0) {
+                logInfo(TAG, "Load: all waterfall units failed, callback deferred to finalizeLoad()")
             }
         } == null
 
@@ -359,24 +357,21 @@ internal class AdCacheVladimirImpl(
     private fun handleFill(
         result: AuctionResult,
         round: WaterfallLoader.AuctionRound,
-        adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
         retryAttempt = 0
-        val auctionInfo = buildAuctionInfo(round.response)
-        logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}, callbackFired=${callbackFired.get()}")
+        // Build a preliminary AuctionInfo without roundStat for slot storage.
+        // finalizeLoad() will replace it with the complete version once stats are collected.
+        val preliminaryInfo = buildAuctionInfo(round.response)
+        logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}")
 
-        val primaryUpdated = slots.insert(result, auctionInfo)
+        val primaryUpdated = slots.insert(result, preliminaryInfo)
         logInfo(TAG, "handleFill(): ${result.demandId} → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
         // Every cached ad will be shown — notify as winner at insert time
         notifyAsWinner(result, round.response.externalWinNotificationsEnabled)
-
-        if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
-            logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
-            adTypeParam.activity.runOnUiThread { onSuccess(result, auctionInfo) }
-        }
+        // Callback is NOT fired here — deferred to finalizeLoad() which has roundStat.
+        // This ensures AuctionInfo.adUnits (network_responses) is populated for mediation reports.
     }
 
     // --- Finalization ---
@@ -395,6 +390,10 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "finalizeLoad(): state→IDLE")
 
         val auctionInfo = buildAuctionInfo(round.response, roundStat)
+        // Update the preliminary AuctionInfo stored in slots with the complete version
+        // that includes roundStat (adUnits / noBids for network_responses in mediation reports).
+        slots.updateAuctionInfo(auctionInfo)
+
         if (callbackFired.compareAndSet(false, true)) {
             if (slots.peek() != null) {
                 logInfo(TAG, "finalizeLoad(): FIRING onSuccess callback, slots=${slots.description()}")

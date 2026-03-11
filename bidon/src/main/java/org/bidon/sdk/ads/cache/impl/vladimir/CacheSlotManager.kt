@@ -188,6 +188,20 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         return results
     }
 
+    /**
+     * Updates the [AuctionInfo] stored in all occupied slots.
+     *
+     * During the waterfall loop, [insert] is called with a preliminary [AuctionInfo]
+     * that has no round statistics (adUnits / noBids are null). Once the round
+     * finishes and [RoundStat] is available, the orchestrator calls this method
+     * to replace the preliminary info with the complete one.
+     */
+    fun updateAuctionInfo(auctionInfo: AuctionInfo) {
+        slot1.value?.let { slot1.value = it.copy(auctionInfo = auctionInfo) }
+        slot2.value?.let { slot2.value = it.copy(auctionInfo = auctionInfo) }
+        logInfo(TAG, "updateAuctionInfo(): updated auctionInfo in ${slotCount} slot(s)")
+    }
+
     fun evictBackup() {
         val old = slot2.getAndUpdate { null }
         if (old != null) {

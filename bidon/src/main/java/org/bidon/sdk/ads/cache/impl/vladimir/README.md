@@ -20,9 +20,15 @@ On first load only, a 10s preferRtb timer skips CPM units if slot1 is still empt
 
 If slots aren't full after loading, auto-restart schedules a retry with exponential backoff (2s → 64s cap).
 
-### Immediate Callback
+### Immediate Callback (Warm Start)
 
 If a cached ad already meets the pricefloor, `cache()` fires `onSuccess` immediately without starting an auction. If both slots are full but below the floor, slot2 is evicted to make room for a better ad.
+
+### Deferred Callback (Cold Start)
+
+During a cold-start auction, callbacks are always deferred to `finalizeLoad()` — never fired eagerly from the waterfall loop. This ensures `AuctionInfo` includes `roundStat` data (`adUnits` / `noBids`), which consumers map to `network_responses` in report requests.
+
+Slots receive a preliminary `AuctionInfo` (without stats) at insert time. Once the round finishes and `collectStats()` runs, `finalizeLoad()` builds the complete `AuctionInfo` with `roundStat` and calls `slots.updateAuctionInfo()` to replace the preliminary version before firing the callback.
 
 ### State Persistence
 
