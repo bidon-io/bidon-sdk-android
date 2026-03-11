@@ -91,7 +91,6 @@ internal class DefaultAuctionExecutor(
         val result =
             runCatching {
                 withTimeout(auctionTimeout) {
-                    var successCount = 0
                     while (adUnitQueue.isNotEmpty()) {
                         val batch =
                             collectBatch(
@@ -126,9 +125,10 @@ internal class DefaultAuctionExecutor(
                         for (auctionResult in results) {
                             adUnitQueue.poll()
                             auctionResults.add(auctionResult)
-                            if (auctionResult.roundStatus == RoundStatus.Successful) successCount++
                         }
 
+                        val successCount =
+                            auctionResults.count { it.roundStatus == RoundStatus.Successful }
                         if (stopCondition.shouldStop(
                                 successCount,
                                 results.last(),

@@ -44,8 +44,10 @@ internal class AdCacheAndreiImpl(
 
     private val isLoading = AtomicBoolean(false)
 
+    @Volatile
     private var auctionJob: Job? = null
 
+    @Volatile
     private var refillJob: Job? = null
 
     @Volatile
@@ -171,7 +173,7 @@ internal class AdCacheAndreiImpl(
             return
         }
 
-        if (refillJob?.isActive == true) {
+        if (isLoading.get() || refillJob?.isActive == true) {
             return
         }
 
@@ -214,11 +216,11 @@ internal class AdCacheAndreiImpl(
         lastResult: AuctionResult,
         next: AdUnit?,
     ): Boolean {
-        val threshold = capacity()
+        val threshold = capacity() - size()
         return (successCount >= threshold).also {
             logInfo(
                 tag,
-                "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}) -> $it"
+                "shouldStop: successCount=$successCount, remaining=$threshold (capacity=${capacity()}, cached=${size()}) -> $it"
             )
         }
     }
