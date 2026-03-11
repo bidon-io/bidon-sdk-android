@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit
 internal data class AdCacheStrategy(
     val auctionResultStoreCapacity: Int,
     val rtbResultsStoreTtl: Long,
-    val explorationBudget: Int,
     val refillThreshold: Int,
     val batchSize: Int,
 )
@@ -21,7 +20,6 @@ internal class AdCacheStrategyFactory {
                 AdCacheStrategy(
                     auctionResultStoreCapacity = 6,
                     rtbResultsStoreTtl = DEFAULT_TTL_MS,
-                    explorationBudget = 2,
                     refillThreshold = 3,
                     batchSize = 3,
                 )
@@ -31,7 +29,6 @@ internal class AdCacheStrategyFactory {
                 AdCacheStrategy(
                     auctionResultStoreCapacity = 2,
                     rtbResultsStoreTtl = 0,
-                    explorationBudget = 1,
                     refillThreshold = 1,
                     batchSize = 2,
                 )
@@ -41,7 +38,6 @@ internal class AdCacheStrategyFactory {
                 AdCacheStrategy(
                     auctionResultStoreCapacity = 2,
                     rtbResultsStoreTtl = DEFAULT_TTL_MS,
-                    explorationBudget = 1,
                     refillThreshold = 1,
                     batchSize = 2,
                 )

@@ -55,7 +55,7 @@ internal class AdCacheAndreiImpl(
     private var lastAuctionId: String? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // Ignore
+        // TODO: Implement server params
     }
 
     override fun cache(
@@ -214,11 +214,11 @@ internal class AdCacheAndreiImpl(
         lastResult: AuctionResult,
         next: AdUnit?,
     ): Boolean {
-        val threshold = capacity() + adCacheStrategy.explorationBudget
+        val threshold = capacity()
         return (successCount >= threshold).also {
             logInfo(
                 tag,
-                "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}+exploration=${adCacheStrategy.explorationBudget}) -> $it"
+                "shouldStop: successCount=$successCount, threshold=$threshold (capacity=${capacity()}) -> $it"
             )
         }
     }
