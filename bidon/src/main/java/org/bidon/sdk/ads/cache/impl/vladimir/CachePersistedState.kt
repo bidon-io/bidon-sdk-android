@@ -43,46 +43,26 @@ internal class CachePersistedState private constructor() {
      * Preserves cache state when [AdCacheVladimirImpl.clear] is called.
      * Extracted ads are saved for the next instance.
      *
-     * Ads from adapters known to leak Activity references through third-party singletons
-     * are destroyed instead of preserved. DTExchange's Fyber SDK retains the RequestListener
-     * (with a captured Activity) in InneractiveAdSpotManager's static ConcurrentHashMap,
-     * which prevents the Activity from being GC'd even after onDestroy().
+     * All ads are preserved regardless of demand — successful cached ads are bounded
+     * by the two-slot cache and don't cause unbounded leaks. Failed loads (the actual
+     * leak source) are destroyed immediately in the load loop, not here.
      */
     fun preserveOnClear(extractedAds: List<CachedAd>) {
         preservedAds.clear()
-        val (leaky, safe) = extractedAds.partition { it.result.demandId in LEAK_PRONE_DEMAND_IDS }
-        for (ad in leaky) {
-            logInfo(TAG, "preserveOnClear(): destroying leak-prone ad ${ad.result.demandId} @ ${ad.result.price}")
-            ad.result.adSource.destroy()
-        }
-        preservedAds.addAll(safe)
-        logInfo(TAG, "preserveOnClear(): preserved ${safe.size} ads, destroyed ${leaky.size} leak-prone ads")
+        preservedAds.addAll(extractedAds)
+        logInfo(TAG, "preserveOnClear(): preserved ${extractedAds.size} ads")
     }
 
     /**
      * Eagerly preserves remaining ads for next instance after pop().
      * Protects against new instance creation before clear() is called.
-     *
-     * Note: unlike [preserveOnClear], this only snapshots — it does NOT destroy
-     * leak-prone ads because they're still live in the slot manager.
-     * Destruction happens later in [preserveOnClear] when the cache is cleared.
      */
     fun snapshotOnPop(slots: CacheSlotManager) {
         val remaining = slots.snapshotAll()
         preservedAds.clear()
-        preservedAds.addAll(remaining.filter { it.result.demandId !in LEAK_PRONE_DEMAND_IDS })
-        logInfo(TAG, "snapshotOnPop(): snapshot ${remaining.size} remaining ads, " +
-            "excluded ${remaining.size - preservedAds.size} leak-prone ads from persisted state")
+        preservedAds.addAll(remaining)
+        logInfo(TAG, "snapshotOnPop(): snapshot ${remaining.size} remaining ads")
     }
 }
 
 private const val TAG = "AdCacheVladimir.CachePersistedState"
-
-/**
- * Adapters whose third-party SDKs retain Activity references through process-lifetime singletons.
- * These ads must not be preserved across cache instances to avoid leaking destroyed Activities.
- *
- * DTExchange (Fyber): InneractiveAdSpotManager singleton keeps RequestListener in a ConcurrentHashMap,
- * which holds a closure over DTExchangeBannerAuctionParams.activity.
- */
-private val LEAK_PRONE_DEMAND_IDS = setOf("dtexchange")

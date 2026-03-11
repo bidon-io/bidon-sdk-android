@@ -301,6 +301,14 @@ internal class AdCacheVladimirImpl(
                     }
                 } else {
                     logInfo(TAG, "Load: [$loadIndex] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
+                    // Destroy failed ad sources immediately to release adapter resources.
+                    // Failed loads create internal SDK objects (e.g. DT Exchange spots in
+                    // InneractiveAdSpotManager) that won't be cleaned up by GC alone.
+                    // AuctionFailed has no real adSource (throws on access), so skip those.
+                    if (result is AuctionResult.Network || result is AuctionResult.Bidding) {
+                        result.adSource.destroy()
+                        logInfo(TAG, "Load: [$loadIndex] destroyed failed adSource for ${adUnit.demandId}")
+                    }
                 }
             }
             logInfo(TAG, "Load: processed $loadIndex/${currentRound.adUnits.size} units, filled=$fillCount, skipped=$skipCount")

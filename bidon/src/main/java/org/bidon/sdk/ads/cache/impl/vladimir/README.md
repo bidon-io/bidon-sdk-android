@@ -31,6 +31,22 @@ The host app recreates the cache instance on every show cycle (`clear()` → new
 - RTB tokens (15-min per-network expiration)
 - Cached ads (eagerly snapshot on `pop()`, extracted on `clear()`, restored in `init`)
 
+### Failed Ad Source Cleanup
+
+Failed `loadUnit()` calls create adapter SDK resources (listeners, ad spots, etc.) that persist even after the `AdSource` instance is garbage collected — some adapters register objects in process-lifetime singletons (e.g. DT Exchange's `InneractiveAdSpotManager`). To prevent accumulation, the load loop calls `adSource.destroy()` immediately on every non-successful result that carries a real ad source (i.e. `AuctionResult.Network` or `AuctionResult.Bidding`, but not `AuctionFailed`).
+
+Note: DT Exchange's `destroy()` is a no-op when the load fails (the spot reference is never stored in the field), so their singleton leak cannot be fixed from outside the adapter. This is a known DT Exchange SDK limitation.
+
+## Known Issues
+
+### DT Exchange failed-load memory leak
+
+DT Exchange's Fyber SDK creates ad spots via `InneractiveAdSpotManager.get().createSpot()` and registers them in a static `ConcurrentHashMap` (process-lifetime singleton). On successful load, the adapter stores the spot reference in its field, so `destroy()` can later call `spot.destroy()` to remove it from the map. On failed load, the spot reference is never stored — it remains a local variable that goes out of scope. Calling `adSource.destroy()` does nothing because the field is null, and the spot stays in the singleton forever (~200KB per spot).
+
+This should be fixed in adapter. The fix is a one-line change in the adapter (`adapter/dtexchange/`): store the spot reference immediately after `createSpot()`, before calling `requestAd()`, so that `destroy()` can always clean it up regardless of load outcome.
+
+The base `AdCacheImpl` has the same underlying issue but triggers it less frequently — it runs one auction per `cache()` call with no auto-restart, while vladimir cache version retries with exponential backoff, creating more failed-load opportunities.
+
 ## Files
 
 | File | Purpose |
