@@ -75,16 +75,14 @@ internal class TwoLevelAdManager(
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
         // WARM START — mirrors iOS ZhenyaFullscreenAdManager.loadAd warm-start check.
-        // iOS only checks Main cache here; Fallback is only consulted after auction failure.
+        // Peek only — do NOT pop. The ad stays in cache until show() calls pop().
+        // iOS also peeks without popping here.
         val warmMain = mainCache.peek()
         if (warmMain != null && warmMain.adSource.getStats().price >= adTypeParam.pricefloor) {
-            val popped = mainCache.popFirst()
-            if (popped != null) {
-                logInfo(TAG, "[$adTypeLabel] Warm start from Main: ${popped.adSource.getStats().demandId.demandId}")
-                val info = buildSyntheticAuctionInfo(popped)
-                withContext(Dispatchers.Main) { onSuccess(popped, info) }
-                return
-            }
+            logInfo(TAG, "[$adTypeLabel] Warm start from Main: ${warmMain.adSource.getStats().demandId.demandId}")
+            val info = buildSyntheticAuctionInfo(warmMain)
+            withContext(Dispatchers.Main) { onSuccess(warmMain, info) }
+            return
         }
 
         // COLD START — guard against duplicate loads.
