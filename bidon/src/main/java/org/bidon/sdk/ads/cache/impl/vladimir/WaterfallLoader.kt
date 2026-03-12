@@ -128,8 +128,8 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     }
 
     /**
-     * Loads a single ad unit: requests the ad, adds to results collector, returns the result.
-     * Does NOT insert into cache slots — that's the orchestrator's job.
+     * Loads a single ad unit and returns the result.
+     * Does NOT add to the results collector or insert into cache slots — caller manages both.
      */
     suspend fun loadUnit(
         adUnit: AdUnit,
@@ -154,11 +154,15 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
         }
         logInfo(TAG, "loadUnit(): ${adUnit.demandId} → status=$status, price=$resultPrice")
 
-        if (auctionResult != null) {
-            resultsCollector.add(auctionResult)
-            logInfo(TAG, "loadUnit(): added ${adUnit.demandId} to resultsCollector")
-        }
         return auctionResult
+    }
+
+    /**
+     * Adds a result to the stats collector. Called by the orchestrator after deciding
+     * what roundStatus the result should carry in stats (e.g. Win for cached slot units).
+     */
+    fun addToCollector(result: AuctionResult) {
+        resultsCollector.add(result)
     }
 
     /**

@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
@@ -295,11 +296,25 @@ internal class AdCacheVladimirImpl(
                     fillCount++
                     logInfo(TAG, "Load: [$loadIndex] ✓ FILL from ${result.demandId} @ ${result.price}")
                     handleFill(result, currentRound)
+
+                    // Add to stats collector: first fill keeps Successful (becomes round winner),
+                    // subsequent fills get Win status so AuctionStatImpl won't downgrade them to LOSE.
+                    if (fillCount == 1) {
+                        loader.addToCollector(result)
+                    } else {
+                        loader.addToCollector(result.withRoundStatus(RoundStatus.Win))
+                        logInfo(TAG, "Load: [$loadIndex] added ${result.demandId} to collector as WIN (slot2)")
+                    }
+
                     if (preferRtb?.get() == true) {
                         logInfo(TAG, "Load: preferRtb fill — abandoning waterfall")
                         break
                     }
                 } else {
+                    // Add failures to stats collector as-is
+                    if (result != null) {
+                        loader.addToCollector(result)
+                    }
                     logInfo(TAG, "Load: [$loadIndex] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
                     // Destroy failed ad sources immediately to release adapter resources.
                     // Failed loads create internal SDK objects (e.g. DT Exchange spots in
@@ -420,6 +435,14 @@ internal class AdCacheVladimirImpl(
     private fun notifyAsWinner(result: AuctionResult, externalWinNotificationsEnabled: Boolean) {
         logInfo(TAG, "notifyAsWinner(): ${result.demandId} @ ${result.price}, externalWinNotifications=$externalWinNotificationsEnabled")
         result.adSource.markWin()
+
+        // Send Bidon win HTTP request for all units inserted into cache slots
+        val statsCollector = result.adSource as StatisticsCollector
+        statsCollector.sendWin()
+        // Mark as sent to prevent duplicate win/loss at show time
+        statsCollector.markWinLoseNotificationsSent()
+        logInfo(TAG, "notifyAsWinner(): sendWin() sent for ${result.demandId}")
+
         if (!externalWinNotificationsEnabled) {
             if (result !is AuctionResult.Bidding && result.adSource is WinLossNotifiable) {
                 (result.adSource as WinLossNotifiable).notifyWin()
@@ -502,6 +525,16 @@ internal class AdCacheVladimirImpl(
             adUnits = roundStat?.demands?.map { it.toAuctionInfo() },
         )
     }
+}
+
+/**
+ * Creates a new [AuctionResult] with the given [roundStatus], preserving the same adSource.
+ * Used to override the immutable roundStatus for stats reporting (e.g. marking cached slot2 as Win).
+ */
+private fun AuctionResult.withRoundStatus(roundStatus: RoundStatus): AuctionResult = when (this) {
+    is AuctionResult.Network -> AuctionResult.Network(adSource = adSource, roundStatus = roundStatus)
+    is AuctionResult.Bidding -> AuctionResult.Bidding(adSource = adSource, roundStatus = roundStatus)
+    is AuctionResult.AuctionFailed -> this // Failed results should not be re-wrapped
 }
 
 private const val TAG = "AdCacheVladimir"
