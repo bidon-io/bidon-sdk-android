@@ -15,6 +15,7 @@ import org.bidon.sdk.ads.cache.andr.preparation.AdaptersInfoCollector
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionConfigurator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
+import org.bidon.sdk.ads.cache.andr.token.TokenCollectionProvider
 import org.bidon.sdk.ads.cache.andr.token.TokenCollector
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
 import org.bidon.sdk.ads.cache.impl.AdCacheAndreiImpl
@@ -40,6 +41,7 @@ internal object AdCacheAndrFactory {
 
         val adaptersSource = get<AdaptersSource>()
         val adStoreProvider = get<AdStoreProvider>()
+        val tokenCollectionProvider = get<TokenCollectionProvider>()
         val auctionResultsStore =
             adStoreProvider.auctionResultStore(
                 adCacheStrategy = adCacheStrategy,
@@ -87,6 +89,7 @@ internal object AdCacheAndrFactory {
                                     ioDispatcher = ioDispatcher,
                                     biddingConfig = get<BiddingConfig>(),
                                     tokenCollector = TokenCollector(tag = tag),
+                                    circuitBreaker = tokenCollectionProvider.circuitBreaker(adType, tag),
                                 ),
                         ),
                     auctionExecutorFactory =
