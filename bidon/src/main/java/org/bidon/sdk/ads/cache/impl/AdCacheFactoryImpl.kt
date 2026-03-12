@@ -39,9 +39,11 @@ internal class AdCacheFactoryImpl(
                 resolver = resolver
             )
 
-            AdCacheVersion.V2 -> AdCacheTwoLevelFactory.create(
-                demandAd = demandAd,
-            )
+            AdCacheVersion.V2 -> {
+                AdCacheTwoLevelFactory.create(
+                    demandAd = demandAd,
+                )
+            }
 
             AdCacheVersion.V3 -> {
                 AdCacheAndrFactory.create(
