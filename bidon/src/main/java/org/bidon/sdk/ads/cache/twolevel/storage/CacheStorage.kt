@@ -106,23 +106,16 @@ internal class CacheStorage(
             return@withLock InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected)
         }
 
-        // 4. Capacity check: only insert if new item beats the cheapest evictable.
+        // 4. Capacity check: only reject if new item doesn't beat the cheapest evictable.
         // iOS: `if items.count == capacity, let cheapest = cheapestAllowedToEvictPrice(), element.price <= cheapest`
         // When cheapest is nil (e.g. sticky head only, no tail), the condition fails → skip to insert.
-        // trimIfNeeded() in step 5 handles overflow after insert.
+        // iOS does NOT evict here — trimIfNeeded() in step 5 handles overflow after insert.
         if (items.size >= capacity) {
-            val cheapest = cheapestAllowedToEvict()
-            if (cheapest != null && price <= cheapest.price()) {
-                logInfo(TAG, "[Main] insert REJECTED CacheFull: price=$price cheapest=${cheapest.price()}")
+            val cheapestPrice = cheapestAllowedToEvictPrice()
+            if (cheapestPrice != null && price <= cheapestPrice) {
+                logInfo(TAG, "[Main] insert REJECTED CacheFull: price=$price cheapest=$cheapestPrice")
                 logCacheState()
                 return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
-            }
-            // Evict cheapest to make room (if there is one to evict)
-            if (cheapest != null) {
-                items.remove(cheapest)
-                rebuildIndex()
-                logInfo(TAG, "[Main] evicted ${cheapest.demandKey()} price=${cheapest.price()}")
-                cheapest.adSource.destroy()
             }
         }
 
@@ -195,19 +188,18 @@ internal class CacheStorage(
     }
 
     /**
-     * Returns the cheapest item eligible for eviction.
+     * Returns the price of the cheapest item eligible for eviction.
      *
-     * In sticky mode the head (items[0]) is protected, so the cheapest
-     * candidate comes from the tail (items[1..]).
-     * In normal mode cheapest is items.last() (array is sorted descending).
+     * iOS cheapestAllowedToEvictPrice(): returns items.last?.price,
+     * relying on the array being sorted descending so last == cheapest.
+     * In sticky mode, requires at least 2 items (head is protected).
      */
-    private fun cheapestAllowedToEvict(): AuctionResult? {
-        return if (stickyHeadActive && items.size > 1) {
-            items.subList(1, items.size).minByOrNull { it.price() }
-        } else if (!stickyHeadActive && items.isNotEmpty()) {
-            items.last()
+    private fun cheapestAllowedToEvictPrice(): Double? {
+        if (items.isEmpty()) return null
+        return if (stickyHeadActive) {
+            if (items.size >= 2) items.last().price() else null
         } else {
-            null
+            items.last().price()
         }
     }
 

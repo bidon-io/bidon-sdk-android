@@ -87,6 +87,8 @@ internal class ZhenyaAuctionController(
         logInfo(TAG, "[$adTypeLabel] pipeline failed ($error) — checking Fallback")
 
         // iOS: check fallback for ad >= pricefloor before propagating failure.
+        // peek + pop is safe: FallbackCacheStorage uses Mutex internally,
+        // and this controller runs one auction at a time (sequential pipeline).
         val fallbackAd = fallbackCache.peek()
         if (fallbackAd != null && fallbackAd.adSource.getStats().price >= pricefloor) {
             val popped = fallbackCache.popFirst()
