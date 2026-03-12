@@ -14,15 +14,14 @@ import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.twolevel.config.TwoLevelCacheConfig
 import org.bidon.sdk.ads.cache.twolevel.pool.ManagerPool
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AuctionResult
 
 /**
  * Thin lazy-resolving proxy returned by [AdCacheTwoLevelFactory.create].
  *
  * The auctionKey is only available via [AdTypeParam] at [cache] call time, not at
- * factory creation time. This proxy stores the [DemandAd] and [AuctionResolver] and
- * resolves the real [ZhenyaAdManager] from [ManagerPool] on the first [cache] call.
+ * factory creation time. This proxy stores the [DemandAd] and resolves the real
+ * [ZhenyaAdManager] from [ManagerPool] on the first [cache] call.
  * All subsequent calls delegate directly to the resolved manager.
  *
  * Thread safety:
@@ -31,7 +30,6 @@ import org.bidon.sdk.auction.models.AuctionResult
  */
 internal class ZhenyaAdManagerProxy(
     override val demandAd: DemandAd,
-    private val resolver: AuctionResolver,
 ) : AdCache {
 
     @Volatile private var delegate: ZhenyaAdManager? = null
@@ -55,7 +53,7 @@ internal class ZhenyaAdManagerProxy(
             delegate ?: run {
                 val config = TwoLevelCacheConfig.fromExtras(demandAd.adType)
                 val key = adTypeParam.auctionKey ?: "default_${demandAd.adType.code}"
-                ManagerPool.getOrCreate(key, demandAd, config, resolver)
+                ManagerPool.getOrCreate(key, demandAd, config)
                     .also { delegate = it }
             }
         }

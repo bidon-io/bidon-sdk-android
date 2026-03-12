@@ -228,7 +228,7 @@ internal class CacheStorage(
     private fun trimIfNeeded(): List<AuctionResult> {
         val evicted = mutableListOf<AuctionResult>()
         while (items.size > capacity) {
-            val removed = items.removeLast()
+            val removed = items.removeAt(items.lastIndex)
             evicted.add(removed)
         }
         rebuildIndex()

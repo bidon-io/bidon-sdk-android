@@ -2,7 +2,6 @@ package org.bidon.sdk.ads.cache.twolevel
 
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
@@ -23,10 +22,9 @@ internal object AdCacheTwoLevelFactory {
      */
     fun create(
         demandAd: DemandAd,
-        resolver: AuctionResolver,
     ): AdCache {
         logInfo(TAG, "[TwoLevelCache] creating V6 AdCache for ${demandAd.adType}")
-        return ZhenyaAdManagerProxy(demandAd = demandAd, resolver = resolver)
+        return ZhenyaAdManagerProxy(demandAd = demandAd)
     }
 
     private const val TAG = "[TwoLevelCache]"

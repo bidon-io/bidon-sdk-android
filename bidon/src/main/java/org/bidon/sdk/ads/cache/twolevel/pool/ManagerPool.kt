@@ -11,11 +11,12 @@ import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.twolevel.ZhenyaAdManager
+import org.bidon.sdk.ads.cache.twolevel.auction.SequentialAuctionPipeline
 import org.bidon.sdk.ads.cache.twolevel.auction.ZhenyaAuctionController
 import org.bidon.sdk.ads.cache.twolevel.config.TwoLevelCacheConfig
 import org.bidon.sdk.ads.cache.twolevel.storage.TwoLevelCacheStores
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.utils.di.get
 import java.lang.ref.WeakReference
 
 /**
@@ -63,7 +64,6 @@ internal object ManagerPool {
         auctionKey: String,
         demandAd: DemandAd,
         config: TwoLevelCacheConfig,
-        resolver: AuctionResolver,
     ): ZhenyaAdManager = mutex.withLock {
         // Check existing — reuse if WeakReference is still live
         val existing = pool[auctionKey]
@@ -81,10 +81,18 @@ internal object ManagerPool {
         // Get (or lazily init) static stores for this AdType — mirrors iOS Cacher static fields
         val stores = TwoLevelCacheStores.getOrCreate(demandAd.adType, config)
 
+        val pipeline = SequentialAuctionPipeline(
+            adaptersSource = get(),
+            getTokens = get(),
+            getAuctionRequest = get(),
+            auctionStat = get(),
+            biddingConfig = get(),
+            adTypeLabel = demandAd.adType.code.uppercase(),
+        )
+
         val controller = ZhenyaAuctionController(
-            mainCache = stores.main,
+            pipeline = pipeline,
             fallbackCache = stores.fallback,
-            resolver = resolver,
             adTypeLabel = demandAd.adType.code.uppercase(),
         )
 

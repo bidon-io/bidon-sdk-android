@@ -81,7 +81,7 @@ internal class CacheStorageTest {
         val storage = CacheStorage(capacity = 2, iterationThreshold = 80)
         storage.beginIteration()
         storage.insert(makeResult("dem1", 10.0), sticky = false) // sets max = 10.0
-        storage.insert(makeResult("dem2", 9.0), sticky = false)  // 9.0 >= 8.0 → passes
+        storage.insert(makeResult("dem2", 9.0), sticky = false) // 9.0 >= 8.0 → passes
 
         // Start new iteration so threshold is reset, then insert the cheap item
         storage.beginIteration()
@@ -97,7 +97,7 @@ internal class CacheStorageTest {
         val storage = CacheStorage(capacity = 2, iterationThreshold = 80)
         storage.beginIteration()
         storage.insert(makeResult("dem1", 10.0), sticky = false) // sets max = 10.0
-        storage.insert(makeResult("dem2", 9.0), sticky = false)  // passes
+        storage.insert(makeResult("dem2", 9.0), sticky = false) // passes
 
         // new iteration, insert with same price as cheapest (9.0) — <= means rejected by CacheFull
         storage.beginIteration()
@@ -116,7 +116,7 @@ internal class CacheStorageTest {
         storage.beginIteration()
         val cheap = makeResult("dem_cheap", 9.0)
         storage.insert(makeResult("dem_expensive", 10.0), sticky = false) // max = 10.0
-        storage.insert(cheap, sticky = false)                              // 9.0 >= 8.0 → passes
+        storage.insert(cheap, sticky = false) // 9.0 >= 8.0 → passes
 
         // new iteration, insert more expensive than cheapest (9.0) → evicts cheap
         storage.beginIteration()

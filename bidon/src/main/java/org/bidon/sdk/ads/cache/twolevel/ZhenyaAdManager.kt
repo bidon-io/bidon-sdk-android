@@ -93,21 +93,26 @@ internal class ZhenyaAdManager(
             return
         }
 
+        // Tracks whether the first-fill onSuccess callback has fired.
+        val firstFillFired = AtomicBoolean(false)
+
         try {
-            // startSuspending suspends until the underlying auction callback fires and all
-            // per-winner routing via singleLoadCompletion completes, so the finally block
-            // correctly resets auctionRunning after the auction is truly finished.
-            controller.startSuspending(
+            // controller.start() suspends until the pipeline completes all ad units.
+            // The finally block correctly resets auctionRunning once the pipeline is done.
+            controller.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
-                singleLoadCompletion = { winner, isFirstLoad ->
-                    // Route each winner to Main (sticky for first fill) or Fallback on rejection.
+                singleLoadCompletion = { winner ->
+                    // Determine if this is the very first fill of this auction run.
+                    val isFirst = firstFillFired.compareAndSet(false, true)
+
+                    // Route: Main cache (sticky for first fill) → Fallback → destroy.
                     // Mirrors iOS: Cacher.Main.interstitialStorage.insert(ad, sticky: isFirstLoad)
-                    val mainResult = mainCache.insert(winner, sticky = isFirstLoad)
+                    val mainResult = mainCache.insert(winner, sticky = isFirst)
                     logInfo(
                         TAG,
                         "[$adTypeLabel] singleLoadCompletion winner=${winner.adSource.getStats().demandId.demandId}" +
-                            " isFirstLoad=$isFirstLoad mainResult=$mainResult",
+                            " isFirst=$isFirst mainResult=$mainResult",
                     )
                     if (!mainResult.isInserted) {
                         val fallbackResult = fallbackCache.insert(winner)
@@ -118,9 +123,20 @@ internal class ZhenyaAdManager(
                             logInfo(TAG, "[$adTypeLabel] winner destroyed (rejected by both caches)")
                         }
                     }
+
+                    // iOS: first fill → delegate?.adManager(self, didLoad: ad, …) on main thread.
+                    if (isFirst) {
+                        val info = buildSyntheticAuctionInfo(winner)
+                        withContext(Dispatchers.Main) { onSuccess(winner, info) }
+                    }
                 },
-                onSuccess = onSuccess,
-                onFailure = onFailure,
+                onComplete = { auctionInfo, error ->
+                    if (error != null && !firstFillFired.get()) {
+                        // Auction ended with no fills and the controller did not find a fallback ad.
+                        withContext(Dispatchers.Main) { onFailure(auctionInfo, error) }
+                    }
+                    // If firstFillFired == true, onSuccess was already delivered — nothing more to do.
+                },
             )
         } finally {
             auctionRunning.set(false)
@@ -172,6 +188,10 @@ internal class ZhenyaAdManager(
 
     // ---
 
+    /**
+     * Builds a minimal [AuctionInfo] for warm-start and fallback-served ads where no real
+     * auction info is available (e.g., serving a cached ad without a live auction response).
+     */
     private fun buildSyntheticAuctionInfo(result: AuctionResult): AuctionInfo {
         val stats = result.adSource.getStats()
         return AuctionInfo(

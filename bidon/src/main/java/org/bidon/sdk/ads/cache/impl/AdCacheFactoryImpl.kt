@@ -68,7 +68,6 @@ internal class AdCacheFactoryImpl(
 
             AdCacheVersion.V6 -> AdCacheTwoLevelFactory.create(
                 demandAd = demandAd,
-                resolver = resolver,
             )
         }
     }
