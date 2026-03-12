@@ -6,7 +6,7 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Main cache storage for the Two-Level Cache (V6) strategy.
+ * Main cache storage for the Two-Level Cache strategy.
  *
  * Port of iOS CacheStorage.swift (Zhenya strategy). Maintains a sorted array of
  * AuctionResult items with sticky-head mode and per-iteration threshold filtering.

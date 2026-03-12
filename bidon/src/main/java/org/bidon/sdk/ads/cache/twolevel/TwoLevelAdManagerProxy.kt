@@ -21,18 +21,18 @@ import org.bidon.sdk.auction.models.AuctionResult
  *
  * The auctionKey is only available via [AdTypeParam] at [cache] call time, not at
  * factory creation time. This proxy stores the [DemandAd] and resolves the real
- * [ZhenyaAdManager] from [ManagerPool] on the first [cache] call.
+ * [TwoLevelAdManager] from [ManagerPool] on the first [cache] call.
  * All subsequent calls delegate directly to the resolved manager.
  *
  * Thread safety:
  *  - [delegate] is @Volatile for safe publication after assignment.
  *  - [resolveMutex] ensures exactly one manager is created even under concurrent calls.
  */
-internal class ZhenyaAdManagerProxy(
+internal class TwoLevelAdManagerProxy(
     override val demandAd: DemandAd,
 ) : AdCache {
 
-    @Volatile private var delegate: ZhenyaAdManager? = null
+    @Volatile private var delegate: TwoLevelAdManager? = null
     private val resolveMutex = Mutex()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -47,7 +47,7 @@ internal class ZhenyaAdManagerProxy(
         }
     }
 
-    private suspend fun resolveDelegate(adTypeParam: AdTypeParam): ZhenyaAdManager {
+    private suspend fun resolveDelegate(adTypeParam: AdTypeParam): TwoLevelAdManager {
         delegate?.let { return it }
         return resolveMutex.withLock {
             delegate ?: run {
@@ -76,6 +76,6 @@ internal class ZhenyaAdManagerProxy(
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // NO-OP: V6 uses TwoLevelCacheConfig sourced from server extras.
+        // NO-OP: Two-Level Cache uses TwoLevelCacheConfig sourced from server extras.
     }
 }

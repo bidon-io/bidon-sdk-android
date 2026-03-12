@@ -1,6 +1,6 @@
-# Two-Level Cache (V6) — Android Port of iOS Zhenya Strategy
+# Two-Level Cache — Android Port of iOS Zhenya Strategy
 
-Port of the iOS "Zhenya" two-level cache strategy. Cache strategy V6, registered in `AdCacheVersion`, selectable via `cache_settings` JSON extras. Will eventually replace Denis (V2).
+Port of the iOS "Zhenya" two-level cache strategy. Registered as `AdCacheVersion.V6` in `AdCacheFactoryImpl`, selectable via `cache_settings` JSON extras (`"strategy_version": "v6"`). Replaces Denis (V2/V3).
 
 Supported ad types: Interstitial + Banner (MVP scope).
 
@@ -24,8 +24,8 @@ Supported ad types: Interstitial + Banner (MVP scope).
 ```
 twolevel/
 ├── AdCacheTwoLevelFactory.kt       # Factory entry point
-├── ZhenyaAdManager.kt              # AdCache facade (iOS ZhenyaFullscreenAdManager)
-├── ZhenyaAdManagerProxy.kt         # Lazy proxy (suspending ManagerPool.getOrCreate)
+├── TwoLevelAdManager.kt            # AdCache facade (iOS ZhenyaFullscreenAdManager)
+├── TwoLevelAdManagerProxy.kt       # Lazy proxy (suspending ManagerPool.getOrCreate)
 ├── TWOLEVEL_CACHE.md               # This file
 │
 ├── storage/
@@ -36,7 +36,7 @@ twolevel/
 │
 ├── auction/
 │   ├── SequentialAuctionPipeline.kt # Custom sequential waterfall (replaces Auction.start())
-│   └── ZhenyaAuctionController.kt  # Orchestrator: delegates to pipeline, fallback on failure
+│   └── TwoLevelAuctionController.kt  # Orchestrator: delegates to pipeline, fallback on failure
 │
 ├── pool/
 │   └── ManagerPool.kt              # Singleton pool keyed by auctionKey, WeakReference, cleanup
@@ -55,12 +55,12 @@ twolevel/
 | `FallbackCacheStorage.swift` | `FallbackCacheStorage.kt` |
 | `Cacher.swift` (static singletons) | `TwoLevelCacheStores.kt` |
 | `ZhenyaManagerPool.swift` | `ManagerPool.kt` |
-| `ZhenyaFullscreenAdManager.swift` | `ZhenyaAdManager.kt` |
-| `ZhenyaAuctionController.swift` | `SequentialAuctionPipeline.kt` + `ZhenyaAuctionController.kt` |
+| `ZhenyaFullscreenAdManager.swift` | `TwoLevelAdManager.kt` |
+| `TwoLevelAuctionController.swift` | `SequentialAuctionPipeline.kt` + `TwoLevelAuctionController.kt` |
 | `AdCacheConfig.swift` | `TwoLevelCacheConfig.kt` |
 | `OperationQueue(maxConcurrent=1)` | Kotlin coroutine sequential `for` loop |
 | `NSLock` / `DispatchQueue` | `kotlinx.coroutines.sync.Mutex` |
-| `weak var` | `WeakReference<ZhenyaAdManager>` |
+| `weak var` | `WeakReference<TwoLevelAdManager>` |
 | `Timer.scheduledTimer` | `CoroutineScope` + `delay()` loop |
 
 iOS sources: `/Users/glavatskikh/XcodeProjects/bidon-sdk-ios`, branch `feature/ad-caching`.
@@ -78,7 +78,7 @@ InterstitialImpl.load(pricefloor)
     |
     +- AUCTION RUNNING: ignore duplicate (AtomicBoolean guard)
     |
-    +- COLD START: beginIteration() -> ZhenyaAuctionController -> SequentialAuctionPipeline
+    +- COLD START: beginIteration() -> TwoLevelAuctionController -> SequentialAuctionPipeline
         |
         +- Collect RTB tokens
         +- POST /auction -> receive adUnits list
@@ -129,11 +129,11 @@ Port of `FallbackCacheStorage.swift`. No sticky mode, no threshold. Eviction use
 
 Custom sequential waterfall. Processes ad units one-by-one, fires `singleLoadCompletion` immediately per fill. Per-unit timeout via `withTimeout(adUnit.timeout)`, global timeout via `withTimeout(auctionTimeout)`.
 
-### ZhenyaAuctionController
+### TwoLevelAuctionController
 
 Thin orchestrator. Delegates to pipeline. On failure, checks Fallback >= pricefloor before propagating error.
 
-### ZhenyaAdManager
+### TwoLevelAdManager
 
 `AdCache` facade. Warm start (peek+pop Main), cold start (beginIteration + controller), duplicate load guard (AtomicBoolean).
 
@@ -143,7 +143,7 @@ Thin orchestrator. Delegates to pipeline. On failure, checks Fallback >= pricefl
 
 ### ManagerPool
 
-Singleton pool keyed by auctionKey. `WeakReference<ZhenyaAdManager>`. Cleanup every 60s: idle AND (>5min OR weak ref dead).
+Singleton pool keyed by auctionKey. `WeakReference<TwoLevelAdManager>`. Cleanup every 60s: idle AND (>5min OR weak ref dead).
 
 ### TwoLevelCacheStores
 
@@ -180,7 +180,7 @@ Parses from `BidonSdk.getExtras()["cache_settings"]` JSON. Defaults: mainCacheSi
 | TwoLevelCacheStores | `Mutex` for lazy init |
 | ManagerPool | `Mutex` for pool access + cleanup |
 | SequentialAuctionPipeline | Sequential by design (coroutine `for` loop) |
-| ZhenyaAdManager | `AtomicBoolean` for auction-running guard |
+| TwoLevelAdManager | `AtomicBoolean` for auction-running guard |
 | Callbacks | Always `Dispatchers.Main` |
 
 ---

@@ -36,9 +36,9 @@ import java.util.UUID
 import kotlin.coroutines.coroutineContext
 
 /**
- * Sequential auction pipeline for V6 Two-Level Cache.
+ * Sequential auction pipeline for Two-Level Cache.
  *
- * Direct Android port of the iOS ZhenyaAuctionController sequential OperationQueue flow:
+ * Direct Android port of the iOS TwoLevelAuctionController sequential OperationQueue flow:
  *
  * iOS uses OperationQueue(maxConcurrentOperationCount=1) to process ad units one by one.
  * After each unit completes loading (fill or failure), a "finish demand operation" fires

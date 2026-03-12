@@ -14,7 +14,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Thin orchestrator for the V6 Two-Level Cache sequential auction.
+ * Thin orchestrator for the Two-Level Cache sequential auction.
  *
  * Delegates all auction logic to [SequentialAuctionPipeline], which directly replaces
  * the old [org.bidon.sdk.auction.Auction]-based approach.
@@ -24,9 +24,9 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * iOS handlePerformAuctionRequestFailed behavior in ZhenyaFullscreenAdManager.
  *
  * Routing decisions (main vs. fallback insert) are NOT performed here — they belong in
- * [org.bidon.sdk.ads.cache.twolevel.ZhenyaAdManager] via the [singleLoadCompletion] lambda.
+ * [org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager] via the [singleLoadCompletion] lambda.
  */
-internal class ZhenyaAuctionController(
+internal class TwoLevelAuctionController(
     private val pipeline: SequentialAuctionPipeline,
     private val fallbackCache: FallbackCacheStorage,
     private val adTypeLabel: String,

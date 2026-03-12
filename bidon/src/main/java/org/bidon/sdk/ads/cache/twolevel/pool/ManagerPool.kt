@@ -10,9 +10,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.cache.twolevel.ZhenyaAdManager
+import org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager
 import org.bidon.sdk.ads.cache.twolevel.auction.SequentialAuctionPipeline
-import org.bidon.sdk.ads.cache.twolevel.auction.ZhenyaAuctionController
+import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.config.TwoLevelCacheConfig
 import org.bidon.sdk.ads.cache.twolevel.storage.TwoLevelCacheStores
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -20,7 +20,7 @@ import org.bidon.sdk.utils.di.get
 import java.lang.ref.WeakReference
 
 /**
- * Singleton pool of [ZhenyaAdManager] instances keyed by auctionKey.
+ * Singleton pool of [TwoLevelAdManager] instances keyed by auctionKey.
  *
  * Mirrors iOS ZhenyaManagerPool:
  * - One manager per auctionKey — if a new InterstitialImpl is created with the same
@@ -36,7 +36,7 @@ import java.lang.ref.WeakReference
 internal object ManagerPool {
 
     private data class PoolEntry(
-        val weakRef: WeakReference<ZhenyaAdManager>,
+        val weakRef: WeakReference<TwoLevelAdManager>,
         val adType: AdType,
         val createdAt: Long, // SystemClock.elapsedRealtime()
     )
@@ -53,7 +53,7 @@ internal object ManagerPool {
     }
 
     /**
-     * Returns the existing live [ZhenyaAdManager] for [auctionKey], or creates a new one.
+     * Returns the existing live [TwoLevelAdManager] for [auctionKey], or creates a new one.
      *
      * The returned manager holds a strong reference. As long as the caller
      * (InterstitialImpl / BannerView) holds the AdCache reference, the manager stays alive.
@@ -64,7 +64,7 @@ internal object ManagerPool {
         auctionKey: String,
         demandAd: DemandAd,
         config: TwoLevelCacheConfig,
-    ): ZhenyaAdManager = mutex.withLock {
+    ): TwoLevelAdManager = mutex.withLock {
         // Check existing — reuse if WeakReference is still live
         val existing = pool[auctionKey]
         if (existing != null) {
@@ -90,13 +90,13 @@ internal object ManagerPool {
             adTypeLabel = demandAd.adType.code.uppercase(),
         )
 
-        val controller = ZhenyaAuctionController(
+        val controller = TwoLevelAuctionController(
             pipeline = pipeline,
             fallbackCache = stores.fallback,
             adTypeLabel = demandAd.adType.code.uppercase(),
         )
 
-        val manager = ZhenyaAdManager(
+        val manager = TwoLevelAdManager(
             demandAd = demandAd,
             mainCache = stores.main,
             fallbackCache = stores.fallback,
@@ -114,7 +114,7 @@ internal object ManagerPool {
     }
 
     /**
-     * Called by [ZhenyaAdManager.clear] — mirrors iOS ZhenyaManagerPool.removeManager().
+     * Called by [TwoLevelAdManager.clear] — mirrors iOS ZhenyaManagerPool.removeManager().
      *
      * Does NOT clear the static [TwoLevelCacheStores] (they are shared across all managers
      * of the same AdType and must survive individual manager removal).

@@ -66,7 +66,7 @@ internal class AdCacheFactoryImpl(
                 )
             }
 
-            AdCacheVersion.V6 -> AdCacheTwoLevelFactory.create(
+            AdCacheVersion.V6 -> AdCacheTwoLevelFactory.create( // Two-Level Cache (replaces Denis)
                 demandAd = demandAd,
             )
         }

@@ -6,7 +6,7 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Fallback cache storage for the Two-Level Cache (V6) strategy.
+ * Fallback cache storage for the Two-Level Cache strategy.
  *
  * Port of iOS FallbackCacheStorage.swift (Zhenya strategy). Simpler than [CacheStorage]:
  * no sticky mode, no iteration threshold. Sorted array with capacity-based eviction.

@@ -12,7 +12,7 @@ import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.twolevel.auction.ZhenyaAuctionController
+import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.pool.ManagerPool
 import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
@@ -22,7 +22,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * V6 AdCache facade. Mirrors iOS ZhenyaFullscreenAdManager.
+ * Two-Level Cache AdCache facade. Mirrors iOS ZhenyaFullscreenAdManager.
  *
  * Wraps the shared per-AdType [CacheStorage] (main) and [FallbackCacheStorage] (fallback)
  * singletons provided by [ManagerPool] via [TwoLevelCacheStores]. The [auctionKey] is
@@ -34,11 +34,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  *  - [pop] uses runBlocking over the storage Mutex — lock contention is sub-millisecond.
  *  - [poll] suspends with a 100ms polling interval until an entry is available.
  */
-internal class ZhenyaAdManager(
+internal class TwoLevelAdManager(
     override val demandAd: DemandAd,
     private val mainCache: CacheStorage,
     private val fallbackCache: FallbackCacheStorage,
-    private val controller: ZhenyaAuctionController,
+    private val controller: TwoLevelAuctionController,
     private val auctionKey: String,
 ) : AdCache {
 
@@ -186,7 +186,7 @@ internal class ZhenyaAdManager(
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // NO-OP: V6 uses TwoLevelCacheConfig sourced from server extras, not Cacheable.Settings.
+        // NO-OP: Two-Level Cache uses TwoLevelCacheConfig sourced from server extras, not Cacheable.Settings.
     }
 
     // ---
