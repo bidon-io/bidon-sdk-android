@@ -229,14 +229,16 @@ internal class CacheStorageTest {
     }
 
     @Test
-    fun `sticky head protection - capacity 1, two sticky inserts - second one also rejected`() = runTest {
+    fun `sticky head protection - capacity 1, two sticky inserts - second one replaces head`() = runTest {
         val storage = CacheStorage(capacity = 1, iterationThreshold = 80)
         storage.insert(makeResult("dem1", 5.0), sticky = true)
 
-        // capacity=1 + stickyHeadActive=true, items not empty → StickyHeadProtected regardless of sticky flag
-        val result = storage.insert(makeResult("dem2", 10.0), sticky = true)
+        // iOS: capacity=1 + stickyHeadActive=true + sticky=true → allowed (replaces head)
+        val dem2 = makeResult("dem2", 10.0)
+        val result = storage.insert(dem2, sticky = true)
 
-        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected))
+        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(storage.peek()).isSameInstanceAs(dem2)
     }
 
     // -----------------------------------------------------------------------
@@ -428,5 +430,51 @@ internal class CacheStorageTest {
         assertThat(result).isEqualTo(InsertResult.Success)
         // sticky head survives
         assertThat(storage.peek()).isSameInstanceAs(stickyItem)
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug fix: capacity==1 sticky insert should replace existing sticky head
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `capacity 1 - sticky insert replaces existing sticky head`() = runTest {
+        val storage = CacheStorage(capacity = 1, iterationThreshold = 80)
+        val first = makeResult("admob", 5.0)
+        storage.insert(first, sticky = true)
+
+        // Second sticky insert should succeed (not be rejected by StickyHeadProtected)
+        val second = makeResult("applovin", 8.0)
+        val result = storage.insert(second, sticky = true)
+
+        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(storage.peek()).isSameInstanceAs(second)
+    }
+
+    @Test
+    fun `capacity 1 - non-sticky insert rejected when sticky head active`() = runTest {
+        val storage = CacheStorage(capacity = 1, iterationThreshold = 80)
+        val sticky = makeResult("admob", 5.0)
+        storage.insert(sticky, sticky = true)
+
+        // Non-sticky insert should be rejected
+        val nonSticky = makeResult("applovin", 8.0)
+        val result = storage.insert(nonSticky, sticky = false)
+
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected))
+        assertThat(storage.peek()).isSameInstanceAs(sticky)
+    }
+
+    @Test
+    fun `capacity 1 - non-sticky insert succeeds when no sticky head`() = runTest {
+        val storage = CacheStorage(capacity = 1, iterationThreshold = 80)
+        val first = makeResult("admob", 5.0)
+        storage.insert(first, sticky = false)
+
+        // Non-sticky insert should evict existing (no sticky protection)
+        val second = makeResult("applovin", 8.0)
+        val result = storage.insert(second, sticky = false)
+
+        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(storage.peek()).isSameInstanceAs(second)
     }
 }

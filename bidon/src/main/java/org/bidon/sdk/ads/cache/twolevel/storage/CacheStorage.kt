@@ -100,30 +100,41 @@ internal class CacheStorage(
         }
 
         // 3. Sticky head protection for capacity == 1
-        if (capacity == 1 && stickyHeadActive && items.isNotEmpty()) {
+        if (capacity == 1 && stickyHeadActive && items.isNotEmpty() && !sticky) {
             logInfo(TAG, "[Main] insert REJECTED StickyHeadProtected: key=$key price=$price")
             logCacheState()
             return@withLock InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected)
         }
 
-        // 4. Capacity check: only insert if new item beats the cheapest evictable
+        // 4. Capacity check: only insert if new item beats the cheapest evictable.
+        // iOS: `if items.count == capacity, let cheapest = cheapestAllowedToEvictPrice(), element.price <= cheapest`
+        // When cheapest is nil (e.g. sticky head only, no tail), the condition fails → skip to insert.
+        // trimIfNeeded() in step 5 handles overflow after insert.
         if (items.size >= capacity) {
             val cheapest = cheapestAllowedToEvict()
-            if (cheapest == null || price <= cheapest.price()) {
-                logInfo(TAG, "[Main] insert REJECTED CacheFull: price=$price cheapest=${cheapest?.price()}")
+            if (cheapest != null && price <= cheapest.price()) {
+                logInfo(TAG, "[Main] insert REJECTED CacheFull: price=$price cheapest=${cheapest.price()}")
                 logCacheState()
                 return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
             }
-            // Evict cheapest to make room
-            items.remove(cheapest)
-            rebuildIndex()
-            logInfo(TAG, "[Main] evicted ${cheapest.demandKey()} price=${cheapest.price()}")
-            cheapest.adSource.destroy()
+            // Evict cheapest to make room (if there is one to evict)
+            if (cheapest != null) {
+                items.remove(cheapest)
+                rebuildIndex()
+                logInfo(TAG, "[Main] evicted ${cheapest.demandKey()} price=${cheapest.price()}")
+                cheapest.adSource.destroy()
+            }
         }
 
-        // 5. Insert, sort according to mode, trim overflow
-        items.add(element)
-        if (sticky) stickyHeadActive = true
+        // 5. Insert, sort according to mode, trim overflow.
+        // iOS: sticky inserts go at head (items.insert(element, at: 0));
+        //       non-sticky inserts go at tail (items.append(element)).
+        if (sticky) {
+            items.add(0, element)
+            stickyHeadActive = true
+        } else {
+            items.add(element)
+        }
         sortAccordingToMode()
         val evicted = trimIfNeeded()
         evicted.forEach { it.adSource.destroy() }

@@ -97,6 +97,9 @@ internal class ZhenyaAdManager(
         val firstFillFired = AtomicBoolean(false)
 
         try {
+            // iOS: beginIteration() resets iterationMaxPrice before each auction round.
+            mainCache.beginIteration()
+
             // controller.start() suspends until the pipeline completes all ad units.
             // The finally block correctly resets auctionRunning once the pipeline is done.
             controller.start(
