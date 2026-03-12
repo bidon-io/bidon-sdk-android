@@ -18,6 +18,7 @@ import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
+import org.bidon.sdk.ads.cache.andr.RefillCoordinatorProvider
 import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
 import org.bidon.sdk.ads.cache.andr.token.TokenCollectionProvider
 import org.bidon.sdk.ads.cache.impl.AdCacheFactoryImpl
@@ -173,6 +174,7 @@ internal object DI {
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
             singleton<AdStoreProvider> { AdStoreProvider(coroutineContext = SdkDispatchers.IO) }
             singleton<TokenCollectionProvider> { TokenCollectionProvider() }
+            singleton<RefillCoordinatorProvider> { RefillCoordinatorProvider() }
 
             /**
              * Factories

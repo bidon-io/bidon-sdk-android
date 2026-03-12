@@ -11,6 +11,7 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.RefillCoordinator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
@@ -36,6 +37,7 @@ internal class AdCacheAndreiImpl(
     private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val auctionRunnerFactory: AuctionRunnerFactory,
     private val auctionInfoFactory: AuctionInfoFactory,
+    private val refillCoordinator: RefillCoordinator,
 ) : AdCache,
     AuctionStopCondition {
     private val scope: CoroutineScope by lazy {
@@ -46,12 +48,6 @@ internal class AdCacheAndreiImpl(
 
     @Volatile
     private var auctionJob: Job? = null
-
-    @Volatile
-    private var refillJob: Job? = null
-
-    @Volatile
-    private var lastAdTypeParam: AdTypeParam? = null
 
     @Volatile
     private var lastAuctionId: String? = null
@@ -65,7 +61,7 @@ internal class AdCacheAndreiImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        lastAdTypeParam = adTypeParam
+        refillCoordinator.lastAdTypeParam = adTypeParam
 
         val storedEntries = peekAllEntries().filterPrice(adTypeParam.pricefloor)
 
@@ -87,7 +83,7 @@ internal class AdCacheAndreiImpl(
             logInfo(tag, "No stored entry, starting auction")
             auctionJob =
                 scope.launch(ioDispatcher) {
-                    refillJob?.join()
+                    refillCoordinator.join()
 
                     val refilled = peekEntry()
                     if (refilled != null) {
@@ -124,10 +120,8 @@ internal class AdCacheAndreiImpl(
     override suspend fun poll(): AuctionResult = auctionResultsStore.poll().unwrap()
 
     override fun clear() {
-        refillJob?.cancel()
-        refillJob = null
+        refillCoordinator.cancel()
 
-        lastAdTypeParam = null
         lastAuctionId = null
 
         if (!isLoading.getAndSet(false)) {
@@ -164,24 +158,10 @@ internal class AdCacheAndreiImpl(
             }
 
     private fun maybeStartBackgroundRefill() {
-        val adTypeParam = lastAdTypeParam ?: return
-
-        val refillThreshold = adCacheStrategy.refillThreshold
-        if (size() > refillThreshold) {
-            return
+        refillCoordinator.maybeStart(isLoading = isLoading.get()) { adTypeParam ->
+            runAuctionAndFillStore(adTypeParam)
+                .onFailure { logInfo(tag, "Background refill failed: ${it.message}") }
         }
-
-        if (isLoading.get() || refillJob?.isActive == true) {
-            return
-        }
-
-        logInfo(tag, "Background refill triggered (threshold=$refillThreshold)")
-
-        refillJob =
-            scope.launch(ioDispatcher) {
-                runAuctionAndFillStore(adTypeParam)
-                    .onFailure { logInfo(tag, "Background refill failed: ${it.message}") }
-            }
     }
 
     private fun processAuctionResult(

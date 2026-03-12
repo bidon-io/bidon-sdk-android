@@ -42,6 +42,7 @@ internal object AdCacheAndrFactory {
         val adaptersSource = get<AdaptersSource>()
         val adStoreProvider = get<AdStoreProvider>()
         val tokenCollectionProvider = get<TokenCollectionProvider>()
+        val refillCoordinatorProvider = get<RefillCoordinatorProvider>()
         val auctionResultsStore =
             adStoreProvider.auctionResultStore(
                 adCacheStrategy = adCacheStrategy,
@@ -60,6 +61,8 @@ internal object AdCacheAndrFactory {
             )
         val infoFactory = AuctionInfoFactory()
 
+        val refillCoordinator = refillCoordinatorProvider.get(adType, tag, ioDispatcher, auctionResultsStore, adCacheStrategy)
+
         return AdCacheAndreiImpl(
             demandAd = demandAd,
             tag = tag,
@@ -68,6 +71,7 @@ internal object AdCacheAndrFactory {
             adCacheStrategy = adCacheStrategy,
             auctionResultsStore = auctionResultsStore,
             auctionInfoFactory = infoFactory,
+            refillCoordinator = refillCoordinator,
             auctionRunnerFactory =
                 AuctionRunnerFactory(
                     tag = tag,
