@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
+import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
@@ -46,6 +47,7 @@ import kotlin.math.pow
  */
 internal class AdCacheVladimirImpl(
     override val demandAd: DemandAd,
+    @Suppress("unused") private val resolver: AuctionResolver,
 ) : AdCache {
 
     private enum class LoadingState { IDLE, LOADING }

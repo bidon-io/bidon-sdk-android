@@ -54,6 +54,7 @@ internal class AdCacheFactoryImpl(
             AdCacheVersion.V4 -> {
                 AdCacheVladimirImpl(
                     demandAd = demandAd,
+                    resolver = resolver,
                 )
             }
 
