@@ -24,6 +24,7 @@ import org.bidon.sdk.auction.usecases.AuctionStopCondition
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * V2 implementation of AdCache with configurable behavior.
@@ -33,7 +34,6 @@ internal class AdCacheAndreiImpl(
     private val tag: String,
     private val ioDispatcher: CoroutineDispatcher,
     private val mainDispatcher: CoroutineDispatcher,
-    private val adCacheStrategy: AdCacheStrategy,
     private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val auctionRunnerFactory: AuctionRunnerFactory,
     private val auctionInfoFactory: AuctionInfoFactory,
@@ -46,14 +46,12 @@ internal class AdCacheAndreiImpl(
 
     private val isLoading = AtomicBoolean(false)
 
-    @Volatile
-    private var auctionJob: Job? = null
+    private val auctionJobRef = AtomicReference<Job?>(null)
 
-    @Volatile
-    private var lastAuctionId: String? = null
+    private val lastAuctionIdRef = AtomicReference<String?>(null)
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // TODO: Implement server params
+        // ignore
     }
 
     override fun cache(
@@ -61,7 +59,7 @@ internal class AdCacheAndreiImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        refillCoordinator.lastAdTypeParam = adTypeParam
+        refillCoordinator.acquire(this, adTypeParam)
 
         val storedEntries = peekAllEntries().filterPrice(adTypeParam.pricefloor)
 
@@ -79,34 +77,36 @@ internal class AdCacheAndreiImpl(
         if (storedEntry != null) {
             logInfo(tag, "Reusing stored entry: ${storedEntry.demandId}:${storedEntry.price}")
             processAuctionResult(storedEntry, null, onSuccess, onFailure)
-        } else {
-            logInfo(tag, "No stored entry, starting auction")
-            auctionJob =
-                scope.launch(ioDispatcher) {
-                    refillCoordinator.join()
-
-                    val refilled = peekEntry()
-                    if (refilled != null) {
-                        logInfo(
-                            tag,
-                            "Refill completed before demand auction, reusing: ${refilled.demandId}:${refilled.price}"
-                        )
-                        processAuctionResult(refilled, null, onSuccess, onFailure)
-                        return@launch
-                    }
-
-                    runAuctionAndFillStore(adTypeParam)
-                        .fold(
-                            {
-                                val result = peekEntry()
-                                processAuctionResult(result, null, onSuccess, onFailure)
-                            },
-                            {
-                                processAuctionResult(null, it, onSuccess, onFailure)
-                            },
-                        )
-                }
+            return
         }
+
+        logInfo(tag, "No stored entry, starting auction")
+        auctionJobRef.set(
+            scope.launch(ioDispatcher) {
+                refillCoordinator.join()
+
+                val refilled = peekEntry()
+                if (refilled != null) {
+                    logInfo(
+                        tag,
+                        "Refill completed before demand auction, reusing: ${refilled.demandId}:${refilled.price}"
+                    )
+                    processAuctionResult(refilled, null, onSuccess, onFailure)
+                    return@launch
+                }
+
+                runAuctionAndFillStore(adTypeParam)
+                    .fold(
+                        {
+                            val result = peekEntry()
+                            processAuctionResult(result, null, onSuccess, onFailure)
+                        },
+                        {
+                            processAuctionResult(null, it, onSuccess, onFailure)
+                        },
+                    )
+            }
+        )
     }
 
     override fun peek(): AuctionResult? = peekEntry()?.unwrap()
@@ -115,21 +115,23 @@ internal class AdCacheAndreiImpl(
         auctionResultsStore
             .pop()
             ?.unwrap()
-            ?.also { maybeStartBackgroundRefill() }
+            ?.also {
+                logInfo(tag, "Pop: store=${peekAllEntries().size}")
+                maybeStartBackgroundRefill()
+            }
 
     override suspend fun poll(): AuctionResult = auctionResultsStore.poll().unwrap()
 
     override fun clear() {
-        refillCoordinator.cancel()
+        refillCoordinator.release(this)
 
-        lastAuctionId = null
+        lastAuctionIdRef.set(null)
 
         if (!isLoading.getAndSet(false)) {
             return
         }
 
-        auctionJob?.cancel()
-        auctionJob = null
+        auctionJobRef.getAndSet(null)?.cancel()
 
         logInfo(tag, "Auction canceled")
     }
@@ -148,7 +150,7 @@ internal class AdCacheAndreiImpl(
             .run(demandAd, adTypeParam)
             .onSuccess { (info, results) ->
                 // Save last info
-                lastAuctionId = info.auctionId
+                lastAuctionIdRef.set(info.auctionId)
                 // Fill store
                 auctionResultsStore.insert(results) { AuctionResultStore.Entry(it, info) }
                 logInfo(
@@ -160,7 +162,15 @@ internal class AdCacheAndreiImpl(
     private fun maybeStartBackgroundRefill() {
         refillCoordinator.maybeStart(isLoading = isLoading.get()) { adTypeParam ->
             runAuctionAndFillStore(adTypeParam)
-                .onFailure { logInfo(tag, "Background refill failed: ${it.message}") }
+                .onSuccess { (info, results) ->
+                    refillCoordinator.recordResult(
+                        results.isNotEmpty(),
+                        info.auctionTimeout
+                    )
+                }.onFailure {
+                    refillCoordinator.recordFailure()
+                    logInfo(tag, "Background refill failed: ${it.message}")
+                }
         }
     }
 
@@ -172,8 +182,9 @@ internal class AdCacheAndreiImpl(
     ) {
         val cachedLog = peekAllEntries().asString()
         val auctionResult = entry?.auctionResult
+        val lastId = lastAuctionIdRef.get()
         val auctionInfo =
-            entry?.auctionInfo?.takeIf { lastAuctionId == null || it.auctionId == lastAuctionId }
+            entry?.auctionInfo?.takeIf { lastId == null || it.auctionId == lastId }
                 ?: auctionResult?.let(auctionInfoFactory::create)
         if (auctionResult != null && auctionInfo != null) {
             logInfo(tag, "Cache completed: $cachedLog")
@@ -187,6 +198,7 @@ internal class AdCacheAndreiImpl(
             }
         }
         isLoading.set(false)
+        logInfo(tag, "Loading finished, store=${peekAllEntries().size}")
     }
 
     override fun shouldStop(

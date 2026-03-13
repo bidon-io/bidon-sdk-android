@@ -25,12 +25,12 @@ internal class AuctionRunnerFactory(
             auctionConfigurator = auctionConfigurator,
             infoFactory = infoFactory,
             statistics =
-            AuctionStatistics(
-                tag = tag,
-                ioDispatcher = ioDispatcher,
-                statsRequest = get<StatsRequestUseCase>(),
-                resolver = auctionResolver
-            ),
+                AuctionStatistics(
+                    tag = tag,
+                    ioDispatcher = ioDispatcher,
+                    statsRequest = get<StatsRequestUseCase>(),
+                    resolver = auctionResolver
+                ),
             executor = auctionExecutorFactory.create(stopCondition),
             resultsCollector = get<ResultsCollector>(),
         )

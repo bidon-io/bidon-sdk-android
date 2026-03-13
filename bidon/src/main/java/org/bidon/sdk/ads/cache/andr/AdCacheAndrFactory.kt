@@ -68,7 +68,6 @@ internal object AdCacheAndrFactory {
             tag = tag,
             ioDispatcher = ioDispatcher,
             mainDispatcher = SdkDispatchers.Main,
-            adCacheStrategy = adCacheStrategy,
             auctionResultsStore = auctionResultsStore,
             auctionInfoFactory = infoFactory,
             refillCoordinator = refillCoordinator,

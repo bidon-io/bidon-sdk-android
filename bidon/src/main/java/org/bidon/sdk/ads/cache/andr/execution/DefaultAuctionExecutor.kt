@@ -90,9 +90,10 @@ internal class DefaultAuctionExecutor(
         )
 
         // 1. Pre-filter: resolve loadable ad units synchronously
-        val loadable = prepareLoadable(
-            adUnits, demandAd, adTypeParam, priceFloor, tokens, auctionResults
-        )
+        val loadable =
+            prepareLoadable(
+                adUnits, demandAd, adTypeParam, priceFloor, tokens, auctionResults
+            )
 
         // 2. Load concurrently with sliding window
         val loaded = mutableSetOf<AdUnit>()
@@ -104,17 +105,29 @@ internal class DefaultAuctionExecutor(
                         .asFlow()
                         .flatMapMerge(batchSize) { (adUnit, adSource) ->
                             flow {
-                                emit(adUnit to loadAdUnit(context, adSource, adUnit, demandAd, adTypeParam, priceFloor))
+                                emit(
+                                    adUnit to
+                                        loadAdUnit(
+                                            context,
+                                            adSource,
+                                            adUnit,
+                                            demandAd,
+                                            adTypeParam,
+                                            priceFloor
+                                        )
+                                )
                             }
-                        }
-                        .collect { (adUnit, auctionResult) ->
+                        }.collect { (adUnit, auctionResult) ->
                             loaded.add(adUnit)
                             auctionResults.add(auctionResult)
 
                             val successCount =
                                 auctionResults.count { it.roundStatus == RoundStatus.Successful }
                             if (stopCondition.shouldStop(successCount, auctionResult, null)) {
-                                logInfo(tag, "Stop condition met after $successCount successful loads")
+                                logInfo(
+                                    tag,
+                                    "Stop condition met after $successCount successful loads"
+                                )
                                 throw StopConditionMet()
                             }
                         }
@@ -149,15 +162,22 @@ internal class DefaultAuctionExecutor(
         logInfo(tag, "Auction finished. Saved ${rtbAdUnits.size} unused RTB units to cache")
 
         return result.getOrElse { error ->
-            val toResult: (AdUnit, TokenInfo?) -> AuctionResult = when (error) {
-                is StopConditionMet -> ::getBelowPriceFloorResult
-                is TimeoutCancellationException -> { adUnit, token ->
-                    AuctionResult.AuctionFailed(adUnit, token, RoundStatus.FillTimeoutReached)
+            val toResult: (AdUnit, TokenInfo?) -> AuctionResult =
+                when (error) {
+                    is StopConditionMet -> ::getBelowPriceFloorResult
+
+                    is TimeoutCancellationException -> { adUnit, token ->
+                        AuctionResult.AuctionFailed(adUnit, token, RoundStatus.FillTimeoutReached)
+                    }
+
+                    else -> { adUnit, token ->
+                        AuctionResult.AuctionFailed(
+                            adUnit,
+                            token,
+                            error.asBidonErrorOrUnspecified().asRoundStatus()
+                        )
+                    }
                 }
-                else -> { adUnit, token ->
-                    AuctionResult.AuctionFailed(adUnit, token, error.asBidonErrorOrUnspecified().asRoundStatus())
-                }
-            }
             if (error !is StopConditionMet) {
                 logInfo(tag, "Auction error: $error, draining ${remaining.size} remaining")
             }
@@ -185,9 +205,10 @@ internal class DefaultAuctionExecutor(
                 auctionResults.add(getBelowPriceFloorResult(adUnit, tokenInfo))
                 continue
             }
-            val adSource = adSourceResolver.resolve(
-                adUnit, demandAd, adTypeParam, adaptersCollector.collectAll(), tokenInfo
-            )
+            val adSource =
+                adSourceResolver.resolve(
+                    adUnit, demandAd, adTypeParam, adaptersCollector.collectAll(), tokenInfo
+                )
             if (adSource == null) {
                 auctionResults.add(
                     AuctionResult.AuctionFailed(adUnit, tokenInfo, RoundStatus.UnknownAdapter)

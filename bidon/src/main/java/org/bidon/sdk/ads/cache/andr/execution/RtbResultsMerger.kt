@@ -27,8 +27,13 @@ internal class RtbResultsMerger {
                 tokens[adUnit] = entry.tokenInfo
             } else {
                 val remainingTtl = entry.expireAt - SystemTimeNow
-                val priceDiff = (adUnit.pricefloor - existing.pricefloor) / existing.pricefloor
-                if (priceDiff > PRICE_THRESHOLD && remainingTtl > MIN_REMAINING_TTL) {
+                val isSignificantlyBetter =
+                    if (existing.pricefloor > 0) {
+                        adUnit.pricefloor >= existing.pricefloor * (1.0 + PRICE_THRESHOLD)
+                    } else {
+                        adUnit.pricefloor > existing.pricefloor
+                    }
+                if (isSignificantlyBetter && remainingTtl > MIN_REMAINING_TTL) {
                     tokens.remove(existing)
                     adUnitsByDemand[adUnit.demandId] = adUnit
                     tokens[adUnit] = entry.tokenInfo
