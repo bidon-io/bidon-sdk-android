@@ -8,15 +8,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import android.view.ViewGroup
+import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.WinLossNotifiable
+import org.bidon.sdk.auction.AuctionResolver
+import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.ext.toAuctionInfo
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
-import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
@@ -33,17 +36,14 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * V4 implementation of AdCache with two-slot caching, background waterfall continuation,
- * and show fallback.
+ * V4 implementation of AdCache with two-slot caching.
  *
  * Load flow: Auction at caller-provided pricefloor, reuses stored RTB tokens,
  * excludes cached networks, fills empty slots. On the first load only, a 10s timer
  * enables preferRtb mode (skipping CPM units) if slot1 is still empty.
- * Walks remaining units from previous waterfalls.
  *
  * Delegates slot management to [CacheSlotManager], auction mechanics to [WaterfallLoader],
- * token storage to [RtbTokenStore], show fallback to [ShowFallbackHandler],
- * and cross-instance persistence to [CachePersistedState].
+ * token storage to [RtbTokenStore], and cross-instance persistence to [CachePersistedState].
  */
 internal class AdCacheVladimirImpl(
     override val demandAd: DemandAd,
@@ -58,25 +58,14 @@ internal class AdCacheVladimirImpl(
     private val slots = CacheSlotManager(scope)
     private val loader = WaterfallLoader(demandAd)
     private val tokenStore = RtbTokenStore(persistedState.rtbTokens)
-    private val fallbackHandler = ShowFallbackHandler(scope, slots)
 
     // Strategy state (persisted across instance recreations via CachePersistedState)
     private var isFirstLoad = !persistedState.firstLoadCompleted
 
-    // Remaining units from previous waterfalls to try after the current round.
-    // Each unit is paired with its originating round for correct stats reporting.
-    // Persists across rounds: untried units carry forward.
-    private val remainingUnits = mutableListOf<RemainingUnit>()
-
-    // Generation token identifies this instance within CachePersistedState.
-    // Used to distinguish "old instance clear()" from "same instance clear()".
-    private val instanceGeneration: Long
-
     init {
-        instanceGeneration = persistedState.restoreInto(slots, remainingUnits)
-        cleanupStaleRemainingUnits()
+        persistedState.restoreInto(slots)
         slots.onSlotVacancy = ::onSlotVacancy
-        logInfo(TAG, "init: adType=${demandAd.adType}, slots=${slots.description()}, remaining=${remainingUnits.size}, isFirstLoad=$isFirstLoad")
+        logInfo(TAG, "init: adType=${demandAd.adType}, slots=${slots.description()}, isFirstLoad=$isFirstLoad")
     }
 
     // Loading guards
@@ -88,7 +77,7 @@ internal class AdCacheVladimirImpl(
     private var lastAdTypeParam: AdTypeParam? = null
 
     override fun withSettings(settings: Cacheable.Settings) {
-        logInfo(TAG, "withSettings(): not implemented yet, ignoring $settings")
+        // TODO: not implemented yet — two-slot design is hardcoded
     }
 
     override fun cache(
@@ -146,7 +135,6 @@ internal class AdCacheVladimirImpl(
 
         // If onSuccess was already fired above (ad met the floor), mark it so loading doesn't fire it again
         callbackFired.set(meetsFloor)
-        fallbackHandler.lastActivity = adTypeParam.activity
         logInfo(TAG, "cache(): state→LOADING, callbackFired=$meetsFloor, launching load")
 
         loadingJob = scope.launch {
@@ -180,10 +168,15 @@ internal class AdCacheVladimirImpl(
         if (result != null) {
             logInfo(TAG, "pop(): popped ${result.demandId} @ ${result.price}")
 
+            // Banner views may get re-parented by ad network SDKs during Activity lifecycle.
+            // Detach the view from any internal SDK container before returning to caller.
+            (result.adSource as? AdSource.Banner<*>)?.getAdView()?.networkAdview?.let { view ->
+                (view.parent as? ViewGroup)?.removeView(view)
+            }
+
             // Remove the shown ad's token — it was consumed and cannot produce a valid bid again
             tokenStore.removeToken(result.demandId)
 
-            fallbackHandler.observe(result)
             persistedState.snapshotOnPop(slots)
         } else {
             logInfo(TAG, "pop(): nothing to pop")
@@ -194,17 +187,21 @@ internal class AdCacheVladimirImpl(
 
     override suspend fun poll(): AuctionResult {
         logInfo(TAG, "poll(): suspending until ad available...")
-        val result = slots.poll()
-        logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
-
-        fallbackHandler.observe(result)
-
-        return result
+        while (true) {
+            slots.awaitAvailable()
+            val result = pop()
+            if (result != null) {
+                logInfo(TAG, "poll(): got ${result.demandId} @ ${result.price}")
+                return result
+            }
+            logInfo(TAG, "poll(): slot expired before pop, retrying...")
+        }
     }
 
     override fun clear() {
         logInfo(TAG, "clear(): slots=${slots.description()}, loadingState=${loadingState.value}")
         retryAttempt = 0
+        lastAdTypeParam = null
         autoRestartJob?.cancel()
         autoRestartJob = null
         loadingJob?.cancel()
@@ -214,9 +211,8 @@ internal class AdCacheVladimirImpl(
         // The host app destroys and recreates the cache instance on every show cycle.
         // Preserving ads lets the next instance serve them immediately without re-loading.
         val extracted = slots.extractAll()
-        persistedState.preserveOnClear(extracted, remainingUnits.toList(), instanceGeneration)
+        persistedState.preserveOnClear(extracted)
 
-        remainingUnits.clear()
         if (loadingState.getAndUpdate { LoadingState.IDLE } == LoadingState.LOADING) {
             logInfo(TAG, "clear(): loading was in progress, cancelled")
         }
@@ -301,41 +297,41 @@ internal class AdCacheVladimirImpl(
                 if (result?.roundStatus == RoundStatus.Successful) {
                     fillCount++
                     logInfo(TAG, "Load: [$loadIndex] ✓ FILL from ${result.demandId} @ ${result.price}")
-                    handleFill(result, currentRound, adTypeParam, onSuccess)
+                    handleFill(result, currentRound)
+
+                    // Add to stats collector: first fill keeps Successful (becomes round winner),
+                    // subsequent fills get Win status so AuctionStatImpl won't downgrade them to LOSE.
+                    if (fillCount == 1) {
+                        loader.addToCollector(result)
+                    } else {
+                        loader.addToCollector(result.withRoundStatus(RoundStatus.Win))
+                        logInfo(TAG, "Load: [$loadIndex] added ${result.demandId} to collector as WIN (slot2)")
+                    }
+
                     if (preferRtb?.get() == true) {
                         logInfo(TAG, "Load: preferRtb fill — abandoning waterfall")
                         break
                     }
                 } else {
+                    // Add failures to stats collector as-is
+                    if (result != null) {
+                        loader.addToCollector(result)
+                    }
                     logInfo(TAG, "Load: [$loadIndex] ✗ ${adUnit.demandId} → ${result?.roundStatus ?: "null"}")
+                    // Destroy failed ad sources immediately to release adapter resources.
+                    // Failed loads create internal SDK objects (e.g. DT Exchange spots in
+                    // InneractiveAdSpotManager) that won't be cleaned up by GC alone.
+                    // AuctionFailed has no real adSource (throws on access), so skip those.
+                    if (result is AuctionResult.Network || result is AuctionResult.Bidding) {
+                        result.adSource.destroy()
+                        logInfo(TAG, "Load: [$loadIndex] destroyed failed adSource for ${adUnit.demandId}")
+                    }
                 }
             }
             logInfo(TAG, "Load: processed $loadIndex/${currentRound.adUnits.size} units, filled=$fillCount, skipped=$skipCount")
 
-            // Save untried units from this Load waterfall for future rounds.
-            // These are cheaper units the server returned but we didn't walk
-            // (because slots filled early). They carry forward as remainingUnits.
-            // When preferRtb is active, the waterfall is incomplete (CPM units were skipped),
-            // so remaining units are not saved — the next Load starts a fresh round.
-            if (loadIndex < currentRound.adUnits.size && preferRtb?.get() != true) {
-                val untried = currentRound.adUnits.drop(loadIndex).map { RemainingUnit(it, currentRound) }
-                mergeRemainingUnits(untried)
-            }
-
-            // Fire onLoadFailed if the waterfall produced no fills — this must happen
-            // BEFORE walking remaining units, which fill silently (no callback to caller).
-            // Design: "Walk remaining units... They fill slots silently — no callback to caller."
-            if (fillCount == 0 && callbackFired.compareAndSet(false, true)) {
-                val auctionInfo = buildAuctionInfo(currentRound.response)
-                logInfo(TAG, "Load: all waterfall units failed, firing onLoadFailed before walking remaining units")
-                adTypeParam.activity.runOnUiThread { onFailure(auctionInfo, BidonError.NoAuctionResults) }
-            }
-
-            // Walk remaining units from previous rounds only when both slots are empty
-            if (slots.peek() == null && remainingUnits.isNotEmpty()) {
-                walkRemainingUnits(adTypeParam, onSuccess)
-            } else if (remainingUnits.isNotEmpty()) {
-                logInfo(TAG, "Load: skipping ${remainingUnits.size} remaining units — slot1 occupied")
+            if (fillCount == 0) {
+                logInfo(TAG, "Load: all waterfall units failed, callback deferred to finalizeLoad()")
             }
         } == null
 
@@ -378,140 +374,21 @@ internal class AdCacheVladimirImpl(
     private fun handleFill(
         result: AuctionResult,
         round: WaterfallLoader.AuctionRound,
-        adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
         retryAttempt = 0
-        val auctionInfo = buildAuctionInfo(round.response)
-        logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}, callbackFired=${callbackFired.get()}")
+        // Build a preliminary AuctionInfo without roundStat for slot storage.
+        // finalizeLoad() will replace it with the complete version once stats are collected.
+        val preliminaryInfo = buildAuctionInfo(round.response)
+        logInfo(TAG, "handleFill(): ${result.demandId} @ ${result.price}, slots before=${slots.description()}")
 
-        val primaryUpdated = slots.insert(result, auctionInfo)
+        val primaryUpdated = slots.insert(result, preliminaryInfo)
         logInfo(TAG, "handleFill(): ${result.demandId} → primaryUpdated=$primaryUpdated")
         slots.logCacheStatus("handleFill after insert")
 
-        if (primaryUpdated && callbackFired.compareAndSet(false, true)) {
-            logInfo(TAG, "handleFill(): FIRING onSuccess callback for ${result.demandId} @ ${result.price}")
-            adTypeParam.activity.runOnUiThread { onSuccess(result, auctionInfo) }
-        } else if (primaryUpdated) {
-            logInfo(TAG, "handleFill(): HOT-SWAP — onExpired already emitted by slot manager, caller will call cache() to get new primary")
-        }
-    }
-
-    // --- Remaining Units ---
-
-    /**
-     * Walks remaining units from a previous waterfall to fill empty slots.
-     * Remaining units are cheaper ad units that were never tried because a previous
-     * round stopped early (e.g., slots filled). Refreshes expired RTB tokens before loading.
-     *
-     * Called after Load waterfall if slots are still not full.
-     */
-    private suspend fun walkRemainingUnits(
-        adTypeParam: AdTypeParam,
-        onSuccess: (AuctionResult, AuctionInfo) -> Unit,
-    ) {
-        if (remainingUnits.isEmpty()) return
-
-        logInfo(TAG, "── Remaining | ${remainingUnits.size} units from previous waterfalls ──")
-
-        // Refresh expired RTB tokens before walking
-        val rtbDemandIds = remainingUnits
-            .filter { it.adUnit.bidType == BidType.RTB }
-            .map { it.adUnit.demandId }
-            .toSet()
-
-        val tokens = tokenStore.refreshExpired(rtbDemandIds) {
-            loader.fetchTokens(adTypeParam)
-        }
-
-        var index = 0
-        var fillCount = 0
-        var skipCount = 0
-        val iterator = remainingUnits.iterator()
-        while (iterator.hasNext()) {
-            if (slots.isFull()) break
-            val entry = iterator.next()
-            iterator.remove()
-            index++
-
-            // Skip units from networks already cached — avoids duplicate networks in slots
-            if (entry.adUnit.demandId in slots.cachedDemandIds) {
-                skipCount++
-                continue
-            }
-
-            val result = loader.loadUnit(entry.adUnit, entry.round, tokens, adTypeParam)
-            if (result?.roundStatus == RoundStatus.Successful) {
-                fillCount++
-                logInfo(TAG, "Remaining: [$index] ✓ FILL from ${result.demandId} @ ${result.price}")
-                handleFill(result, entry.round, adTypeParam, onSuccess)
-            } else {
-                logInfo(TAG, "Remaining: [$index] ✗ ${entry.adUnit.demandId} → ${result?.roundStatus ?: "null"}")
-            }
-        }
-        logInfo(TAG, "Remaining: processed $index units, filled=$fillCount, skipped=$skipCount, ${remainingUnits.size} still remaining")
-    }
-
-    /**
-     * Removes stale remaining units on init.
-     *
-     * RTB units depend on a server-side bid tied to a token. If the token expired
-     * (>15 min since last store), the unit cannot be loaded — it would need a fresh round.
-     * CPM units don't depend on tokens and are kept regardless of age.
-     */
-    private fun cleanupStaleRemainingUnits() {
-        if (remainingUnits.isEmpty()) return
-        val validTokens = tokenStore.getValidTokens()
-        val sizeBefore = remainingUnits.size
-        remainingUnits.removeAll { unit ->
-            unit.adUnit.bidType == BidType.RTB && unit.adUnit.demandId !in validTokens
-        }
-        val removed = sizeBefore - remainingUnits.size
-        if (removed > 0) {
-            logInfo(TAG, "cleanupStaleRemainingUnits(): removed $removed RTB units with expired tokens, ${remainingUnits.size} remaining")
-        }
-    }
-
-    /**
-     * Merges new untried units into [remainingUnits] with deduplication.
-     *
-     * The server returns the same networks at multiple price points across rounds.
-     * Without deduplication, identical entries accumulate since remaining units
-     * are rarely walked (only when both slots are empty).
-     *
-     * Rules (from design doc "Remaining Units Storage"):
-     * - **RTB**: one entry per network. Newer replaces older (only the latest bid matters).
-     * - **CPM**: one entry per (network, price). Newer replaces older at same network+price.
-     *   Different prices for the same network are different placements and are kept.
-     */
-    private fun mergeRemainingUnits(newUnits: List<RemainingUnit>) {
-        if (newUnits.isEmpty()) return
-
-        val sizeBefore = remainingUnits.size
-        for (unit in newUnits) {
-            val demandId = unit.adUnit.demandId
-            val isRtb = unit.adUnit.bidType == BidType.RTB
-
-            remainingUnits.removeAll { existing ->
-                if (isRtb) {
-                    // RTB: one per network — remove any existing entry for this demandId
-                    existing.adUnit.demandId == demandId && existing.adUnit.bidType == BidType.RTB
-                } else {
-                    // CPM: one per (network, price) — remove matching demandId + pricefloor
-                    existing.adUnit.demandId == demandId &&
-                        existing.adUnit.bidType == BidType.CPM &&
-                        existing.adUnit.pricefloor == unit.adUnit.pricefloor
-                }
-            }
-        }
-        val removed = sizeBefore - remainingUnits.size
-
-        // Prepend new units — newer waterfall entries are higher priority
-        remainingUnits.addAll(0, newUnits)
-        logInfo(
-            TAG,
-            "mergeRemainingUnits(): added ${newUnits.size}, deduplicated $removed, total=${remainingUnits.size}"
-        )
+        // Every cached ad will be shown — notify as winner at insert time
+        notifyAsWinner(result, round.response.externalWinNotificationsEnabled)
+        // Callback is NOT fired here — deferred to finalizeLoad() which has roundStat.
+        // This ensures AuctionInfo.adUnits (network_responses) is populated for mediation reports.
     }
 
     // --- Finalization ---
@@ -526,11 +403,14 @@ internal class AdCacheVladimirImpl(
         logInfo(TAG, "finalizeLoad(): callbackFired=${callbackFired.get()}")
         slots.logCacheStatus("finalizeLoad")
 
-        notifyWinner(round.response.externalWinNotificationsEnabled)
         loadingState.value = LoadingState.IDLE
         logInfo(TAG, "finalizeLoad(): state→IDLE")
 
         val auctionInfo = buildAuctionInfo(round.response, roundStat)
+        // Update the preliminary AuctionInfo stored in slots with the complete version
+        // that includes roundStat (adUnits / noBids for network_responses in mediation reports).
+        slots.updateAuctionInfo(auctionInfo)
+
         if (callbackFired.compareAndSet(false, true)) {
             if (slots.peek() != null) {
                 logInfo(TAG, "finalizeLoad(): FIRING onSuccess callback, slots=${slots.description()}")
@@ -554,23 +434,21 @@ internal class AdCacheVladimirImpl(
 
     // --- Win Notification ---
 
-    private fun notifyWinner(externalWinNotificationsEnabled: Boolean) {
-        val winner = slots.peek()
-        if (winner == null) {
-            logInfo(TAG, "notifyWinner(): no winner (slot1 empty)")
-            return
-        }
-        logInfo(TAG, "notifyWinner(): winner=${winner.demandId} @ ${winner.price}, externalWinNotifications=$externalWinNotificationsEnabled")
+    private fun notifyAsWinner(result: AuctionResult, externalWinNotificationsEnabled: Boolean) {
+        logInfo(TAG, "notifyAsWinner(): ${result.demandId} @ ${result.price}, externalWinNotifications=$externalWinNotificationsEnabled")
+        result.adSource.markWin()
 
-        winner.adSource.markWin()
-        logInfo(TAG, "notifyWinner(): markWin() called on ${winner.demandId}")
+        // Send Bidon win HTTP request for all units inserted into cache slots
+        val statsCollector = result.adSource as StatisticsCollector
+        statsCollector.sendWin()
+        // Mark as sent to prevent duplicate win/loss at show time
+        statsCollector.markWinLoseNotificationsSent()
+        logInfo(TAG, "notifyAsWinner(): sendWin() sent for ${result.demandId}")
 
         if (!externalWinNotificationsEnabled) {
-            if (winner !is AuctionResult.Bidding && winner.adSource is WinLossNotifiable) {
-                (winner.adSource as WinLossNotifiable).notifyWin()
-                logInfo(TAG, "notifyWinner(): notifyWin() sent to ${winner.demandId}")
-            } else {
-                logInfo(TAG, "notifyWinner(): skipped notifyWin() (isBidding=${winner is AuctionResult.Bidding}, isWinLossNotifiable=${winner.adSource is WinLossNotifiable})")
+            if (result !is AuctionResult.Bidding && result.adSource is WinLossNotifiable) {
+                (result.adSource as WinLossNotifiable).notifyWin()
+                logInfo(TAG, "notifyAsWinner(): notifyWin() sent to ${result.demandId}")
             }
         }
     }
@@ -649,6 +527,16 @@ internal class AdCacheVladimirImpl(
             adUnits = roundStat?.demands?.map { it.toAuctionInfo() },
         )
     }
+}
+
+/**
+ * Creates a new [AuctionResult] with the given [roundStatus], preserving the same adSource.
+ * Used to override the immutable roundStatus for stats reporting (e.g. marking cached slot2 as Win).
+ */
+private fun AuctionResult.withRoundStatus(roundStatus: RoundStatus): AuctionResult = when (this) {
+    is AuctionResult.Network -> AuctionResult.Network(adSource = adSource, roundStatus = roundStatus)
+    is AuctionResult.Bidding -> AuctionResult.Bidding(adSource = adSource, roundStatus = roundStatus)
+    is AuctionResult.AuctionFailed -> this // Failed results should not be re-wrapped
 }
 
 private const val TAG = "AdCacheVladimir"

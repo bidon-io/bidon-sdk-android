@@ -1,44 +1,65 @@
 # AdCache V4 (Vladimir)
 
-> **WARNING: This is an experimental implementation. Not intended for production use.**
-
-Two-slot ad cache with preload and load phases.
+Two-slot ad cache with waterfall loading, RTB token reuse, and auto-restart.
 
 ## How It Works
 
 ### Cache Slots
 
-Two priority slots managed by `CacheSlotManager`:
-- **Slot1** — highest-priced ad (returned by `peek()`/`pop()`)
+Two slots managed by `CacheSlotManager`:
+- **Slot1** — primary ad (returned by `peek()`/`pop()`)
 - **Slot2** — backup ad (promoted to slot1 on pop or expiration)
 
-Higher-priced inserts hot-swap slot1, demoting the old ad to slot2. Both slots always hold different networks.
+Slot1 is never replaced — new ads fill slot2 or are discarded. Both slots always hold different networks.
 
-### Loading Phases
+### Loading
 
-**Preload** (once per session) — walks waterfall at $0.01 pricefloor, stops on first fill. Stores RTB tokens. On fill, transitions to Load phase and immediately runs Load.
+`cache()` runs an auction at the caller-provided pricefloor. Reuses stored RTB tokens, excludes cached networks, fills empty slots sequentially from the server-ordered waterfall.
 
-**Load** (all subsequent, including first after Preload) — auction at current price (fill price after Preload, last shown price on subsequent runs). Reuses stored RTB tokens, excludes cached networks, fills empty slots. Walks remaining units from previous waterfalls.
+On first load only, a 10s preferRtb timer skips CPM units if slot1 is still empty — reaches RTB units faster.
+
+If slots aren't full after loading, auto-restart schedules a retry with exponential backoff (2s → 64s cap).
+
+### Immediate Callback (Warm Start)
+
+If a cached ad already meets the pricefloor, `cache()` fires `onSuccess` immediately without starting an auction. If both slots are full but below the floor, slot2 is evicted to make room for a better ad.
+
+### Deferred Callback (Cold Start)
+
+During a cold-start auction, callbacks are always deferred to `finalizeLoad()` — never fired eagerly from the waterfall loop. This ensures `AuctionInfo` includes `roundStat` data (`adUnits` / `noBids`), which consumers map to `network_responses` in report requests.
+
+Slots receive a preliminary `AuctionInfo` (without stats) at insert time. Once the round finishes and `collectStats()` runs, `finalizeLoad()` builds the complete `AuctionInfo` with `roundStat` and calls `slots.updateAuctionInfo()` to replace the preliminary version before firing the callback.
 
 ### State Persistence
 
-Appodeal recreates the cache instance on every show cycle (`clear()` → new instance). A companion object preserves state across recreations:
-- Preload completion flag
-- RTB tokens (30-min per-network expiration)
-- Price context (`lastShownPrice`, `rtbRequestedPrice`)
-- Cached ads (eagerly snapshot on `pop()`, also extracted on `clear()`, restored in `init`)
-- Remaining waterfall units
+The host app recreates the cache instance on every show cycle (`clear()` → new instance). `CachePersistedState` (static singleton per AdType) preserves state across recreations:
+- First-load completion flag (preferRtb tracking)
+- RTB tokens (15-min per-network expiration)
+- Cached ads (eagerly snapshot on `pop()`, extracted on `clear()`, restored in `init`)
 
-### Show Fallback
+### Failed Ad Source Cleanup
 
-If the primary ad fails to show, the backup from slot2 is automatically shown.
+Failed `loadUnit()` calls create adapter SDK resources (listeners, ad spots, etc.) that persist even after the `AdSource` instance is garbage collected — some adapters register objects in process-lifetime singletons (e.g. DT Exchange's `InneractiveAdSpotManager`). To prevent accumulation, the load loop calls `adSource.destroy()` immediately on every non-successful result that carries a real ad source (i.e. `AuctionResult.Network` or `AuctionResult.Bidding`, but not `AuctionFailed`).
+
+Note: DT Exchange's `destroy()` is a no-op when the load fails (the spot reference is never stored in the field), so their singleton leak cannot be fixed from outside the adapter. This is a known DT Exchange SDK limitation.
+
+## Known Issues
+
+### DT Exchange failed-load memory leak
+
+DT Exchange's Fyber SDK creates ad spots via `InneractiveAdSpotManager.get().createSpot()` and registers them in a static `ConcurrentHashMap` (process-lifetime singleton). On successful load, the adapter stores the spot reference in its field, so `destroy()` can later call `spot.destroy()` to remove it from the map. On failed load, the spot reference is never stored — it remains a local variable that goes out of scope. Calling `adSource.destroy()` does nothing because the field is null, and the spot stays in the singleton forever (~200KB per spot).
+
+This should be fixed in adapter. The fix is a one-line change in the adapter (`adapter/dtexchange/`): store the spot reference immediately after `createSpot()`, before calling `requestAd()`, so that `destroy()` can always clean it up regardless of load outcome.
+
+The base `AdCacheImpl` has the same underlying issue but triggers it less frequently — it runs one auction per `cache()` call with no auto-restart, while vladimir cache version retries with exponential backoff, creating more failed-load opportunities.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `AdCacheVladimirImpl.kt` | Orchestrator: phases, callbacks, state persistence |
-| `CacheSlotManager.kt` | Two-slot priority cache with hot-swap |
+| `AdCacheVladimirImpl.kt` | Orchestrator: loading, callbacks, auto-restart, state persistence |
+| `CacheSlotManager.kt` | Two-slot cache with expiration and promotion |
 | `WaterfallLoader.kt` | Auction round lifecycle (tokens, server request, per-unit loading, stats) |
-
-See [AD_CACHING_FEATURE.md](AD_CACHING_FEATURE.md) for detailed documentation.
+| `RtbTokenStore.kt` | RTB token storage with 15-min TTL |
+| `CachePersistedState.kt` | Cross-instance ad and token preservation |
+| `Extensions.kt` | `AuctionResult` extensions and `CachedAd` data class |
