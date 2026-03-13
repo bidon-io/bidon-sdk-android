@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package org.bidon.sdk.ads.cache.impl.vladimir
 
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -58,21 +56,6 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     private val biddingConfig: BiddingConfig by lazy { get() }
 
     // === Public API ===
-
-    /**
-     * Fetches RTB tokens from all adapters. Used to refresh expired tokens
-     * before walking remaining units from a previous waterfall.
-     */
-    suspend fun fetchTokens(adTypeParam: AdTypeParam): Map<String, TokenInfo> {
-        logInfo(TAG, "fetchTokens(): fetching fresh RTB tokens...")
-        val tokens = getTokens(
-            adTypeParam = adTypeParam,
-            adaptersSource = adaptersSource,
-            tokenTimeout = biddingConfig.tokenTimeout,
-        )
-        logInfo(TAG, "fetchTokens(): got ${tokens.size} tokens: [${tokens.keys.joinToString()}]")
-        return tokens
-    }
 
     /**
      * Creates and starts a new auction round:
@@ -145,8 +128,8 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
     }
 
     /**
-     * Loads a single ad unit: requests the ad, adds to results collector, returns the result.
-     * Does NOT insert into cache slots — that's the orchestrator's job.
+     * Loads a single ad unit and returns the result.
+     * Does NOT add to the results collector or insert into cache slots — caller manages both.
      */
     suspend fun loadUnit(
         adUnit: AdUnit,
@@ -171,11 +154,15 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
         }
         logInfo(TAG, "loadUnit(): ${adUnit.demandId} → status=$status, price=$resultPrice")
 
-        if (auctionResult != null) {
-            resultsCollector.add(auctionResult)
-            logInfo(TAG, "loadUnit(): added ${adUnit.demandId} to resultsCollector")
-        }
         return auctionResult
+    }
+
+    /**
+     * Adds a result to the stats collector. Called by the orchestrator after deciding
+     * what roundStatus the result should carry in stats (e.g. Win for cached slot units).
+     */
+    fun addToCollector(result: AuctionResult) {
+        resultsCollector.add(result)
     }
 
     /**
@@ -236,8 +223,6 @@ internal class WaterfallLoader(private val demandAd: DemandAd) {
                 tokenInfo = tokens[adUnit.demandId],
             )
         }
-
-        adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
 
         if (adUnit.bidType == BidType.RTB) {
             val tokenInfo = tokens[adUnit.demandId]

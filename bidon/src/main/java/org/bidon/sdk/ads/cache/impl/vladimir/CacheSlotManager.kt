@@ -9,16 +9,16 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Two-slot priority cache with hot-swap, expiration, and promotion.
+ * Two-slot cache with expiration and promotion.
  *
- * Slot1 (primary) always holds the highest-priced ad.
- * Slot2 (backup) holds the second-best.
+ * Slot1 (primary) holds whichever ad filled it first.
+ * Slot2 (backup) holds the second ad.
+ * Slot1 is never replaced — new ads go to slot2 or are discarded.
  * On expiration, slot2 promotes to slot1.
  */
 internal class CacheSlotManager(private val scope: CoroutineScope) {
@@ -54,22 +54,19 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         return old?.auctionResult
     }
 
-    suspend fun poll(): AuctionResult {
-        logInfo(TAG, "poll(): waiting for slot1 to be non-null...")
+    /**
+     * Suspends until slot1 becomes non-null.
+     * Does NOT pop — the caller decides how to consume.
+     */
+    suspend fun awaitAvailable() {
+        logInfo(TAG, "awaitAvailable(): waiting for slot1 to be non-null...")
         slot1.first { it != null }
-        logInfo(TAG, "poll(): slot1 available, popping")
-        return pop()!!
+        logInfo(TAG, "awaitAvailable(): slot1 available")
     }
 
     fun isFull(): Boolean = slot1.value != null && slot2.value != null
 
     val primaryPrice: Double? get() = slot1.value?.price
-
-    val bestPrice: Double
-        get() = maxOf(
-            slot1.value?.price ?: 0.0,
-            slot2.value?.price ?: 0.0,
-        )
 
     val cachedDemandIds: Set<String>
         get() = setOfNotNull(
@@ -104,8 +101,13 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
     /**
      * Insert a successful auction result into the cache.
      *
-     * @return `true` if the primary slot (slot1) was updated — either filled or hot-swapped.
-     *         The caller can use this to decide whether to fire a callback.
+     * Fills empty slots in order: slot1 first, then slot2.
+     * If both slots are occupied, replaces slot2 only if the new ad has a higher price.
+     * Slot1 is never replaced — it holds whichever ad filled it first.
+     *
+     * @return `true` if slot1 was filled (was empty before).
+     *         The caller uses this to decide whether to fire onSuccess.
+     *         Returns `false` for all slot2 operations and discards.
      */
     fun insert(result: AuctionResult, auctionInfo: AuctionInfo): Boolean {
         val price = result.price
@@ -125,49 +127,26 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         val currentSlot2 = slot2.value
 
         return when {
-            // Slot1 is empty -> fill it
+            // Slot1 is empty -> fill primary
             currentSlot1 == null -> {
                 slot1.value = newSlot
                 logInfo(TAG, "insert(): slot1 FILLED with $demandId @ $price")
                 true
             }
-            // New ad is more expensive -> hot-swap
-            price > currentSlot1.price -> {
-                slot1.value = newSlot
-
-                // Stop observing the demoted ad before emitting notification
-                // (prevents removeExpiredSlot from removing it)
-                currentSlot1.observeJob?.cancel()
-
-                // Notify user that a different creative will be shown
-                currentSlot1.auctionResult.adSource.emitEvent(
-                    AdEvent.Expired(
-                        requireNotNull(currentSlot1.auctionResult.adSource.ad) {
-                            "Ad should exist in cache slot"
-                        }
-                    )
-                )
-
-                // Re-subscribe for real expirations and demote to slot2
-                val newObserveJob = observeSlotEvents(currentSlot1.auctionResult)
-                slot2.value = currentSlot1.copy(observeJob = newObserveJob)
-                logInfo(TAG, "insert(): HOT-SWAP $demandId @ $price replaces ${currentSlot1.demandId} @ ${currentSlot1.price} → ${description()}")
-                true
-            }
-            // Slot2 is empty -> fill backup
+            // Slot1 occupied, slot2 is empty -> fill backup
             currentSlot2 == null -> {
                 slot2.value = newSlot
                 logInfo(TAG, "insert(): slot2 FILLED with $demandId @ $price")
                 false
             }
-            // New ad beats slot2 -> replace backup
+            // Both occupied, new ad beats slot2 -> replace backup
             price > currentSlot2.price -> {
                 slot2.value = newSlot
                 destroySlot(currentSlot2)
                 logInfo(TAG, "insert(): slot2 REPLACED $demandId @ $price over ${currentSlot2.demandId} @ ${currentSlot2.price}")
                 false
             }
-            // Worse than both slots -> discard
+            // Both occupied, worse than or equal to slot2 -> discard
             else -> {
                 logInfo(TAG, "insert(): DISCARDED $demandId @ $price (slot1=${currentSlot1.price}, slot2=${currentSlot2.price})")
                 observeJob.cancel()
@@ -209,6 +188,20 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
         return results
     }
 
+    /**
+     * Updates the [AuctionInfo] stored in all occupied slots.
+     *
+     * During the waterfall loop, [insert] is called with a preliminary [AuctionInfo]
+     * that has no round statistics (adUnits / noBids are null). Once the round
+     * finishes and [RoundStat] is available, the orchestrator calls this method
+     * to replace the preliminary info with the complete one.
+     */
+    fun updateAuctionInfo(auctionInfo: AuctionInfo) {
+        slot1.value?.let { slot1.value = it.copy(auctionInfo = auctionInfo) }
+        slot2.value?.let { slot2.value = it.copy(auctionInfo = auctionInfo) }
+        logInfo(TAG, "updateAuctionInfo(): updated auctionInfo in ${slotCount} slot(s)")
+    }
+
     fun evictBackup() {
         val old = slot2.getAndUpdate { null }
         if (old != null) {
@@ -216,15 +209,6 @@ internal class CacheSlotManager(private val scope: CoroutineScope) {
             old.observeJob?.cancel()
             old.auctionResult.adSource.destroy()
         }
-    }
-
-    fun clear() {
-        logInfo(TAG, "clear(): destroying all slots, current state=${description()}")
-        val old1 = slot1.getAndUpdate { null }
-        val old2 = slot2.getAndUpdate { null }
-        old1?.let { destroySlot(it) }
-        old2?.let { destroySlot(it) }
-        logInfo(TAG, "clear(): done → state=${description()}")
     }
 
     // === Internal ===
