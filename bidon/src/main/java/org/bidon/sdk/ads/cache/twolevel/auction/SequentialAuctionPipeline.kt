@@ -6,6 +6,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdaptersSource
@@ -314,13 +315,32 @@ internal class SequentialAuctionPipeline(
             adSource.markFillStarted(adUnit, pricefloor)
 
             // Load on Main thread (required by some adapters, e.g. AdMob).
-            val adEvent = withTimeout(adUnit.timeout) {
+            // Use withTimeoutOrNull so per-unit timeout returns null instead of throwing
+            // TimeoutCancellationException. This prevents the inner per-unit timeout from
+            // propagating to the outer auction timeout catch and killing the entire pipeline.
+            val adEvent = withTimeoutOrNull(adUnit.timeout) {
                 withContext(Dispatchers.Main) {
                     adSource.load(adParams)
                 }
                 adSource.adEvent.first { event ->
                     event is AdEvent.Fill || event is AdEvent.LoadFailed || event is AdEvent.Expired
                 }
+            }
+
+            if (adEvent == null) {
+                logInfo(TAG, "Per-unit fill timeout reached: demandId=$demandId (${adUnit.timeout}ms)")
+                adSource.markFillFinished(
+                    roundStatus = RoundStatus.FillTimeoutReached,
+                    price = null,
+                )
+                resultsCollector.add(
+                    AuctionResult.AuctionFailed(
+                        adUnit = adUnit,
+                        roundStatus = RoundStatus.FillTimeoutReached,
+                        tokenInfo = null,
+                    )
+                )
+                return null
             }
 
             return when (adEvent) {
@@ -385,16 +405,11 @@ internal class SequentialAuctionPipeline(
             // Rethrow so the outer withTimeout / coroutineContext cancellation propagates.
             throw e
         } catch (e: Exception) {
-            val roundStatus = if (e is TimeoutCancellationException) {
-                RoundStatus.FillTimeoutReached
-            } else {
-                RoundStatus.NoFill
-            }
-            logInfo(TAG, "Exception loading demandId=$demandId roundStatus=$roundStatus: ${e.message}")
+            logInfo(TAG, "Exception loading demandId=$demandId: ${e.message}")
             resultsCollector.add(
                 AuctionResult.AuctionFailed(
                     adUnit = adUnit,
-                    roundStatus = roundStatus,
+                    roundStatus = RoundStatus.NoFill,
                     tokenInfo = null,
                 )
             )
