@@ -1,10 +1,12 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
@@ -39,6 +41,7 @@ internal class DefaultAuctionExecutor(
     private val adaptersCollector: AdaptersCollector,
     private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val batchSize: Int,
+    private val mainDispatcher: CoroutineDispatcher,
     private val rtbResultsStoreTtl: Long,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
@@ -245,7 +248,10 @@ internal class DefaultAuctionExecutor(
         applyParams(context, adSource, adTypeParam, demandAd, priceFloor)
 
         val startTime = SystemTimeNow
-        val auctionResult = requestAdUnitUseCase.invoke(adSource, adUnit, adTypeParam, priceFloor)
+        val auctionResult =
+            withContext(mainDispatcher) {
+                requestAdUnitUseCase.invoke(adSource, adUnit, adTypeParam, priceFloor)
+            }
         val latencyMs = SystemTimeNow - startTime
         logInfo(
             tag,

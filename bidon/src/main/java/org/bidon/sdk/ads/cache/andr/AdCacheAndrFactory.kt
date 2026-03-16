@@ -121,6 +121,7 @@ internal object AdCacheAndrFactory {
                                     rtbResultsStore = rtbResultsStore,
                                     rtbResultsMerger = RtbResultsMerger(),
                                 ),
+                            mainDispatcher = SdkDispatchers.Main,
                             requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
                             rtbResultsStore = rtbResultsStore,
                             winLossNotifier = WinLossNotifier(tag = tag),
