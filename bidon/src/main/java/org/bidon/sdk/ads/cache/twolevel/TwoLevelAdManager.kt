@@ -128,7 +128,9 @@ internal class TwoLevelAdManager(
                     // iOS: first fill → delegate?.adManager(self, didLoad: ad, …) on main thread.
                     if (isFirst) {
                         val info = buildSyntheticAuctionInfo(winner)
+                        logInfo(TAG, "[$adTypeLabel] firing onSuccess for first fill")
                         withContext(Dispatchers.Main) { onSuccess(winner, info) }
+                        logInfo(TAG, "[$adTypeLabel] onSuccess delivered")
                     }
                 },
                 onComplete = { auctionInfo, error ->
