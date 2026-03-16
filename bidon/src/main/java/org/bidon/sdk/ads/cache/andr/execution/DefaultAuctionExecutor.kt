@@ -159,7 +159,13 @@ internal class DefaultAuctionExecutor(
                 }
         rtbResultStore.insert(rtbAdUnits) { it }
 
-        logInfo(tag, "Auction finished. Saved ${rtbAdUnits.size} unused RTB units to cache")
+        // Destroy adSources that were never collected (stop condition / timeout / never started)
+        remaining.forEach { adUnit -> loadable[adUnit]?.destroySafe(tag) }
+
+        logInfo(
+            tag,
+            "Auction finished. Saved ${rtbAdUnits.size} unused RTB, destroyed ${remaining.size} remaining adSources"
+        )
 
         return result.getOrElse { error ->
             val toResult: (AdUnit, TokenInfo?) -> AuctionResult =
