@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
@@ -10,6 +11,7 @@ import org.bidon.sdk.stats.models.BidType
 
 internal class AdUnitPreparer(
     private val tag: String,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val rtbResultsMerger: RtbResultsMerger,
 ) {
@@ -17,8 +19,17 @@ internal class AdUnitPreparer(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): Pair<List<AdUnit>, Map<AdUnit, TokenInfo>> {
-        val cachedRtbEntries = rtbResultsStore.popAll()
-        logInfo(tag, "Popped ${cachedRtbEntries.size} cached RTB results")
+        val allCachedRtb = rtbResultsStore.popAll()
+        val cachedResultDemandIds = auctionResultsStore.peekAll().map { it.demandId }.toSet()
+        val (skip, cachedRtbEntries) = allCachedRtb.partition { it.demandId in cachedResultDemandIds }
+        if (skip.isNotEmpty()) {
+            rtbResultsStore.insert(skip) { it }
+        }
+
+        logInfo(
+            tag,
+            "Popped ${cachedRtbEntries.size} cached RTB results (${skip.size} re-inserted for cached demandIds)"
+        )
 
         val (serverRtbAdUnits, cpmAdUnits) =
             (response.adUnits ?: emptyList()).partition { it.bidType == BidType.RTB }

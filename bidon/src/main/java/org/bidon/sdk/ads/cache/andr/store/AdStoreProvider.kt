@@ -22,7 +22,6 @@ internal class AdStoreProvider(
                 tag = "AndrCache_${adType.code}",
                 coroutineContext = coroutineContext,
                 capacity = adCacheStrategy.auctionResultStoreCapacity,
-                adType = adType
             )
         }
 

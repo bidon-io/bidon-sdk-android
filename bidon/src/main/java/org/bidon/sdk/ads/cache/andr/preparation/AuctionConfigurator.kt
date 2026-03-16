@@ -3,6 +3,7 @@ package org.bidon.sdk.ads.cache.andr.preparation
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
 import org.bidon.sdk.auction.AdTypeParam
@@ -17,6 +18,7 @@ internal class AuctionConfigurator(
     private val tag: String,
     private val adaptersCollector: AdaptersCollector,
     private val adaptersInfoCollector: AdaptersInfoCollector,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val getAuctionRequestUseCase: GetAuctionRequestUseCase,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val tokensCollector: TokensCollector,
@@ -27,11 +29,13 @@ internal class AuctionConfigurator(
         adTypeParam: AdTypeParam,
     ): Result<Pair<AuctionResponse, Map<String, TokenInfo>>> {
         val cachedRtbAdUnits = rtbResultsStore.peekAll()
+        val cachedResultDemandIds = auctionResultsStore.peekAll().map { it.demandId }.toSet()
 
         logInfo(tag, "Cached RTB: ${cachedRtbAdUnits.size} (pricefloor=${adTypeParam.pricefloor})")
 
         val biddingAdapters = adaptersCollector.collectBidding()
-        val cachedDemandIds = cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet()
+        val cachedDemandIds =
+            cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet() + cachedResultDemandIds
         val adapters = biddingAdapters.filterNot { it.demandId.demandId in cachedDemandIds }
 
         logInfo(

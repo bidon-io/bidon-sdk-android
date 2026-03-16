@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.andr.execution.destroySafe
 import org.bidon.sdk.auction.models.AuctionResult
@@ -22,7 +21,6 @@ internal class AuctionResultStore(
     private val tag: String,
     coroutineContext: CoroutineContext,
     capacity: Int,
-    private val adType: AdType,
 ) : AdStore<AuctionResultStore.Entry>(capacity, AdStore.Entry.PriceComparator) {
     private val coroutineScope: CoroutineScope = CoroutineScope(coroutineContext + SupervisorJob())
 
@@ -52,19 +50,16 @@ internal class AuctionResultStore(
                     addAll(oldExpired)
                 }
             evicted.addAll(old - oldExpired)
-            // Dedup singleton adapters: keep highest price per demandId
-            val singletons = singletonDemandIds[adType].orEmpty()
-            if (singletons.isNotEmpty()) {
-                val seen = mutableSetOf<String>()
-                val toRemove = mutableListOf<Entry>()
-                for (entry in updated) { // TreeSet iterates highest price first (PriceComparator)
-                    if (entry.demandId in singletons && !seen.add(entry.demandId)) {
-                        toRemove.add(entry)
-                    }
+            // Dedup: keep highest price per demandId (TreeSet iterates highest first)
+            val seen = mutableSetOf<String>()
+            val toRemove = mutableListOf<Entry>()
+            for (entry in updated) {
+                if (!seen.add(entry.demandId)) {
+                    toRemove.add(entry)
                 }
-                updated.removeAll(toRemove.toSet())
-                evicted.addAll(toRemove)
             }
+            updated.removeAll(toRemove.toSet())
+            evicted.addAll(toRemove)
             while (updated.size > capacity) {
                 val last = updated.last()
                 updated.remove(last)
@@ -112,15 +107,6 @@ internal class AuctionResultStore(
             it.values.forEach(Job::cancel)
             function(mutableMapOf())
         }
-    }
-
-    companion object {
-        val singletonDemandIds: Map<AdType, Set<String>> =
-            mapOf(
-                AdType.Interstitial to setOf("unityads", "ironsource", "yandex", "fyber"),
-                AdType.Banner to setOf("ironsource", "fyber"),
-                AdType.Rewarded to setOf("unityads", "ironsource", "yandex", "fyber"),
-            )
     }
 
     internal class Entry(

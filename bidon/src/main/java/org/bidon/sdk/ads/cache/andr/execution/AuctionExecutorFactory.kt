@@ -3,6 +3,7 @@ package org.bidon.sdk.ads.cache.andr.execution
 import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.usecases.AuctionStopCondition
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
@@ -13,6 +14,7 @@ internal class AuctionExecutorFactory(
     private val adSourceResolver: AdSourceResolver,
     private val adUnitPreparer: AdUnitPreparer,
     private val adaptersCollector: AdaptersCollector,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val winLossNotifier: WinLossNotifier,
@@ -23,6 +25,7 @@ internal class AuctionExecutorFactory(
             adaptersCollector = adaptersCollector,
             adSourceResolver = adSourceResolver,
             adUnitPreparer = adUnitPreparer,
+            auctionResultsStore = auctionResultsStore,
             batchSize = adCacheStrategy.batchSize,
             rtbResultsStoreTtl = adCacheStrategy.rtbResultsStoreTtl,
             winLossNotifier = winLossNotifier,

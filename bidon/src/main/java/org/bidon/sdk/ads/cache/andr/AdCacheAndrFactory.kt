@@ -61,7 +61,14 @@ internal object AdCacheAndrFactory {
             )
         val infoFactory = AuctionInfoFactory()
 
-        val refillCoordinator = refillCoordinatorProvider.get(adType, tag, ioDispatcher, auctionResultsStore, adCacheStrategy)
+        val refillCoordinator =
+            refillCoordinatorProvider.get(
+                adType,
+                tag,
+                ioDispatcher,
+                auctionResultsStore,
+                adCacheStrategy
+            )
 
         return AdCacheAndreiImpl(
             demandAd = demandAd,
@@ -84,6 +91,7 @@ internal object AdCacheAndrFactory {
                                     tag = tag,
                                     rtbResultsStore = rtbResultsStore,
                                 ),
+                            auctionResultsStore = auctionResultsStore,
                             getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
                             rtbResultsStore = rtbResultsStore,
                             tokensCollector =
@@ -92,7 +100,11 @@ internal object AdCacheAndrFactory {
                                     ioDispatcher = ioDispatcher,
                                     biddingConfig = get<BiddingConfig>(),
                                     tokenCollector = TokenCollector(tag = tag),
-                                    circuitBreaker = tokenCollectionProvider.circuitBreaker(adType, tag),
+                                    circuitBreaker =
+                                        tokenCollectionProvider.circuitBreaker(
+                                            adType,
+                                            tag
+                                        ),
                                 ),
                         ),
                     auctionExecutorFactory =
@@ -101,9 +113,11 @@ internal object AdCacheAndrFactory {
                             adCacheStrategy = adCacheStrategy,
                             adaptersCollector = adaptersCollector,
                             adSourceResolver = AdSourceResolver(tag = tag),
+                            auctionResultsStore = auctionResultsStore,
                             adUnitPreparer =
                                 AdUnitPreparer(
                                     tag = tag,
+                                    auctionResultsStore = auctionResultsStore,
                                     rtbResultsStore = rtbResultsStore,
                                     rtbResultsMerger = RtbResultsMerger(),
                                 ),

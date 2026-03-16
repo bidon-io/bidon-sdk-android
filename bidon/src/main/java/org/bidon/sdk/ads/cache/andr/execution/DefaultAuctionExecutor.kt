@@ -13,6 +13,7 @@ import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
@@ -36,6 +37,7 @@ internal class DefaultAuctionExecutor(
     private val adSourceResolver: AdSourceResolver,
     private val adUnitPreparer: AdUnitPreparer,
     private val adaptersCollector: AdaptersCollector,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val batchSize: Int,
     private val rtbResultsStoreTtl: Long,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
@@ -201,8 +203,14 @@ internal class DefaultAuctionExecutor(
         auctionResults: MutableList<AuctionResult>,
     ): Map<AdUnit, AdSource<AdAuctionParams>> {
         val loadable = mutableMapOf<AdUnit, AdSource<AdAuctionParams>>()
+        val cachedDemandIds = auctionResultsStore.peekAll().map { it.demandId }.toSet()
         for (adUnit in adUnits) {
             val tokenInfo = tokens[adUnit]
+            if (adUnit.demandId in cachedDemandIds) {
+                logInfo(tag, "Skipped ${adUnit.demandId}: already cached")
+                auctionResults.add(AuctionResult.AuctionFailed(adUnit, tokenInfo, RoundStatus.Lose))
+                continue
+            }
             if (adUnit.pricefloor < priceFloor) {
                 logInfo(
                     tag,
