@@ -8,8 +8,8 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
 import org.bidon.sdk.ads.cache.AdCacheVersion
 import org.bidon.sdk.ads.cache.andr.AdCacheAndrFactory
-import org.bidon.sdk.ads.cache.denis.AdCacheDenisFactory
 import org.bidon.sdk.ads.cache.impl.vladimir.AdCacheVladimirImpl
+import org.bidon.sdk.ads.cache.twolevel.AdCacheTwoLevelFactory
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.utils.SdkDispatchers
 import org.json.JSONObject
@@ -39,10 +39,11 @@ internal class AdCacheFactoryImpl(
                 resolver = resolver
             )
 
-            AdCacheVersion.V2 -> AdCacheDenisFactory.create(
-                demandAd = demandAd,
-                resolver = resolver,
-            )
+            AdCacheVersion.V2 -> {
+                AdCacheTwoLevelFactory.create(
+                    demandAd = demandAd,
+                )
+            }
 
             AdCacheVersion.V3 -> {
                 AdCacheAndrFactory.create(
