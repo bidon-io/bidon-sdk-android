@@ -18,7 +18,7 @@ import org.bidon.vkads.BuildConfig
 import org.bidon.vkads.VkAdsDemandId
 
 internal const val adapterVersion = BuildConfig.ADAPTER_VERSION
-internal const val sdkVersion = MyTargetVersion.VERSION
+internal val sdkVersion = MyTargetVersion.VERSION
 
 internal fun BannerFormat.toAdSize() =
     when (this) {
