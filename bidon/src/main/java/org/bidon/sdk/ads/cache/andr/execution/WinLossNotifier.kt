@@ -43,7 +43,7 @@ internal class WinLossNotifier(
             }
         }
 
-        val winnerAdSource = winners.firstOrNull()?.adSource ?: return
+        val winnerAdSource = winners.maxByOrNull { it.adSource.price }?.adSource ?: return
 
         // Notify all losers regardless of external_win_notifications flag
         (finalResults - winners.toSet())
@@ -55,11 +55,11 @@ internal class WinLossNotifier(
                 if (loserAdSource is WinLossNotifiable) {
                     loserAdSource.notifyLoss(
                         winnerAdSource.demandId.demandId,
-                        winnerAdSource.getStats().price
+                        winnerAdSource.price
                     )
                     logInfo(
                         tag,
-                        "Notified loss to ${loserAdSource.demandId} (winner=${winnerAdSource.demandId.demandId}, price=${winnerAdSource.getStats().price})"
+                        "Notified loss to ${loserAdSource.demandId} (winner=${winnerAdSource.demandId.demandId}, price=${winnerAdSource.price})"
                     )
                 }
             }
