@@ -3,6 +3,7 @@ package org.bidon.sdk.ads.cache.andr
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.andr.execution.AuctionExecutor
+import org.bidon.sdk.ads.cache.andr.execution.destroySafe
 import org.bidon.sdk.ads.cache.andr.ext.rtbAdUnits
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionConfigurator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
@@ -65,11 +66,19 @@ internal class AuctionRunner(
                 .create(response, roundStat)
                 ?.also { printStatsData(response, roundStat, it) }
 
+        // Destroy adSources from non-Successful loaded results (after stats are collected)
+        rawResults.forEach {
+            if (it.roundStatus != RoundStatus.Successful && it !is AuctionResult.AuctionFailed) {
+                it.adSource.destroySafe(tag)
+            }
+        }
+
         logInfo(tag, "Rounds completed")
 
         return if (info != null && finalResults.isNotEmpty()) {
             info to finalResults
         } else {
+            finalResults.forEach { it.adSource.destroySafe(tag) }
             logInfo(
                 tag,
                 "No auction results: info=${info != null}, finalResults=${finalResults.size}"

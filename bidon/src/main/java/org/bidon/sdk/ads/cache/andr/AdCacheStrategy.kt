@@ -2,74 +2,47 @@ package org.bidon.sdk.ads.cache.andr
 
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AdType
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 internal data class AdCacheStrategy(
     val auctionResultStoreCapacity: Int,
     val rtbResultsStoreTtl: Long,
-    val rankingWeights: RankingWeights,
     val refillThreshold: Int,
     val batchSize: Int,
-) {
-    data class RankingWeights(
-        val alpha: Double,
-        val beta: Double,
-        val gamma: Double,
-        val fillPrior: Double,
-    )
-}
+)
 
 internal val DEFAULT_TTL_MS = TimeUnit.MINUTES.toMillis(14)
 
 internal class AdCacheStrategyFactory {
-    fun create(demandAd: DemandAd) =
-        when (demandAd.adType) {
-            AdType.Banner -> {
-                AdCacheStrategy(
-                    auctionResultStoreCapacity = 6,
-                    rtbResultsStoreTtl = DEFAULT_TTL_MS,
-                    rankingWeights =
-                    AdCacheStrategy.RankingWeights(
-                        alpha = 3.0,
-                        beta = 0.5,
-                        gamma = 0.5,
-                        fillPrior = 0.7
-                    ),
-                    refillThreshold = 1,
-                    batchSize = 3,
-                )
-            }
+    fun create(
+        demandAd: DemandAd,
+        cacheSettingsJson: JSONObject?
+    ): AdCacheStrategy {
+        val defaults = defaults(demandAd.adType)
+        val json =
+            cacheSettingsJson?.optJSONObject(demandAd.adType.jsonKey)
+                ?: return defaults
+        return AdCacheStrategy(
+            json.optInt("adunit_cache_size", defaults.auctionResultStoreCapacity),
+            json.optLong("rtb_ttl_ms", defaults.rtbResultsStoreTtl),
+            json.optInt("refill_threshold", defaults.refillThreshold),
+            json.optInt("adunit_batch_size", defaults.batchSize).coerceAtLeast(1)
+        )
+    }
 
-            AdType.Interstitial -> {
-                AdCacheStrategy(
-                    auctionResultStoreCapacity = 2,
-                    rtbResultsStoreTtl = DEFAULT_TTL_MS,
-                    rankingWeights =
-                    AdCacheStrategy.RankingWeights(
-                        alpha = 2.0,
-                        beta = 2.0,
-                        gamma = 1.5,
-                        fillPrior = 0.6
-                    ),
-                    refillThreshold = -1,
-                    batchSize = 2,
-                )
-            }
-
-            AdType.Rewarded -> {
-                AdCacheStrategy(
-                    auctionResultStoreCapacity = 2,
-                    rtbResultsStoreTtl = DEFAULT_TTL_MS,
-                    rankingWeights =
-                    AdCacheStrategy.RankingWeights(
-                        alpha = 2.5,
-                        beta = 1.5,
-                        gamma = 1.0,
-                        fillPrior = 0.5
-                    ),
-                    refillThreshold = -1,
-                    batchSize = 2,
-                )
-            }
+    private fun defaults(adType: AdType): AdCacheStrategy =
+        when (adType) {
+            AdType.Banner -> AdCacheStrategy(6, DEFAULT_TTL_MS, 2, 4)
+            AdType.Interstitial -> AdCacheStrategy(2, 0L, 1, 2)
+            AdType.Rewarded -> AdCacheStrategy(2, DEFAULT_TTL_MS, 1, 2)
         }
 }
+
+private val AdType.jsonKey: String
+    get() =
+        when (this) {
+            AdType.Banner -> "banner"
+            AdType.Interstitial -> "interstitial"
+            AdType.Rewarded -> "rewarded_video"
+        }

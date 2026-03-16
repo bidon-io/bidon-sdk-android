@@ -17,13 +17,18 @@ internal class TokensCollector(
     private val ioDispatcher: CoroutineDispatcher,
     private val biddingConfig: BiddingConfig,
     private val tokenCollector: TokenCollector,
+    private val circuitBreaker: TokenCircuitBreaker,
 ) {
     suspend fun collect(
         adTypeParam: AdTypeParam,
         adapters: Collection<Adapter.Bidding>,
     ): Map<String, TokenInfo> =
         withContext(ioDispatcher) {
-            adapters
+            val active = adapters.filter { !circuitBreaker.isOpen(it.demandId.demandId) }
+            if (active.size < adapters.size) {
+                logInfo(tag, "Circuit breaker skipped ${adapters.size - active.size} adapters")
+            }
+            active
                 .map { collect(adTypeParam, it.demandId.demandId, it) }
                 .awaitAll()
                 .toMap()
@@ -36,6 +41,8 @@ internal class TokensCollector(
         adapter: Adapter.Bidding,
     ): Deferred<Pair<String, TokenInfo>> =
         async {
-            demandId to tokenCollector.collect(adapter, adTypeParam, biddingConfig.tokenTimeout)
+            val info = tokenCollector.collect(adapter, adTypeParam, biddingConfig.tokenTimeout)
+            circuitBreaker.record(demandId, info.status)
+            demandId to info
         }
 }

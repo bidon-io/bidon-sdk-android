@@ -1,18 +1,21 @@
 package org.bidon.sdk.ads.cache.andr.execution
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.cache.andr.analytics.DemandMeasurement
-import org.bidon.sdk.ads.cache.andr.analytics.DemandStatistics
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
@@ -27,17 +30,21 @@ import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.utils.ext.SystemTimeNow
-import java.util.LinkedList
 
+private class StopConditionMet : Exception()
+
+@OptIn(ExperimentalCoroutinesApi::class)
 internal class DefaultAuctionExecutor(
     private val tag: String,
     private val adSourceResolver: AdSourceResolver,
     private val adUnitPreparer: AdUnitPreparer,
     private val adaptersCollector: AdaptersCollector,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val batchSize: Int,
+    private val mainDispatcher: CoroutineDispatcher,
+    private val rtbResultsStoreTtl: Long,
     private val requestAdUnitUseCase: RequestAdUnitUseCase,
     private val rtbResultStore: AdStore<RtbResultStore.Entry>,
-    private val demandStatistics: DemandStatistics,
     private val stopCondition: AuctionStopCondition,
     private val winLossNotifier: WinLossNotifier,
 ) : AuctionExecutor {
@@ -47,8 +54,15 @@ internal class DefaultAuctionExecutor(
         response: AuctionResponse,
         tokens: Map<String, TokenInfo>,
     ): List<AuctionResult> {
-        val (context, mergedAdUnits, mergedTokens) =
-            adUnitPreparer.prepare(demandAd, response, tokens)
+        val context =
+            AuctionContext(
+                response.auctionId,
+                response.auctionConfigurationId ?: 0L,
+                response.auctionConfigurationUid ?: "",
+                response.externalWinNotificationsEnabled
+            )
+        val (mergedAdUnits, mergedTokens) =
+            adUnitPreparer.prepare(response, tokens)
         val executionResult =
             execute(
                 context,
@@ -74,40 +88,30 @@ internal class DefaultAuctionExecutor(
         tokens: Map<AdUnit, TokenInfo>
     ): List<AuctionResult> {
         val auctionResults = mutableListOf<AuctionResult>()
-        val pendingMeasurements = mutableListOf<DemandMeasurement>()
 
-        val adUnitQueue =
-            LinkedList(adUnits).also {
-                logInfo(
-                    tag,
-                    "Prepared: ${it.size} adUnits, ${tokens.size} tokens, pricefloor=$priceFloor, timeout=${auctionTimeout}ms"
-                )
-            }
+        logInfo(
+            tag,
+            "Prepared: ${adUnits.size} adUnits, ${tokens.size} tokens, pricefloor=$priceFloor, timeout=${auctionTimeout}ms"
+        )
+
+        // 1. Pre-filter: resolve loadable ad units synchronously
+        val loadable =
+            prepareLoadable(
+                adUnits, demandAd, adTypeParam, priceFloor, tokens, auctionResults
+            )
+
+        // 2. Load concurrently with sliding window
+        val loaded = mutableSetOf<AdUnit>()
 
         val result =
             runCatching {
                 withTimeout(auctionTimeout) {
-                    var successCount = 0
-                    while (adUnitQueue.isNotEmpty()) {
-                        val batch =
-                            collectBatch(
-                                adUnitQueue,
-                                demandAd,
-                                adTypeParam,
-                                priceFloor,
-                                tokens,
-                                auctionResults
-                            )
-                        if (batch.isEmpty()) {
-                            break
-                        }
-
-                        logInfo(tag, "Loading batch of ${batch.size} ad units")
-
-                        val results =
-                            batch
-                                .map { (adUnit, adSource) ->
-                                    async {
+                    loadable.entries
+                        .asFlow()
+                        .flatMapMerge(batchSize) { (adUnit, adSource) ->
+                            flow {
+                                emit(
+                                    adUnit to
                                         loadAdUnit(
                                             context,
                                             adSource,
@@ -116,91 +120,101 @@ internal class DefaultAuctionExecutor(
                                             adTypeParam,
                                             priceFloor
                                         )
-                                    }
-                                }.awaitAll()
-
-                        for ((auctionResult, measurement) in results) {
-                            adUnitQueue.poll()
+                                )
+                            }
+                        }.collect { (adUnit, auctionResult) ->
+                            loaded.add(adUnit)
                             auctionResults.add(auctionResult)
-                            pendingMeasurements.add(measurement)
-                            if (auctionResult.roundStatus == RoundStatus.Successful) successCount++
-                        }
 
-                        if (stopCondition.shouldStop(
-                                successCount,
-                                results.last().first,
-                                adUnitQueue.peek()
-                            )
-                        ) {
-                            logInfo(tag, "Stop condition met after $successCount successful loads")
-                            drainRemainingAdUnits(
-                                adUnitQueue,
-                                tokens,
-                                auctionResults,
-                                ::getBelowPriceFloorResult
-                            )
-                            break
+                            val successCount =
+                                auctionResults.count { it.roundStatus == RoundStatus.Successful }
+                            if (stopCondition.shouldStop(successCount, auctionResult, null)) {
+                                logInfo(
+                                    tag,
+                                    "Stop condition met after $successCount successful loads"
+                                )
+                                throw StopConditionMet()
+                            }
                         }
-                    }
 
                     auctionResults
                 }
             }
 
-        // Batch record stats
-        demandStatistics.record(pendingMeasurements)
-
-        logInfo(tag, "Recorded ${pendingMeasurements.size} measurements")
+        // 3. Drain units that were not loaded (cancelled in-flight or never started)
+        val remaining = loadable.keys.filterNot { it in loaded }
 
         // Save unused RTB for caching
         val rtbAdUnits =
-            adUnitQueue
+            remaining
                 .rtb()
-                .fold(mutableSetOf<RtbResultStore.Entry>(), { acc, adUnit ->
+                .fold(mutableSetOf<RtbResultStore.Entry>()) { acc, adUnit ->
                     val tokenInfo = tokens[adUnit]
                     if (tokenInfo != null) {
-                        acc.add(RtbResultStore.Entry(context.id, tokenInfo, adUnit))
+                        acc.add(
+                            RtbResultStore.Entry(
+                                context.id,
+                                tokenInfo,
+                                adUnit,
+                                expireAt = SystemTimeNow + rtbResultsStoreTtl
+                            )
+                        )
                     }
                     acc
-                })
+                }
         rtbResultStore.insert(rtbAdUnits) { it }
 
-        logInfo(tag, "Auction finished. Saved ${rtbAdUnits.size} unused RTB units to cache")
+        // Destroy adSources that were never collected (stop condition / timeout / never started)
+        remaining.forEach { adUnit -> loadable[adUnit]?.destroySafe(tag) }
 
-        return result.getOrElse {
-            val status =
-                if (it is TimeoutCancellationException) {
-                    RoundStatus.FillTimeoutReached
-                } else {
-                    it.asBidonErrorOrUnspecified().asRoundStatus()
+        logInfo(
+            tag,
+            "Auction finished. Saved ${rtbAdUnits.size} unused RTB, destroyed ${remaining.size} remaining adSources"
+        )
+
+        return result.getOrElse { error ->
+            val toResult: (AdUnit, TokenInfo?) -> AuctionResult =
+                when (error) {
+                    is StopConditionMet -> ::getBelowPriceFloorResult
+
+                    is TimeoutCancellationException -> { adUnit, token ->
+                        AuctionResult.AuctionFailed(adUnit, token, RoundStatus.FillTimeoutReached)
+                    }
+
+                    else -> { adUnit, token ->
+                        AuctionResult.AuctionFailed(
+                            adUnit,
+                            token,
+                            error.asBidonErrorOrUnspecified().asRoundStatus()
+                        )
+                    }
                 }
-            logInfo(
-                tag,
-                "Auction error: $it, draining ${adUnitQueue.size} remaining, status=$status"
-            )
-            drainRemainingAdUnits(adUnitQueue, tokens, auctionResults) { adUnit, token ->
-                AuctionResult.AuctionFailed(adUnit, token, status)
+            if (error !is StopConditionMet) {
+                logInfo(tag, "Auction error: $error, draining ${remaining.size} remaining")
             }
+            remaining.forEach { auctionResults.add(toResult(it, tokens[it])) }
             auctionResults
         }
     }
 
-    private fun collectBatch(
-        queue: LinkedList<AdUnit>,
+    private fun prepareLoadable(
+        adUnits: List<AdUnit>,
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
         tokens: Map<AdUnit, TokenInfo>,
         auctionResults: MutableList<AuctionResult>,
-    ): List<Pair<AdUnit, AdSource<AdAuctionParams>>> {
-        val batch = mutableListOf<Pair<AdUnit, AdSource<AdAuctionParams>>>()
-        val iterator = queue.iterator()
-        while (iterator.hasNext() && batch.size < batchSize) {
-            val adUnit = iterator.next()
+    ): Map<AdUnit, AdSource<AdAuctionParams>> {
+        val loadable = mutableMapOf<AdUnit, AdSource<AdAuctionParams>>()
+        val cachedDemandIds = auctionResultsStore.peekAll().map { it.demandId }.toSet()
+        for (adUnit in adUnits) {
             val tokenInfo = tokens[adUnit]
-
+            if (adUnit.demandId in cachedDemandIds) {
+                logInfo(tag, "Skipped ${adUnit.demandId}: already cached")
+                auctionResults.add(AuctionResult.AuctionFailed(adUnit, tokenInfo, RoundStatus.Lose))
+                continue
+            }
             if (adUnit.pricefloor < priceFloor) {
-                iterator.remove()
                 logInfo(
                     tag,
                     "Skipped ${adUnit.demandId}: pricefloor ${adUnit.pricefloor} < auction floor $priceFloor"
@@ -208,31 +222,19 @@ internal class DefaultAuctionExecutor(
                 auctionResults.add(getBelowPriceFloorResult(adUnit, tokenInfo))
                 continue
             }
-
             val adSource =
                 adSourceResolver.resolve(
-                    adUnit,
-                    demandAd,
-                    adTypeParam,
-                    adaptersCollector.collectAll(),
-                    tokenInfo
+                    adUnit, demandAd, adTypeParam, adaptersCollector.collectAll(), tokenInfo
                 )
             if (adSource == null) {
-                iterator.remove()
                 auctionResults.add(
-                    AuctionResult.AuctionFailed(
-                        adUnit,
-                        tokenInfo,
-                        RoundStatus.UnknownAdapter
-                    )
+                    AuctionResult.AuctionFailed(adUnit, tokenInfo, RoundStatus.UnknownAdapter)
                 )
                 continue
             }
-
-            // Loadable — keep in queue until result is processed
-            batch.add(adUnit to adSource)
+            loadable[adUnit] = adSource
         }
-        return batch
+        return loadable
     }
 
     private suspend fun loadAdUnit(
@@ -242,39 +244,21 @@ internal class DefaultAuctionExecutor(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         priceFloor: Double,
-    ): Pair<AuctionResult, DemandMeasurement> {
+    ): AuctionResult {
         applyParams(context, adSource, adTypeParam, demandAd, priceFloor)
 
         val startTime = SystemTimeNow
-        val auctionResult = requestAdUnitUseCase.invoke(adSource, adUnit, adTypeParam, priceFloor)
+        val auctionResult =
+            withContext(mainDispatcher) {
+                requestAdUnitUseCase.invoke(adSource, adUnit, adTypeParam, priceFloor)
+            }
         val latencyMs = SystemTimeNow - startTime
         logInfo(
             tag,
             "Loaded ${adUnit.demandId}: status=${auctionResult.roundStatus}, price=${auctionResult.adSource.getStats().price}, latency=${latencyMs}ms"
         )
 
-        val measurement =
-            DemandMeasurement(
-                adUnit.demandId,
-                demandAd.adType,
-                SystemTimeNow,
-                auctionResult.adSource.getStats().price,
-                auctionResult.roundStatus == RoundStatus.Successful,
-                latencyMs
-            )
-
-        return auctionResult to measurement
-    }
-
-    private fun drainRemainingAdUnits(
-        queue: LinkedList<AdUnit>,
-        tokens: Map<AdUnit, TokenInfo>,
-        into: MutableList<AuctionResult>,
-        toResult: (AdUnit, TokenInfo?) -> AuctionResult,
-    ) {
-        for (adUnit in queue) {
-            into.add(toResult(adUnit, tokens[adUnit]))
-        }
+        return auctionResult
     }
 
     private fun getBelowPriceFloorResult(

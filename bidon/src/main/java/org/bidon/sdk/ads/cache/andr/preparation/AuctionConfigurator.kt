@@ -3,8 +3,8 @@ package org.bidon.sdk.ads.cache.andr.preparation
 import org.bidon.sdk.adapter.AdapterInfo
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.cache.andr.store.AdStore
+import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
-import org.bidon.sdk.ads.cache.andr.store.filterPrice
 import org.bidon.sdk.ads.cache.andr.token.TokensCollector
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ext.printWaterfall
@@ -18,6 +18,7 @@ internal class AuctionConfigurator(
     private val tag: String,
     private val adaptersCollector: AdaptersCollector,
     private val adaptersInfoCollector: AdaptersInfoCollector,
+    private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val getAuctionRequestUseCase: GetAuctionRequestUseCase,
     private val rtbResultsStore: AdStore<RtbResultStore.Entry>,
     private val tokensCollector: TokensCollector,
@@ -28,22 +29,23 @@ internal class AuctionConfigurator(
         adTypeParam: AdTypeParam,
     ): Result<Pair<AuctionResponse, Map<String, TokenInfo>>> {
         val cachedRtbAdUnits = rtbResultsStore.peekAll()
-        val filteredRtbAdUnits = cachedRtbAdUnits.filterPrice(adTypeParam.pricefloor)
-        logInfo(tag, "Cached RTB above pricefloor(${adTypeParam.pricefloor}): ${cachedRtbAdUnits.size}")
+        val cachedResultDemandIds = auctionResultsStore.peekAll().map { it.demandId }.toSet()
+
+        logInfo(tag, "Cached RTB: ${cachedRtbAdUnits.size} (pricefloor=${adTypeParam.pricefloor})")
 
         val biddingAdapters = adaptersCollector.collectBidding()
-        val (adaptersInfo, tokens) =
-            if (filteredRtbAdUnits.isNotEmpty()) {
-                logInfo(tag, "Using cached RTB tokens, skipping token collection")
-                mapOf<String, AdapterInfo>() to mapOf<String, TokenInfo>()
-            } else {
-                val cachedDemandIds = cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet()
-                val adapters = biddingAdapters.filterNot { it.demandId.demandId in cachedDemandIds }
-                logInfo(tag, "Collecting tokens from ${adapters.size} adapters (${cachedDemandIds.size} cached excluded)")
-                val adaptersInfo = adaptersInfoCollector.collect(adapters)
-                val tokens = tokensCollector.collect(adTypeParam, adapters)
-                adaptersInfo to tokens
-            }
+        val cachedDemandIds =
+            cachedRtbAdUnits.map(RtbResultStore.Entry::demandId).toSet() + cachedResultDemandIds
+        val adapters = biddingAdapters.filterNot { it.demandId.demandId in cachedDemandIds }
+
+        logInfo(
+            tag,
+            "Collecting tokens from ${adapters.size} adapters (${cachedDemandIds.size} cached excluded)"
+        )
+
+        val adaptersInfo = adaptersInfoCollector.collect(adapters)
+        val tokens = tokensCollector.collect(adTypeParam, adapters)
+
         return request(auctionId, demandAd, adTypeParam, adaptersInfo, tokens)
     }
 
@@ -59,7 +61,10 @@ internal class AuctionConfigurator(
             getAuctionRequestUseCase
                 .request(adTypeParam, auctionId, demandAd, adaptersInfo, tokens)
                 .onSuccess {
-                    logInfo(tag, "Auction response: ${it.adUnits?.size ?: 0} adUnits, pricefloor=${it.pricefloor}")
+                    logInfo(
+                        tag,
+                        "Auction response: ${it.adUnits?.size ?: 0} adUnits, pricefloor=${it.pricefloor}"
+                    )
                     if (auctionId != it.auctionId) {
                         logError(
                             tag,

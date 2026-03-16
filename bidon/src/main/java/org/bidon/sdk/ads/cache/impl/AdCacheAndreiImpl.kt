@@ -11,6 +11,8 @@ import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.RefillCoordinator
+import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.asString
@@ -22,6 +24,7 @@ import org.bidon.sdk.auction.usecases.AuctionStopCondition
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * V2 implementation of AdCache with configurable behavior.
@@ -31,9 +34,10 @@ internal class AdCacheAndreiImpl(
     private val tag: String,
     private val ioDispatcher: CoroutineDispatcher,
     private val mainDispatcher: CoroutineDispatcher,
-    private val adCacheStrategy: AdCacheStrategy,
     private val auctionResultsStore: AdStore<AuctionResultStore.Entry>,
     private val auctionRunnerFactory: AuctionRunnerFactory,
+    private val auctionInfoFactory: AuctionInfoFactory,
+    private val refillCoordinator: RefillCoordinator,
 ) : AdCache,
     AuctionStopCondition {
     private val scope: CoroutineScope by lazy {
@@ -42,12 +46,12 @@ internal class AdCacheAndreiImpl(
 
     private val isLoading = AtomicBoolean(false)
 
-    private var auctionJob: Job? = null
-    private var refillJob: Job? = null
-    private var lastAdTypeParam: AdTypeParam? = null
+    private val auctionJobRef = AtomicReference<Job?>(null)
+
+    private val lastAuctionIdRef = AtomicReference<String?>(null)
 
     override fun withSettings(settings: Cacheable.Settings) {
-        // Ignore
+        // ignore
     }
 
     override fun cache(
@@ -55,7 +59,7 @@ internal class AdCacheAndreiImpl(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        lastAdTypeParam = adTypeParam
+        refillCoordinator.acquire(this, adTypeParam)
 
         val storedEntries = peekAllEntries().filterPrice(adTypeParam.pricefloor)
 
@@ -73,59 +77,61 @@ internal class AdCacheAndreiImpl(
         if (storedEntry != null) {
             logInfo(tag, "Reusing stored entry: ${storedEntry.demandId}:${storedEntry.price}")
             processAuctionResult(storedEntry, null, onSuccess, onFailure)
-        } else {
-            logInfo(tag, "No stored entry, starting auction")
-            auctionJob =
-                scope.launch(ioDispatcher) {
-                    refillJob?.join()
-
-                    val refilled = peekEntry()
-                    if (refilled != null) {
-                        logInfo(
-                            tag,
-                            "Refill completed before demand auction, reusing: ${refilled.demandId}:${refilled.price}"
-                        )
-                        processAuctionResult(refilled, null, onSuccess, onFailure)
-                        return@launch
-                    }
-
-                    runAuctionAndFillStore(adTypeParam)
-                        .fold(
-                            {
-                                val result = peekEntry()
-                                processAuctionResult(result, null, onSuccess, onFailure)
-                            },
-                            {
-                                processAuctionResult(null, it, onSuccess, onFailure)
-                            },
-                        )
-                }
+            return
         }
+
+        logInfo(tag, "No stored entry, starting auction")
+        auctionJobRef.set(
+            scope.launch(ioDispatcher) {
+                refillCoordinator.join()
+
+                val refilled = peekEntry()
+                if (refilled != null) {
+                    logInfo(
+                        tag,
+                        "Refill completed before demand auction, reusing: ${refilled.demandId}:${refilled.price}"
+                    )
+                    processAuctionResult(refilled, null, onSuccess, onFailure)
+                    return@launch
+                }
+
+                runAuctionAndFillStore(adTypeParam)
+                    .fold(
+                        {
+                            val result = peekEntry()
+                            processAuctionResult(result, null, onSuccess, onFailure)
+                        },
+                        {
+                            processAuctionResult(null, it, onSuccess, onFailure)
+                        },
+                    )
+            }
+        )
     }
 
     override fun peek(): AuctionResult? = peekEntry()?.unwrap()
 
-    override fun pop(): AuctionResult? {
-        val entry = auctionResultsStore.pop()
-        if (entry != null) {
-            maybeStartBackgroundRefill()
-        }
-        return entry?.unwrap()
-    }
+    override fun pop(): AuctionResult? =
+        auctionResultsStore
+            .pop()
+            ?.unwrap()
+            ?.also {
+                logInfo(tag, "Pop: store=${peekAllEntries().size}")
+                maybeStartBackgroundRefill()
+            }
 
     override suspend fun poll(): AuctionResult = auctionResultsStore.poll().unwrap()
 
     override fun clear() {
-        refillJob?.cancel()
-        refillJob = null
-        lastAdTypeParam = null
+        refillCoordinator.release(this)
+
+        lastAuctionIdRef.set(null)
 
         if (!isLoading.getAndSet(false)) {
             return
         }
 
-        auctionJob?.cancel()
-        auctionJob = null
+        auctionJobRef.getAndSet(null)?.cancel()
 
         logInfo(tag, "Auction canceled")
     }
@@ -143,6 +149,9 @@ internal class AdCacheAndreiImpl(
             .create(this@AdCacheAndreiImpl)
             .run(demandAd, adTypeParam)
             .onSuccess { (info, results) ->
+                // Save last info
+                lastAuctionIdRef.set(info.auctionId)
+                // Fill store
                 auctionResultsStore.insert(results) { AuctionResultStore.Entry(it, info) }
                 logInfo(
                     tag,
@@ -151,24 +160,18 @@ internal class AdCacheAndreiImpl(
             }
 
     private fun maybeStartBackgroundRefill() {
-        val adTypeParam = lastAdTypeParam ?: return
-
-        val refillThreshold = adCacheStrategy.refillThreshold
-        if (size() > refillThreshold) {
-            return
+        refillCoordinator.maybeStart(isLoading = isLoading.get()) { adTypeParam ->
+            runAuctionAndFillStore(adTypeParam)
+                .onSuccess { (info, results) ->
+                    refillCoordinator.recordResult(
+                        results.isNotEmpty(),
+                        info.auctionTimeout
+                    )
+                }.onFailure {
+                    refillCoordinator.recordFailure()
+                    logInfo(tag, "Background refill failed: ${it.message}")
+                }
         }
-
-        if (refillJob?.isActive == true) {
-            return
-        }
-
-        logInfo(tag, "Background refill triggered (threshold=$refillThreshold)")
-
-        refillJob =
-            scope.launch(ioDispatcher) {
-                runAuctionAndFillStore(adTypeParam)
-                    .onFailure { logInfo(tag, "Background refill failed: ${it.message}") }
-            }
     }
 
     private fun processAuctionResult(
@@ -179,7 +182,10 @@ internal class AdCacheAndreiImpl(
     ) {
         val cachedLog = peekAllEntries().asString()
         val auctionResult = entry?.auctionResult
-        val auctionInfo = entry?.auctionInfo
+        val lastId = lastAuctionIdRef.get()
+        val auctionInfo =
+            entry?.auctionInfo?.takeIf { lastId == null || it.auctionId == lastId }
+                ?: auctionResult?.let(auctionInfoFactory::create)
         if (auctionResult != null && auctionInfo != null) {
             logInfo(tag, "Cache completed: $cachedLog")
             scope.launch(mainDispatcher) {
@@ -188,18 +194,24 @@ internal class AdCacheAndreiImpl(
         } else {
             logInfo(tag, "Auction failed: ${cause?.message}, store=$cachedLog")
             scope.launch(mainDispatcher) {
-                onFailure(auctionInfo, cause ?: BidonError.Unspecified(null))
+                onFailure(null, cause ?: BidonError.Unspecified(null))
             }
         }
         isLoading.set(false)
+        logInfo(tag, "Loading finished, store=${peekAllEntries().size}")
     }
 
     override fun shouldStop(
         successCount: Int,
         lastResult: AuctionResult,
         next: AdUnit?,
-    ): Boolean =
-        (successCount >= capacity()).also {
-            logInfo(tag, "shouldStop: successCount=$successCount, capacity=${capacity()} -> $it")
+    ): Boolean {
+        val threshold = capacity() - size()
+        return (successCount >= threshold).also {
+            logInfo(
+                tag,
+                "shouldStop: successCount=$successCount, remaining=$threshold (capacity=${capacity()}, cached=${size()}) -> $it"
+            )
         }
+    }
 }

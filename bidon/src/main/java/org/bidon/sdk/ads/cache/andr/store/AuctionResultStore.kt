@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.andr.execution.destroySafe
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.logs.logging.impl.logInfo
@@ -49,6 +50,16 @@ internal class AuctionResultStore(
                     addAll(oldExpired)
                 }
             evicted.addAll(old - oldExpired)
+            // Dedup: keep highest price per demandId (TreeSet iterates highest first)
+            val seen = mutableSetOf<String>()
+            val toRemove = mutableListOf<Entry>()
+            for (entry in updated) {
+                if (!seen.add(entry.demandId)) {
+                    toRemove.add(entry)
+                }
+            }
+            updated.removeAll(toRemove.toSet())
+            evicted.addAll(toRemove)
             while (updated.size > capacity) {
                 val last = updated.last()
                 updated.remove(last)
@@ -56,7 +67,7 @@ internal class AuctionResultStore(
             }
             updated
         }
-        evicted.forEach { it.auctionResult.adSource.destroy() }
+        evicted.forEach { it.auctionResult.adSource.destroySafe(tag) }
         logInfo(
             tag,
             "AuctionResultStore.insert: +${items.size}, evicted=${evicted.size}, total=${entries.value.size}"
@@ -65,13 +76,13 @@ internal class AuctionResultStore(
 
     override fun remove(entry: Entry) {
         super.remove(entry)
-        entry.auctionResult.adSource.destroy()
+        entry.auctionResult.adSource.destroySafe(tag)
         logInfo(tag, "AuctionResultStore.remove: ${entry.demandId}:${entry.price}")
     }
 
     override fun clear() {
         val count = entries.value.size
-        entries.getAndUpdate { entrySet() }.forEach { it.auctionResult.adSource.destroy() }
+        entries.getAndUpdate { entrySet() }.forEach { it.auctionResult.adSource.destroySafe(tag) }
         logInfo(tag, "AuctionResultStore.clear: removed $count entries")
     }
 
