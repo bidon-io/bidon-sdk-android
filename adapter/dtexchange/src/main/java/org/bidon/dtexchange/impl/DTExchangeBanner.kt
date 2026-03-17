@@ -1,5 +1,8 @@
 package org.bidon.dtexchange.impl
 
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.widget.FrameLayout
 import com.fyber.inneractive.sdk.external.ImpressionData
 import com.fyber.inneractive.sdk.external.InneractiveAdRequest
@@ -54,16 +57,19 @@ internal class DTExchangeBanner :
             emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, "spotId")))
             return
         }
+        val appContext = adParams.activity.applicationContext
+        val mainHandler = Handler(Looper.getMainLooper())
         val adSpot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveAdViewUnitController()
         adSpot.addUnitController(controller)
         val adRequest = InneractiveAdRequest(spotId)
         adSpot.setRequestListener(object : InneractiveAdSpot.RequestListener {
             override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
+                inneractiveAdSpot?.setRequestListener(null)
                 logInfo(TAG, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                 this@DTExchangeBanner.adSpot = inneractiveAdSpot
-                adParams.activity.runOnUiThread {
-                    createViewHolder(inneractiveAdSpot, adParams)
+                mainHandler.post {
+                    createViewHolder(inneractiveAdSpot, appContext)
                     getAd()?.let {
                         emitEvent(AdEvent.Fill(it))
                     }
@@ -74,6 +80,7 @@ internal class DTExchangeBanner :
                 inneractiveAdSpot: InneractiveAdSpot?,
                 inneractiveErrorCode: InneractiveErrorCode?
             ) {
+                inneractiveAdSpot?.setRequestListener(null)
                 logInfo(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode")
                 emitEvent(AdEvent.LoadFailed(inneractiveErrorCode.asBidonError()))
             }
@@ -92,9 +99,8 @@ internal class DTExchangeBanner :
         adViewHolder = null
     }
 
-    private fun createViewHolder(adSpot: InneractiveAdSpot?, adParams: DTExchangeBannerAuctionParams): AdViewHolder? {
+    private fun createViewHolder(adSpot: InneractiveAdSpot?, context: Context): AdViewHolder? {
         val controller = adSpot?.selectedUnitController as? InneractiveAdViewUnitController ?: return null
-        val context = adParams.activity.applicationContext ?: return null
         val container = FrameLayout(context)
         controller.eventsListener = object : InneractiveAdViewEventsListenerWithImpressionData {
             override fun onAdImpression(

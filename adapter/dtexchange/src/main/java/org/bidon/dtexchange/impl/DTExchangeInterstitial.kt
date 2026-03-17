@@ -108,6 +108,7 @@ internal class DTExchangeInterstitial :
         spot.setRequestListener(
             object : InneractiveAdSpot.RequestListener {
                 override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
+                    inneractiveAdSpot?.setRequestListener(null)
                     logInfo(TAG, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                     this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
                     setDsp(demandSource ?: inneractiveAdSpot?.mediationNameString)
@@ -120,6 +121,7 @@ internal class DTExchangeInterstitial :
                     inneractiveAdSpot: InneractiveAdSpot?,
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
+                    inneractiveAdSpot?.setRequestListener(null)
                     val error = inneractiveErrorCode.asBidonError()
                     logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode", error)
                     emitEvent(AdEvent.LoadFailed(error))
@@ -140,6 +142,7 @@ internal class DTExchangeInterstitial :
     }
 
     override fun destroy() {
+        inneractiveAdSpot?.setRequestListener(null)
         inneractiveAdSpot?.destroy()
         inneractiveAdSpot = null
     }

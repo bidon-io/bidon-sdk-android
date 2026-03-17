@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 📋 [Release Notes](https://developer.digitalturbine.com/hc/en-us/articles/360010834177-DT-Exchange-Android-Changelog)
 
 ## [Unreleased]
+### Fixed
+- Fixed memory leak where InneractiveAdSpotManager held destroyed Activity references through request listener closures
 
 ## [8.4.3.0] - 2026-02-17
 ### Changed
