@@ -97,6 +97,7 @@ internal class DTExchangeRewarded :
                 getAd()?.let {
                     emitEvent(AdEvent.Closed(ad = it))
                 }
+                this@DTExchangeRewarded.inneractiveAdSpot?.destroy()
                 this@DTExchangeRewarded.inneractiveAdSpot = null
             }
         }

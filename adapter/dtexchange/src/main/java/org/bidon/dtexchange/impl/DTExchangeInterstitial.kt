@@ -100,6 +100,7 @@ internal class DTExchangeInterstitial :
                 getAd()?.let {
                     emitEvent(AdEvent.Closed(ad = it))
                 }
+                this@DTExchangeInterstitial.inneractiveAdSpot?.destroy()
                 this@DTExchangeInterstitial.inneractiveAdSpot = null
             }
         }
