@@ -37,6 +37,7 @@ internal class DTExchangeBanner :
 
     private var adSpot: InneractiveAdSpot? = null
     private var adViewHolder: AdViewHolder? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override val isAdReadyToShow: Boolean get() = adSpot?.isReady == true
 
@@ -58,7 +59,6 @@ internal class DTExchangeBanner :
             return
         }
         val appContext = adParams.activity.applicationContext
-        val mainHandler = Handler(Looper.getMainLooper())
         val adSpot = InneractiveAdSpotManager.get().createSpot()
         val controller = InneractiveAdViewUnitController()
         adSpot.addUnitController(controller)
@@ -93,6 +93,7 @@ internal class DTExchangeBanner :
     }
 
     override fun destroy() {
+        mainHandler.removeCallbacksAndMessages(null)
         adSpot?.setRequestListener(null)
         adSpot?.destroy()
         adSpot = null
