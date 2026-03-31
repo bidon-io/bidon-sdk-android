@@ -10,7 +10,7 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
- * Created by Aleksei Cherniaev on 07/05/2023.
+ * Created by Bidon Team on 11/07/2023.
  */
 public object DeviceInfo {
 

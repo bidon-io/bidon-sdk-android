@@ -14,7 +14,7 @@ import java.util.SortedMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 05/09/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 @Deprecated("")
 internal interface BannersCache {

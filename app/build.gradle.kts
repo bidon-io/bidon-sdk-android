@@ -31,6 +31,14 @@ signatureProperties {
     storeFilePath = keystoreProperties["storeSigningFileName"] as? String
 }
 
+configurations.all {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("org.bidon:bidon-sdk"))
+            .using(project(":bidon"))
+            .because("Using local project for development")
+    }
+}
+
 android {
     compileSdk = Dependencies.Android.compileSdkVersion
     namespace = defaultPackage
@@ -93,6 +101,7 @@ dependencies {
     implementation(projects.adapter.vkads)
     implementation(projects.adapter.vungle)
     implementation(projects.adapter.yandex)
+    implementation(projects.adapter.zmaticoo)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 

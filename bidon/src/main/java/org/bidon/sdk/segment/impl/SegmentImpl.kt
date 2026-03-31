@@ -13,7 +13,7 @@ import org.json.JSONObject
 import kotlin.collections.set
 
 /**
- * Created by Aleksei Cherniaev on 15/06/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 internal class SegmentImpl : Segment, SegmentSynchronizer {
     private val keyValueStorage: KeyValueStorage?

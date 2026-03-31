@@ -22,7 +22,7 @@ import org.bidon.yandex.ext.asBidonAdValue
 import org.bidon.yandex.ext.toYandexBannerSize
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 07/08/2024.
  */
 internal class YandexBannerImpl :
     AdSource.Banner<YandexBannerAuctionParam>,

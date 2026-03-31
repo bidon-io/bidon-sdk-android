@@ -5,7 +5,7 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.models.RoundResult
 
 /**
- * Created by Aleksei Cherniaev on 05/07/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 internal interface ResultsCollector {
     fun startRound(pricefloor: Double)

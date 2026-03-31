@@ -27,6 +27,6 @@ Publication settings are described in the [publish-adapter.gradle.kts](./buildSr
 
 # Additional information
 
-- [BDN-46](https://appodeal.atlassian.net/browse/BDN-46) SDK Publishing
-- [BDN-214](https://appodeal.atlassian.net/browse/BDN-214) Bidon Artifactory
-- [BDN-520](https://appodeal.atlassian.net/browse/BDN-520) MavenCentral (Sonatype) + GooglePlaySDK Console
+- BDN-46 SDK Publishing
+- BDN-214 Bidon Artifactory
+- BDN-520 MavenCentral (Sonatype) + GooglePlaySDK Console

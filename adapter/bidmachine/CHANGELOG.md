@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [3.6.1.0] - 2026-03-25
+### Changed
+- Updated SDK dependency from 3.6.0 to 3.6.1
+
+## [3.6.0.0] - 2026-03-17
+### Changed
+- Updated SDK dependency from 3.5.1 to 3.6.0
+
 ## [3.5.1.0] - 2025-12-15
 ### Changed
 - Updated SDK dependency from 3.5.0 to 3.5.1
@@ -15,4 +23,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.5.0.0]
 - Updated BidMachine SDK to 3.5.0
-- [BDN-1076](https://appodeal.atlassian.net/browse/BDN-1076) Added support for IAB restriction parameters (bcat, badv, bapps) for BidMachine CPM ad units
+- BDN-1076 Added support for IAB restriction parameters (bcat, badv, bapps) for BidMachine CPM ad units

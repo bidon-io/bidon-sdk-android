@@ -15,6 +15,7 @@ import org.bidon.yandex.ext.toYandexBannerSize
 import kotlin.coroutines.resume
 
 internal class GetYandexTokenUseCase {
+    @Suppress("DEPRECATION")
     suspend operator fun invoke(adTypeParam: AdTypeParam): String? =
         suspendCancellableCoroutine { continuation ->
             val context = adTypeParam.activity.applicationContext

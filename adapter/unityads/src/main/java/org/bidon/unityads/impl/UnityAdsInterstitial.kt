@@ -22,7 +22,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.unityads.ext.asBidonError
 
 /**
- * Created by Aleksei Cherniaev on 02/03/2023.
+ * Created by Bidon Team on 02/03/2023.
  */
 internal class UnityAdsInterstitial :
     AdSource.Interstitial<UnityAdsFullscreenAuctionParams>,

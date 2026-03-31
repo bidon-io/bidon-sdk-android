@@ -8,7 +8,7 @@ import org.bidon.meta.MetaDemandId
 import org.bidon.sdk.config.BidonError
 
 /**
- * Created by Aleksei Cherniaev on 08/08/2023.
+ * Created by Bidon Team on 14/08/2023.
  */
 internal var adapterVersion = org.bidon.meta.BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = BuildConfig.VERSION_NAME

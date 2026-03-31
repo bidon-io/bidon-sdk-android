@@ -26,7 +26,7 @@ import org.json.JSONObject
 import kotlin.system.measureTimeMillis
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 10/08/2022.
  */
 internal class InitAndRegisterAdaptersUseCaseImpl(
     private val adaptersSource: AdaptersSource

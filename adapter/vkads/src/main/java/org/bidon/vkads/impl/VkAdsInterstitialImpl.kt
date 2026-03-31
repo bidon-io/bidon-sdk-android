@@ -44,7 +44,7 @@ internal class VkAdsInterstitialImpl :
         val interstitialAd = InterstitialAd(slotId, adParams.activity)
             .also { interstitialAd = it }
         interstitialAd.customParams.setCustomParam("mediation", adParams.mediation)
-        interstitialAd.listener = object : InterstitialAd.InterstitialAdListener {
+        interstitialAd.setListener2(object : InterstitialAd.InterstitialAdListener2() {
             override fun onLoad(interstitial: InterstitialAd) {
                 logInfo(TAG, "onLoad: $this")
                 emitEvent(AdEvent.Fill(getAd() ?: return))
@@ -55,23 +55,14 @@ internal class VkAdsInterstitialImpl :
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
 
-            override fun onClick(interstitial: InterstitialAd) {
-                logInfo(TAG, "onClick: $this")
-                emitEvent(AdEvent.Clicked(getAd() ?: return))
-            }
-
             override fun onFailedToShow(interstitial: InterstitialAd) {
                 logInfo(TAG, "onFailedToShow: $this")
                 emitEvent(AdEvent.ShowFailed(BidonError.Unspecified(demandId)))
             }
 
-            override fun onDismiss(interstitial: InterstitialAd) {
-                logInfo(TAG, "onDismiss: $this")
+            override fun onClose(interstitial: InterstitialAd) {
+                logInfo(TAG, "onClose: $this")
                 emitEvent(AdEvent.Closed(getAd() ?: return))
-            }
-
-            override fun onVideoCompleted(interstitial: InterstitialAd) {
-                logInfo(TAG, "onVideoCompleted: $this")
             }
 
             override fun onDisplay(interstitial: InterstitialAd) {
@@ -90,7 +81,18 @@ internal class VkAdsInterstitialImpl :
                     )
                 }
             }
-        }
+        })
+        interstitialAd.setBannerListener(object : InterstitialAd.InterstitialAdBannerListener() {
+            override fun onClick(interstitial: InterstitialAd, bannerInfo: InterstitialAd.BannerInfo?) {
+                logInfo(TAG, "onClick: $this")
+                emitEvent(AdEvent.Clicked(getAd() ?: return))
+            }
+        })
+        interstitialAd.setVideoListener(object : InterstitialAd.InterstitialVideoListener() {
+            override fun onVideoCompleted(interstitial: InterstitialAd, bannerInfo: InterstitialAd.BannerInfo?) {
+                logInfo(TAG, "onVideoCompleted: $this")
+            }
+        })
         if (adParams.adUnit.bidType == BidType.RTB) {
             val bidId = adParams.bidId
                 ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "bidId")))

@@ -21,7 +21,7 @@ import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 import org.bidon.sdk.stats.models.BidType
 
 /**
- * Created by Aleksei Cherniaev on 08/08/2023.
+ * Created by Bidon Team on 14/08/2023.
  */
 internal class MetaInterstitialImpl :
     AdSource.Interstitial<MetaFullscreenAuctionParams>,

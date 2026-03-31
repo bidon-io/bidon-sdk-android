@@ -4,7 +4,7 @@ import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 
 /**
- * Created by Aleksei Cherniaev on 27/09/2023.
+ * Created by Bidon Team on 27/09/2023.
  */
 internal class ObtainAuctionParamUseCase {
     fun getFullscreenParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {

@@ -64,6 +64,7 @@ include(
     ":adapter:vkads",
     ":adapter:vungle",
     ":adapter:yandex",
+    ":adapter:zmaticoo",
 //    ":adapter:fyber",
 //    ":adapter:appsflyer"
     ":thirdPartyMediationAdapters:applovin_max",

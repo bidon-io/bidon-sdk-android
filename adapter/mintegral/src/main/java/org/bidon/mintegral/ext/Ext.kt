@@ -6,7 +6,7 @@ import org.bidon.mintegral.MintegralDemandId
 import org.bidon.sdk.config.BidonError
 
 /**
- * Created by Aleksei Cherniaev on 20/06/2023.
+ * Created by Bidon Team on 03/08/2023.
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = MBConfiguration.SDK_VERSION

@@ -108,7 +108,7 @@ Convention plugins in `build-logic/convention-plugins/`:
 - **ci-pull-request.yml** - KtLint, CHANGELOG verification, core tests
 - **ci-adapter-quality.yml** - Builds and tests changed adapters on PR, uploads deprecated warnings
 - **sdk-size-check.yml** - Compares APK size on adapter updates, comments on PR
-- **claude-fix-deprecated.yml** - Auto-fixes deprecated code using Claude AI (requires `ANTHROPIC_API_KEY`)
+- **claude-fix-deprecated.yml** - Auto-fixes deprecated code using Claude AI (requires `CLAUDE_API_KEY_SDK`)
 - **automation-publish-adapters.yml** - Auto-publishes adapters after merge to develop
 - **release-adapter.yml** - Manual adapter publication
 - **release-sdk.yml** - Manual SDK publication (public repo requires `release/*` branch)

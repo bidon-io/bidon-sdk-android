@@ -42,8 +42,4 @@ object Dependencies {
         const val PlayServicesAdsIdentifier =
             "com.google.android.gms:play-services-ads-identifier:18.0.1"
     }
-
-    object Others {
-        const val IabTcfDecoder = "com.iabtcf:iabtcf-decoder:2.0.10"
-    }
 }

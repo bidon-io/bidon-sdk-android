@@ -13,7 +13,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 28/11/2023.
+ * Created by Bidon Team on 29/11/2023.
  */
 internal class TestInitAdapter(
     private val name: String,

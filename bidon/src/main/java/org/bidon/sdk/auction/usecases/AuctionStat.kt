@@ -8,7 +8,7 @@ import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.StatsRequestBody
 
 /**
- * Created by Aleksei Cherniaev on 09/06/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 internal interface AuctionStat {
     fun markAuctionStarted(auctionId: String, adTypeParam: AdTypeParam)

@@ -1,7 +1,7 @@
 package org.bidon.sdk.segment
 
 /**
- * Created by Aleksei Cherniaev on 15/06/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 internal interface Segmentation {
     val segment: Segment

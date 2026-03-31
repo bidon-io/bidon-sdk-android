@@ -6,7 +6,7 @@ import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
 /**
- * Created by Aleksei Cherniaev on 21/09/2023.
+ * Created by Bidon Team on 27/09/2023.
  */
 internal class MobileFuseFullscreenAuctionParams(
     val activity: Activity,
