@@ -111,7 +111,6 @@ internal class InterstitialImpl(
             return
         }
         logInfo(TAG, "Show")
-
         activity.runOnUiThread {
             val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
             if (adSource == null) {

@@ -175,14 +175,17 @@ internal class TwoLevelAdManager(
     }
 
     /**
-     * Detaches this manager from [ManagerPool]. Does NOT clear the shared per-AdType stores.
-     * iOS equivalent: ZhenyaManagerPool.removeManager().
+     * Cancels any running auction but keeps the manager in [ManagerPool].
+     * The pool's periodic cleanup handles removal of idle/stale entries.
+     *
+     * NOT removing from pool avoids unnecessary Pipeline/Controller recreation when
+     * Appodeal calls destroyAd() after a NoFill and then immediately loadAd() again
+     * (common pattern for Banner auto-refresh). The next getOrCreate() reuses
+     * this manager via the live WeakReference instead of allocating a new one.
      */
     override fun clear() {
-        logInfo(TAG, "[$adTypeLabel] clear() — detaching from pool auctionKey=$auctionKey")
-        scope.launch {
-            ManagerPool.remove(auctionKey)
-        }
+        logInfo(TAG, "[$adTypeLabel] clear()")
+        controller.cancel()
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
@@ -197,6 +200,7 @@ internal class TwoLevelAdManager(
      */
     private fun buildSyntheticAuctionInfo(result: AuctionResult): AuctionInfo {
         val stats = result.adSource.getStats()
+        val adUnit = stats.adUnit
         return AuctionInfo(
             auctionId = stats.auctionId ?: "-",
             auctionConfigurationId = null,
@@ -207,14 +211,14 @@ internal class TwoLevelAdManager(
             adUnits = listOf(
                 AdUnitInfo(
                     demandId = stats.demandId.demandId,
-                    label = null,
+                    label = adUnit?.label,
                     price = stats.price,
-                    uid = null,
-                    bidType = null,
-                    fillStartTs = null,
-                    fillFinishTs = null,
+                    uid = adUnit?.uid,
+                    bidType = adUnit?.bidType?.code,
+                    fillStartTs = stats.fillStartTs,
+                    fillFinishTs = stats.fillFinishTs,
                     status = "WIN",
-                    ext = null,
+                    ext = adUnit?.extra?.toString(),
                 ),
             ),
         )
