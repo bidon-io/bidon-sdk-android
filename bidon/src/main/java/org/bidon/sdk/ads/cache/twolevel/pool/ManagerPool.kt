@@ -9,12 +9,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager
 import org.bidon.sdk.ads.cache.twolevel.auction.SequentialAuctionPipeline
 import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.config.TwoLevelCacheConfig
-import org.bidon.sdk.ads.cache.twolevel.storage.TwoLevelCacheStores
+import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
+import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
 import java.lang.ref.WeakReference
@@ -23,11 +23,11 @@ import java.lang.ref.WeakReference
  * Singleton pool of [TwoLevelAdManager] instances keyed by auctionKey.
  *
  * One manager per auctionKey — if a new InterstitialImpl is created with the same
- * auctionKey it gets access to the existing manager.
+ * auctionKey it gets access to the existing manager. Each manager has its own
+ * [CacheStorage] + [FallbackCacheStorage] pair (different auctionKeys have different
+ * waterfalls and pricefloors).
  * - Stores a [WeakReference] to the manager; when no strong reference exists (the
  *   InterstitialImpl holding the AdCache was GC'd) the entry becomes eligible for cleanup.
- * - Backing [TwoLevelCacheStores] are static singletons per [AdType], shared across
- *   all managers of the same ad type.
  * - Periodic cleanup every 60 s: removes entries where the manager is idle AND
  *   (older than 5 min OR the weak reference has been cleared).
  * - Thread-safe via [Mutex].
@@ -36,7 +36,6 @@ internal object ManagerPool {
 
     private data class PoolEntry(
         val weakRef: WeakReference<TwoLevelAdManager>,
-        val adType: AdType,
         val createdAt: Long, // SystemClock.elapsedRealtime()
     )
 
@@ -77,8 +76,14 @@ internal object ManagerPool {
             }
         }
 
-        // Get (or lazily init) static stores for this AdType
-        val stores = TwoLevelCacheStores.getOrCreate(demandAd.adType, config)
+        // Each auctionKey gets its own cache stores (different waterfalls/pricefloors).
+        val mainCache = CacheStorage(
+            capacity = config.mainCacheSize,
+            iterationThreshold = config.threshold,
+        )
+        val fallbackCache = FallbackCacheStorage(
+            capacity = config.fallbackCacheSize,
+        )
 
         val pipeline = SequentialAuctionPipeline(
             adaptersSource = get(),
@@ -91,20 +96,19 @@ internal object ManagerPool {
 
         val controller = TwoLevelAuctionController(
             pipeline = pipeline,
-            fallbackCache = stores.fallback,
+            fallbackCache = fallbackCache,
             adTypeLabel = demandAd.adType.code.uppercase(),
         )
 
         val manager = TwoLevelAdManager(
             demandAd = demandAd,
-            mainCache = stores.main,
-            fallbackCache = stores.fallback,
+            mainCache = mainCache,
+            fallbackCache = fallbackCache,
             controller = controller,
         )
 
         pool[auctionKey] = PoolEntry(
             weakRef = WeakReference(manager),
-            adType = demandAd.adType,
             createdAt = SystemClock.elapsedRealtime(),
         )
         logInfo(TAG, "[Pool] created new manager auctionKey=$auctionKey adType=${demandAd.adType}")

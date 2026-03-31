@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Two-Level Cache AdCache facade.
  *
  * Wraps the shared per-AdType [CacheStorage] (main) and [FallbackCacheStorage] (fallback)
- * singletons provided by [ManagerPool] via [TwoLevelCacheStores].
+ * created per auctionKey by [ManagerPool].
  *
  * Thread safety:
  *  - [cache] launches a coroutine on [scope]; [auctionRunning] guards duplicate starts.
