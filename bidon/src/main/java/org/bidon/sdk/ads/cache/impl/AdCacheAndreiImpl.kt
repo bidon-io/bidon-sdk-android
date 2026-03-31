@@ -9,8 +9,8 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
-import org.bidon.sdk.ads.cache.andr.AdCacheStrategy
 import org.bidon.sdk.ads.cache.andr.AuctionRunnerFactory
+import org.bidon.sdk.ads.cache.andr.AuctionStopCondition
 import org.bidon.sdk.ads.cache.andr.RefillCoordinator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.ads.cache.andr.store.AdStore
@@ -20,7 +20,6 @@ import org.bidon.sdk.ads.cache.andr.store.filterPrice
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.ads.cache.andr.AuctionStopCondition
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.atomic.AtomicBoolean

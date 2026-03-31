@@ -79,56 +79,56 @@ internal object AdCacheAndrFactory {
             auctionInfoFactory = infoFactory,
             refillCoordinator = refillCoordinator,
             auctionRunnerFactory =
-                AuctionRunnerFactory(
+            AuctionRunnerFactory(
+                tag = tag,
+                ioDispatcher = ioDispatcher,
+                auctionConfigurator =
+                AuctionConfigurator(
                     tag = tag,
-                    ioDispatcher = ioDispatcher,
-                    auctionConfigurator =
-                        AuctionConfigurator(
-                            tag = tag,
-                            adaptersCollector = adaptersCollector,
-                            adaptersInfoCollector =
-                                AdaptersInfoCollector(
-                                    tag = tag,
-                                    rtbResultsStore = rtbResultsStore,
-                                ),
-                            auctionResultsStore = auctionResultsStore,
-                            getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
-                            rtbResultsStore = rtbResultsStore,
-                            tokensCollector =
-                                TokensCollector(
-                                    tag = tag,
-                                    ioDispatcher = ioDispatcher,
-                                    biddingConfig = get<BiddingConfig>(),
-                                    tokenCollector = TokenCollector(tag = tag),
-                                    circuitBreaker =
-                                        tokenCollectionProvider.circuitBreaker(
-                                            adType,
-                                            tag
-                                        ),
-                                ),
+                    adaptersCollector = adaptersCollector,
+                    adaptersInfoCollector =
+                    AdaptersInfoCollector(
+                        tag = tag,
+                        rtbResultsStore = rtbResultsStore,
+                    ),
+                    auctionResultsStore = auctionResultsStore,
+                    getAuctionRequestUseCase = get<GetAuctionRequestUseCase>(),
+                    rtbResultsStore = rtbResultsStore,
+                    tokensCollector =
+                    TokensCollector(
+                        tag = tag,
+                        ioDispatcher = ioDispatcher,
+                        biddingConfig = get<BiddingConfig>(),
+                        tokenCollector = TokenCollector(tag = tag),
+                        circuitBreaker =
+                        tokenCollectionProvider.circuitBreaker(
+                            adType,
+                            tag
                         ),
-                    auctionExecutorFactory =
-                        AuctionExecutorFactory(
-                            tag = tag,
-                            adCacheStrategy = adCacheStrategy,
-                            adaptersCollector = adaptersCollector,
-                            adSourceResolver = AdSourceResolver(tag = tag),
-                            auctionResultsStore = auctionResultsStore,
-                            adUnitPreparer =
-                                AdUnitPreparer(
-                                    tag = tag,
-                                    auctionResultsStore = auctionResultsStore,
-                                    rtbResultsStore = rtbResultsStore,
-                                    rtbResultsMerger = RtbResultsMerger(),
-                                ),
-                            mainDispatcher = SdkDispatchers.Main,
-                            requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
-                            rtbResultsStore = rtbResultsStore,
-                            winLossNotifier = WinLossNotifier(tag = tag),
-                        ),
-                    auctionResolver = resolver,
-                    infoFactory = infoFactory,
+                    ),
                 ),
+                auctionExecutorFactory =
+                AuctionExecutorFactory(
+                    tag = tag,
+                    adCacheStrategy = adCacheStrategy,
+                    adaptersCollector = adaptersCollector,
+                    adSourceResolver = AdSourceResolver(tag = tag),
+                    auctionResultsStore = auctionResultsStore,
+                    adUnitPreparer =
+                    AdUnitPreparer(
+                        tag = tag,
+                        auctionResultsStore = auctionResultsStore,
+                        rtbResultsStore = rtbResultsStore,
+                        rtbResultsMerger = RtbResultsMerger(),
+                    ),
+                    mainDispatcher = SdkDispatchers.Main,
+                    requestAdUnitUseCase = get<RequestAdUnitUseCase>(),
+                    rtbResultsStore = rtbResultsStore,
+                    winLossNotifier = WinLossNotifier(tag = tag),
+                ),
+                auctionResolver = resolver,
+                infoFactory = infoFactory,
+            ),
         )
     }
 }

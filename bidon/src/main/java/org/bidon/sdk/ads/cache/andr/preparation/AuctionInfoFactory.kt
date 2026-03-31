@@ -39,19 +39,19 @@ internal class AuctionInfoFactory {
             auctionPricefloor = stats.auctionPricefloor,
             noBids = null,
             adUnits =
-                listOf(
-                    AdUnitInfo(
-                        demandId = stats.demandId.demandId,
-                        label = stats.adUnit?.label,
-                        price = stats.price,
-                        uid = stats.adUnit?.uid,
-                        bidType = stats.bidType?.code,
-                        fillStartTs = stats.fillStartTs,
-                        fillFinishTs = stats.fillFinishTs,
-                        status = RoundStatus.Win.code,
-                        ext = stats.adUnit?.extra?.toString(),
-                    )
-                ),
+            listOf(
+                AdUnitInfo(
+                    demandId = stats.demandId.demandId,
+                    label = stats.adUnit?.label,
+                    price = stats.price,
+                    uid = stats.adUnit?.uid,
+                    bidType = stats.bidType?.code,
+                    fillStartTs = stats.fillStartTs,
+                    fillFinishTs = stats.fillFinishTs,
+                    status = RoundStatus.Win.code,
+                    ext = stats.adUnit?.extra?.toString(),
+                )
+            ),
         )
     }
 }

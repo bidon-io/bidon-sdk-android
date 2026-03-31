@@ -53,7 +53,7 @@ internal class TokenCircuitBreaker(
                         failures,
                         if (justOpened) SystemTimeNow else current?.openedAt ?: 0L
                     )
-                )
+                    )
             }
         }
     }

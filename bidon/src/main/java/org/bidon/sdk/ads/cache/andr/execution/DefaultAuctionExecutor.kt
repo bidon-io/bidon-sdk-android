@@ -11,6 +11,7 @@ import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.ads.cache.andr.AuctionStopCondition
 import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.ads.cache.andr.ext.rtb
 import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
@@ -22,7 +23,6 @@ import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo
-import org.bidon.sdk.ads.cache.andr.AuctionStopCondition
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logInfo
