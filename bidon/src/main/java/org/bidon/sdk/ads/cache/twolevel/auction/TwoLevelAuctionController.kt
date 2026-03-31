@@ -1,9 +1,6 @@
 package org.bidon.sdk.ads.cache.twolevel.auction
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
@@ -30,9 +27,6 @@ internal class TwoLevelAuctionController(
     private val fallbackCache: FallbackCacheStorage,
     private val adTypeLabel: String,
 ) {
-    // One dedicated scope per controller instance; cancelled via cancel().
-    internal val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
     /**
      * Start the sequential auction pipeline.
      *
@@ -70,11 +64,6 @@ internal class TwoLevelAuctionController(
                 }
             },
         )
-    }
-
-    fun cancel() {
-        scope.coroutineContext[Job]?.cancel()
-        logInfo(TAG, "[$adTypeLabel] cancelled")
     }
 
     // ---

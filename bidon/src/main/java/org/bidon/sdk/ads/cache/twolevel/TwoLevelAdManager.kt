@@ -51,6 +51,11 @@ internal class TwoLevelAdManager(
     // True while an auction is running — prevents duplicate starts and signals ManagerPool.
     private val auctionRunning = AtomicBoolean(false)
 
+    // Reference to the current auction coroutine. Cancelled by pop()/show() to stop
+    // background demand polling per spec section 8.
+    @Volatile
+    private var auctionJob: Job? = null
+
     // Set when threshold rejection occurs AND Fallback can't accept more bids.
     // Since the waterfall is sorted by price (descending), once threshold rejects
     // a bid and Fallback is full/disabled, all subsequent bids are even cheaper
@@ -71,7 +76,7 @@ internal class TwoLevelAdManager(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        scope.launch {
+        auctionJob = scope.launch {
             cacheInternal(adTypeParam, onSuccess, onFailure)
         }
     }
@@ -206,7 +211,7 @@ internal class TwoLevelAdManager(
     override fun pop(): AuctionResult? = runBlocking {
         val result = mainCache.popFirst() ?: fallbackCache.popFirst()
         if (result != null) {
-            controller.cancel()
+            cancelAuction()
         }
         result
     }
@@ -218,7 +223,7 @@ internal class TwoLevelAdManager(
         while (true) {
             val result = mainCache.popFirst() ?: fallbackCache.popFirst()
             if (result != null) {
-                controller.cancel()
+                cancelAuction()
                 return result
             }
             delay(100)
@@ -227,8 +232,14 @@ internal class TwoLevelAdManager(
 
     override fun clear() {
         logInfo(TAG, "[$adTypeLabel] clear()")
-        controller.cancel()
+        cancelAuction()
         scope.coroutineContext[Job]?.cancel()
+    }
+
+    private fun cancelAuction() {
+        auctionJob?.cancel()
+        auctionJob = null
+        logInfo(TAG, "[$adTypeLabel] auction cancelled")
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
