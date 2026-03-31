@@ -22,7 +22,6 @@ import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.InitAwaiter
 import org.bidon.sdk.ads.InitAwaiterImpl
 import org.bidon.sdk.ads.cache.AdCache
-import org.bidon.sdk.ads.cache.impl.AdCacheDenisImpl
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
@@ -113,47 +112,14 @@ internal class InterstitialImpl(
         }
         logInfo(TAG, "Show")
 
-        // Use fallback if denis ad caching, otherwise default behavior
-        if (adCache is AdCacheDenisImpl) {
-            logInfo(TAG, "Using denis ad caching with fallback")
-            observeCallbacksJob?.cancel()
-            observeCallbacksJob = (adCache as AdCacheDenisImpl).showBestWithFallback(
-                activity = activity,
-                onFailed = { error ->
-                    listener.onAdShowFailed(error as? BidonError ?: BidonError.AdNotReady)
-                },
-                onEvent = { adSource, event ->
-                    val source = adSource as AdSource.Interstitial<*>
-                    when (event) {
-                        is AdEvent.Shown -> {
-                            logInfo(TAG, "Winner selected: ${source.demandId}")
-                            winner = source
-                            listener.onAdShown(event.ad)
-                            source.sendShowImpression()
-                        }
-                        is AdEvent.Clicked -> {
-                            listener.onAdClicked(event.ad)
-                            source.sendClickImpression()
-                        }
-                        is AdEvent.Closed -> listener.onAdClosed(event.ad)
-                        is AdEvent.ShowFailed -> listener.onAdShowFailed(event.cause)
-                        is AdEvent.PaidRevenue -> listener.onRevenuePaid(event.ad, event.adValue)
-                        else -> {}
-                    }
-                }
-            )
-        } else {
-            // Default behavior (old ad cache)
-            logInfo(TAG, "Using default ad caching without fallback")
-            activity.runOnUiThread {
-                val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
-                if (adSource == null) {
-                    logInfo(TAG, "Show failed. No Auction results.")
-                    listener.onAdShowFailed(BidonError.AdNotReady)
-                } else {
-                    winner = adSource
-                    adSource.show(activity)
-                }
+        activity.runOnUiThread {
+            val adSource = adCache.pop()?.adSource as? AdSource.Interstitial
+            if (adSource == null) {
+                logInfo(TAG, "Show failed. No Auction results.")
+                listener.onAdShowFailed(BidonError.AdNotReady)
+            } else {
+                winner = adSource
+                adSource.show(activity)
             }
         }
     }

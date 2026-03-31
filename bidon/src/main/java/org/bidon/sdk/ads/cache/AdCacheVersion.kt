@@ -18,14 +18,6 @@ internal sealed interface AdCacheVersion {
         override val value = 3
     }
 
-    data object V4 : AdCacheVersion {
-        override val value = 4
-    }
-
-    data object V5 : AdCacheVersion {
-        override val value = 5
-    }
-
     companion object {
         val Default: AdCacheVersion = V1
 
@@ -33,8 +25,6 @@ internal sealed interface AdCacheVersion {
             1 -> V1
             2 -> V2
             3 -> V3
-            4 -> V4
-            5 -> V5
             else -> Default
         }
 
@@ -42,8 +32,6 @@ internal sealed interface AdCacheVersion {
             "v1" -> V1
             "v2" -> V2
             "v3" -> V3
-            "v4" -> V4
-            "v5" -> V5
             else -> Default
         }
     }
