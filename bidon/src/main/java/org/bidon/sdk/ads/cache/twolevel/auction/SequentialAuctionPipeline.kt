@@ -38,13 +38,11 @@ import kotlin.coroutines.coroutineContext
 /**
  * Sequential auction pipeline for Two-Level Cache.
  *
- * Direct Android port of the iOS TwoLevelAuctionController sequential OperationQueue flow:
+ * Sequential auction pipeline that processes ad units one by one.
+ * After each unit completes loading (fill or failure), [singleLoadCompletion] fires
+ * for every fill and then the next unit is scheduled.
  *
- * iOS uses OperationQueue(maxConcurrentOperationCount=1) to process ad units one by one.
- * After each unit completes loading (fill or failure), a "finish demand operation" fires
- * [singleLoadCompletion] for every fill and then schedules the next unit.
- *
- * This class replicates that exact flow using Kotlin coroutines:
+ * Flow:
  *
  * 1. Collect RTB tokens from bidding adapters (like Denis CoordinationLayer).
  * 2. POST to /auction endpoint to receive the [adUnits] list.
@@ -151,7 +149,7 @@ internal class SequentialAuctionPipeline(
 
                     logInfo(TAG, "Sequential pipeline: ${adUnits.size} ad units to process")
 
-                    // Step 3: Process ad units one by one (iOS OperationQueue sequential flow).
+                    // Step 3: Process ad units one by one (sequential flow).
                     var fillCount = 0
                     try {
                         withTimeout(response.auctionTimeout) {
@@ -175,8 +173,7 @@ internal class SequentialAuctionPipeline(
 
                                 if (result != null) {
                                     fillCount++
-                                    // iOS: singleLoadCompletion fires in createFinishDemandOperation
-                                    // immediately after the demand operation finishes with a bid.
+                                    // singleLoadCompletion fires immediately after a demand fill.
                                     logInfo(TAG, "[$index/${adUnits.size}] Fill: ${adUnit.demandId}")
                                     singleLoadCompletion(result)
                                 } else {
@@ -221,14 +218,11 @@ internal class SequentialAuctionPipeline(
     }
 
     // -------------------------------------------------------------------------
-    // Single ad unit loading — mirrors iOS AuctionOperationRequestDemand pattern
+    // Single ad unit loading
     // -------------------------------------------------------------------------
 
     /**
      * Attempt to load a single ad unit.
-     *
-     * Mirrors the iOS combination of [AuctionOperationRequestDirectDemand] /
-     * [AuctionOperationRequestBiddingDemand] + [createFinishDemandOperation].
      *
      * @return [AuctionResult] on fill, null on any failure.
      */

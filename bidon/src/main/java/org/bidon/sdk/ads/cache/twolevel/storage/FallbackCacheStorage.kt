@@ -6,12 +6,10 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Fallback cache storage for the Two-Level Cache strategy.
- *
- * Port of iOS FallbackCacheStorage.swift (Zhenya strategy). Simpler than [CacheStorage]:
+ * Fallback cache storage for the Two-Level Cache strategy. Simpler than [CacheStorage]:
  * no sticky mode, no iteration threshold. Sorted array with capacity-based eviction.
  *
- * Eviction rule: strict `price > cheapest.price` required (iOS code uses `>`, not `>=`).
+ * Eviction rule: strict `price > cheapest.price` required.
  * Equal-price items do NOT displace the current cheapest when the cache is full.
  *
  * Thread safety: all mutating operations use [Mutex].
@@ -61,7 +59,7 @@ internal class FallbackCacheStorage(
             }
         }
 
-        // Capacity eviction — strict > required (iOS: `guard element.price > cheapest.price`)
+        // Capacity eviction — strict > required
         if (items.size >= capacity) {
             val cheapest = items.minByOrNull { it.price() }
             if (cheapest == null || price <= cheapest.price()) {

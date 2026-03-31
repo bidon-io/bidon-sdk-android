@@ -20,8 +20,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * the old [org.bidon.sdk.auction.Auction]-based approach.
  *
  * On auction failure the controller checks [fallbackCache] for an ad >= pricefloor.
- * If one is found it is popped and surfaced via [onComplete] as a success, mirroring the
- * iOS handlePerformAuctionRequestFailed behavior in ZhenyaFullscreenAdManager.
+ * If one is found it signals success via [onComplete]; the caller delivers the ad.
  *
  * Routing decisions (main vs. fallback insert) are NOT performed here — they belong in
  * [org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager] via the [singleLoadCompletion] lambda.

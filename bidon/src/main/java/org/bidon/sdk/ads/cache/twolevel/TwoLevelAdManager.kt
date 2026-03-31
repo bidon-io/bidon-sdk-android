@@ -11,7 +11,6 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
@@ -20,11 +19,12 @@ import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Two-Level Cache AdCache facade. Mirrors iOS ZhenyaFullscreenAdManager.
+ * Two-Level Cache AdCache facade.
  *
  * Wraps the shared per-AdType [CacheStorage] (main) and [FallbackCacheStorage] (fallback)
  * singletons provided by [ManagerPool] via [TwoLevelCacheStores].
@@ -74,9 +74,8 @@ internal class TwoLevelAdManager(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        // WARM START — mirrors iOS ZhenyaFullscreenAdManager.loadAd warm-start check.
+        // WARM START: if the cache already has an ad >= pricefloor, return it immediately.
         // Peek only — do NOT pop. The ad stays in cache until show() calls pop().
-        // iOS also peeks without popping here.
         val warmMain = mainCache.peek()
         if (warmMain != null && warmMain.adSource.getStats().price >= adTypeParam.pricefloor) {
             logInfo(TAG, "[$adTypeLabel] Warm start from Main: ${warmMain.adSource.getStats().demandId.demandId}")
@@ -95,7 +94,7 @@ internal class TwoLevelAdManager(
         val firstFillFired = AtomicBoolean(false)
 
         try {
-            // iOS: beginIteration() resets iterationMaxPrice before each auction round.
+            // Reset iteration-threshold state before each auction round.
             mainCache.beginIteration()
 
             // controller.start() suspends until the pipeline completes all ad units.
@@ -108,7 +107,7 @@ internal class TwoLevelAdManager(
                     val isFirst = firstFillFired.compareAndSet(false, true)
 
                     // Route: Main cache (sticky for first fill) → Fallback → destroy.
-                    // Mirrors iOS: Cacher.Main.interstitialStorage.insert(ad, sticky: isFirstLoad)
+                    // Route: Main cache (sticky for first fill) → Fallback → destroy.
                     val mainResult = mainCache.insert(winner, sticky = isFirst)
                     logInfo(
                         TAG,
@@ -125,7 +124,7 @@ internal class TwoLevelAdManager(
                         }
                     }
 
-                    // iOS: first fill → delegate?.adManager(self, didLoad: ad, …) on main thread.
+                    // First fill → deliver onSuccess on main thread.
                     if (isFirst) {
                         val info = buildSyntheticAuctionInfo(winner)
                         logInfo(TAG, "[$adTypeLabel] firing onSuccess for first fill")
@@ -160,14 +159,13 @@ internal class TwoLevelAdManager(
     }
 
     /**
-     * iOS isReady = Main.peek() != nil || Fallback.peek() != nil.
      * Uses non-suspend snapshot reads — safe to call from any thread synchronously.
      */
     override fun peek(): AuctionResult? =
         mainCache.peekSnapshot() ?: fallbackCache.peekSnapshot()
 
     /**
-     * iOS show flow: pop from Main first, then Fallback.
+     * Pop from Main first, then Fallback.
      * runBlocking is acceptable here because AdCache.pop() is synchronous and the
      * storage Mutex is never held for long durations (sub-millisecond).
      */

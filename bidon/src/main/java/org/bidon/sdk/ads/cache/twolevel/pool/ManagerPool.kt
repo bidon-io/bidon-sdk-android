@@ -22,13 +22,12 @@ import java.lang.ref.WeakReference
 /**
  * Singleton pool of [TwoLevelAdManager] instances keyed by auctionKey.
  *
- * Mirrors iOS ZhenyaManagerPool:
- * - One manager per auctionKey — if a new InterstitialImpl is created with the same
- *   auctionKey it gets access to the existing manager.
+ * One manager per auctionKey — if a new InterstitialImpl is created with the same
+ * auctionKey it gets access to the existing manager.
  * - Stores a [WeakReference] to the manager; when no strong reference exists (the
  *   InterstitialImpl holding the AdCache was GC'd) the entry becomes eligible for cleanup.
  * - Backing [TwoLevelCacheStores] are static singletons per [AdType], shared across
- *   all managers of the same ad type (mirrors iOS Cacher.Main/Fallback static stores).
+ *   all managers of the same ad type.
  * - Periodic cleanup every 60 s: removes entries where the manager is idle AND
  *   (older than 5 min OR the weak reference has been cleared).
  * - Thread-safe via [Mutex].
@@ -78,7 +77,7 @@ internal object ManagerPool {
             }
         }
 
-        // Get (or lazily init) static stores for this AdType — mirrors iOS Cacher static fields
+        // Get (or lazily init) static stores for this AdType
         val stores = TwoLevelCacheStores.getOrCreate(demandAd.adType, config)
 
         val pipeline = SequentialAuctionPipeline(
@@ -130,7 +129,7 @@ internal object ManagerPool {
             val isWeakRefDead = manager == null
             val isIdle = manager?.isIdle() ?: true
             val isOldEnough = (now - entry.createdAt) > IDLE_TTL_MS
-            // iOS cleanup condition: idle AND (old enough OR weak ref dead)
+            // Cleanup condition: idle AND (old enough OR weak ref dead)
             isIdle && (isOldEnough || isWeakRefDead)
         }.map { it.key }
 

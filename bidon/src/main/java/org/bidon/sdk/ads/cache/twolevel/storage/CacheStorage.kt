@@ -6,9 +6,7 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
- * Main cache storage for the Two-Level Cache strategy.
- *
- * Port of iOS CacheStorage.swift (Zhenya strategy). Maintains a sorted array of
+ * Main cache storage for the Two-Level Cache strategy. Maintains a sorted array of
  * AuctionResult items with sticky-head mode and per-iteration threshold filtering.
  *
  * Thread safety: all mutating operations use [Mutex].
@@ -59,7 +57,7 @@ internal class CacheStorage(
         val price = element.price()
         val key = element.demandKey()
 
-        // 1. Iteration threshold (capacity > 1 only — matches iOS guard)
+        // 1. Iteration threshold (capacity > 1 only)
         if (shouldRejectByIterationThreshold(price)) {
             logInfo(TAG, "[Main] insert REJECTED IterationThreshold: price=$price minAllowed=${formatMinAllowed()}")
             logCacheState()
@@ -107,9 +105,8 @@ internal class CacheStorage(
         }
 
         // 4. Capacity check: only reject if new item doesn't beat the cheapest evictable.
-        // iOS: `if items.count == capacity, let cheapest = cheapestAllowedToEvictPrice(), element.price <= cheapest`
-        // When cheapest is nil (e.g. sticky head only, no tail), the condition fails → skip to insert.
-        // iOS does NOT evict here — trimIfNeeded() in step 5 handles overflow after insert.
+        // When cheapest is null (e.g. sticky head only, no tail), skip to insert.
+        // Eviction is deferred to trimIfNeeded() in step 5 after insert.
         if (items.size >= capacity) {
             val cheapestPrice = cheapestAllowedToEvictPrice()
             if (cheapestPrice != null && price <= cheapestPrice) {
@@ -120,8 +117,7 @@ internal class CacheStorage(
         }
 
         // 5. Insert, sort according to mode, trim overflow.
-        // iOS: sticky inserts go at head (items.insert(element, at: 0));
-        //       non-sticky inserts go at tail (items.append(element)).
+        // Sticky inserts go at head; non-sticky inserts go at tail.
         if (sticky) {
             items.add(0, element)
             stickyHeadActive = true
@@ -166,7 +162,7 @@ internal class CacheStorage(
     // -----------------------------------------------------------------------
 
     /**
-     * iOS shouldRejectByIterationThreshold logic:
+     * Iteration threshold logic:
      *  - First item (iterationMaxPrice == null): set max, pass.
      *  - price > currentMax: update max, pass.
      *  - price >= currentMax * (threshold/100): pass.
@@ -190,8 +186,7 @@ internal class CacheStorage(
     /**
      * Returns the price of the cheapest item eligible for eviction.
      *
-     * iOS cheapestAllowedToEvictPrice(): returns items.last?.price,
-     * relying on the array being sorted descending so last == cheapest.
+     * Items are sorted descending so last == cheapest.
      * In sticky mode, requires at least 2 items (head is protected).
      */
     private fun cheapestAllowedToEvictPrice(): Double? {
@@ -204,7 +199,7 @@ internal class CacheStorage(
     }
 
     /**
-     * iOS sortAccordingToMode:
+     * Sort according to mode:
      *  - Sticky mode: sort only tail (items[1..]), keep head in place.
      *  - Normal mode: sort all items.
      */
@@ -222,7 +217,7 @@ internal class CacheStorage(
     }
 
     /**
-     * iOS trimIfNeeded: remove from tail while over capacity.
+     * Remove from tail while over capacity.
      * The sticky head (items[0]) is never removed because trim always
      * removes items.last() and the sticky head is at index 0.
      *

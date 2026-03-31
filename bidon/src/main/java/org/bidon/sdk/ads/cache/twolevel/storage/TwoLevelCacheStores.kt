@@ -4,13 +4,7 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.cache.twolevel.config.TwoLevelCacheConfig
 
 /**
- * Static-singleton cache stores per [AdType], matching iOS Cacher.swift pattern.
- *
- * iOS equivalent:
- *   Cacher.Main.bannerStorage       = CacheStorage(...)
- *   Cacher.Main.interstitialStorage = CacheStorage(...)
- *   Cacher.Fallback.bannerStorage   = FallbackCacheStorage(...)
- *   Cacher.Fallback.interstitialStorage = FallbackCacheStorage(...)
+ * Static-singleton cache stores per [AdType].
  *
  * All manager instances for the same [AdType] share the same [CacheStorage] and
  * [FallbackCacheStorage] pair. The ManagerPool manages managers per auctionKey;
