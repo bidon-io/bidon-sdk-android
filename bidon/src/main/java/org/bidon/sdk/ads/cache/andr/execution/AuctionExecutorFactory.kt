@@ -6,7 +6,7 @@ import org.bidon.sdk.ads.cache.andr.preparation.AdaptersCollector
 import org.bidon.sdk.ads.cache.andr.store.AdStore
 import org.bidon.sdk.ads.cache.andr.store.AuctionResultStore
 import org.bidon.sdk.ads.cache.andr.store.RtbResultStore
-import org.bidon.sdk.auction.usecases.AuctionStopCondition
+import org.bidon.sdk.ads.cache.andr.AuctionStopCondition
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 
 internal class AuctionExecutorFactory(

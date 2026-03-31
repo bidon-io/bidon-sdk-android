@@ -7,7 +7,6 @@ import org.bidon.sdk.ads.cache.andr.preparation.AuctionConfigurator
 import org.bidon.sdk.ads.cache.andr.preparation.AuctionInfoFactory
 import org.bidon.sdk.auction.AuctionResolver
 import org.bidon.sdk.auction.ResultsCollector
-import org.bidon.sdk.auction.usecases.AuctionStopCondition
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.get
 

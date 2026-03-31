@@ -1,4 +1,4 @@
-package org.bidon.sdk.auction.usecases
+package org.bidon.sdk.ads.cache.andr
 
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
