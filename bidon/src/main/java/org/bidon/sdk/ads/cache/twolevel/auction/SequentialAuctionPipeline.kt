@@ -49,7 +49,7 @@ import kotlin.coroutines.coroutineContext
  * 3. For EACH ad unit in order (sequential, not parallel):
  *    a. Find the adapter via [adaptersSource].
  *    b. Create an [org.bidon.sdk.adapter.AdSource] using [AdSourceFactory].
- *    c. Call [AdSource.load] and wait for [AdEvent.Fill] / [AdEvent.LoadFailed] / [AdEvent.Expired].
+ *    c. Call [org.bidon.sdk.adapter.AdSource.load] and wait for [AdEvent.Fill] / [AdEvent.LoadFailed] / [AdEvent.Expired].
  *    d. On fill  → call [singleLoadCompletion] IMMEDIATELY with the [AuctionResult].
  *    e. On failure → log and continue to the next unit.
  * 4. After all units have been attempted → call [onComplete].
