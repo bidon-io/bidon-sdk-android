@@ -51,6 +51,13 @@ internal class TwoLevelAdManager(
     // True while an auction is running — prevents duplicate starts and signals ManagerPool.
     private val auctionRunning = AtomicBoolean(false)
 
+    // Set when threshold rejection occurs AND Fallback can't accept more bids.
+    // Since the waterfall is sorted by price (descending), once threshold rejects
+    // a bid and Fallback is full/disabled, all subsequent bids are even cheaper
+    // and will also be rejected. No point querying more demand sources.
+    @Volatile
+    private var thresholdStopSignal = false
+
     /**
      * Returns true when no auction is currently running.
      * Queried by ManagerPool during periodic cleanup.
@@ -95,6 +102,7 @@ internal class TwoLevelAdManager(
 
         try {
             // Reset iteration-threshold state before each auction round.
+            thresholdStopSignal = false
             mainCache.beginIteration()
 
             controller.start(
@@ -104,8 +112,12 @@ internal class TwoLevelAdManager(
                     routeBidToCache(winner, firstFillFired, onSuccess)
                 },
                 shouldContinueAuction = {
-                    // Stop when Main full AND Fallback full/disabled.
-                    !(mainCache.isFullSnapshot && fallbackCache.isFullSnapshot)
+                    // Stop when:
+                    // 1. Main full AND Fallback full/disabled — no space for more bids.
+                    // 2. Threshold rejected a bid AND Fallback full/disabled — waterfall is
+                    //    sorted descending, so all subsequent bids are even cheaper.
+                    val bothFull = mainCache.isFullSnapshot && fallbackCache.isFullSnapshot
+                    !bothFull && !thresholdStopSignal
                 },
                 onComplete = { auctionInfo, error ->
                     if (error != null && !firstFillFired.get()) {
@@ -158,11 +170,18 @@ internal class TwoLevelAdManager(
 
         // If Main rejected → try Fallback.
         if (!mainResult.isInserted) {
+            val isThresholdReject = mainResult is InsertResult.Rejected &&
+                mainResult.reason == InsertResult.Reason.IterationThreshold
             val fallbackResult = fallbackCache.insert(winner)
             logInfo(TAG, "[$adTypeLabel] fallback insert: $fallbackResult")
             if (!fallbackResult.isInserted) {
                 winner.adSource.destroy()
                 logInfo(TAG, "[$adTypeLabel] winner destroyed (rejected by both caches)")
+                // Threshold reject + Fallback can't accept → all subsequent are even cheaper → stop.
+                if (isThresholdReject) {
+                    thresholdStopSignal = true
+                    logInfo(TAG, "[$adTypeLabel] threshold stop signal: no point querying cheaper demands")
+                }
             }
         }
 
