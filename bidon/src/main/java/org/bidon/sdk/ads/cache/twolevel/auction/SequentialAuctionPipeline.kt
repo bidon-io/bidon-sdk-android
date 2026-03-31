@@ -14,6 +14,7 @@ import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.ads.cache.andr.ext.getAdSources
 import org.bidon.sdk.ads.ext.toAuctionInfo
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
@@ -260,7 +261,7 @@ internal class SequentialAuctionPipeline(
 
         adapter.applyRegulation()
 
-        val adSource = AdSourceFactory.createAdSource(adapter, demandAd, adTypeParam, TAG)
+        val adSource = adapter.getAdSources(demandAd.adType, TAG)
         if (adSource == null) {
             logInfo(TAG, "AdSource creation failed: demandId=$demandId")
             resultsCollector.add(

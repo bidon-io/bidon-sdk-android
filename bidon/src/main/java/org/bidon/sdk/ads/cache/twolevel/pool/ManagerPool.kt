@@ -113,17 +113,6 @@ internal object ManagerPool {
         manager
     }
 
-    /**
-     * Called by [TwoLevelAdManager.clear] — mirrors iOS ZhenyaManagerPool.removeManager().
-     *
-     * Does NOT clear the static [TwoLevelCacheStores] (they are shared across all managers
-     * of the same AdType and must survive individual manager removal).
-     */
-    suspend fun remove(auctionKey: String) = mutex.withLock {
-        pool.remove(auctionKey)
-        logInfo(TAG, "[Pool] removed auctionKey=$auctionKey")
-    }
-
     // ---
 
     private fun startPeriodicCleanup() {

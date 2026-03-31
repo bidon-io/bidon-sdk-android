@@ -86,20 +86,16 @@ internal class TwoLevelAuctionController(
     ) {
         logInfo(TAG, "[$adTypeLabel] pipeline failed ($error) — checking Fallback")
 
-        // iOS: check fallback for ad >= pricefloor before propagating failure.
-        // peek + pop is safe: FallbackCacheStorage uses Mutex internally,
-        // and this controller runs one auction at a time (sequential pipeline).
+        // Peek only — do NOT pop. The ad stays in cache until show() calls pop().
+        // TwoLevelAdManager handles the actual delivery in its onComplete handler.
         val fallbackAd = fallbackCache.peek()
         if (fallbackAd != null && fallbackAd.adSource.getStats().price >= pricefloor) {
-            val popped = fallbackCache.popFirst()
-            if (popped != null) {
-                val demandId = popped.adSource.getStats().demandId.demandId
-                logInfo(TAG, "[$adTypeLabel] serving from Fallback: $demandId")
-                withContext(Dispatchers.Main) {
-                    onComplete(auctionInfo, null)
-                }
-                return
+            val demandId = fallbackAd.adSource.getStats().demandId.demandId
+            logInfo(TAG, "[$adTypeLabel] Fallback has ad >= pricefloor: $demandId")
+            withContext(Dispatchers.Main) {
+                onComplete(auctionInfo, null)
             }
+            return
         }
 
         logInfo(TAG, "[$adTypeLabel] Fallback empty/below floor — propagating failure")

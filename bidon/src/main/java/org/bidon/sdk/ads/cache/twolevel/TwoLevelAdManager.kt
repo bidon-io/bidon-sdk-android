@@ -8,8 +8,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
@@ -137,6 +139,19 @@ internal class TwoLevelAdManager(
                     if (error != null && !firstFillFired.get()) {
                         // Auction ended with no fills and the controller did not find a fallback ad.
                         withContext(Dispatchers.Main) { onFailure(auctionInfo, error) }
+                    } else if (!firstFillFired.get()) {
+                        // Fallback scenario: controller found a cached ad in fallback.
+                        // Peek (don't pop) — ad stays in cache until show() calls pop().
+                        val cached = mainCache.peek() ?: fallbackCache.peek()
+                        if (cached != null) {
+                            val info = auctionInfo ?: buildSyntheticAuctionInfo(cached)
+                            withContext(Dispatchers.Main) { onSuccess(cached, info) }
+                        } else {
+                            // Edge case: fallback was emptied between controller check and here.
+                            withContext(Dispatchers.Main) {
+                                onFailure(auctionInfo, BidonError.NoFill(DemandId("fallback")))
+                            }
+                        }
                     }
                     // If firstFillFired == true, onSuccess was already delivered — nothing more to do.
                 },

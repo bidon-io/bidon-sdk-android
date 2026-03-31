@@ -118,6 +118,3 @@ internal class FallbackCacheStorage(
         private const val TAG = "[TwoLevelCache]"
     }
 }
-
-private fun AuctionResult.price(): Double = adSource.getStats().price
-private fun AuctionResult.demandKey(): String = adSource.getStats().demandId.demandId
