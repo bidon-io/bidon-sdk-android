@@ -27,8 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Two-Level Cache AdCache facade. Mirrors iOS ZhenyaFullscreenAdManager.
  *
  * Wraps the shared per-AdType [CacheStorage] (main) and [FallbackCacheStorage] (fallback)
- * singletons provided by [ManagerPool] via [TwoLevelCacheStores]. The [auctionKey] is
- * stored at construction time and used to identify this manager in the pool.
+ * singletons provided by [ManagerPool] via [TwoLevelCacheStores].
  *
  * Thread safety:
  *  - [cache] launches a coroutine on [scope]; [auctionRunning] guards duplicate starts.
@@ -41,7 +40,6 @@ internal class TwoLevelAdManager(
     private val mainCache: CacheStorage,
     private val fallbackCache: FallbackCacheStorage,
     private val controller: TwoLevelAuctionController,
-    private val auctionKey: String,
 ) : AdCache {
 
     private val adTypeLabel = demandAd.adType.code.uppercase()
@@ -201,6 +199,7 @@ internal class TwoLevelAdManager(
     override fun clear() {
         logInfo(TAG, "[$adTypeLabel] clear()")
         controller.cancel()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 
     override fun withSettings(settings: Cacheable.Settings) {

@@ -101,7 +101,6 @@ internal object ManagerPool {
             mainCache = stores.main,
             fallbackCache = stores.fallback,
             controller = controller,
-            auctionKey = auctionKey,
         )
 
         pool[auctionKey] = PoolEntry(

@@ -65,14 +65,15 @@ internal class TwoLevelAdManagerProxy(
 
     override suspend fun poll(): AuctionResult {
         while (true) {
-            val result = delegate?.pop()
-            if (result != null) return result
+            val d = delegate
+            if (d != null) return d.poll()
             delay(100)
         }
     }
 
     override fun clear() {
         delegate?.clear()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
