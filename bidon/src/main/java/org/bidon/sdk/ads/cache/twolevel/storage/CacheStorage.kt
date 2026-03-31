@@ -10,7 +10,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * AuctionResult items with sticky-head mode and per-iteration threshold filtering.
  *
  * Thread safety: all mutating operations use [Mutex].
- * A [headSnapshot] volatile field provides a lock-free isReady check.
+ * Volatile snapshot fields provide lock-free checks from any thread.
  */
 internal class CacheStorage(
     private val capacity: Int,
@@ -27,11 +27,13 @@ internal class CacheStorage(
     private var stickyHeadActive = false
     private var iterationMaxPrice: Double? = null
 
-    // Non-suspend snapshot for synchronous isReady() checks.
-    // Updated inside the Mutex at the end of every mutating operation.
-    // Worst-case: returns a stale value — acceptable for isReady semantics.
     @Volatile
     private var headSnapshot: AuctionResult? = null
+
+    /** Volatile snapshot: true when items.size >= capacity. */
+    @Volatile
+    var isFullSnapshot: Boolean = false
+        private set
 
     // -----------------------------------------------------------------------
     // Public API
@@ -47,7 +49,7 @@ internal class CacheStorage(
      * Insert [element] into the cache.
      *
      * @param sticky if true, the element is promoted to head and protected from eviction.
-     * @return [InsertResult.Success] or [InsertResult.Rejected] with a reason.
+     * @return [InsertResult.Success] (with evicted items) or [InsertResult.Rejected].
      */
     @Suppress("ReturnCount")
     suspend fun insert(
@@ -82,11 +84,11 @@ internal class CacheStorage(
                 }
                 sortAccordingToMode()
                 rebuildIndex()
-                trimIfNeeded()
-                headSnapshot = items.firstOrNull()
+                val evicted = trimIfNeeded()
+                updateSnapshots()
                 logInfo(TAG, "[Main] insert UPDATED in-place: key=$key price=$price")
                 logCacheState()
-                return@withLock InsertResult.Success
+                return@withLock InsertResult.Success(evicted)
             } else {
                 // Different price: remove old entry, fall through to re-insert
                 if (stickyHeadActive && existingIndex == 0) {
@@ -126,12 +128,11 @@ internal class CacheStorage(
         }
         sortAccordingToMode()
         val evicted = trimIfNeeded()
-        evicted.forEach { it.adSource.destroy() }
-        headSnapshot = items.firstOrNull()
+        updateSnapshots()
 
         logInfo(TAG, "[Main] insert SUCCESS: key=$key price=$price sticky=$sticky size=${items.size}")
         logCacheState()
-        InsertResult.Success
+        InsertResult.Success(evicted)
     }
 
     /**
@@ -145,7 +146,7 @@ internal class CacheStorage(
         stickyHeadActive = false
         sortAccordingToMode()
         rebuildIndex()
-        headSnapshot = items.firstOrNull()
+        updateSnapshots()
         logInfo(TAG, "[Main] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")
         logCacheState()
         head
@@ -160,6 +161,11 @@ internal class CacheStorage(
     // -----------------------------------------------------------------------
     // Private helpers — all called with Mutex already held
     // -----------------------------------------------------------------------
+
+    private fun updateSnapshots() {
+        headSnapshot = items.firstOrNull()
+        isFullSnapshot = items.size >= capacity
+    }
 
     /**
      * Iteration threshold logic:
@@ -221,7 +227,7 @@ internal class CacheStorage(
      * The sticky head (items[0]) is never removed because trim always
      * removes items.last() and the sticky head is at index 0.
      *
-     * Returns evicted items so callers can destroy their ad sources.
+     * Returns evicted items for caller to route to Fallback.
      */
     private fun trimIfNeeded(): List<AuctionResult> {
         val evicted = mutableListOf<AuctionResult>()

@@ -11,8 +11,8 @@ internal data class TwoLevelCacheConfig(
 ) {
     companion object {
         val DEFAULT = TwoLevelCacheConfig(
-            mainCacheSize = 10,
-            fallbackCacheSize = 10,
+            mainCacheSize = 1,
+            fallbackCacheSize = 0,
             threshold = 80,
         )
 

@@ -9,11 +9,13 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * Fallback cache storage for the Two-Level Cache strategy. Simpler than [CacheStorage]:
  * no sticky mode, no iteration threshold. Sorted array with capacity-based eviction.
  *
+ * When [capacity] is 0, fallback is disabled — all inserts are rejected.
+ *
  * Eviction rule: strict `price > cheapest.price` required.
  * Equal-price items do NOT displace the current cheapest when the cache is full.
  *
  * Thread safety: all mutating operations use [Mutex].
- * A [headSnapshot] volatile field provides a lock-free isReady check.
+ * Volatile snapshot fields provide lock-free checks from any thread.
  */
 internal class FallbackCacheStorage(
     private val capacity: Int,
@@ -23,9 +25,16 @@ internal class FallbackCacheStorage(
     // Items sorted descending by price
     private val items = mutableListOf<AuctionResult>()
 
-    // Non-suspend snapshot for synchronous isReady() checks.
     @Volatile
     private var headSnapshot: AuctionResult? = null
+
+    /** Volatile snapshot: true when capacity is 0 (disabled) or items.size >= capacity. */
+    @Volatile
+    var isFullSnapshot: Boolean = capacity <= 0
+        private set
+
+    /** True when fallback is disabled (capacity = 0). */
+    val isDisabled: Boolean get() = capacity <= 0
 
     // -----------------------------------------------------------------------
     // Public API
@@ -38,6 +47,11 @@ internal class FallbackCacheStorage(
      */
     @Suppress("ReturnCount")
     suspend fun insert(element: AuctionResult): InsertResult = mutex.withLock {
+        // Disabled fallback — reject everything
+        if (capacity <= 0) {
+            return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
+        }
+
         val price = element.price()
         val key = element.demandKey()
 
@@ -49,10 +63,10 @@ internal class FallbackCacheStorage(
                 // Same price: update in-place
                 items[existingIndex] = element
                 items.sortByDescending { it.price() }
-                headSnapshot = items.firstOrNull()
+                updateSnapshots()
                 logInfo(TAG, "[Fallback] insert UPDATED in-place: key=$key price=$price")
                 logCacheState()
-                return@withLock InsertResult.Success
+                return@withLock InsertResult.Success()
             } else {
                 // Different price: remove old, fall through to re-insert
                 items.removeAt(existingIndex)
@@ -63,7 +77,6 @@ internal class FallbackCacheStorage(
         if (items.size >= capacity) {
             val cheapest = items.minByOrNull { it.price() }
             if (cheapest == null || price <= cheapest.price()) {
-                // price == cheapest.price is also rejected (strict >)
                 logInfo(TAG, "[Fallback] insert REJECTED CacheFull: price=$price cheapest=${cheapest?.price()}")
                 logCacheState()
                 return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
@@ -75,10 +88,10 @@ internal class FallbackCacheStorage(
 
         items.add(element)
         items.sortByDescending { it.price() }
-        headSnapshot = items.firstOrNull()
+        updateSnapshots()
         logInfo(TAG, "[Fallback] insert SUCCESS: key=$key price=$price size=${items.size}")
         logCacheState()
-        InsertResult.Success
+        InsertResult.Success()
     }
 
     /**
@@ -87,7 +100,7 @@ internal class FallbackCacheStorage(
     suspend fun popFirst(): AuctionResult? = mutex.withLock {
         if (items.isEmpty()) return@withLock null
         val head = items.removeAt(0)
-        headSnapshot = items.firstOrNull()
+        updateSnapshots()
         logInfo(TAG, "[Fallback] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")
         logCacheState()
         head
@@ -100,10 +113,19 @@ internal class FallbackCacheStorage(
     fun peekSnapshot(): AuctionResult? = headSnapshot
 
     // -----------------------------------------------------------------------
-    // Logging helpers
+    // Private helpers
     // -----------------------------------------------------------------------
 
+    private fun updateSnapshots() {
+        headSnapshot = items.firstOrNull()
+        isFullSnapshot = capacity <= 0 || items.size >= capacity
+    }
+
     private fun logCacheState() {
+        if (capacity <= 0) {
+            logInfo(TAG, "[Fallback] disabled (capacity=0)")
+            return
+        }
         if (items.isEmpty()) {
             logInfo(TAG, "[Fallback] Cache: empty")
             return

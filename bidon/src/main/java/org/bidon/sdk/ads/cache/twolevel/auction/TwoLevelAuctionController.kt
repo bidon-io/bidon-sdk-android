@@ -47,6 +47,7 @@ internal class TwoLevelAuctionController(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         singleLoadCompletion: suspend (AuctionResult) -> Unit,
+        shouldContinueAuction: () -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {
         logInfo(TAG, "[$adTypeLabel] start pricefloor=${adTypeParam.pricefloor}")
@@ -55,6 +56,7 @@ internal class TwoLevelAuctionController(
             demandAd = demandAd,
             adTypeParam = adTypeParam,
             singleLoadCompletion = singleLoadCompletion,
+            shouldContinueAuction = shouldContinueAuction,
             onComplete = { auctionInfo, error ->
                 if (error != null) {
                     handlePipelineFailure(
