@@ -22,6 +22,7 @@ import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.AuctionStat
 import org.bidon.sdk.auction.usecases.GetAuctionRequestUseCase
 import org.bidon.sdk.auction.usecases.GetTokensUseCase
@@ -150,6 +151,7 @@ internal class SequentialAuctionPipeline(
 
                     // Step 3: Process ad units one by one (sequential flow).
                     var fillCount = 0
+                    var processedCount = 0
                     try {
                         withTimeout(response.auctionTimeout) {
                             for ((index, adUnit) in adUnits.withIndex()) {
@@ -165,10 +167,11 @@ internal class SequentialAuctionPipeline(
                                             AuctionResult.AuctionFailed(
                                                 adUnit = remaining,
                                                 roundStatus = RoundStatus.Lose,
-                                                tokenInfo = null,
+                                                tokenInfo = tokens[remaining.demandId],
                                             )
                                         )
                                     }
+                                    processedCount = adUnits.size
                                     break
                                 }
 
@@ -184,7 +187,10 @@ internal class SequentialAuctionPipeline(
                                     externalWinNotificationsEnabled = response.externalWinNotificationsEnabled,
                                     pricefloor = pricefloor,
                                     resultsCollector = resultsCollector,
+                                    tokens = tokens,
                                 )
+
+                                processedCount = index + 1
 
                                 if (result != null) {
                                     fillCount++
@@ -198,6 +204,17 @@ internal class SequentialAuctionPipeline(
                         }
                     } catch (_: TimeoutCancellationException) {
                         logInfo(TAG, "Auction timed out after ${response.auctionTimeout}ms, using $fillCount fills so far")
+                        // Mark unattempted ad units as FillTimeoutReached (matches ExecuteAuctionUseCaseImpl)
+                        for (i in processedCount until adUnits.size) {
+                            val remaining = adUnits[i]
+                            resultsCollector.add(
+                                AuctionResult.AuctionFailed(
+                                    adUnit = remaining,
+                                    roundStatus = RoundStatus.FillTimeoutReached,
+                                    tokenInfo = tokens[remaining.demandId],
+                                )
+                            )
+                        }
                     }
 
                     logInfo(TAG, "Sequential pipeline complete: $fillCount fills of ${adUnits.size} units")
@@ -268,8 +285,10 @@ internal class SequentialAuctionPipeline(
         externalWinNotificationsEnabled: Boolean,
         pricefloor: Double,
         resultsCollector: ResultsCollector,
+        tokens: Map<String, TokenInfo>,
     ): AuctionResult? {
         val demandId = adUnit.demandId
+        val tokenInfo = tokens[demandId]
 
         // Find adapter by demandId.
         val adapter = adaptersSource.adapters.find { it.demandId.demandId == demandId }
@@ -279,7 +298,7 @@ internal class SequentialAuctionPipeline(
                 AuctionResult.AuctionFailed(
                     adUnit = adUnit,
                     roundStatus = RoundStatus.UnknownAdapter,
-                    tokenInfo = null,
+                    tokenInfo = tokenInfo,
                 )
             )
             return null
@@ -294,7 +313,7 @@ internal class SequentialAuctionPipeline(
                 AuctionResult.AuctionFailed(
                     adUnit = adUnit,
                     roundStatus = RoundStatus.NoFill,
-                    tokenInfo = null,
+                    tokenInfo = tokenInfo,
                 )
             )
             return null
@@ -314,6 +333,10 @@ internal class SequentialAuctionPipeline(
                 adTypeParam = adTypeParam,
             )
 
+            if (adUnit.bidType == BidType.RTB) {
+                tokens[demandId]?.let { adSource.setTokenInfo(it) }
+            }
+
             val adParams = adSource.getAuctionParam(
                 AdAuctionParamSource(
                     activity = adTypeParam.activity,
@@ -330,7 +353,7 @@ internal class SequentialAuctionPipeline(
                     AuctionResult.AuctionFailed(
                         adUnit = adUnit,
                         roundStatus = RoundStatus.NoFill,
-                        tokenInfo = null,
+                        tokenInfo = tokenInfo,
                     )
                 )
                 adSource.destroy()
@@ -362,7 +385,7 @@ internal class SequentialAuctionPipeline(
                     AuctionResult.AuctionFailed(
                         adUnit = adUnit,
                         roundStatus = RoundStatus.FillTimeoutReached,
-                        tokenInfo = null,
+                        tokenInfo = tokenInfo,
                     )
                 )
                 return null
@@ -388,7 +411,7 @@ internal class SequentialAuctionPipeline(
                             AuctionResult.AuctionFailed(
                                 adUnit = adUnit,
                                 roundStatus = requestStatus,
-                                tokenInfo = null,
+                                tokenInfo = tokenInfo,
                             )
                         )
                         null
@@ -414,7 +437,7 @@ internal class SequentialAuctionPipeline(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
                             roundStatus = roundStatus,
-                            tokenInfo = null,
+                            tokenInfo = tokenInfo,
                         )
                     )
                     null
@@ -426,7 +449,7 @@ internal class SequentialAuctionPipeline(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
                             roundStatus = RoundStatus.NoFill,
-                            tokenInfo = null,
+                            tokenInfo = tokenInfo,
                         )
                     )
                     null
@@ -438,7 +461,7 @@ internal class SequentialAuctionPipeline(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
                             roundStatus = RoundStatus.NoFill,
-                            tokenInfo = null,
+                            tokenInfo = tokenInfo,
                         )
                     )
                     null
@@ -454,7 +477,7 @@ internal class SequentialAuctionPipeline(
                 AuctionResult.AuctionFailed(
                     adUnit = adUnit,
                     roundStatus = RoundStatus.NoFill,
-                    tokenInfo = null,
+                    tokenInfo = tokenInfo,
                 )
             )
             null
