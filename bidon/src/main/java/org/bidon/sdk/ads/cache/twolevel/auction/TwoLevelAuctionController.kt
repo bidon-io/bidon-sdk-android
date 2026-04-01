@@ -30,7 +30,7 @@ internal class TwoLevelAuctionController(
     internal suspend fun start(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
-        singleLoadCompletion: suspend (AuctionResult) -> Unit,
+        singleLoadCompletion: suspend (AuctionResult, Boolean) -> Unit,
         shouldContinueAuction: (ecpm: Double) -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {

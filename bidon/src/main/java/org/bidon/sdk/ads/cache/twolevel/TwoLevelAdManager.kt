@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.adapter.WinLossNotifiable
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
@@ -93,13 +94,14 @@ internal class TwoLevelAdManager(
         }
 
         val firstFillFired = AtomicBoolean(false)
+        val winnerInfo = WinnerInfo()
 
         try {
             controller.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
-                singleLoadCompletion = { winner ->
-                    routeBidToCache(winner, firstFillFired, onSuccess)
+                singleLoadCompletion = { winner, externalWinNotificationsEnabled ->
+                    routeBidToCache(winner, firstFillFired, externalWinNotificationsEnabled, winnerInfo, onSuccess)
                 },
                 shouldContinueAuction = { ecpm ->
                     val ms = mainCache.state.value
@@ -135,10 +137,13 @@ internal class TwoLevelAdManager(
      * Routes a filled bid per spec pseudocode:
      * Main (sticky for first) → Fallback (with eviction) → destroy.
      * Sets RoundStatus: WIN (first), CACHE (cached), LOSE (destroyed).
+     * Calls markWin/markLoss and adapter win/loss notifications (matches AuctionImpl.notifyWinLoss).
      */
     private suspend fun routeBidToCache(
         winner: AuctionResult,
         firstFillFired: AtomicBoolean,
+        externalWinNotificationsEnabled: Boolean,
+        winnerInfo: WinnerInfo,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
     ) {
         val isFirst = firstFillFired.compareAndSet(false, true)
@@ -151,6 +156,9 @@ internal class TwoLevelAdManager(
             if (mainResult.isInserted) {
                 if (isFirst) {
                     logInfo(TAG, "[$adTypeLabel] WIN: $demandId price=$price (sticky)")
+                    markWin(winner, externalWinNotificationsEnabled)
+                    winnerInfo.demandId = demandId
+                    winnerInfo.price = price
                     val info = buildSyntheticAuctionInfo(winner)
                     withContext(Dispatchers.Main) { onSuccess(winner, info) }
                 } else {
@@ -164,9 +172,7 @@ internal class TwoLevelAdManager(
 
         // Main didn't accept → Fallback
         if (fallbackCache.isDisabled) {
-            winner.adSource.markFillFinished(RoundStatus.Lose, price)
-            winner.adSource.destroy()
-            logInfo(TAG, "[$adTypeLabel] LOSE (Fb disabled): $demandId price=$price")
+            handleLoser(winner, externalWinNotificationsEnabled, winnerInfo, "Fb disabled")
             if (isFirst) firstFillFired.set(false)
             return
         }
@@ -176,18 +182,66 @@ internal class TwoLevelAdManager(
             winner.adSource.markFillFinished(RoundStatus.Cached, price)
             logInfo(TAG, "[$adTypeLabel] CACHE (Fallback): $demandId price=$price")
         } else {
-            winner.adSource.markFillFinished(RoundStatus.Lose, price)
-            winner.adSource.destroy()
-            logInfo(TAG, "[$adTypeLabel] LOSE (both rejected): $demandId price=$price")
+            handleLoser(winner, externalWinNotificationsEnabled, winnerInfo, "both rejected")
         }
 
         if (isFirst && fbResult.isInserted) {
             logInfo(TAG, "[$adTypeLabel] WIN (from Fallback): $demandId price=$price")
+            markWin(winner, externalWinNotificationsEnabled)
+            winnerInfo.demandId = demandId
+            winnerInfo.price = price
             val info = buildSyntheticAuctionInfo(winner)
             withContext(Dispatchers.Main) { onSuccess(winner, info) }
         } else if (isFirst) {
             firstFillFired.set(false)
         }
+    }
+
+    /**
+     * Mark a result as winner: internal stats + adapter notification.
+     * Matches AuctionImpl.notifyWinLoss() winner path.
+     */
+    private fun markWin(winner: AuctionResult, externalWinNotificationsEnabled: Boolean) {
+        winner.adSource.markWin()
+        if (!externalWinNotificationsEnabled &&
+            winner !is AuctionResult.Bidding &&
+            winner.adSource is WinLossNotifiable
+        ) {
+            (winner.adSource as WinLossNotifiable).notifyWin()
+            logInfo(TAG, "[$adTypeLabel] notifyWin: ${winner.adSource.getStats().demandId.demandId}")
+        }
+    }
+
+    /**
+     * Mark a result as loser: stats + adapter notification + destroy.
+     * Matches AuctionImpl.notifyWinLoss() loser path.
+     */
+    private fun handleLoser(
+        loser: AuctionResult,
+        externalWinNotificationsEnabled: Boolean,
+        winnerInfo: WinnerInfo,
+        reason: String,
+    ) {
+        val demandId = loser.adSource.getStats().demandId.demandId
+        val price = loser.adSource.getStats().price
+
+        loser.adSource.markFillFinished(RoundStatus.Lose, price)
+
+        // Notify loss for non-bidding adapters (matches AuctionImpl logic)
+        val winDemandId = winnerInfo.demandId
+        if (winDemandId != null &&
+            loser !is AuctionResult.Bidding &&
+            loser.adSource is WinLossNotifiable
+        ) {
+            (loser.adSource as WinLossNotifiable).notifyLoss(winDemandId, winnerInfo.price)
+            logInfo(TAG, "[$adTypeLabel] notifyLoss: $demandId (winner=$winDemandId)")
+        }
+        if (loser.roundStatus == RoundStatus.Successful) {
+            loser.adSource.markLoss()
+        }
+
+        loser.adSource.destroy()
+        logInfo(TAG, "[$adTypeLabel] LOSE ($reason): $demandId price=$price")
     }
 
     override fun peek(): AuctionResult? =
@@ -261,6 +315,12 @@ internal class TwoLevelAdManager(
                 ),
             ),
         )
+    }
+
+    /** Tracks the first winner's identity for notifyLoss calls on subsequent losers. */
+    private class WinnerInfo {
+        var demandId: String? = null
+        var price: Double = 0.0
     }
 
     companion object {

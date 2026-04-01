@@ -12,6 +12,7 @@ import org.bidon.sdk.adapter.AdEvent
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
+import org.bidon.sdk.adapter.ext.ad
 import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.andr.ext.getAdSources
@@ -29,8 +30,10 @@ import org.bidon.sdk.bidding.BiddingConfig
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.models.RoundStatus
+import org.bidon.sdk.stats.models.asRoundStatus
 import org.bidon.sdk.utils.di.get
 import java.util.UUID
 import kotlin.coroutines.coroutineContext
@@ -86,7 +89,7 @@ internal class SequentialAuctionPipeline(
     suspend fun execute(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
-        singleLoadCompletion: suspend (AuctionResult) -> Unit,
+        singleLoadCompletion: suspend (AuctionResult, Boolean) -> Unit,
         shouldContinueAuction: (ecpm: Double) -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {
@@ -120,16 +123,10 @@ internal class SequentialAuctionPipeline(
 
             auctionResponse.fold(
                 onSuccess = { response ->
-                    // Determine which demand IDs are bidding (RTB) adapters.
-                    val biddingDemandIds = adaptersSource.adapters
-                        .filterIsInstance<org.bidon.sdk.adapter.Adapter.Bidding>()
-                        .map { it.demandId.demandId }
-                        .toSet()
-
                     // Report server bidding result to ResultsCollector (deprecated but required
                     // for stats compatibility with the standard AuctionImpl flow).
                     resultsCollector.serverBiddingFinished(
-                        response.adUnits?.filter { it.demandId in biddingDemandIds }
+                        response.adUnits?.filter { it.bidType == BidType.RTB }
                     )
                     resultsCollector.setNoBidInfo(response.noBids)
 
@@ -144,6 +141,7 @@ internal class SequentialAuctionPipeline(
                             roundStat = roundStat,
                             demandAd = demandAd,
                         )
+                        resultsCollector.clear()
                         onComplete(auctionInfo, BidonError.NoFill(DemandId("auction")))
                         return
                     }
@@ -182,7 +180,7 @@ internal class SequentialAuctionPipeline(
                                     fillCount++
                                     // singleLoadCompletion fires immediately after a demand fill.
                                     logInfo(TAG, "[$index/${adUnits.size}] Fill: ${adUnit.demandId}")
-                                    singleLoadCompletion(result)
+                                    singleLoadCompletion(result, response.externalWinNotificationsEnabled)
                                 } else {
                                     logInfo(TAG, "[$index/${adUnits.size}] No fill: ${adUnit.demandId}")
                                 }
@@ -203,6 +201,7 @@ internal class SequentialAuctionPipeline(
                         roundStat = roundStat,
                         demandAd = demandAd,
                     )
+                    resultsCollector.clear()
 
                     if (fillCount > 0) {
                         onComplete(auctionInfo, null)
@@ -212,11 +211,27 @@ internal class SequentialAuctionPipeline(
                 },
                 onFailure = { error ->
                     logInfo(TAG, "Auction request failed: ${error.message}")
+                    val roundStat = proceedRoundResults(resultsCollector)
+                    auctionStat.sendAuctionStats(
+                        auctionData = org.bidon.sdk.auction.models.AuctionResponse(
+                            auctionId = auctionId,
+                            adUnits = null,
+                            noBids = null,
+                            pricefloor = pricefloor,
+                            auctionTimeout = 0,
+                            auctionConfigurationId = null,
+                            auctionConfigurationUid = null,
+                            externalWinNotificationsEnabled = false,
+                        ),
+                        roundStat = roundStat,
+                        demandAd = demandAd,
+                    )
+                    resultsCollector.clear()
                     onComplete(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
                 },
             )
         } catch (e: kotlinx.coroutines.CancellationException) {
-            // Always rethrow CancellationException — never swallow it.
+            auctionStat.markAuctionCanceled()
             throw e
         } catch (e: Exception) {
             logError(TAG, "Unexpected error during sequential pipeline", e)
@@ -345,34 +360,50 @@ internal class SequentialAuctionPipeline(
 
             return when (adEvent) {
                 is AdEvent.Fill -> {
-                    loadSuccess = true
+                    val loadedPrice = adSource.ad?.price ?: adUnit.pricefloor
+                    val isBidding = adUnit.bidType == BidType.RTB
 
-                    // Determine result type: Bidding (RTB) or Network (CPM).
-                    val isBidding = adaptersSource.adapters
-                        .filterIsInstance<org.bidon.sdk.adapter.Adapter.Bidding>()
-                        .any { it.demandId.demandId == demandId }
-
-                    adSource.markFillFinished(
-                        roundStatus = RoundStatus.Successful,
-                        price = adUnit.pricefloor,
-                    )
-
-                    val auctionResult: AuctionResult = if (isBidding) {
-                        AuctionResult.Bidding(adSource, RoundStatus.Successful)
-                    } else {
-                        AuctionResult.Network(adSource, RoundStatus.Successful)
+                    // Below-pricefloor check (matches RequestAdUnitUseCaseImpl)
+                    val requestStatus = when {
+                        loadedPrice >= pricefloor -> RoundStatus.Successful
+                        isBidding -> RoundStatus.Lose
+                        else -> RoundStatus.BelowPricefloor
                     }
 
-                    resultsCollector.add(auctionResult)
-                    auctionResult
+                    adSource.markFillFinished(requestStatus, loadedPrice)
+
+                    if (requestStatus != RoundStatus.Successful) {
+                        logInfo(TAG, "BelowPricefloor: demandId=$demandId loaded=$loadedPrice floor=$pricefloor")
+                        resultsCollector.add(
+                            AuctionResult.AuctionFailed(
+                                adUnit = adUnit,
+                                roundStatus = requestStatus,
+                                tokenInfo = null,
+                            )
+                        )
+                        null
+                    } else {
+                        loadSuccess = true
+
+                        val auctionResult: AuctionResult = if (isBidding) {
+                            AuctionResult.Bidding(adSource, RoundStatus.Successful)
+                        } else {
+                            AuctionResult.Network(adSource, RoundStatus.Successful)
+                        }
+
+                        resultsCollector.add(auctionResult)
+                        auctionResult
+                    }
                 }
                 is AdEvent.LoadFailed -> {
                     val error = adEvent.cause
                     logInfo(TAG, "LoadFailed: demandId=$demandId error=$error")
+                    val roundStatus = (error as Throwable).asRoundStatus()
+                    adSource.markFillFinished(roundStatus, null)
                     resultsCollector.add(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
-                            roundStatus = RoundStatus.NoFill,
+                            roundStatus = roundStatus,
                             tokenInfo = null,
                         )
                     )
@@ -380,6 +411,7 @@ internal class SequentialAuctionPipeline(
                 }
                 is AdEvent.Expired -> {
                     logInfo(TAG, "Expired: demandId=$demandId")
+                    adSource.markFillFinished(RoundStatus.NoFill, null)
                     resultsCollector.add(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
@@ -391,6 +423,7 @@ internal class SequentialAuctionPipeline(
                 }
                 else -> {
                     logError(TAG, "Unexpected ad event: $adEvent", null)
+                    adSource.markFillFinished(RoundStatus.NoFill, null)
                     resultsCollector.add(
                         AuctionResult.AuctionFailed(
                             adUnit = adUnit,
@@ -406,6 +439,7 @@ internal class SequentialAuctionPipeline(
             throw e
         } catch (e: Exception) {
             logInfo(TAG, "Exception loading demandId=$demandId: ${e.message}")
+            adSource.markFillFinished(RoundStatus.NoFill, null)
             resultsCollector.add(
                 AuctionResult.AuctionFailed(
                     adUnit = adUnit,
