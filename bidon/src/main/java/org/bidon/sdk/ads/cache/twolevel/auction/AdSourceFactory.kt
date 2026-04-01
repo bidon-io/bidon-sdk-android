@@ -5,8 +5,8 @@ import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.ads.cache.andr.ext.asStatisticAdType
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.ext.asStatisticAdType
 import org.bidon.sdk.logs.logging.impl.logError
 
 /**

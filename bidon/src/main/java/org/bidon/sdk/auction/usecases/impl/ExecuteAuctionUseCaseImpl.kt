@@ -2,19 +2,16 @@ package org.bidon.sdk.auction.usecases.impl
 
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
-import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
-import org.bidon.sdk.adapter.Adapter
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.ext.applyRegulation
-import org.bidon.sdk.ads.AdType
-import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.adapter.ext.getAdSources
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.ext.asStatisticAdType
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.auction.models.BannerRequest
 import org.bidon.sdk.auction.models.TokenInfo
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
@@ -24,7 +21,6 @@ import org.bidon.sdk.config.impl.asBidonErrorOrUnspecified
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.regulation.Regulation
-import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.stats.models.asRoundStatus
@@ -87,7 +83,7 @@ internal class ExecuteAuctionUseCaseImpl(
                         .find { it.demandId.demandId == adUnit.demandId }
                         ?.also { adapter ->
                             adapter.applyRegulation()
-                        }?.getAdSources(demandAd.adType)
+                        }?.getAdSources(demandAd.adType, TAG)
                         ?.also { adSource ->
                             adSource.setStatisticAdType(adTypeParam.asStatisticAdType())
                         }
@@ -239,59 +235,6 @@ internal class ExecuteAuctionUseCaseImpl(
         adSource.addAuctionConfigurationId(auctionConfigurationId)
         adSource.addAuctionConfigurationUid(auctionConfigurationUid)
         adSource.addExternalWinNotificationsEnabled(externalWinNotificationsEnabled)
-    }
-
-    private fun Adapter.getAdSources(adType: AdType): AdSource<AdAuctionParams>? {
-        val adapterDemandId = demandId
-        return when (adType) {
-            AdType.Interstitial -> {
-                (this as? AdProvider.Interstitial<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.interstitial().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create interstitial ad source", it)
-                    }.getOrNull()
-                }
-            }
-
-            AdType.Rewarded -> {
-                (this as? AdProvider.Rewarded<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.rewarded().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create rewarded ad source", it)
-                    }.getOrNull()
-                }
-            }
-
-            AdType.Banner -> {
-                (this as? AdProvider.Banner<AdAuctionParams>)?.let { adapter ->
-                    runCatching {
-                        adapter.banner().apply { addDemandId(adapterDemandId) }
-                    }.onFailure {
-                        logError(TAG, "Failed to create banner ad source", it)
-                    }.getOrNull()
-                }
-            }
-        }
-    }
-
-    private fun AdTypeParam.asStatisticAdType(): StatisticsCollector.AdType {
-        return when (this) {
-            is AdTypeParam.Banner -> {
-                StatisticsCollector.AdType.Banner(
-                    format = when (bannerFormat) {
-                        BannerFormat.Banner -> BannerRequest.StatFormat.BANNER_320x50
-                        BannerFormat.LeaderBoard -> BannerRequest.StatFormat.LEADERBOARD_728x90
-                        BannerFormat.MRec -> BannerRequest.StatFormat.MREC_300x250
-                        BannerFormat.Adaptive -> BannerRequest.StatFormat.ADAPTIVE_BANNER
-                    }
-                )
-            }
-
-            is AdTypeParam.Interstitial -> StatisticsCollector.AdType.Interstitial
-            is AdTypeParam.Rewarded -> StatisticsCollector.AdType.Rewarded
-        }
     }
 }
 
