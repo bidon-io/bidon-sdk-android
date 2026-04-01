@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandId
@@ -487,5 +489,311 @@ internal class FallbackCacheStorageTest {
         // Evict 3.0, insert 7.0
         storage.insert(makeResult("dem3", 7.0))
         assertThat(storage.state.value.cheapestPrice).isEqualTo(5.0) // new cheapest
+    }
+
+    // -----------------------------------------------------------------------
+    // Negative capacity
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `negative capacity - treated as disabled`() {
+        val storage = FallbackCacheStorage(capacity = -1)
+        assertThat(storage.isDisabled).isTrue()
+        assertThat(storage.state.value.isFull).isTrue()
+    }
+
+    @Test
+    fun `negative capacity - insert rejected`() = runTest {
+        val storage = FallbackCacheStorage(capacity = -1)
+        val result = storage.insert(makeResult("admob", 10.0))
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
+    }
+
+    // -----------------------------------------------------------------------
+    // Capacity 10 (max config range)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `capacity 10 - fills completely and sorts correctly`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 10)
+        val prices = listOf(5.0, 3.0, 8.0, 1.0, 9.0, 2.0, 7.0, 4.0, 10.0, 6.0)
+        for ((i, price) in prices.withIndex()) {
+            storage.insert(makeResult("dem$i", price))
+        }
+
+        assertThat(storage.state.value.isFull).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(10)
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `capacity 10 - pop all in descending order`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 10)
+        for (i in 1..10) {
+            storage.insert(makeResult("dem$i", i.toDouble()))
+        }
+
+        val popped = mutableListOf<Double>()
+        while (true) {
+            val item = storage.popFirst() ?: break
+            popped.add(item.adSource.getStats().price)
+        }
+
+        assertThat(popped).isEqualTo((10 downTo 1).map { it.toDouble() })
+    }
+
+    // -----------------------------------------------------------------------
+    // Insert order independence
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `insert order does not affect final sort - ascending`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        storage.insert(makeResult("dem1", 1.0))
+        storage.insert(makeResult("dem2", 5.0))
+        storage.insert(makeResult("dem3", 10.0))
+
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `insert order does not affect final sort - descending`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        storage.insert(makeResult("dem1", 10.0))
+        storage.insert(makeResult("dem2", 5.0))
+        storage.insert(makeResult("dem3", 1.0))
+
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `insert order does not affect final sort - random`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        storage.insert(makeResult("dem1", 5.0))
+        storage.insert(makeResult("dem2", 1.0))
+        storage.insert(makeResult("dem3", 10.0))
+
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(1.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Full drain and refill
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `full drain and refill - cache resets properly`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 2)
+
+        // Fill
+        storage.insert(makeResult("dem1", 10.0))
+        storage.insert(makeResult("dem2", 5.0))
+        assertThat(storage.state.value.isFull).isTrue()
+
+        // Drain
+        storage.popFirst()
+        storage.popFirst()
+        assertThat(storage.state.value.size).isEqualTo(0)
+        assertThat(storage.state.value.hasContent).isFalse()
+        assertThat(storage.state.value.cheapestPrice).isNull()
+        assertThat(storage.state.value.isFull).isFalse()
+
+        // Refill
+        val r = storage.insert(makeResult("dem3", 1.0))
+        assertThat(r.isInserted).isTrue()
+        assertThat((r as InsertResult.Success).evicted).isNull()
+    }
+
+    // -----------------------------------------------------------------------
+    // Concurrent operations
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `concurrent inserts - all complete without exception`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 50)
+
+        val results = (1..50).map { i ->
+            async {
+                storage.insert(makeResult("dem$i", i.toDouble()))
+            }
+        }.awaitAll()
+
+        assertThat(results.all { it.isInserted }).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(50)
+    }
+
+    @Test
+    fun `concurrent pops - no duplicates returned`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 10)
+        for (i in 1..10) {
+            storage.insert(makeResult("dem$i", i.toDouble()))
+        }
+
+        val popped = (1..10).map {
+            async { storage.popFirst() }
+        }.awaitAll()
+
+        val nonNull = popped.filterNotNull()
+        assertThat(nonNull).hasSize(10)
+        // All unique prices
+        val prices = nonNull.map { it.adSource.getStats().price }.toSet()
+        assertThat(prices).hasSize(10)
+    }
+
+    // -----------------------------------------------------------------------
+    // Price edge cases
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `price zero - accepted into empty cache`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        val result = storage.insert(makeResult("dem1", 0.0))
+        assertThat(result.isInserted).isTrue()
+    }
+
+    @Test
+    fun `price zero - not evicted by another zero (equal, not strictly greater)`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 1)
+        storage.insert(makeResult("dem1", 0.0))
+
+        val result = storage.insert(makeResult("dem2", 0.0))
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
+    }
+
+    @Test
+    fun `very small price difference - eviction still works`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 1)
+        val cheap = makeResult("dem1", 1.0)
+        storage.insert(cheap)
+
+        val slightlyMore = makeResult("dem2", 1.0000001)
+        val result = storage.insert(slightlyMore)
+
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isSameInstanceAs(cheap)
+    }
+
+    // -----------------------------------------------------------------------
+    // Eviction returns correct evicted item
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `eviction - evicts the actual cheapest among multiple items`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        storage.insert(makeResult("dem1", 10.0))
+        storage.insert(makeResult("dem2", 5.0))
+        val cheapest = makeResult("dem3", 2.0)
+        storage.insert(cheapest) // full: [10, 5, 2]
+
+        val result = storage.insert(makeResult("dem4", 3.0)) // 3 > 2 → evict dem3
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isSameInstanceAs(cheapest)
+    }
+
+    @Test
+    fun `eviction result has null evicted when not full`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        val result = storage.insert(makeResult("dem1", 10.0))
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isNull()
+    }
+
+    // -----------------------------------------------------------------------
+    // FallbackSnapshot data class
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `FallbackSnapshot hasContent - derived from head`() {
+        val withHead = FallbackSnapshot(head = mockk(relaxed = true), isFull = false, cheapestPrice = 5.0, size = 1)
+        assertThat(withHead.hasContent).isTrue()
+
+        val noHead = FallbackSnapshot(head = null, isFull = false, cheapestPrice = null, size = 0)
+        assertThat(noHead.hasContent).isFalse()
+    }
+
+    @Test
+    fun `FallbackSnapshot defaults - initial state matches empty`() {
+        val storage = FallbackCacheStorage(capacity = 3)
+        val snap = storage.state.value
+        assertThat(snap.head).isNull()
+        assertThat(snap.isFull).isFalse()
+        assertThat(snap.cheapestPrice).isNull()
+        assertThat(snap.size).isEqualTo(0)
+        assertThat(snap.hasContent).isFalse()
+    }
+
+    // -----------------------------------------------------------------------
+    // Duplicate edge: same demandId appears in full cache, frees slot
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `duplicate in full cache with cheaper price - frees slot, no eviction needed`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 2)
+        storage.insert(makeResult("dem1", 10.0))
+        storage.insert(makeResult("dem2", 5.0)) // full
+
+        // dem1 with lower price: removes old dem1 (frees slot), inserts new
+        val updated = makeResult("dem1", 3.0)
+        val result = storage.insert(updated)
+
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isNull() // no eviction, just replacement
+        // head should be dem2 at 5.0 (higher than updated dem1 at 3.0)
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(5.0)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(3.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Multiple same-price items from different demands
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `same price different demands - all coexist`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 5)
+        storage.insert(makeResult("admob", 5.0))
+        storage.insert(makeResult("applovin", 5.0))
+        storage.insert(makeResult("unity", 5.0))
+
+        assertThat(storage.state.value.size).isEqualTo(3)
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(5.0)
+    }
+
+    @Test
+    fun `same price all items - eviction rejected (equal not gt)`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 2)
+        storage.insert(makeResult("dem1", 5.0))
+        storage.insert(makeResult("dem2", 5.0))
+
+        val result = storage.insert(makeResult("dem3", 5.0))
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
+    }
+
+    // -----------------------------------------------------------------------
+    // cheapestPrice after pop
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `cheapestPrice updates after pop removes cheapest`() = runTest {
+        val storage = FallbackCacheStorage(capacity = 3)
+        storage.insert(makeResult("dem1", 10.0))
+        storage.insert(makeResult("dem2", 5.0))
+        storage.insert(makeResult("dem3", 2.0))
+
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(2.0)
+
+        // Pop removes head (10.0), cheapest stays 2.0
+        storage.popFirst()
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(2.0)
+
+        // Pop removes 5.0, cheapest stays 2.0
+        storage.popFirst()
+        assertThat(storage.state.value.cheapestPrice).isEqualTo(2.0)
+
+        // Pop removes last (2.0), cheapest = null
+        storage.popFirst()
+        assertThat(storage.state.value.cheapestPrice).isNull()
     }
 }

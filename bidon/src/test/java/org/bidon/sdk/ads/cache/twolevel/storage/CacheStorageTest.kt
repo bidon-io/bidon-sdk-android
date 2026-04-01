@@ -3,6 +3,8 @@ package org.bidon.sdk.ads.cache.twolevel.storage
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.DemandId
@@ -619,5 +621,392 @@ internal class CacheStorageTest {
             storage.insert(makeResult("dem$i", (10 - i).toDouble()), sticky = i == 1)
         }
         assertThat(storage.state.value.isFull).isTrue()
+    }
+
+    // -----------------------------------------------------------------------
+    // Threshold recalculation after higher price becomes head
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `threshold bar updates when higher price item becomes new head`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 80)
+
+        storage.insert(makeResult("dem1", 10.0), sticky = false) // bar = 8.0
+        assertThat(storage.state.value.thresholdBar).isEqualTo(8.0)
+
+        storage.insert(makeResult("dem2", 20.0), sticky = false) // new head → bar = 16.0
+        assertThat(storage.state.value.thresholdBar).isEqualTo(16.0)
+
+        // 12.0 < 16.0 → rejected now (would have passed with old bar 8.0)
+        val result = storage.insert(makeResult("dem3", 12.0), sticky = false)
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.Threshold))
+    }
+
+    @Test
+    fun `threshold bar recalculated after pop - lower head gives lower bar`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 80)
+
+        storage.insert(makeResult("dem1", 20.0), sticky = false) // head=20, bar=16
+        storage.insert(makeResult("dem2", 18.0), sticky = false) // 18 >= 16 → passes
+        assertThat(storage.state.value.thresholdBar).isEqualTo(16.0)
+
+        storage.popFirst() // removes 20.0; new head=18.0, bar=14.4
+        assertThat(storage.state.value.thresholdBar).isEqualTo(14.4)
+
+        // 15.0 >= 14.4 → passes (would fail with old bar 16.0)
+        val result = storage.insert(makeResult("dem3", 15.0), sticky = false)
+        assertThat(result.isInserted).isTrue()
+    }
+
+    // -----------------------------------------------------------------------
+    // Capacity 10 (max allowed by config)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `capacity 10 - fills completely with valid threshold bids`() = runTest {
+        val storage = CacheStorage(capacity = 10, threshold = 0)
+
+        for (i in 1..10) {
+            val result = storage.insert(makeResult("dem$i", (100 - i).toDouble()), sticky = i == 1)
+            assertThat(result.isInserted).isTrue()
+        }
+        assertThat(storage.state.value.isFull).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(10)
+    }
+
+    @Test
+    fun `capacity 10 - pop all items returns in descending price order`() = runTest {
+        val storage = CacheStorage(capacity = 10, threshold = 0)
+        val prices = listOf(5.0, 3.0, 8.0, 1.0, 9.0, 2.0, 7.0, 4.0, 10.0, 6.0)
+        for ((i, price) in prices.withIndex()) {
+            storage.insert(makeResult("dem$i", price), sticky = false)
+        }
+
+        val popped = mutableListOf<Double>()
+        while (true) {
+            val item = storage.popFirst() ?: break
+            popped.add(item.adSource.getStats().price)
+        }
+
+        assertThat(popped).isEqualTo(prices.sortedDescending())
+    }
+
+    // -----------------------------------------------------------------------
+    // Price edge cases
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `price zero - first item with zero price accepted`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        val result = storage.insert(makeResult("dem1", 0.0), sticky = false)
+        assertThat(result.isInserted).isTrue()
+        assertThat(storage.state.value.thresholdBar).isEqualTo(0.0) // 0.0 * 0.8 = 0.0
+    }
+
+    @Test
+    fun `price zero head - second zero price item passes threshold (0 ge 0)`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        storage.insert(makeResult("dem1", 0.0), sticky = false)
+
+        // bar = 0.0 * 0.8 = 0.0; 0.0 >= 0.0 → passes
+        val result = storage.insert(makeResult("dem2", 0.0), sticky = false)
+        assertThat(result.isInserted).isTrue()
+    }
+
+    @Test
+    fun `very small prices - fractional comparison works correctly`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        storage.insert(makeResult("dem1", 0.001), sticky = false)
+        // bar = 0.001 * 0.8 = 0.0008
+
+        val pass = storage.insert(makeResult("dem2", 0.001), sticky = false) // 0.001 >= 0.0008
+        val reject = storage.insert(makeResult("dem3", 0.0001), sticky = false) // 0.0001 < 0.0008
+
+        assertThat(pass.isInserted).isTrue()
+        assertThat(reject).isEqualTo(InsertResult.Rejected(InsertResult.Reason.Threshold))
+    }
+
+    @Test
+    fun `large prices - no overflow issues`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        storage.insert(makeResult("dem1", 999999.99), sticky = false)
+        // bar = 999999.99 * 0.8 = 799999.992
+
+        val result = storage.insert(makeResult("dem2", 800000.0), sticky = false)
+        assertThat(result.isInserted).isTrue()
+    }
+
+    // -----------------------------------------------------------------------
+    // Sticky + threshold interaction
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `sticky head low price - threshold bar uses sticky head price`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        storage.insert(makeResult("sticky", 2.0), sticky = true) // bar = 2.0 * 0.8 = 1.6
+
+        // 1.5 < 1.6 → rejected
+        val reject = storage.insert(makeResult("dem2", 1.5), sticky = false)
+        assertThat(reject).isEqualTo(InsertResult.Rejected(InsertResult.Reason.Threshold))
+
+        // 1.6 >= 1.6 → passes
+        val pass = storage.insert(makeResult("dem3", 1.6), sticky = false)
+        assertThat(pass.isInserted).isTrue()
+    }
+
+    @Test
+    fun `sticky head - non-sticky higher price does NOT become head`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        val sticky = makeResult("sticky", 5.0)
+        storage.insert(sticky, sticky = true)
+        storage.insert(makeResult("higher", 20.0), sticky = false)
+
+        // Sticky head stays at position 0 despite lower price
+        assertThat(storage.state.value.head).isSameInstanceAs(sticky)
+        // BUT thresholdBar is based on items[0] which is sticky head
+        assertThat(storage.state.value.thresholdBar).isEqualTo(4.0) // 5.0 * 0.8
+    }
+
+    @Test
+    fun `after pop sticky - new non-sticky head updates threshold bar`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 80)
+        storage.insert(makeResult("sticky", 5.0), sticky = true)
+        storage.insert(makeResult("higher", 20.0), sticky = false)
+
+        // Before pop: bar = 5.0 * 0.8 = 4.0 (based on sticky head)
+        assertThat(storage.state.value.thresholdBar).isEqualTo(4.0)
+
+        storage.popFirst() // removes sticky; head becomes 20.0
+        // After pop: bar = 20.0 * 0.8 = 16.0
+        assertThat(storage.state.value.thresholdBar).isEqualTo(16.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Duplicate edge cases
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `duplicate sticky head at capacity 1 - non-sticky rejected by StickyProtected before duplicate check`() = runTest {
+        val storage = CacheStorage(capacity = 1, threshold = 80)
+        storage.insert(makeResult("admob", 10.0), sticky = true)
+
+        // Same demandId + same price, but step 2 (StickyProtected) fires before step 4 (duplicate)
+        val updated = makeResult("admob", 10.0)
+        val result = storage.insert(updated, sticky = false)
+
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.StickyProtected))
+    }
+
+    @Test
+    fun `multiple different demands fill cache exactly`() = runTest {
+        val storage = CacheStorage(capacity = 3, threshold = 0)
+        val results = listOf(
+            makeResult("admob", 10.0),
+            makeResult("applovin", 8.0),
+            makeResult("unity", 6.0),
+        )
+        for (r in results) {
+            assertThat(storage.insert(r, sticky = false).isInserted).isTrue()
+        }
+        assertThat(storage.state.value.isFull).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(3)
+    }
+
+    // -----------------------------------------------------------------------
+    // Concurrent operations
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `concurrent inserts - all complete without exception`() = runTest {
+        val storage = CacheStorage(capacity = 50, threshold = 0)
+
+        val results = (1..50).map { i ->
+            async {
+                storage.insert(makeResult("dem$i", i.toDouble()), sticky = false)
+            }
+        }.awaitAll()
+
+        // All should succeed (capacity allows all)
+        assertThat(results.all { it.isInserted }).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(50)
+        assertThat(storage.state.value.isFull).isTrue()
+    }
+
+    @Test
+    fun `concurrent insert and pop - no crash, consistent state`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 0)
+
+        // Pre-fill
+        for (i in 1..5) {
+            storage.insert(makeResult("dem$i", i.toDouble()), sticky = false)
+        }
+
+        // Concurrent pops
+        val popped = (1..5).map {
+            async { storage.popFirst() }
+        }.awaitAll()
+
+        // Exactly 5 non-null results, no duplicates
+        val nonNull = popped.filterNotNull()
+        assertThat(nonNull).hasSize(5)
+        assertThat(storage.state.value.size).isEqualTo(0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Sort stability — same price items
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `same price different demands - all coexist in cache`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 0)
+        storage.insert(makeResult("admob", 5.0), sticky = false)
+        storage.insert(makeResult("applovin", 5.0), sticky = false)
+        storage.insert(makeResult("unity", 5.0), sticky = false)
+
+        assertThat(storage.state.value.size).isEqualTo(3)
+    }
+
+    // -----------------------------------------------------------------------
+    // Threshold with ascending prices (head changes)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `ascending prices - each new insert becomes head, bar rises`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 80)
+
+        storage.insert(makeResult("dem1", 5.0), sticky = false) // head=5, bar=4
+        assertThat(storage.state.value.thresholdBar).isEqualTo(4.0)
+
+        storage.insert(makeResult("dem2", 10.0), sticky = false) // head=10, bar=8
+        assertThat(storage.state.value.thresholdBar).isEqualTo(8.0)
+
+        storage.insert(makeResult("dem3", 20.0), sticky = false) // head=20, bar=16
+        assertThat(storage.state.value.thresholdBar).isEqualTo(16.0)
+
+        // 10.0 < 16.0 → rejected
+        val result = storage.insert(makeResult("dem4", 10.0), sticky = false)
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.Threshold))
+    }
+
+    // -----------------------------------------------------------------------
+    // Insert after full drain and refill
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `full drain and refill - cache resets properly`() = runTest {
+        val storage = CacheStorage(capacity = 2, threshold = 0)
+
+        // Fill
+        storage.insert(makeResult("dem1", 10.0), sticky = false)
+        storage.insert(makeResult("dem2", 5.0), sticky = false)
+        assertThat(storage.state.value.isFull).isTrue()
+
+        // Drain
+        storage.popFirst()
+        storage.popFirst()
+        assertThat(storage.state.value.size).isEqualTo(0)
+        assertThat(storage.state.value.hasContent).isFalse()
+        assertThat(storage.state.value.thresholdBar).isNull()
+
+        // Refill — first item always passes (empty cache rule)
+        val result = storage.insert(makeResult("dem3", 1.0), sticky = true)
+        assertThat(result.isInserted).isTrue()
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(1.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Capacity 1 extensive testing
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `capacity 1 non-sticky - higher price replaces lower`() = runTest {
+        val storage = CacheStorage(capacity = 1, threshold = 0)
+        storage.insert(makeResult("dem1", 5.0), sticky = false)
+
+        val result = storage.insert(makeResult("dem2", 10.0), sticky = false)
+        assertThat(result.isInserted).isTrue()
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+    }
+
+    @Test
+    fun `capacity 1 non-sticky - lower price rejected by threshold`() = runTest {
+        val storage = CacheStorage(capacity = 1, threshold = 80)
+        storage.insert(makeResult("dem1", 10.0), sticky = false) // bar = 8.0
+
+        val result = storage.insert(makeResult("dem2", 5.0), sticky = false) // 5 < 8 → reject
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.Threshold))
+    }
+
+    @Test
+    fun `capacity 1 - pop then reuse with new sticky`() = runTest {
+        val storage = CacheStorage(capacity = 1, threshold = 80)
+        storage.insert(makeResult("dem1", 10.0), sticky = true)
+
+        storage.popFirst() // clears sticky + cache
+
+        // New sticky insert as if new auction
+        val newSticky = makeResult("dem2", 8.0)
+        val result = storage.insert(newSticky, sticky = true)
+        assertThat(result.isInserted).isTrue()
+        assertThat(storage.state.value.head).isSameInstanceAs(newSticky)
+    }
+
+    // -----------------------------------------------------------------------
+    // CacheSnapshot data class
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `CacheSnapshot Empty - all fields default`() {
+        val empty = CacheSnapshot.Empty
+        assertThat(empty.head).isNull()
+        assertThat(empty.isFull).isFalse()
+        assertThat(empty.thresholdBar).isNull()
+        assertThat(empty.size).isEqualTo(0)
+        assertThat(empty.hasContent).isFalse()
+    }
+
+    @Test
+    fun `CacheSnapshot hasContent - derived from head`() {
+        val withHead = CacheSnapshot(head = mockk(relaxed = true), isFull = false, thresholdBar = null, size = 1)
+        assertThat(withHead.hasContent).isTrue()
+
+        val withoutHead = CacheSnapshot(head = null, isFull = false, thresholdBar = null, size = 0)
+        assertThat(withoutHead.hasContent).isFalse()
+    }
+
+    // -----------------------------------------------------------------------
+    // Sticky mode: multi-item cache (capacity > 1)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `capacity 2 - sticky + non-sticky fill, pop sticky clears mode`() = runTest {
+        val storage = CacheStorage(capacity = 2, threshold = 0)
+        val sticky = makeResult("dem1", 3.0)
+        val nonSticky = makeResult("dem2", 10.0)
+
+        storage.insert(sticky, sticky = true)
+        storage.insert(nonSticky, sticky = false)
+
+        // Head is sticky despite lower price
+        assertThat(storage.state.value.head).isSameInstanceAs(sticky)
+
+        // Pop sticky
+        val popped = storage.popFirst()
+        assertThat(popped).isSameInstanceAs(sticky)
+
+        // After pop: resort, non-sticky is now head
+        assertThat(storage.state.value.head).isSameInstanceAs(nonSticky)
+    }
+
+    @Test
+    fun `capacity 3 - sticky low, two higher - sort keeps sticky at 0`() = runTest {
+        val storage = CacheStorage(capacity = 5, threshold = 0)
+        storage.insert(makeResult("sticky", 1.0), sticky = true)
+        storage.insert(makeResult("high1", 50.0), sticky = false)
+        storage.insert(makeResult("high2", 30.0), sticky = false)
+
+        // Sticky at head despite being cheapest
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(1.0)
+        assertThat(storage.state.value.head!!.adSource.getStats().demandId.demandId).isEqualTo("sticky")
     }
 }

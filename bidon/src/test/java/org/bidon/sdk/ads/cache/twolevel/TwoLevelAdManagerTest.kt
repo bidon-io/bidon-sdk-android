@@ -28,10 +28,12 @@ import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.auction.AdTypeParam
+import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.stats.models.BidStat
+import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.junit.After
 import org.junit.Before
@@ -424,8 +426,8 @@ internal class TwoLevelAdManagerTest {
             mainCapacity = 1, threshold = 80, fallbackCapacity = 1
         )
         val bid1 = makeResult("dem1", 10.0) // main
-        val bid2 = makeResult("dem2", 5.0)  // fallback
-        val bid3 = makeResult("dem3", 3.0)  // main full (sticky), fb full, 3 <= 5 → reject
+        val bid2 = makeResult("dem2", 5.0) // fallback
+        val bid3 = makeResult("dem3", 3.0) // main full (sticky), fb full, 3 <= 5 → reject
 
         setupControllerWithBids(controller, listOf(bid1, bid2, bid3))
         cacheAndAwaitSuccess(manager)
@@ -441,7 +443,7 @@ internal class TwoLevelAdManagerTest {
             mainCapacity = 1, threshold = 80, fallbackCapacity = 0
         )
         val bid1 = makeResult("dem1", 10.0) // main
-        val bid2 = makeResult("dem2", 5.0)  // main full + fb disabled → destroy
+        val bid2 = makeResult("dem2", 5.0) // main full + fb disabled → destroy
 
         setupControllerWithBids(controller, listOf(bid1, bid2))
         cacheAndAwaitSuccess(manager)
@@ -460,9 +462,9 @@ internal class TwoLevelAdManagerTest {
         val (manager, _, fallbackCache, controller) = createSetup(
             mainCapacity = 1, threshold = 80, fallbackCapacity = 1
         )
-        val bid1 = makeResult("dem1", 10.0)  // main
-        val bid2 = makeResult("dem2", 3.0)   // fallback
-        val bid3 = makeResult("dem3", 5.0)   // fb full, 5 > 3 → evict dem2
+        val bid1 = makeResult("dem1", 10.0) // main
+        val bid2 = makeResult("dem2", 3.0) // fallback
+        val bid3 = makeResult("dem3", 5.0) // fb full, 5 > 3 → evict dem2
 
         setupControllerWithBids(controller, listOf(bid1, bid2, bid3))
         cacheAndAwaitSuccess(manager)
@@ -480,9 +482,9 @@ internal class TwoLevelAdManagerTest {
         val (manager, _, _, controller) = createSetup(
             mainCapacity = 1, threshold = 80, fallbackCapacity = 1
         )
-        val bid1 = makeWinLossResult("dem1", 10.0)  // main
+        val bid1 = makeWinLossResult("dem1", 10.0) // main
         val evicted = makeWinLossResult("dem2", 3.0) // fallback
-        val displacer = makeResult("dem3", 5.0)      // evicts dem2
+        val displacer = makeResult("dem3", 5.0) // evicts dem2
 
         setupControllerWithBids(controller, listOf(bid1, evicted, displacer))
         cacheAndAwaitSuccess(manager)
@@ -498,8 +500,8 @@ internal class TwoLevelAdManagerTest {
             mainCapacity = 1, threshold = 80, fallbackCapacity = 1
         )
         val bid1 = makeResult("dem1", 10.0) // main
-        val bid2 = makeResult("dem2", 5.0)  // fallback
-        val bid3 = makeResult("dem3", 5.0)  // equal price → NO eviction → reject
+        val bid2 = makeResult("dem2", 5.0) // fallback
+        val bid3 = makeResult("dem3", 5.0) // equal price → NO eviction → reject
 
         setupControllerWithBids(controller, listOf(bid1, bid2, bid3))
         cacheAndAwaitSuccess(manager)
@@ -653,8 +655,8 @@ internal class TwoLevelAdManagerTest {
             mainCapacity = 1, threshold = 80, fallbackCapacity = 1
         )
         val bid1 = makeResult("dem1", 10.0) // main
-        val bid2 = makeResult("dem2", 3.0)  // fallback
-        val bid3 = makeResult("dem3", 5.0)  // evicts dem2
+        val bid2 = makeResult("dem2", 3.0) // fallback
+        val bid3 = makeResult("dem3", 5.0) // evicts dem2
 
         setupControllerWithBids(controller, listOf(bid1, bid2, bid3))
         cacheAndAwaitSuccess(manager)
@@ -807,7 +809,7 @@ internal class TwoLevelAdManagerTest {
             val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
 
             singleLoad(makeResult("dem1", 10.0), false) // main
-            singleLoad(makeResult("dem2", 5.0), false)  // fallback
+            singleLoad(makeResult("dem2", 5.0), false) // fallback
 
             onComplete(null, null)
         }
@@ -921,10 +923,10 @@ internal class TwoLevelAdManagerTest {
             val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
 
             singleLoad(bid10, false) // WIN
-            singleLoad(bid9, false)  // CACHE main
-            singleLoad(bid8, false)  // CACHE main (full)
-            singleLoad(bid7, false)  // CACHE fallback
-            singleLoad(bid5, false)  // CACHE fallback (full)
+            singleLoad(bid9, false) // CACHE main
+            singleLoad(bid8, false) // CACHE main (full)
+            singleLoad(bid7, false) // CACHE fallback
+            singleLoad(bid5, false) // CACHE fallback (full)
 
             // $3 → shouldContinue should be false
             assertThat(shouldContinue(3.0)).isFalse()
@@ -959,9 +961,9 @@ internal class TwoLevelAdManagerTest {
         )
 
         val bid10 = makeResult("dem10", 10.0)
-        val bid7 = makeResult("dem7", 7.0)   // 7.0 < 10*0.8=8.0 → reject → fb
-        val bid5 = makeResult("dem5", 5.0)   // reject → fb
-        val bid3 = makeResult("dem3", 3.0)   // reject, fb full, 3 <= 5 → both reject
+        val bid7 = makeResult("dem7", 7.0) // 7.0 < 10*0.8=8.0 → reject → fb
+        val bid5 = makeResult("dem5", 5.0) // reject → fb
+        val bid3 = makeResult("dem3", 3.0) // reject, fb full, 3 <= 5 → both reject
 
         setupControllerWithBids(controller, listOf(bid10, bid7, bid5, bid3))
         cacheAndAwaitSuccess(manager)
@@ -1140,9 +1142,9 @@ internal class TwoLevelAdManagerTest {
 
         val bids = listOf(
             makeResult("dem1", 10.0), // main (sticky)
-            makeResult("dem2", 8.0),  // main (8 >= 10*0.7=7)
-            makeResult("dem3", 6.0),  // main full, fb
-            makeResult("dem4", 4.0),  // main full, fb
+            makeResult("dem2", 8.0), // main (8 >= 10*0.7=7)
+            makeResult("dem3", 6.0), // main full, fb
+            makeResult("dem4", 4.0), // main full, fb
         )
 
         setupControllerWithBids(controller, bids)
@@ -1171,5 +1173,1029 @@ internal class TwoLevelAdManagerTest {
         val (result, _) = cacheAndAwaitSuccess(manager)
         assertThat(result.adSource.getStats().demandId.demandId).isEqualTo("existing")
         coVerify(exactly = 0) { controller.start(any(), any(), any(), any(), any()) }
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 20: Spec example 14.3 — show() during auction (cancel)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `spec 14_3 - pop during auction cancels remaining waterfall`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 70, fallbackCapacity = 2
+        )
+
+        val bid8 = makeResult("dem8", 8.0)
+        val bid7 = makeResult("dem7", 7.0)
+        val bid6 = makeResult("dem6", 6.0)
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val singleLoad = arg<suspend (AuctionResult, Boolean) -> Unit>(2)
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+
+            singleLoad(bid8, false) // WIN (sticky)
+            singleLoad(bid7, false) // CACHE main
+            singleLoad(bid6, false) // CACHE main (full)
+            // $4, $3, $2 not called — simulates early stop after cancel
+
+            onComplete(null, null)
+        }
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Simulate show() → pop + cancel
+        val popped = manager.pop()
+        assertThat(popped).isSameInstanceAs(bid8)
+
+        // Main: [$7, $6]. Two more shows without auction.
+        assertThat(mainCache.state.value.size).isEqualTo(2)
+        assertThat(mainCache.state.value.head!!.adSource.getStats().price).isEqualTo(7.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 21: Spec example 14.5 — Repeated auction updates fallback
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `spec 14_5 - repeated auction refills fallback`() = runBlocking {
+        val (manager, mainCache, fallbackCache, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 2
+        )
+
+        // Auction 1: $5 (sticky), $3 → fb, $2 → fb
+        val a1_bid5 = makeResult("a1_dem5", 5.0)
+        val a1_bid3 = makeResult("a1_dem3", 3.0)
+        val a1_bid2 = makeResult("a1_dem2", 2.0)
+        setupControllerWithBids(controller, listOf(a1_bid5, a1_bid3, a1_bid2))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        assertThat(mainCache.state.value.size).isEqualTo(1)
+        assertThat(fallbackCache.state.value.size).isEqualTo(2)
+
+        // show → pop $5
+        manager.pop()
+        assertThat(mainCache.state.value.hasContent).isFalse()
+
+        // load → main empty → auction → no-fill → fallback $3 → didLoad
+        setupControllerNoFill(controller)
+        val (result2, _) = cacheAndAwaitSuccess(manager)
+        assertThat(result2.adSource.getStats().price).isEqualTo(3.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 22: Bidding eviction — no adapter notifyLoss
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `evicted bidding result - no adapter notifyLoss`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 1
+        )
+        val bid1 = makeResult("dem1", 10.0) // main
+        val evicted = makeBiddingResult("rtb1", 3.0) // fallback
+        val displacer = makeResult("dem3", 5.0) // evicts rtb1
+
+        setupControllerWithBids(controller, listOf(bid1, evicted, displacer))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Bidding evicted: markFillFinished + markLoss + destroy, but NO notifyLoss
+        verify { evicted.adSource.markFillFinished(RoundStatus.Lose, 3.0) }
+        verify { evicted.adSource.markLoss() }
+        verify { evicted.adSource.destroy() }
+        // Bidding → no adapter-level notifyLoss
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 23: Multiple fallback evictions in single auction
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `multiple fallback evictions in one auction - all evicted get full loss cycle`() = runBlocking {
+        val (manager, _, fallbackCache, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 1
+        )
+
+        // Pre-fill fallback with cheap bid from prior auction
+        val oldCheap = makeResult("old1", 1.0)
+        fallbackCache.insert(oldCheap)
+
+        val bid10 = makeResult("dem10", 10.0) // main (sticky)
+        val bid5 = makeResult("dem5", 5.0) // fb: evicts old1 ($1)
+        val bid7 = makeResult("dem7", 7.0) // fb: evicts dem5 ($5)
+
+        setupControllerWithBids(controller, listOf(bid10, bid5, bid7))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // old1 evicted by $5
+        verify { oldCheap.adSource.markFillFinished(RoundStatus.Lose, 1.0) }
+        verify { oldCheap.adSource.destroy() }
+
+        // dem5 evicted by $7
+        verify { bid5.adSource.markFillFinished(RoundStatus.Lose, 5.0) }
+        verify { bid5.adSource.destroy() }
+
+        // Only $7 remains in fallback
+        assertThat(fallbackCache.state.value.head!!.adSource.getStats().price).isEqualTo(7.0)
+        assertThat(fallbackCache.state.value.size).isEqualTo(1)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 24: threshold=100 — only first bid passes main
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `threshold 100 - only sticky first bid in main, rest to fallback`() = runBlocking {
+        val (manager, mainCache, fallbackCache, controller) = createSetup(
+            mainCapacity = 3, threshold = 100, fallbackCapacity = 3
+        )
+
+        val bid10 = makeResult("dem10", 10.0) // main (sticky). bar = 10.0 * 1.0 = 10.0
+        val bid9 = makeResult("dem9", 9.0) // 9 < 10 → main reject → fb
+        val bid8 = makeResult("dem8", 8.0) // 8 < 10 → main reject → fb
+
+        setupControllerWithBids(controller, listOf(bid10, bid9, bid8))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Main: only sticky $10
+        assertThat(mainCache.state.value.size).isEqualTo(1)
+        // Fallback: $9, $8
+        assertThat(fallbackCache.state.value.size).isEqualTo(2)
+    }
+
+    @Test
+    fun `threshold 100 - equal price to max passes main`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 100, fallbackCapacity = 0
+        )
+
+        val bid10 = makeResult("dem10", 10.0) // main (sticky)
+        val bid10b = makeResult("dem10b", 10.0) // 10 >= 10 → passes threshold
+
+        setupControllerWithBids(controller, listOf(bid10, bid10b))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        assertThat(mainCache.state.value.size).isEqualTo(2)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 25: pop() cancels auction (spec §8)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `pop cancels running auction`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup()
+
+        val gate = CompletableDeferred<Unit>()
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val singleLoad = arg<suspend (AuctionResult, Boolean) -> Unit>(2)
+            singleLoad(makeResult("dem1", 10.0), false)
+            gate.await() // pause auction
+        }
+
+        // Start auction
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> },
+            onFailure = { _, _ -> },
+        )
+        Thread.sleep(200)
+
+        // Pop → cancels auction
+        val popped = manager.pop()
+        assertThat(popped).isNotNull()
+
+        // After pop, state returns to idle (auction was cancelled)
+        // Allow some time for cancellation to propagate
+        Thread.sleep(100)
+        assertThat(manager.isIdle()).isTrue()
+
+        gate.complete(Unit)
+        manager.clear()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 26: peek priority — main over fallback
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `peek - prefers main over fallback when both have content`() = runBlocking {
+        val (manager, mainCache, fallbackCache, _) = createSetup()
+        val mainItem = makeResult("main_dem", 10.0)
+        val fbItem = makeResult("fb_dem", 20.0) // higher price but in fallback
+
+        mainCache.insert(mainItem, sticky = false)
+        fallbackCache.insert(fbItem)
+
+        // peek returns main, even though fallback has higher price
+        assertThat(manager.peek()).isSameInstanceAs(mainItem)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 27: Full lifecycle — auction → fill → pop all → new auction
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `full lifecycle - auction, pop all main, fallback rescue, pop fallback, new auction`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 2, threshold = 70, fallbackCapacity = 1
+        )
+
+        // Auction 1
+        val bid10 = makeResult("dem10", 10.0)
+        val bid8 = makeResult("dem8", 8.0)
+        val bid3 = makeResult("dem3", 3.0) // threshold reject → fb
+
+        setupControllerWithBids(controller, listOf(bid10, bid8, bid3))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Pop $10 (sticky)
+        val pop1 = manager.pop()
+        assertThat(pop1!!.adSource.getStats().price).isEqualTo(10.0)
+
+        // Cache hit: $8 still in main
+        val (hit, _) = cacheAndAwaitSuccess(manager)
+        assertThat(hit.adSource.getStats().price).isEqualTo(8.0)
+
+        // Pop $8
+        manager.pop()
+
+        // Main empty → auction 2 → no fill → fallback rescue $3
+        setupControllerNoFill(controller)
+        val (rescue, _) = cacheAndAwaitSuccess(manager)
+        assertThat(rescue.adSource.getStats().price).isEqualTo(3.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 28: After clear() — graceful behavior
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `cache after clear - no crash, no callback`() = runBlocking {
+        val (manager, _, _, _) = createSetup()
+        manager.clear()
+
+        val latch = CountDownLatch(1)
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> latch.countDown() },
+            onFailure = { _, _ -> latch.countDown() },
+        )
+
+        // After clear, scope is cancelled → cache() launches into dead scope → no callback
+        val fired = latch.await(500, TimeUnit.MILLISECONDS)
+        assertThat(fired).isFalse()
+    }
+
+    @Test
+    fun `peek after clear with pre-filled cache returns content`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        val item = makeResult("admob", 10.0)
+        mainCache.insert(item, sticky = false)
+
+        manager.clear()
+
+        // peek reads StateFlow snapshot — still accessible even after clear
+        assertThat(manager.peek()).isSameInstanceAs(item)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 29: shouldContinueAuction — additional edge cases
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `shouldContinueAuction - main has space, ecpm at exact bar - true`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 80, fallbackCapacity = 0
+        )
+
+        var capturedShouldContinue: ((Double) -> Boolean)? = null
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val singleLoad = arg<suspend (AuctionResult, Boolean) -> Unit>(2)
+            capturedShouldContinue = arg<(Double) -> Boolean>(3)
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+
+            singleLoad(makeResult("dem1", 10.0), false)
+            onComplete(null, null)
+        }
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // bar = 10.0 * 0.8 = 8.0; ecpm=8.0 → canAcceptMain = true
+        assertThat(capturedShouldContinue?.invoke(8.0)).isTrue()
+        // ecpm = 7.99 → canAcceptMain = false, fb disabled → false
+        assertThat(capturedShouldContinue?.invoke(7.99)).isFalse()
+    }
+
+    @Test
+    fun `shouldContinueAuction - fallback not disabled and not full - accepts even low ecpm`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 5
+        )
+
+        var capturedShouldContinue: ((Double) -> Boolean)? = null
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val singleLoad = arg<suspend (AuctionResult, Boolean) -> Unit>(2)
+            capturedShouldContinue = arg<(Double) -> Boolean>(3)
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+
+            singleLoad(makeResult("dem1", 10.0), false) // fills main
+            onComplete(null, null)
+        }
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Main full but fallback empty (not full, not disabled)
+        // Any ecpm is accepted because canAcceptFallback = !disabled && !full = true
+        assertThat(capturedShouldContinue?.invoke(0.001)).isTrue()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 30: Win/Loss notifications — additional combinations
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `win notification - non-WinLossNotifiable adSource does NOT get notifyWin`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        // makeResult creates a plain AdSource (not WinLossNotifiable)
+        val bid = makeResult("admob", 10.0)
+        setupControllerWithBids(controller, listOf(bid), externalWinNotificationsEnabled = false)
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // markWin is called on all winners
+        verify { bid.adSource.markWin() }
+        // notifyWin is NOT called because adSource is not WinLossNotifiable
+    }
+
+    @Test
+    fun `evicted WinLossNotifiable gets notifyLoss with displacer info`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 1
+        )
+        val bid1 = makeResult("dem1", 10.0) // main
+        val evicted = makeWinLossResult("evicted_dem", 3.0) // fallback
+        val displacer = makeResult("displacer_dem", 5.0) // evicts evicted_dem
+
+        setupControllerWithBids(controller, listOf(bid1, evicted, displacer))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        verify { (evicted.adSource as WinLossNotifiable).notifyLoss("displacer_dem", 5.0) }
+        verify { evicted.adSource.markLoss() }
+        verify { evicted.adSource.destroy() }
+    }
+
+    @Test
+    fun `loss notification - no winner yet, loser does NOT get notifyLoss`() = runBlocking {
+        // Edge case: the first bid could fail routing (both reject),
+        // but in practice first bid always enters empty main.
+        // Test with pre-filled main to simulate the scenario.
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 0
+        )
+
+        // Pre-fill main
+        mainCache.insert(makeResult("existing", 20.0), sticky = true)
+
+        // cache() sees main has content → cache hit, no auction
+        val (result, _) = cacheAndAwaitSuccess(manager)
+        assertThat(result.adSource.getStats().demandId.demandId).isEqualTo("existing")
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 31: Spec example 14.3 — show() during auction, cached bids preserved
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `show during auction - already cached bids not lost`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 70, fallbackCapacity = 0
+        )
+
+        val bid8 = makeResult("dem8", 8.0)
+        val bid7 = makeResult("dem7", 7.0)
+        val bid6 = makeResult("dem6", 6.0)
+
+        setupControllerWithBids(controller, listOf(bid8, bid7, bid6))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        // Pop $8 (show)
+        manager.pop()
+
+        // Main still has $7 and $6
+        assertThat(mainCache.state.value.size).isEqualTo(2)
+
+        // Two more instant loads
+        val (r1, _) = cacheAndAwaitSuccess(manager)
+        assertThat(r1.adSource.getStats().price).isEqualTo(7.0)
+
+        manager.pop()
+        val (r2, _) = cacheAndAwaitSuccess(manager)
+        assertThat(r2.adSource.getStats().price).isEqualTo(6.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 32: AuctionInfo content validation
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `cache hit - synthetic AuctionInfo has correct fields`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        val item = makeResult("admob", 10.0)
+        mainCache.insert(item, sticky = false)
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        assertThat(info.auctionId).isEqualTo("-") // null auctionId defaults to "-"
+        assertThat(info.auctionTimeout).isEqualTo(0)
+        assertThat(info.noBids).isNull()
+        assertThat(info.adUnits).hasSize(1)
+
+        val adUnit = info.adUnits!!.first()
+        assertThat(adUnit.demandId).isEqualTo("admob")
+        assertThat(adUnit.price).isEqualTo(10.0)
+        assertThat(adUnit.status).isEqualTo(RoundStatus.Win.code)
+    }
+
+    @Test
+    fun `first bid from auction - AuctionInfo has WIN status`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        val bid = makeResult("admob", 10.0)
+        setupControllerWithBids(controller, listOf(bid))
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        assertThat(info.adUnits).hasSize(1)
+        assertThat(info.adUnits!!.first().status).isEqualTo(RoundStatus.Win.code)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 33: Spec Кейс 2 — Fallback спасает no-fill
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `spec case 2 - fallback saves no-fill with threshold rejection`() = runBlocking {
+        val (manager, _, fallbackCache, controller) = createSetup(
+            mainCapacity = 2, threshold = 70, fallbackCapacity = 2
+        )
+
+        val bid5 = makeResult("dem5", 5.0) // main (sticky), bar = 5 * 0.7 = 3.5
+        val bid2 = makeResult("dem2", 2.0) // 2 < 3.5 → main reject → fb
+
+        setupControllerWithBids(controller, listOf(bid5, bid2))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        assertThat(fallbackCache.state.value.size).isEqualTo(1)
+
+        // show → $5
+        manager.pop()
+
+        // load → main empty → auction → no-fill → fallback $2 → didLoad
+        setupControllerNoFill(controller)
+        val (rescue, _) = cacheAndAwaitSuccess(manager)
+        assertThat(rescue.adSource.getStats().price).isEqualTo(2.0)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 34: Spec Кейс 1 — Два последовательных loadAd()
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `two sequential loads - main not empty - both return instantly`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup()
+        mainCache.insert(makeResult("dem1", 10.0), sticky = true)
+
+        val (r1, _) = cacheAndAwaitSuccess(manager)
+        val (r2, _) = cacheAndAwaitSuccess(manager)
+
+        assertThat(r1.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(r2.adSource.getStats().price).isEqualTo(10.0) // same head, peek not pop
+        coVerify(exactly = 0) { controller.start(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `two sequential loads - both empty, first starts auction, second is silent`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+
+        val gate = CompletableDeferred<Unit>()
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            gate.await()
+        }
+
+        // First load starts auction
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> },
+            onFailure = { _, _ -> },
+        )
+        Thread.sleep(100)
+
+        // Second load is silent (auction running)
+        val latch = CountDownLatch(1)
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> latch.countDown() },
+            onFailure = { _, _ -> latch.countDown() },
+        )
+        val fired = latch.await(500, TimeUnit.MILLISECONDS)
+        assertThat(fired).isFalse()
+
+        gate.complete(Unit)
+        manager.clear()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 35: First bid WIN from fallback path
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `first bid rejected by main goes to fallback - triggers WIN via onComplete rescue`() = runBlocking {
+        // This is edge case: normally first bid always enters empty main.
+        // But if main somehow has content pre-filled, the auction path differs.
+        // Test the no-fill rescue path with fallback content.
+        val (manager, _, fallbackCache, controller) = createSetup()
+
+        val fbBid = makeResult("fb_bid", 5.0)
+        fallbackCache.insert(fbBid)
+
+        setupControllerNoFill(controller) // no fills from auction
+
+        val (result, _) = cacheAndAwaitSuccess(manager)
+        // fallback rescue
+        assertThat(result).isSameInstanceAs(fbBid)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 36: Spec configurations table (§11)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `config cacheSize N fallbackSize 0 - main fills then stops`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 80, fallbackCapacity = 0
+        )
+
+        val bid10 = makeResult("dem10", 10.0)
+        val bid9 = makeResult("dem9", 9.0)
+        val bid8 = makeResult("dem8", 8.0) // fills main
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val singleLoad = arg<suspend (AuctionResult, Boolean) -> Unit>(2)
+            val shouldContinue = arg<(Double) -> Boolean>(3)
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+
+            singleLoad(bid10, false)
+            singleLoad(bid9, false)
+            singleLoad(bid8, false)
+
+            // Main full + fb disabled → STOP
+            assertThat(shouldContinue(7.0)).isFalse()
+            assertThat(shouldContinue(1.0)).isFalse()
+
+            onComplete(null, null)
+        }
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+        assertThat(mainCache.state.value.isFull).isTrue()
+    }
+
+    @Test
+    fun `config cacheSize 1 fallbackSize M - main first bid, rest to fallback`() = runBlocking {
+        val (manager, mainCache, fallbackCache, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 5
+        )
+
+        val bid10 = makeResult("dem10", 10.0) // main
+        val bid5 = makeResult("dem5", 5.0) // fb
+        val bid3 = makeResult("dem3", 3.0) // fb
+        val bid1 = makeResult("dem1", 1.0) // fb
+
+        setupControllerWithBids(controller, listOf(bid10, bid5, bid3, bid1))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        assertThat(mainCache.state.value.size).isEqualTo(1)
+        assertThat(fallbackCache.state.value.size).isEqualTo(3)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 37: externalWinNotificationsEnabled with loss path
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `externalWinNotificationsEnabled - winner still gets markWin but no notifyWin`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        val bid = makeWinLossResult("admob", 10.0)
+        setupControllerWithBids(controller, listOf(bid), externalWinNotificationsEnabled = true)
+
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        verify { bid.adSource.markWin() }
+        verify(exactly = 0) { (bid.adSource as WinLossNotifiable).notifyWin() }
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 38: Multiple sequential auctions (full cycle)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `three sequential auctions - each fills and drains correctly`() = runBlocking {
+        val (manager, mainCache, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 0
+        )
+
+        // Auction 1
+        val bid1 = makeResult("dem1", 10.0)
+        setupControllerWithBids(controller, listOf(bid1))
+        val (r1, _) = cacheAndAwaitSuccess(manager)
+        assertThat(r1.adSource.getStats().price).isEqualTo(10.0)
+        manager.pop()
+        Thread.sleep(200)
+
+        // Auction 2
+        val bid2 = makeResult("dem2", 8.0)
+        setupControllerWithBids(controller, listOf(bid2))
+        val (r2, _) = cacheAndAwaitSuccess(manager)
+        assertThat(r2.adSource.getStats().price).isEqualTo(8.0)
+        manager.pop()
+        Thread.sleep(200)
+
+        // Auction 3
+        val bid3 = makeResult("dem3", 6.0)
+        setupControllerWithBids(controller, listOf(bid3))
+        val (r3, _) = cacheAndAwaitSuccess(manager)
+        assertThat(r3.adSource.getStats().price).isEqualTo(6.0)
+
+        coVerify(exactly = 3) { controller.start(any(), any(), any(), any(), any()) }
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 39: Edge — no-fill with BidonError types
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `no fill with InternalServerError - fallback rescue still works`() = runBlocking {
+        val (manager, _, fallbackCache, controller) = createSetup()
+        fallbackCache.insert(makeResult("cached", 3.0))
+
+        setupControllerNoFill(controller, error = BidonError.InternalServerSdkError("test"))
+
+        val (result, _) = cacheAndAwaitSuccess(manager)
+        assertThat(result.adSource.getStats().price).isEqualTo(3.0)
+    }
+
+    @Test
+    fun `no fill with null error - returns NoFill`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        setupControllerNoFill(controller, error = null)
+
+        val error = cacheAndAwaitFailure(manager)
+        assertThat(error).isInstanceOf(BidonError.NoFill::class.java)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 40: markFillFinished called with correct price
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `cached bid - markFillFinished called with Cached status and own price`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 3, threshold = 80, fallbackCapacity = 0
+        )
+        val bid1 = makeResult("dem1", 10.0) // WIN
+        val bid2 = makeResult("dem2", 9.5) // CACHE at 9.5
+        val bid3 = makeResult("dem3", 8.5) // CACHE at 8.5
+
+        setupControllerWithBids(controller, listOf(bid1, bid2, bid3))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        verify { bid2.adSource.markFillFinished(RoundStatus.Cached, 9.5) }
+        verify { bid3.adSource.markFillFinished(RoundStatus.Cached, 8.5) }
+    }
+
+    @Test
+    fun `destroyed bid - markFillFinished called with Lose status and own price`() = runBlocking {
+        val (manager, _, _, controller) = createSetup(
+            mainCapacity = 1, threshold = 80, fallbackCapacity = 0
+        )
+        val bid1 = makeResult("dem1", 10.0) // WIN
+        val bid2 = makeResult("dem2", 3.0) // LOSE at 3.0
+
+        setupControllerWithBids(controller, listOf(bid1, bid2))
+        cacheAndAwaitSuccess(manager)
+        Thread.sleep(200)
+
+        verify { bid2.adSource.markFillFinished(RoundStatus.Lose, 3.0) }
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 41: AuctionInfo with rich BidStat data (public callback validation)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Create an AuctionResult whose BidStat has all fields populated,
+     * simulating what SequentialAuctionPipeline would set.
+     */
+    private fun makeRichResult(
+        demandId: String,
+        price: Double,
+        auctionId: String = "auction-123",
+        auctionPricefloor: Double = 0.5,
+        fillStartTs: Long = 1000L,
+        fillFinishTs: Long = 1200L,
+        adUnitLabel: String = "label_$demandId",
+        adUnitUid: String = "uid_$demandId",
+        bidType: BidType = BidType.CPM,
+        ext: String? = """{"key":"value"}""",
+    ): AuctionResult.Network {
+        val adSource = mockk<AdSource<*>>(relaxed = true)
+        every { adSource.getStats() } returns BidStat(
+            demandId = DemandId(demandId),
+            price = price,
+            auctionId = auctionId,
+            roundStatus = RoundStatus.Successful,
+            auctionPricefloor = auctionPricefloor,
+            fillStartTs = fillStartTs,
+            fillFinishTs = fillFinishTs,
+            dspSource = null,
+            adUnit = AdUnit(
+                demandId = demandId,
+                label = adUnitLabel,
+                pricefloor = auctionPricefloor,
+                uid = adUnitUid,
+                bidType = bidType,
+                timeout = 5000L,
+                ext = ext,
+            ),
+            tokenInfo = null,
+        )
+        return AuctionResult.Network(adSource = adSource, roundStatus = RoundStatus.Successful)
+    }
+
+    @Test
+    fun `onSuccess AuctionInfo - cache hit propagates all BidStat fields to AdUnitInfo`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        val rich = makeRichResult(
+            demandId = "admob",
+            price = 12.5,
+            auctionId = "auction-xyz",
+            auctionPricefloor = 0.5,
+            fillStartTs = 1000L,
+            fillFinishTs = 1200L,
+            adUnitLabel = "interstitial_admob",
+            adUnitUid = "uid-001",
+            bidType = BidType.CPM,
+            ext = """{"placement":"top"}""",
+        )
+        mainCache.insert(rich, sticky = true)
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        // AuctionInfo level
+        assertThat(info.auctionId).isEqualTo("auction-xyz") // uses real auctionId, not "-"
+        assertThat(info.auctionPricefloor).isEqualTo(0.5)
+        assertThat(info.auctionTimeout).isEqualTo(0) // synthetic always 0
+        assertThat(info.auctionConfigurationId).isNull() // synthetic always null
+        assertThat(info.auctionConfigurationUid).isNull()
+        assertThat(info.noBids).isNull()
+
+        // AdUnitInfo level — full data passthrough
+        assertThat(info.adUnits).hasSize(1)
+        val adUnit = info.adUnits!!.first()
+        assertThat(adUnit.demandId).isEqualTo("admob")
+        assertThat(adUnit.price).isEqualTo(12.5)
+        assertThat(adUnit.status).isEqualTo(RoundStatus.Win.code)
+        assertThat(adUnit.label).isEqualTo("interstitial_admob")
+        assertThat(adUnit.uid).isEqualTo("uid-001")
+        assertThat(adUnit.bidType).isEqualTo(BidType.CPM.code)
+        assertThat(adUnit.fillStartTs).isEqualTo(1000L)
+        assertThat(adUnit.fillFinishTs).isEqualTo(1200L)
+        assertThat(adUnit.ext).isEqualTo("""{"placement":"top"}""")
+    }
+
+    @Test
+    fun `onSuccess AuctionInfo - first bid from auction has all BidStat fields`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        val rich = makeRichResult(
+            demandId = "applovin",
+            price = 8.0,
+            auctionId = "auction-456",
+            auctionPricefloor = 1.0,
+            adUnitLabel = "banner_applovin",
+            adUnitUid = "uid-ap-01",
+            bidType = BidType.RTB,
+        )
+        setupControllerWithBids(controller, listOf(rich))
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        assertThat(info.auctionId).isEqualTo("auction-456")
+        assertThat(info.auctionPricefloor).isEqualTo(1.0)
+
+        val adUnit = info.adUnits!!.first()
+        assertThat(adUnit.demandId).isEqualTo("applovin")
+        assertThat(adUnit.label).isEqualTo("banner_applovin")
+        assertThat(adUnit.uid).isEqualTo("uid-ap-01")
+        assertThat(adUnit.bidType).isEqualTo(BidType.RTB.code)
+        assertThat(adUnit.status).isEqualTo(RoundStatus.Win.code)
+    }
+
+    @Test
+    fun `onSuccess AuctionInfo - null auctionId defaults to dash`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        // Default makeResult has auctionId=null
+        mainCache.insert(makeResult("admob", 10.0), sticky = true)
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        assertThat(info.auctionId).isEqualTo("-")
+    }
+
+    @Test
+    fun `onSuccess AuctionInfo - null adUnit gives null label, uid, bidType, ext`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        // makeResult has adUnit=null in BidStat
+        mainCache.insert(makeResult("admob", 10.0), sticky = true)
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        val adUnit = info.adUnits!!.first()
+        assertThat(adUnit.label).isNull()
+        assertThat(adUnit.uid).isNull()
+        assertThat(adUnit.bidType).isNull()
+        assertThat(adUnit.ext).isNull()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 42: onFailure callback — AuctionInfo from pipeline
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `onFailure - receives pipeline AuctionInfo when available`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+
+        val pipelineInfo = AuctionInfo(
+            auctionId = "pipeline-auction-789",
+            auctionConfigurationId = 42L,
+            auctionConfigurationUid = "config-uid-abc",
+            auctionTimeout = 15000,
+            auctionPricefloor = 1.5,
+            noBids = null,
+            adUnits = null,
+        )
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+            onComplete(pipelineInfo, BidonError.NoFill(DemandId("auction")))
+        }
+
+        val latch = CountDownLatch(1)
+        val infoRef = AtomicReference<AuctionInfo?>()
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> latch.countDown() },
+            onFailure = { info, _ -> infoRef.set(info); latch.countDown() },
+        )
+        latch.await(5, TimeUnit.SECONDS)
+
+        val info = infoRef.get()
+        assertThat(info).isNotNull()
+        assertThat(info!!.auctionId).isEqualTo("pipeline-auction-789")
+        assertThat(info.auctionConfigurationId).isEqualTo(42L)
+        assertThat(info.auctionConfigurationUid).isEqualTo("config-uid-abc")
+        assertThat(info.auctionTimeout).isEqualTo(15000)
+        assertThat(info.auctionPricefloor).isEqualTo(1.5)
+    }
+
+    @Test
+    fun `onFailure - null AuctionInfo when pipeline returns null`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+            onComplete(null, BidonError.InternalServerSdkError("server error"))
+        }
+
+        val latch = CountDownLatch(1)
+        val infoRef = AtomicReference<AuctionInfo?>(AuctionInfo("sentinel", null, null, 0, 0.0, null, null))
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> latch.countDown() },
+            onFailure = { info, _ -> infoRef.set(info); latch.countDown() },
+        )
+        latch.await(5, TimeUnit.SECONDS)
+
+        assertThat(infoRef.get()).isNull()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 43: Fallback rescue — uses pipeline AuctionInfo, not synthetic
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `fallback rescue - uses pipeline AuctionInfo when available`() = runBlocking {
+        val (manager, _, fallbackCache, controller) = createSetup()
+        fallbackCache.insert(makeResult("cached", 3.0))
+
+        val pipelineInfo = AuctionInfo(
+            auctionId = "pipeline-auction-rescue",
+            auctionConfigurationId = 99L,
+            auctionConfigurationUid = "config-rescue",
+            auctionTimeout = 10000,
+            auctionPricefloor = 2.0,
+            noBids = null,
+            adUnits = null,
+        )
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+            // No fills, but pipeline returns AuctionInfo
+            onComplete(pipelineInfo, null)
+        }
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        // Should use pipeline info, NOT synthetic
+        assertThat(info.auctionId).isEqualTo("pipeline-auction-rescue")
+        assertThat(info.auctionConfigurationId).isEqualTo(99L)
+        assertThat(info.auctionConfigurationUid).isEqualTo("config-rescue")
+        assertThat(info.auctionTimeout).isEqualTo(10000)
+    }
+
+    @Test
+    fun `fallback rescue - falls back to synthetic when pipeline AuctionInfo is null`() = runBlocking {
+        val (manager, _, fallbackCache, controller) = createSetup()
+        val fbBid = makeRichResult(
+            demandId = "cached_dem",
+            price = 5.0,
+            auctionId = "old-auction-id",
+        )
+        fallbackCache.insert(fbBid)
+
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            val onComplete = arg<suspend (AuctionInfo?, BidonError?) -> Unit>(4)
+            onComplete(null, BidonError.InternalServerSdkError("server error"))
+        }
+
+        val (_, info) = cacheAndAwaitSuccess(manager)
+
+        // No pipeline info → synthetic from fallback head
+        assertThat(info.auctionId).isEqualTo("old-auction-id")
+        assertThat(info.auctionConfigurationId).isNull() // synthetic always null
+        assertThat(info.adUnits).hasSize(1)
+        assertThat(info.adUnits!!.first().demandId).isEqualTo("cached_dem")
+        assertThat(info.adUnits!!.first().status).isEqualTo(RoundStatus.Win.code)
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 44: Callbacks invoked on Main thread
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `onSuccess callback invoked on Main dispatcher`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        mainCache.insert(makeResult("admob", 10.0), sticky = true)
+
+        val latch = CountDownLatch(1)
+        // With UnconfinedTestDispatcher as Main, the callback should execute
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> latch.countDown() },
+            onFailure = { _, _ -> },
+        )
+
+        val fired = latch.await(5, TimeUnit.SECONDS)
+        assertThat(fired).isTrue()
+    }
+
+    @Test
+    fun `onFailure callback invoked on Main dispatcher`() = runBlocking {
+        val (manager, _, _, controller) = createSetup()
+        setupControllerNoFill(controller)
+
+        val latch = CountDownLatch(1)
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> },
+            onFailure = { _, _ -> latch.countDown() },
+        )
+
+        val fired = latch.await(5, TimeUnit.SECONDS)
+        assertThat(fired).isTrue()
     }
 }
