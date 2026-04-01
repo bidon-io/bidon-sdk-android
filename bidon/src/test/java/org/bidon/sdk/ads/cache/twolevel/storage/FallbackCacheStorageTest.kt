@@ -148,30 +148,30 @@ internal class FallbackCacheStorageTest {
     }
 
     @Test
-    fun `double check different price - removes old and re-inserts with new price`() = runTest {
+    fun `different price same demandId - both coexist (not a duplicate)`() = runTest {
         val storage = FallbackCacheStorage(capacity = 3)
         storage.insert(makeResult("admob", 5.0))
 
-        val updated = makeResult("admob", 9.0)
-        val result = storage.insert(updated)
+        val second = makeResult("admob", 9.0)
+        val result = storage.insert(second)
 
         assertThat(result.isInserted).isTrue()
-        assertThat(storage.state.value.head).isSameInstanceAs(updated)
-        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(9.0)
+        assertThat(storage.state.value.size).isEqualTo(2)
+        assertThat(storage.state.value.head).isSameInstanceAs(second)
     }
 
     @Test
-    fun `double check different price lower - removes old and re-inserts, sorted correctly`() = runTest {
+    fun `different price lower same demandId - both coexist, sorted correctly`() = runTest {
         val storage = FallbackCacheStorage(capacity = 3)
         val other = makeResult("dem_other", 8.0)
         storage.insert(makeResult("admob", 5.0))
         storage.insert(other)
 
-        // update admob with lower price
-        val updated = makeResult("admob", 3.0)
-        val result = storage.insert(updated)
+        val lower = makeResult("admob", 3.0)
+        val result = storage.insert(lower)
 
         assertThat(result.isInserted).isTrue()
+        assertThat(storage.state.value.size).isEqualTo(3)
         // head is still other (8.0)
         assertThat(storage.state.value.head).isSameInstanceAs(other)
     }
@@ -451,30 +451,31 @@ internal class FallbackCacheStorageTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `duplicate by demandId - full cache, lower price, still updates (duplicate removes slot)`() = runTest {
+    fun `same demandId different price - full cache, lower price, eviction applies`() = runTest {
         val storage = FallbackCacheStorage(capacity = 2)
         storage.insert(makeResult("dem1", 10.0))
         storage.insert(makeResult("dem2", 5.0)) // full
 
-        // Update dem2 with lower price (same demandId) → removes old, inserts new
-        val updated = makeResult("dem2", 3.0)
-        val result = storage.insert(updated)
+        // dem2 with lower price is NOT a duplicate (different price) → eviction rules apply
+        val lower = makeResult("dem2", 3.0)
+        val result = storage.insert(lower)
 
-        assertThat(result.isInserted).isTrue()
-        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        // 3.0 <= cheapest (5.0) → rejected
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
     }
 
     @Test
-    fun `duplicate by demandId - full cache, higher price, updates correctly`() = runTest {
+    fun `same demandId different price - full cache, higher price, evicts cheapest`() = runTest {
         val storage = FallbackCacheStorage(capacity = 2)
         storage.insert(makeResult("dem1", 10.0))
         storage.insert(makeResult("dem2", 5.0)) // full
 
-        // Update dem2 with higher price
-        val updated = makeResult("dem2", 8.0)
-        val result = storage.insert(updated)
+        // dem2 with higher price is NOT a duplicate → 8.0 > 5.0 → evicts cheapest
+        val higher = makeResult("dem2", 8.0)
+        val result = storage.insert(higher)
 
         assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isNotNull()
         assertThat(storage.state.value.size).isEqualTo(2)
     }
 
@@ -730,20 +731,19 @@ internal class FallbackCacheStorageTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `duplicate in full cache with cheaper price - frees slot, no eviction needed`() = runTest {
+    fun `same demandId same price in full cache - duplicate removed, reinserted`() = runTest {
         val storage = FallbackCacheStorage(capacity = 2)
         storage.insert(makeResult("dem1", 10.0))
         storage.insert(makeResult("dem2", 5.0)) // full
 
-        // dem1 with lower price: removes old dem1 (frees slot), inserts new
-        val updated = makeResult("dem1", 3.0)
+        // dem1 same price: duplicate (same demandId + same price) → removes old, frees slot, inserts new
+        val updated = makeResult("dem1", 10.0)
         val result = storage.insert(updated)
 
         assertThat(result.isInserted).isTrue()
-        assertThat((result as InsertResult.Success).evicted).isNull() // no eviction, just replacement
-        // head should be dem2 at 5.0 (higher than updated dem1 at 3.0)
-        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(5.0)
-        assertThat(storage.state.value.cheapestPrice).isEqualTo(3.0)
+        assertThat((result as InsertResult.Success).evicted).isNull()
+        assertThat(storage.state.value.head).isSameInstanceAs(updated)
+        assertThat(storage.state.value.size).isEqualTo(2)
     }
 
     // -----------------------------------------------------------------------

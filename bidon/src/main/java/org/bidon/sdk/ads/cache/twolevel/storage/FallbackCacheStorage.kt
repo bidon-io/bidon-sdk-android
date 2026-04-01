@@ -57,20 +57,10 @@ internal class FallbackCacheStorage(
         val price = element.price()
         val key = element.demandKey()
 
-        // Duplicate check by demandId
-        val existingIndex = items.indexOfFirst { it.demandKey() == key }
+        // Duplicate check (same demandId + same price) — matches Main cache logic
+        val existingIndex = items.indexOfFirst { it.demandKey() == key && it.price() == price }
         if (existingIndex >= 0) {
-            val existingPrice = items[existingIndex].price()
-            if (existingPrice == price) {
-                items[existingIndex] = element
-                items.sortByDescending { it.price() }
-                emitState()
-                logInfo(TAG, "[Fallback] insert UPDATED in-place: key=$key price=$price")
-                logCacheState()
-                return@withLock InsertResult.Success()
-            } else {
-                items.removeAt(existingIndex)
-            }
+            items.removeAt(existingIndex)
         }
 
         // Capacity eviction — strict > required

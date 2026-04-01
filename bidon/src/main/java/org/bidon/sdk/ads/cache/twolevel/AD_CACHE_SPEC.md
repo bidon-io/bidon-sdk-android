@@ -88,6 +88,8 @@ Main заполняется один раз за аукцион. Caller пров
 
 Бид попадает в Fallback при отклонении Main-ом.
 
+**Дедупликация:** как и в Main — по `demandId + price`. Если уже есть элемент с таким же demandId и ценой, старый удаляется, новый вставляется.
+
 **Заполнение:** если есть место — вставляется. Если Fallback полон — **вытесняет самый дешёвый**, при условии что новый строго дороже (`price > cheapest.price`). Равная цена не вытесняет. Вытесненный получает полный цикл loss-уведомлений: `markFillFinished(LOSE)` → `notifyLoss()` (для CPM, не Bidding) → `markLoss()` → `destroy()`.
 
 Вытеснение важно при повторных аукционах: Fallback может содержать дешёвые биды от прошлого раунда, а новый аукцион приносит более дорогие отклонённые Main-ом.
@@ -157,22 +159,22 @@ loadAd()
 
 ### Псевдокод опроса водопада
 
-Pre-filter использует `adUnit.ecpm` (ожидаемая цена из водопада) для раннего прекращения опроса. Это оптимизация — реальная fill-цена может отличаться.
+Pre-filter использует `adUnit.pricefloor` (ожидаемая цена из водопада) для раннего прекращения опроса. Это оптимизация — реальная fill-цена может отличаться.
 
 ```
 performAuction(adUnits, mainCache, fallbackCache):
   isFirstFill = true
   mainBar = null  // порог Main, вычисляется после первого fill
 
-  for adUnit in adUnits:  // отсортированы по ecpm desc
+  for adUnit in adUnits:  // отсортированы по pricefloor desc
 
     // --- PRE-FILTER: стоит ли опрашивать? ---
     canAcceptMain = !mainCache.isFull
-                    AND (mainBar == null OR adUnit.ecpm >= mainBar)
+                    AND (mainBar == null OR adUnit.pricefloor >= mainBar)
 
     canAcceptFallback = !fallbackCache.isDisabled
                         AND (!fallbackCache.isFull
-                             OR adUnit.ecpm > fallbackCache.cheapest)
+                             OR adUnit.pricefloor > fallbackCache.cheapest)
 
     if !canAcceptMain AND !canAcceptFallback:
       markRemaining(LOSE)
@@ -249,6 +251,15 @@ show()
 При cache hit (без аукциона) — бид отдаётся со status=WIN.
 
 RoundStatus mapping: WIN → `RoundStatus.Win`, CACHE → `RoundStatus.Cached` (новый), LOSE → `RoundStatus.Lose`.
+
+### Двойной markFillFinished
+
+Pipeline вызывает `markFillFinished(Successful, price)` при fill (в `loadSingleAdUnit`). Далее при маршрутизации в кеш:
+- **Первый бид (WIN):** только `markWin()`, без повторного `markFillFinished`. Статус остаётся `Successful`.
+- **Не-первый бид (CACHE):** вызывается `markFillFinished(Cached, price)`, перезаписывая `Successful` на `Cached`.
+- **Отклонённый (LOSE):** вызывается `markFillFinished(Lose, price)`, перезаписывая `Successful` на `Lose`.
+
+Это ожидаемое поведение: pipeline устанавливает начальный статус, маршрутизация уточняет финальный.
 
 ### 9.1 Win/Loss уведомления
 
@@ -343,7 +354,20 @@ canAcceptFallback = Fallback не отключён И (не полон ИЛИ б
 
 ---
 
-## 14. Примеры
+## 14. Открытые вопросы
+
+### Ad Expiry в кеше
+
+Рекламные креативы в Main/Fallback могут протухнуть (ad network TTL, обычно 30-60 мин). Текущая реализация не обрабатывает `AdEvent.Expired` для уже закешированных бидов. V1 (`AdCacheImpl`) подписывается на `adSource.adEvent` и удаляет expired ads из кеша.
+
+Возможные решения:
+- Подписка на `AdEvent.Expired` для каждого закешированного бида (как в V1)
+- TTL на уровне кеша с периодической проверкой
+- Проверка `isAdReadyToShow` при `peek()`/`pop()`
+
+---
+
+## 15. Примеры
 
 ### 14.1 cacheSize=3, threshold=70, fallbackSize=2
 
@@ -515,7 +539,7 @@ Config: cacheSize=3, threshold=0, fallbackSize=0
 
 ---
 
-## 15. Кейсы
+## 16. Кейсы
 
 ### Кейс 1: Два последовательных loadAd()
 
