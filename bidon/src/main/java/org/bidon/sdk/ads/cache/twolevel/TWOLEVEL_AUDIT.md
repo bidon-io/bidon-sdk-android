@@ -99,3 +99,40 @@ Fixed: now sends round results and auction stats on request failure too.
 - TwoLevel was: filters by adapter instance type
 
 Fixed: now uses `adUnit.bidType == BidType.RTB` to match reference flow.
+
+---
+
+## Part C: Spec vs Implementation (ранее AD_CACHE_AUDIT.md)
+
+| # | Severity | Проблема | Статус |
+|---|----------|----------|--------|
+| 1 | ~~Critical~~ | Pre-filter не учитывает eviction в Fallback | **FIXED** — `shouldContinueAuction` принимает `ecpm` |
+| 2 | ~~Critical~~ | Двойная проверка Fallback → потеря колбэка | **FIXED** — Controller упрощён до passthrough |
+| 3 | ~~Medium~~ | Pricefloor проверяется при peek Fallback | **FIXED** — удалено вместе с handlePipelineFailure |
+| 4 | ~~Medium~~ | Статус CACHE теряется в stats pipeline | **NOT A BUG** — `asStatsAdUnit()` читает `stat.roundStatus` первым |
+| 5 | Minor | Условие cleanup в ManagerPool отличается от спеки | Intentional — более агрессивная очистка, пересоздание дешёвое |
+| 6 | Medium | Manager reuse after clear() — dead scope | **FIXED** — `isAlive()` check в ManagerPool |
+
+---
+
+## Проверено и соответствует спеке
+
+| Раздел спеки | Что проверено |
+|--------------|---------------|
+| §2 Configuration | Defaults 2/1/80, ranges coerceIn, JSON parsing |
+| §3.1 Sticky Head | Первый бид pinned, popFirst снимает sticky |
+| §3.2 Threshold | Формула `maxPrice * (threshold/100.0)`, пустой кеш пропускает |
+| §3.3 Insert алгоритм | 5 шагов, no eviction, duplicate handling |
+| §4 Fallback Cache | Strict `>` для eviction, destroy, disabled при capacity=0 |
+| §5 Pricefloor | Не проверяется при peek/pop |
+| §6 State Machine | idle/auction/ready, переходы, silent return |
+| §7 loadAd шаги 1-5 | Cache hit, silent return, config failure, Fallback rescue |
+| §7 Waterfall pseudocode | Pre-filter (ecpm), routing, markRemaining(LOSE) |
+| §8 show() | pop Main??Fallback, cancel auction |
+| §9 Statuses | WIN/CACHE/LOSE корректно через stat.roundStatus |
+| §9.1 Win/Loss notifications | markWin, notifyWin (CPM), notifyLoss, markLoss, destroy |
+| §10 Synthetic AuctionInfo | Cache hit, first bid, full pipeline |
+| §11 Auction management | Pre-filter с ecpm, show → cancel |
+| §12 Manager Pool | Keyed by auctionKey, WeakRef, cleanup, isAlive check |
+| §13 Thread safety | synchronized на storages, Mutex на pool, callbacks на Main thread |
+| §1 Форматы | Rewarded заблокирован на уровне AdCacheFactoryImpl |
