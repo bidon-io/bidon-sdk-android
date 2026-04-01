@@ -52,7 +52,7 @@ internal class CacheStorageTest {
 
         val result = storage.insert(item, sticky = false)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(item)
         assertThat(storage.state.value.head).isSameInstanceAs(item)
     }
@@ -64,7 +64,7 @@ internal class CacheStorageTest {
 
         val result = storage.insert(item, sticky = true)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(item)
     }
 
@@ -95,7 +95,7 @@ internal class CacheStorageTest {
 
         // First item: price = 10.0 → sets maxPrice = 10.0
         val result1 = storage.insert(makeResult("dem1", 10.0), sticky = false)
-        assertThat(result1).isEqualTo(InsertResult.Success)
+        assertThat(result1.isInserted).isTrue()
 
         // Second item: price = 7.9 → 7.9 < 10.0 * 0.8 = 8.0 → Rejected
         val result2 = storage.insert(makeResult("dem2", 7.9), sticky = false)
@@ -111,7 +111,7 @@ internal class CacheStorageTest {
 
         // At exactly threshold: 10.0 * 0.8 = 8.0 → pass
         val result = storage.insert(makeResult("dem2", 8.0), sticky = false)
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     @Test
@@ -122,7 +122,7 @@ internal class CacheStorageTest {
 
         // 9.0 >= 10.0 * 0.8 = 8.0 → pass
         val result = storage.insert(makeResult("dem2", 9.0), sticky = false)
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     @Test
@@ -132,7 +132,7 @@ internal class CacheStorageTest {
         storage.insert(makeResult("dem1", 10.0), sticky = false)
         // higher price → passes (15.0 >= 8.0)
         val result = storage.insert(makeResult("dem2", 15.0), sticky = false)
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     @Test
@@ -141,7 +141,7 @@ internal class CacheStorageTest {
 
         // First item in empty cache always accepted, regardless of price
         val result = storage.insert(makeResult("dem1", 0.01), sticky = false)
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     @Test
@@ -181,7 +181,7 @@ internal class CacheStorageTest {
         val result = storage.insert(dem2, sticky = true)
 
         // Insert succeeds (step 2 skipped because incoming is sticky)
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     // -----------------------------------------------------------------------
@@ -196,7 +196,7 @@ internal class CacheStorageTest {
         val updated = makeResult("admob", 5.0)
         val result = storage.insert(updated, sticky = false)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(updated)
     }
 
@@ -209,7 +209,7 @@ internal class CacheStorageTest {
         val updated = makeResult("admob", 9.0)
         val result = storage.insert(updated, sticky = false)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(updated)
         assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(9.0)
     }
@@ -225,7 +225,7 @@ internal class CacheStorageTest {
         val result = storage.insert(updated, sticky = false)
 
         // Duplicate found → old removed (clears sticky) → new inserted → Success
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(updated)
     }
 
@@ -374,7 +374,7 @@ internal class CacheStorageTest {
         val newcomer = makeResult("dem3", 10.0)
         val result = storage.insert(newcomer, sticky = false)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         // sticky head survives
         assertThat(storage.state.value.head).isSameInstanceAs(stickyItem)
     }
@@ -394,7 +394,7 @@ internal class CacheStorageTest {
         val second = makeResult("applovin", 8.0)
         val result = storage.insert(second, sticky = true)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
     }
 
     @Test
@@ -421,7 +421,7 @@ internal class CacheStorageTest {
         val second = makeResult("applovin", 8.0)
         val result = storage.insert(second, sticky = false)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(second)
     }
 }

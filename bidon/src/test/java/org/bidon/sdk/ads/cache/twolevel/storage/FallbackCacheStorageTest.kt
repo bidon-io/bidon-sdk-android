@@ -53,7 +53,7 @@ internal class FallbackCacheStorageTest {
 
         val result = storage.insert(item)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(item)
         assertThat(storage.state.value.head).isSameInstanceAs(item)
     }
@@ -109,8 +109,9 @@ internal class FallbackCacheStorageTest {
         val newcomer = makeResult("dem_new", 8.0)
         val result = storage.insert(newcomer)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
-        verify { cheap.adSource.destroy() }
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isSameInstanceAs(cheap)
+        verify(exactly = 0) { cheap.adSource.destroy() }
         // head is 10.0 (most expensive)
         assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
     }
@@ -124,7 +125,7 @@ internal class FallbackCacheStorageTest {
         val newcomer = makeResult("dem3", 15.0)
         val result = storage.insert(newcomer)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(newcomer)
     }
 
@@ -140,7 +141,7 @@ internal class FallbackCacheStorageTest {
         val updated = makeResult("admob", 5.0)
         val result = storage.insert(updated)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(updated)
     }
 
@@ -152,7 +153,7 @@ internal class FallbackCacheStorageTest {
         val updated = makeResult("admob", 9.0)
         val result = storage.insert(updated)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         assertThat(storage.state.value.head).isSameInstanceAs(updated)
         assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(9.0)
     }
@@ -168,7 +169,7 @@ internal class FallbackCacheStorageTest {
         val updated = makeResult("admob", 3.0)
         val result = storage.insert(updated)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
+        assertThat(result.isInserted).isTrue()
         // head is still other (8.0)
         assertThat(storage.state.value.head).isSameInstanceAs(other)
     }
@@ -283,8 +284,10 @@ internal class FallbackCacheStorageTest {
         val expensive = makeResult("dem2", 10.0)
         val result = storage.insert(expensive)
 
-        assertThat(result).isEqualTo(InsertResult.Success)
-        verify { cheap.adSource.destroy() }
+        assertThat(result.isInserted).isTrue()
+        assertThat((result as InsertResult.Success).evicted).isSameInstanceAs(cheap)
+        // Storage no longer destroys evicted items — caller is responsible
+        verify(exactly = 0) { cheap.adSource.destroy() }
         assertThat(storage.state.value.head).isSameInstanceAs(expensive)
     }
 

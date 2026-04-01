@@ -82,7 +82,7 @@ internal class CacheStorage(
             emitState()
             logInfo(TAG, "[Main] insert SUCCESS (first): key=$key price=$price sticky=$sticky")
             logCacheState()
-            return@withLock InsertResult.Success
+            return@withLock InsertResult.Success()
         }
 
         // 2. capacity==1 + sticky active + not sticky -> reject.
@@ -118,7 +118,7 @@ internal class CacheStorage(
 
         logInfo(TAG, "[Main] insert SUCCESS: key=$key price=$price sticky=$sticky size=${items.size}")
         logCacheState()
-        InsertResult.Success
+        InsertResult.Success()
     }
 
     /**

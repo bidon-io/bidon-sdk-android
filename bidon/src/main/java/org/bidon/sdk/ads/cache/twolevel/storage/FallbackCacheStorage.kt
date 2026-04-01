@@ -67,13 +67,14 @@ internal class FallbackCacheStorage(
                 emitState()
                 logInfo(TAG, "[Fallback] insert UPDATED in-place: key=$key price=$price")
                 logCacheState()
-                return@withLock InsertResult.Success
+                return@withLock InsertResult.Success()
             } else {
                 items.removeAt(existingIndex)
             }
         }
 
         // Capacity eviction — strict > required
+        var evicted: AuctionResult? = null
         if (items.size >= capacity) {
             val cheapest = items.minByOrNull { it.price() }
             if (cheapest == null || price <= cheapest.price()) {
@@ -82,8 +83,8 @@ internal class FallbackCacheStorage(
                 return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
             }
             items.remove(cheapest)
+            evicted = cheapest
             logInfo(TAG, "[Fallback] evicted ${cheapest.demandKey()} price=${cheapest.price()}")
-            cheapest.adSource.destroy()
         }
 
         items.add(element)
@@ -91,7 +92,7 @@ internal class FallbackCacheStorage(
         emitState()
         logInfo(TAG, "[Fallback] insert SUCCESS: key=$key price=$price size=${items.size}")
         logCacheState()
-        InsertResult.Success
+        InsertResult.Success(evicted = evicted)
     }
 
     /**

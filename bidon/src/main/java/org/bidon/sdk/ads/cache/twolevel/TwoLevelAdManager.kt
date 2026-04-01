@@ -21,6 +21,7 @@ import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
+import org.bidon.sdk.ads.cache.twolevel.storage.InsertResult
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
@@ -178,8 +179,11 @@ internal class TwoLevelAdManager(
         }
 
         val fbResult = fallbackCache.insert(winner)
-        if (fbResult.isInserted) {
+        if (fbResult is InsertResult.Success) {
             winner.adSource.markFillFinished(RoundStatus.Cached, price)
+            fbResult.evicted?.let { evicted ->
+                handleEvicted(evicted, externalWinNotificationsEnabled, demandId, price)
+            }
             logInfo(TAG, "[$adTypeLabel] CACHE (Fallback): $demandId price=$price")
         } else {
             handleLoser(winner, externalWinNotificationsEnabled, winnerInfo, "both rejected")
@@ -242,6 +246,33 @@ internal class TwoLevelAdManager(
 
         loser.adSource.destroy()
         logInfo(TAG, "[$adTypeLabel] LOSE ($reason): $demandId price=$price")
+    }
+
+    /**
+     * Handle a result evicted from fallback cache: stats + adapter loss notification + destroy.
+     * The "winner" for the loss notification is the item that displaced the evicted one.
+     */
+    private fun handleEvicted(
+        evicted: AuctionResult,
+        externalWinNotificationsEnabled: Boolean,
+        displacerDemandId: String,
+        displacerPrice: Double,
+    ) {
+        val demandId = evicted.adSource.getStats().demandId.demandId
+        val price = evicted.adSource.getStats().price
+
+        evicted.adSource.markFillFinished(RoundStatus.Lose, price)
+
+        if (evicted !is AuctionResult.Bidding && evicted.adSource is WinLossNotifiable) {
+            (evicted.adSource as WinLossNotifiable).notifyLoss(displacerDemandId, displacerPrice)
+            logInfo(TAG, "[$adTypeLabel] notifyLoss (evicted): $demandId (displacer=$displacerDemandId)")
+        }
+        if (evicted.roundStatus == RoundStatus.Successful) {
+            evicted.adSource.markLoss()
+        }
+
+        evicted.adSource.destroy()
+        logInfo(TAG, "[$adTypeLabel] EVICTED from Fallback: $demandId price=$price")
     }
 
     override fun peek(): AuctionResult? =

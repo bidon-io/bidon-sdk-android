@@ -88,7 +88,7 @@ Main заполняется один раз за аукцион. Caller пров
 
 Бид попадает в Fallback при отклонении Main-ом.
 
-**Заполнение:** если есть место — вставляется. Если Fallback полон — **вытесняет самый дешёвый**, при условии что новый строго дороже (`price > cheapest.price`). Равная цена не вытесняет. Вытесненный уничтожается.
+**Заполнение:** если есть место — вставляется. Если Fallback полон — **вытесняет самый дешёвый**, при условии что новый строго дороже (`price > cheapest.price`). Равная цена не вытесняет. Вытесненный получает полный цикл loss-уведомлений: `markFillFinished(LOSE)` → `notifyLoss()` (для CPM, не Bidding) → `markLoss()` → `destroy()`.
 
 Вытеснение важно при повторных аукционах: Fallback может содержать дешёвые биды от прошлого раунда, а новый аукцион приносит более дорогие отклонённые Main-ом.
 
@@ -210,6 +210,9 @@ performAuction(adUnits, mainCache, fallbackCache):
       markStatus(bid, CACHE)
     else if bid.price > fallbackCache.cheapest:
       evicted = fallbackCache.evictCheapest()
+      markStatus(evicted, LOSE)          // markFillFinished(LOSE)
+      notifyLoss(evicted, bid)           // adapter notifyLoss (CPM only, not Bidding)
+      evicted.markLoss()                 // internal stats
       evicted.destroy()
       fallbackCache.insert(bid)
       markStatus(bid, CACHE)
@@ -241,11 +244,36 @@ show()
 | --- | --- | --- |
 | **WIN** | Первый (sticky) бид аукциона. Отдаётся в didLoad. Всегда ровно один. | stats + AdUnitInfo |
 | **CACHE** | Бид зафилился и положился в Main или Fallback (не первый). | stats + AdUnitInfo |
-| **LOSE** | Бид не попал никуда или demand не опрошен. | stats |
+| **LOSE** | Бид не попал никуда, demand не опрошен, или **вытеснен из Fallback**. | stats |
 
 При cache hit (без аукциона) — бид отдаётся со status=WIN.
 
 RoundStatus mapping: WIN → `RoundStatus.Win`, CACHE → `RoundStatus.Cached` (новый), LOSE → `RoundStatus.Lose`.
+
+### 9.1 Win/Loss уведомления
+
+Логика уведомлений совпадает с `AuctionImpl.notifyWinLoss()`. Различие: уведомления отправляются **по мере поступления** бидов (не после завершения аукциона).
+
+**Winner (первый fill):**
+1. `adSource.markWin()` — внутренняя статистика
+2. Если `!externalWinNotificationsEnabled` И не Bidding И `WinLossNotifiable`:
+   - `adSource.notifyWin()` — уведомление адаптеру
+
+**Loser (отклонён обоими кешами):**
+1. `adSource.markFillFinished(LOSE, price)` — статистика
+2. Если есть winner И не Bidding И `WinLossNotifiable`:
+   - `adSource.notifyLoss(winnerDemandId, winnerPrice)` — уведомление адаптеру
+3. `adSource.markLoss()` — если был `Successful`
+4. `adSource.destroy()`
+
+**Evicted из Fallback (вытеснен более дорогим бидом):**
+1. `adSource.markFillFinished(LOSE, price)` — статистика
+2. Если не Bidding И `WinLossNotifiable`:
+   - `adSource.notifyLoss(displacerDemandId, displacerPrice)` — уведомление адаптеру (winner = вытеснивший бид)
+3. `adSource.markLoss()` — если был `Successful`
+4. `adSource.destroy()`
+
+**Bidding (RTB) demands:** Никогда не получают adapter-level `notifyWin()`/`notifyLoss()` — сервер уведомляет их самостоятельно. Server-side уведомления (`sendWin()`/`sendLoss()`) вызываются через publisher API (`notifyExternalWin()`/`notifyExternalLoss()`), как и в стандартном flow.
 
 ---
 
@@ -449,10 +477,12 @@ Config: cacheSize=1, threshold=80, fallbackSize=2
   $10 (sticky) → Main [$10*]                  WIN, didLoad
     mainBar = $10 * 0.8 = $8
   $5 → $5 < $8 → Main reject.
-       Fallback: [$2][$1] full. $5 > $1 → вытеснить $1, destroy.
+       Fallback: [$2][$1] full. $5 > $1 → вытеснить $1.
+       $1: markFillFinished(LOSE) → notifyLoss($5) → markLoss → destroy.
        Fallback [$5][$2]                               CACHE
   $4 → $4 < $8 → Main reject.
-       Fallback: [$5][$2] full. $4 > $2 → вытеснить $2, destroy.
+       Fallback: [$5][$2] full. $4 > $2 → вытеснить $2.
+       $2: markFillFinished(LOSE) → notifyLoss($4) → markLoss → destroy.
        Fallback [$5][$4]                               CACHE
   → СТОП (Main reject + Fb full + следующий ещё дешевле)
 
