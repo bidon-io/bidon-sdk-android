@@ -17,10 +17,10 @@ import org.bidon.sdk.adapter.ext.applyRegulation
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.andr.ext.getAdSources
 import org.bidon.sdk.ads.ext.toAuctionInfo
-import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.ads.ext.toAuctionNoBidInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.ResultsCollector
+import org.bidon.sdk.auction.ext.printWaterfall
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.models.TokenInfo

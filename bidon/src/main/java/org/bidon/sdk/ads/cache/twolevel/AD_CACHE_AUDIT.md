@@ -7,308 +7,66 @@
 
 ## Сводка
 
-| # | Severity | Проблема | Файлы |
-|---|----------|----------|-------|
-| 1 | **Critical** | Pre-filter не учитывает eviction в Fallback | `TwoLevelAdManager.kt:88`, `SequentialAuctionPipeline.kt:162` |
-| 2 | **Critical** | Двойная проверка Fallback → пользователь не получает колбэк | `TwoLevelAuctionController.kt:71-95`, `TwoLevelAdManager.kt:91-101` |
-| 3 | Medium | Pricefloor проверяется при peek Fallback | `TwoLevelAuctionController.kt:82` |
-| 4 | Medium | Статус CACHE теряется в stats pipeline | `SequentialAuctionPipeline.kt:361-367`, `AuctionStatImpl.kt:78-115` |
-| 5 | Minor | Условие cleanup в ManagerPool отличается от спеки | `ManagerPool.kt:131-138` |
+| # | Severity | Проблема | Статус |
+|---|----------|----------|--------|
+| 1 | ~~Critical~~ | Pre-filter не учитывает eviction в Fallback | **FIXED** — `shouldContinueAuction` принимает `ecpm` |
+| 2 | ~~Critical~~ | Двойная проверка Fallback → потеря колбэка | **FIXED** — Controller упрощён до passthrough |
+| 3 | ~~Medium~~ | Pricefloor проверяется при peek Fallback | **FIXED** — удалено вместе с handlePipelineFailure |
+| 4 | ~~Medium~~ | Статус CACHE теряется в stats pipeline | **NOT A BUG** — `asStatsAdUnit()` читает `stat.roundStatus` (из adSource) первым |
+| 5 | Minor | Условие cleanup в ManagerPool отличается от спеки | Не исправлен, minor |
+| 6 | Medium | Manager reuse after clear() — dead scope | **FIXED** — `isAlive()` check в ManagerPool |
 
 ---
 
-## 1. CRITICAL: Pre-filter не учитывает Fallback eviction
+## 1–3: FIXED
 
-### Спека (§7, §11, §14.6)
-
-Pre-filter перед загрузкой каждого adUnit:
-
-```
-canAcceptMain     = !mainCache.isFull
-                    AND (mainBar == null OR adUnit.ecpm >= mainBar)
-
-canAcceptFallback = !fallbackCache.isDisabled
-                    AND (!fallbackCache.isFull
-                         OR adUnit.ecpm > fallbackCache.cheapest)
-
-if !canAcceptMain AND !canAcceptFallback:
-  markRemaining(LOSE)
-  break
-```
-
-Fallback может принять бид через **вытеснение** даже когда `isFull == true`, если `ecpm > cheapest`.
-
-### Реализация
-
-`TwoLevelAdManager.kt:86-89`:
-
-```kotlin
-shouldContinueAuction = {
-    !(mainCache.isFull && fallbackCache.isFull)
-}
-```
-
-Лямбда **не имеет доступа** к `adUnit.ecpm` и `fallbackCache.cheapestPrice`. Когда оба кеша at capacity — стоп. Eviction-возможность Fallback не проверяется.
-
-Также отсутствует threshold-проверка для Main: если Main не полон, но все оставшиеся биды ниже threshold — реализация продолжает опрос впустую (не баг, но лишние запросы).
-
-### Воспроизведение (спека §14.6)
-
-```
-Config: cacheSize=1, threshold=80, fallbackSize=2
-
-Аукцион 1: $5, $2, $1
-  $5 → Main [$5*]
-  $2 → Fallback [$2]
-  $1 → Fallback [$2][$1]
-
-show→$5. Main пуст.
-loadAd → аукцион 2 (Fallback [$2][$1] — остатки от аукциона 1)
-
-Аукцион 2: $10, $5, $4
-  $10 → Main [$10*]. mainBar = $8.
-
-  Далее shouldContinueAuction():
-    mainCache.isFull = true
-    fallbackCache.isFull = true ([$2][$1] at capacity)
-    → СТОП!
-
-  Ожидание по спеке:
-    $5 → Main reject → Fb: $5 > $1 → evict $1 → Fallback [$5][$2]
-    $4 → Main reject → Fb: $4 > $2 → evict $2 → Fallback [$5][$4]
-```
-
-**Результат:** Fallback остаётся [$2][$1] вместо [$5][$4]. Пользователь получает дешёвые биды вместо дорогих.
-
-### Предложение
-
-Изменить `shouldContinueAuction` на параметризованную лямбду `(ecpm: Double) -> Boolean` или вынести логику в pipeline:
-
-```kotlin
-// В SequentialAuctionPipeline, перед загрузкой:
-val canAcceptMain = !mainCache.isFull
-    && (mainBar == null || adUnit.ecpm >= mainBar)
-
-val canAcceptFallback = !fallbackCache.isDisabled
-    && (!fallbackCache.isFull || adUnit.ecpm > (fallbackCache.cheapestPrice ?: 0.0))
-
-if (!canAcceptMain && !canAcceptFallback) break
-```
+- **#1**: `shouldContinueAuction` теперь `(ecpm: Double) -> Boolean`, проверяет threshold для Main и cheapest для Fallback eviction.
+- **#2**: `TwoLevelAuctionController` упрощён до тонкого passthrough к pipeline. Fallback-delivery — ответственность только `TwoLevelAdManager.onComplete`.
+- **#3**: Pricefloor-проверка при peek удалена вместе с `handlePipelineFailure`.
 
 ---
 
-## 2. CRITICAL: Двойная проверка Fallback → потеря колбэка
+## 4: NOT A BUG — Статус CACHE корректно проходит через stats
 
-### Спека (§7)
-
-Fallback-delivery при no-fill — ответственность менеджера:
-
-```
-performAuction() → no-fill
-  → Fallback.peek() != null?
-    → YES: didLoad (из Fallback)
-    → NO:  didFailToLoad
-```
-
-### Реализация — два конфликтующих обработчика
-
-**Controller** (`TwoLevelAuctionController.kt:71-95`):
+Ранее считалось что `AuctionResult.roundStatus` (immutable `val = Successful`) теряет CACHE. Однако `AuctionStatImpl.asStatsAdUnit()` читает из adSource stats первым:
 
 ```kotlin
-private suspend fun handlePipelineFailure(...) {
-    val fallbackAd = fallbackCache.peek()
-    if (fallbackAd != null && fallbackAd.adSource.getStats().price >= pricefloor) {
-        // "Всё ок, Fallback спасёт"
-        onComplete(auctionInfo, null)  // error = null
-        return
-    }
-    onComplete(null, error)
-}
+status = (stat.roundStatus ?: roundStatus).code
 ```
 
-**Manager** (`TwoLevelAdManager.kt:91-101`):
+Трассировка:
 
-```kotlin
-onComplete = { auctionInfo, error ->
-    if (error != null && !firstFillFired.get()) {
-        // Fallback delivery
-        val fallbackAd = fallbackCache.peek()
-        if (fallbackAd != null) {
-            onSuccess(fallbackAd, info)
-        } else {
-            onFailure(auctionInfo, error)
-        }
-    }
-    // error == null && firstFillFired == false → НИЧЕГО НЕ ПРОИСХОДИТ
-}
-```
+| Бид | Pipeline markFillFinished | Manager action | stat.roundStatus | asStatsAdUnit | getFinalStatus |
+|-----|--------------------------|----------------|------------------|---------------|---------------|
+| Winner | Successful | markWin() | **Win** | "WIN" | WIN ✓ |
+| Cached CPM | Successful | markFillFinished(Cached) | **Cached** | "CACHE" | CACHE ✓ |
+| Cached RTB | Successful | markFillFinished(Cached) | **Cached** | "CACHE" | CACHE ✓ |
 
-### Баг-путь
+`getFinalStatus("CACHE", false)` → `else → "CACHE"`. Никаких перезаписей.
 
-1. Pipeline завершается с ошибкой (no-fill), `firstFillFired = false`
-2. Controller находит Fallback ad → вызывает `onComplete(info, null)` — **маскирует ошибку**
-3. Manager проверяет `error != null` → `false` → блок пропущен
-4. **Ни `onSuccess`, ни `onFailure` не вызван** — пользователь не получает колбэк
-
-### Предложение
-
-Убрать Fallback-проверку из Controller — она дублирует и конфликтует с Manager:
-
-```kotlin
-// TwoLevelAuctionController.start — упростить:
-onComplete = { auctionInfo, error ->
-    // Просто проксировать к Manager, без handlePipelineFailure
-    onComplete(auctionInfo, error)
-}
-```
-
-Или: Manager должен обработать случай `error == null && !firstFillFired`:
-
-```kotlin
-onComplete = { auctionInfo, error ->
-    if (!firstFillFired.get()) {
-        if (error != null) {
-            // no-fill path
-        } else {
-            // Controller нашёл Fallback — deliver
-        }
-    }
-}
-```
+Timing корректен: `singleLoadCompletion` (→ `routeBidToCache` → `markFillFinished(Cached)`) вызывается синхронно до `proceedRoundResults`.
 
 ---
 
-## 3. MEDIUM: Pricefloor проверяется при peek Fallback
+## 5: MINOR — Pool cleanup OR vs AND
 
-### Спека (§5)
+Спека §12: `idle AND idle_time > 5 min AND weak ref dead`
+Реализация: `isWeakRefDead || (isIdle && isStale)` — более агрессивная очистка.
 
-> Не проверяется при peek/pop — pricefloor фиксирован и одинаков для всех аукционов данного auctionKey. Аукцион сам фильтрует по pricefloor, в кеш попадают только прошедшие биды.
-
-### Реализация
-
-`TwoLevelAuctionController.kt:82`:
-
-```kotlin
-if (fallbackAd != null && fallbackAd.adSource.getStats().price >= pricefloor) {
-```
-
-Проверка `price >= pricefloor` лишняя — биды в кеше уже прошли pricefloor в своём аукционе. Противоречит спеке. На практике безвредна (pricefloor фиксирован), но:
-
-- Усложняет код
-- Участвует в баге #2 (часть handlePipelineFailure, который нужно убрать)
-
-### Предложение
-
-Убрать pricefloor-проверку вместе с `handlePipelineFailure` (см. #2).
+Минимальное влияние — пересоздание менеджера дешёвое.
 
 ---
 
-## 4. MEDIUM: Статус CACHE теряется в stats pipeline
+## 6: FIXED — Manager reuse after clear()
 
-### Спека (§9)
+### Проблема
 
-| Статус | Когда |
-|--------|-------|
-| **WIN** | Первый (sticky) бид. Всегда один. |
-| **CACHE** | Бид зафилился и положился в Main или Fallback (не первый). |
-| **LOSE** | Бид не попал никуда. |
+`clear()` навсегда отменяет `SupervisorJob` через `scope.coroutineContext[Job]?.cancel()`. Если `ManagerPool.getOrCreate` возвращает этот manager новому proxy (WeakRef ещё жива), `scope.launch {}` молча не работает.
 
-### Реализация — цепочка потери статуса
+### Исправление
 
-**Шаг 1:** Pipeline заполняет бид (`SequentialAuctionPipeline.kt:355-367`):
-
-```kotlin
-adSource.markFillFinished(RoundStatus.Successful, price)       // stat → Successful
-val auctionResult = AuctionResult.Network(adSource, RoundStatus.Successful)
-resultsCollector.add(auctionResult)                             // AuctionResult.roundStatus = Successful
-return auctionResult
-```
-
-**Шаг 2:** Manager роутит бид (`TwoLevelAdManager.kt:134`):
-
-```kotlin
-winner.adSource.markFillFinished(RoundStatus.Cached, price)    // stat → Cached
-```
-
-Обновляет **adSource stat**, но `AuctionResult.roundStatus` — `val`, остаётся `Successful`.
-
-**Шаг 3:** Stats собирает результаты (`AuctionStatImpl.kt:78-115`):
-
-```kotlin
-val results = roundResults
-    .map { it.asStatsAdUnit() }  // Читает AuctionResult.roundStatus → "INTERNAL_STATUS"
-    .map { statsAdUnit ->
-        if (winnerUuid == currentUuid) {
-            statsAdUnit.copy(status = RoundStatus.Win.code)     // → WIN (корректно)
-        } else if (bidType == RTB && status == Successful.code) {
-            statsAdUnit.copy(status = RoundStatus.Lose.code)    // → LOSE (должно быть CACHE)
-        } else {
-            statsAdUnit                                          // → "INTERNAL_STATUS" (должно быть CACHE)
-        }
-    }
-```
-
-### Результат
-
-| Бид | Ожидание (спека) | Реальность |
-|-----|------------------|------------|
-| Первый (sticky) | WIN | WIN |
-| Cached, RTB | CACHE | LOSE |
-| Cached, CPM | CACHE | INTERNAL_STATUS |
-
-Статус `CACHE` никогда не попадает в auction report.
-
-### Корень проблемы
-
-`AuctionResult` — immutable data class с `val roundStatus`. Pipeline создаёт его с `Successful` до routing. Manager обновляет adSource stat, но AuctionResult в resultsCollector не обновляется.
-
-`AuctionStatImpl.addRoundResults` проектировался для single-winner аукциона, не для multi-fill кеширования.
-
-### Предложение
-
-Вариант A — использовать adSource stat вместо AuctionResult.roundStatus:
-
-```kotlin
-// AuctionStatImpl.asStatsAdUnit()
-is AuctionResult.Network -> {
-    val stat = adSource.getStats()
-    StatsAdUnit(
-        status = stat.roundStatus?.code ?: roundStatus.code,  // Приоритет: stat, потом AR
-        ...
-    )
-}
-```
-
-Вариант B — перенести `resultsCollector.add()` в routeBidToCache, после установки финального статуса.
-
----
-
-## 5. MINOR: Условие cleanup в ManagerPool отличается от спеки
-
-### Спека (§12)
-
-> Автоочистка каждые 60 сек: idle + простой > 5 мин + нет объекта → удаление.
-
-Три условия через AND: idle AND idle_time > 5 min AND weak ref dead.
-
-### Реализация
-
-`ManagerPool.kt:131-138`:
-
-```kotlin
-val isIdle = manager?.isIdle() ?: true
-val isOldEnough = (now - entry.createdAt) > IDLE_TTL_MS
-isIdle && (isOldEnough || isWeakRefDead)  // OR вместо AND
-```
-
-Отличия:
-- `OR` вместо `AND` между возрастом и weak ref — более агрессивная очистка
-- `createdAt` — время создания entry, не время начала idle
-- Удаляет live менеджеры если они idle > 5 мин (даже если на них есть ссылка)
-
-### Влияние
-
-Минимальное. Более агрессивная очистка может привести к лишнему пересозданию менеджеров, но не к потере данных (кеши привязаны к менеджеру, а не к pool entry).
+`TwoLevelAdManager.isAlive()` проверяет `scope.coroutineContext[Job]?.isActive`.
+`ManagerPool.getOrCreate` проверяет `live.isAlive()` — если false, удаляет запись и создаёт новый manager.
 
 ---
 
@@ -321,10 +79,15 @@ isIdle && (isOldEnough || isWeakRefDead)  // OR вместо AND
 | §3.2 Threshold | Формула `maxPrice * (threshold/100.0)`, пустой кеш пропускает |
 | §3.3 Insert алгоритм | 5 шагов, no eviction, duplicate handling |
 | §4 Fallback Cache | Strict `>` для eviction, destroy, disabled при capacity=0 |
+| §5 Pricefloor | Не проверяется при peek/pop |
 | §6 State Machine | idle/auction/ready, переходы, silent return |
-| §7 loadAd шаги 1-2 | Cache hit (Main.peek), silent return при auction |
-| §8 show() | pop Main??Fallback, cancel auction, кеш сохраняется |
-| §9 RoundStatus.Cached | Enum существует, code="CACHE" |
-| §10 Synthetic AuctionInfo | Cache hit и first bid — корректная структура |
+| §7 loadAd шаги 1-5 | Cache hit, silent return, config failure, Fallback rescue |
+| §7 Waterfall pseudocode | Pre-filter (ecpm), routing, markRemaining(LOSE) |
+| §8 show() | pop Main??Fallback, cancel auction |
+| §9 Statuses | WIN/CACHE/LOSE корректно через stat.roundStatus |
+| §9.1 Win/Loss notifications | markWin, notifyWin (CPM), notifyLoss, markLoss, destroy |
+| §10 Synthetic AuctionInfo | Cache hit, first bid, full pipeline |
+| §11 Auction management | Pre-filter с ecpm, show → cancel |
+| §12 Manager Pool | Keyed by auctionKey, WeakRef, cleanup, isAlive check |
 | §13 Thread safety | Mutex на storages/pool, callbacks на Main thread |
 | §1 Форматы | Rewarded заблокирован на уровне AdCacheFactoryImpl |

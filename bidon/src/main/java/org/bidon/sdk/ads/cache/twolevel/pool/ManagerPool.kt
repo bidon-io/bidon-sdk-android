@@ -67,11 +67,12 @@ internal object ManagerPool {
         val existing = pool[auctionKey]
         if (existing != null) {
             val live = existing.weakRef.get()
-            if (live != null) {
+            if (live != null && live.isAlive()) {
                 logInfo(TAG, "[Pool] reusing manager auctionKey=$auctionKey")
                 return@withLock live
             } else {
-                logInfo(TAG, "[Pool] weak ref dead for auctionKey=$auctionKey, creating new")
+                val reason = if (live == null) "weak ref dead" else "scope cancelled"
+                logInfo(TAG, "[Pool] $reason for auctionKey=$auctionKey, creating new")
                 pool.remove(auctionKey)
             }
         }

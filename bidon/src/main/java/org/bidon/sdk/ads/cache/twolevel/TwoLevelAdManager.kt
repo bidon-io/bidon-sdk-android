@@ -59,6 +59,9 @@ internal class TwoLevelAdManager(
 
     fun isIdle(): Boolean = _auctionState.value is AuctionState.Idle
 
+    /** Returns false after [clear] has been called (scope cancelled). */
+    fun isAlive(): Boolean = scope.coroutineContext[Job]?.isActive == true
+
     // --- AdCache ---
 
     override fun cache(
@@ -173,7 +176,7 @@ internal class TwoLevelAdManager(
 
         // Main didn't accept → Fallback
         if (fallbackCache.isDisabled) {
-            handleLoser(winner, externalWinNotificationsEnabled, winnerInfo, "Fb disabled")
+            handleLoser(winner, winnerInfo, "Fb disabled")
             if (isFirst) firstFillFired.set(false)
             return
         }
@@ -182,11 +185,11 @@ internal class TwoLevelAdManager(
         if (fbResult is InsertResult.Success) {
             winner.adSource.markFillFinished(RoundStatus.Cached, price)
             fbResult.evicted?.let { evicted ->
-                handleEvicted(evicted, externalWinNotificationsEnabled, demandId, price)
+                handleEvicted(evicted, demandId, price)
             }
             logInfo(TAG, "[$adTypeLabel] CACHE (Fallback): $demandId price=$price")
         } else {
-            handleLoser(winner, externalWinNotificationsEnabled, winnerInfo, "both rejected")
+            handleLoser(winner, winnerInfo, "both rejected")
         }
 
         if (isFirst && fbResult.isInserted) {
@@ -222,7 +225,6 @@ internal class TwoLevelAdManager(
      */
     private fun handleLoser(
         loser: AuctionResult,
-        externalWinNotificationsEnabled: Boolean,
         winnerInfo: WinnerInfo,
         reason: String,
     ) {
@@ -254,7 +256,6 @@ internal class TwoLevelAdManager(
      */
     private fun handleEvicted(
         evicted: AuctionResult,
-        externalWinNotificationsEnabled: Boolean,
         displacerDemandId: String,
         displacerPrice: Double,
     ) {
