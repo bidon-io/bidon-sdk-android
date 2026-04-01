@@ -87,7 +87,7 @@ internal class SequentialAuctionPipeline(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         singleLoadCompletion: suspend (AuctionResult) -> Unit,
-        shouldContinueAuction: () -> Boolean,
+        shouldContinueAuction: (ecpm: Double) -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {
         val auctionId = UUID.randomUUID().toString()
@@ -158,9 +158,9 @@ internal class SequentialAuctionPipeline(
                                 // Check coroutine cancellation between ad units.
                                 coroutineContext.ensureActive()
 
-                                // Stop condition: Main full + Fallback full/disabled.
-                                if (!shouldContinueAuction()) {
-                                    logInfo(TAG, "[$index/${adUnits.size}] Stop: caches full")
+                                // Pre-filter: can any cache accept this bid?
+                                if (!shouldContinueAuction(adUnit.pricefloor)) {
+                                    logInfo(TAG, "[$index/${adUnits.size}] Stop: no cache can accept ecpm=${adUnit.pricefloor}")
                                     break
                                 }
 

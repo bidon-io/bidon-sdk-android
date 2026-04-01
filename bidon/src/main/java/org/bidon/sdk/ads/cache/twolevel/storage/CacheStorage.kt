@@ -43,6 +43,11 @@ internal class CacheStorage(
     var isFull: Boolean = false
         private set
 
+    /** Volatile snapshot of the current threshold bar, or null when cache is empty (first bid always accepted). */
+    @Volatile
+    var thresholdBar: Double? = null
+        private set
+
     // -----------------------------------------------------------------------
     // Public API
     // -----------------------------------------------------------------------
@@ -155,6 +160,7 @@ internal class CacheStorage(
     private fun updateSnapshots() {
         headSnapshot = items.firstOrNull()
         isFull = items.size >= capacity
+        thresholdBar = items.firstOrNull()?.let { it.price() * (threshold / 100.0) }
     }
 
     private fun logCacheState() {

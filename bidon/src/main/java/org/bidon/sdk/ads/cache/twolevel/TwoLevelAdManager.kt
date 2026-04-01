@@ -1,5 +1,6 @@
 package org.bidon.sdk.ads.cache.twolevel
 
+import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -9,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
+import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
@@ -18,6 +20,7 @@ import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
+import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,6 +41,10 @@ internal class TwoLevelAdManager(
 
     @Volatile
     private var auctionJob: Job? = null
+
+    /** Timestamp of last auction completion. Used by [pool.ManagerPool] for idle-time cleanup. */
+    @Volatile
+    var lastActiveAt: Long = SystemClock.elapsedRealtime()
 
     fun isIdle(): Boolean = !auctionRunning.get()
 
@@ -82,20 +89,24 @@ internal class TwoLevelAdManager(
                 singleLoadCompletion = { winner ->
                     routeBidToCache(winner, firstFillFired, onSuccess)
                 },
-                shouldContinueAuction = {
-                    // Stop when Main full AND Fallback can't accept.
-                    // Waterfall sorted desc → once both can't accept, all subsequent are cheaper.
-                    !(mainCache.isFull && fallbackCache.isFull)
+                shouldContinueAuction = { ecpm ->
+                    // Pre-filter per spec §7/§11: can any cache accept this bid?
+                    val bar = mainCache.thresholdBar
+                    val canAcceptMain = !mainCache.isFull && (bar == null || ecpm >= bar)
+                    val canAcceptFallback = !fallbackCache.isDisabled &&
+                        (!fallbackCache.isFull || ecpm > (fallbackCache.cheapestPrice ?: 0.0))
+                    canAcceptMain || canAcceptFallback
                 },
                 onComplete = { auctionInfo, error ->
-                    if (error != null && !firstFillFired.get()) {
-                        // No-fill → check Fallback
+                    if (!firstFillFired.get()) {
+                        // No bid was delivered to user — try Fallback rescue
                         val fallbackAd = fallbackCache.peek()
                         if (fallbackAd != null) {
                             val info = auctionInfo ?: buildSyntheticAuctionInfo(fallbackAd)
                             withContext(Dispatchers.Main) { onSuccess(fallbackAd, info) }
                         } else {
-                            withContext(Dispatchers.Main) { onFailure(auctionInfo, error) }
+                            val failError = error ?: BidonError.NoFill(DemandId("auction"))
+                            withContext(Dispatchers.Main) { onFailure(auctionInfo, failError) }
                         }
                     }
                     // firstFillFired == true → onSuccess already delivered, nothing to do.
@@ -103,6 +114,7 @@ internal class TwoLevelAdManager(
             )
         } finally {
             auctionRunning.set(false)
+            lastActiveAt = SystemClock.elapsedRealtime()
         }
     }
 

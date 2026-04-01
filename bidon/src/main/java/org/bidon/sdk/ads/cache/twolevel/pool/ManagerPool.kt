@@ -96,7 +96,6 @@ internal object ManagerPool {
 
         val controller = TwoLevelAuctionController(
             pipeline = pipeline,
-            fallbackCache = fallbackCache,
             adTypeLabel = demandAd.adType.code.uppercase(),
         )
 
@@ -132,9 +131,10 @@ internal object ManagerPool {
             val manager = entry.weakRef.get()
             val isWeakRefDead = manager == null
             val isIdle = manager?.isIdle() ?: true
-            val isOldEnough = (now - entry.createdAt) > IDLE_TTL_MS
-            // Cleanup condition: idle AND (old enough OR weak ref dead)
-            isIdle && (isOldEnough || isWeakRefDead)
+            val lastActive = manager?.lastActiveAt ?: entry.createdAt
+            val isStale = (now - lastActive) > IDLE_TTL_MS
+            // Cleanup: dead refs always; live refs when idle + stale (no recent activity)
+            isWeakRefDead || (isIdle && isStale)
         }.map { it.key }
 
         toRemove.forEach { key -> pool.remove(key) }

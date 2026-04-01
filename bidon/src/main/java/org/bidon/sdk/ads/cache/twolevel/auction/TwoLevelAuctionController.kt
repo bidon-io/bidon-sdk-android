@@ -1,10 +1,7 @@
 package org.bidon.sdk.ads.cache.twolevel.auction
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.ads.AuctionInfo
-import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.config.BidonError
@@ -13,18 +10,12 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 /**
  * Thin orchestrator for the Two-Level Cache sequential auction.
  *
- * Delegates all auction logic to [SequentialAuctionPipeline], which directly replaces
- * the old [org.bidon.sdk.auction.Auction]-based approach.
- *
- * On auction failure the controller checks [fallbackCache] for an ad >= pricefloor.
- * If one is found it signals success via [onComplete]; the caller delivers the ad.
- *
- * Routing decisions (main vs. fallback insert) are NOT performed here — they belong in
- * [org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager] via the [singleLoadCompletion] lambda.
+ * Delegates all auction logic to [SequentialAuctionPipeline].
+ * Routing decisions (main vs. fallback insert) and fallback delivery on no-fill are
+ * handled by [org.bidon.sdk.ads.cache.twolevel.TwoLevelAdManager].
  */
 internal class TwoLevelAuctionController(
     private val pipeline: SequentialAuctionPipeline,
-    private val fallbackCache: FallbackCacheStorage,
     private val adTypeLabel: String,
 ) {
     /**
@@ -33,15 +24,14 @@ internal class TwoLevelAuctionController(
      * Suspends until the pipeline has processed all ad units.
      *
      * [singleLoadCompletion] is called immediately for every ad unit that fills.
-     * [onComplete] is called once after all units are processed:
-     *   - On pipeline success  → (auctionInfo, null)
-     *   - On pipeline failure  → fallback cache checked; if hit → (info, null); else → (null, error)
+     * [shouldContinueAuction] is the pre-filter: returns false when no cache can accept the bid.
+     * [onComplete] is called once after all units are processed.
      */
     internal suspend fun start(
         demandAd: DemandAd,
         adTypeParam: AdTypeParam,
         singleLoadCompletion: suspend (AuctionResult) -> Unit,
-        shouldContinueAuction: () -> Boolean,
+        shouldContinueAuction: (ecpm: Double) -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {
         logInfo(TAG, "[$adTypeLabel] start pricefloor=${adTypeParam.pricefloor}")
@@ -51,47 +41,8 @@ internal class TwoLevelAuctionController(
             adTypeParam = adTypeParam,
             singleLoadCompletion = singleLoadCompletion,
             shouldContinueAuction = shouldContinueAuction,
-            onComplete = { auctionInfo, error ->
-                if (error != null) {
-                    handlePipelineFailure(
-                        auctionInfo = auctionInfo,
-                        error = error,
-                        pricefloor = adTypeParam.pricefloor,
-                        onComplete = onComplete,
-                    )
-                } else {
-                    onComplete(auctionInfo, null)
-                }
-            },
+            onComplete = onComplete,
         )
-    }
-
-    // ---
-
-    private suspend fun handlePipelineFailure(
-        auctionInfo: AuctionInfo?,
-        error: BidonError,
-        pricefloor: Double,
-        onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
-    ) {
-        logInfo(TAG, "[$adTypeLabel] pipeline failed ($error) — checking Fallback")
-
-        // Peek only — do NOT pop. The ad stays in cache until show() calls pop().
-        // TwoLevelAdManager handles the actual delivery in its onComplete handler.
-        val fallbackAd = fallbackCache.peek()
-        if (fallbackAd != null && fallbackAd.adSource.getStats().price >= pricefloor) {
-            val demandId = fallbackAd.adSource.getStats().demandId.demandId
-            logInfo(TAG, "[$adTypeLabel] Fallback has ad >= pricefloor: $demandId")
-            withContext(Dispatchers.Main) {
-                onComplete(auctionInfo, null)
-            }
-            return
-        }
-
-        logInfo(TAG, "[$adTypeLabel] Fallback empty/below floor — propagating failure")
-        withContext(Dispatchers.Main) {
-            onComplete(null, error)
-        }
     }
 
     companion object {

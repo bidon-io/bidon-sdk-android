@@ -130,7 +130,7 @@ internal class AuctionStatImpl(
                 val stat = adSource.getStats()
                 StatsAdUnit(
                     demandId = stat.demandId.demandId,
-                    status = roundStatus.code,
+                    status = (stat.roundStatus ?: roundStatus).code,
                     price = stat.price,
                     tokenStartTs = null,
                     tokenFinishTs = null,
@@ -149,7 +149,7 @@ internal class AuctionStatImpl(
                 val stat = this.adSource.getStats()
                 StatsAdUnit(
                     demandId = stat.demandId.demandId,
-                    status = roundStatus.code,
+                    status = (stat.roundStatus ?: roundStatus).code,
                     price = stat.price,
                     tokenStartTs = stat.tokenInfo?.tokenStartTs,
                     tokenFinishTs = stat.tokenInfo?.tokenFinishTs,
