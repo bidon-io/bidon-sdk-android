@@ -1,49 +1,47 @@
 package org.bidon.sdk.ads.cache.twolevel.storage
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
+ * Immutable snapshot of fallback cache state.
+ * Exposed via [FallbackCacheStorage.state] for lock-free, consistent reads.
+ */
+internal data class FallbackSnapshot(
+    val head: AuctionResult? = null,
+    val isFull: Boolean = false,
+    val cheapestPrice: Double? = null,
+    val size: Int = 0,
+) {
+    val hasContent: Boolean get() = head != null
+}
+
+/**
  * Fallback cache storage for the Two-Level Cache strategy. Simpler than [CacheStorage]:
- * no sticky mode, no iteration threshold. Sorted array with capacity-based eviction.
+ * no sticky mode, no threshold. Sorted array with capacity-based eviction.
  *
  * When [capacity] is 0, fallback is disabled — all inserts are rejected.
  *
  * Eviction rule: strict `price > cheapest.price` required.
  * Equal-price items do NOT displace the current cheapest when the cache is full.
  *
- * Thread safety: all mutating operations use [Mutex].
- * Volatile snapshot fields provide lock-free checks from any thread.
+ * Thread safety: mutations use [Mutex]. State is exposed via [StateFlow] for lock-free reads.
  */
 internal class FallbackCacheStorage(
     private val capacity: Int,
 ) {
     private val mutex = Mutex()
-
-    // Items sorted descending by price
     private val items = mutableListOf<AuctionResult>()
 
-    @Volatile
-    private var headSnapshot: AuctionResult? = null
+    private val _state = MutableStateFlow(FallbackSnapshot(isFull = capacity <= 0))
+    val state: StateFlow<FallbackSnapshot> = _state.asStateFlow()
 
-    /** Volatile snapshot: true when capacity is 0 (disabled) or items.size >= capacity. */
-    @Volatile
-    var isFull: Boolean = capacity <= 0
-        private set
-
-    /** Volatile snapshot of cheapest item price, or null when empty/disabled. */
-    @Volatile
-    var cheapestPrice: Double? = null
-        private set
-
-    /** True when fallback is disabled (capacity <= 0). */
-    val isDisabled: Boolean get() = capacity <= 0
-
-    // -----------------------------------------------------------------------
-    // Public API
-    // -----------------------------------------------------------------------
+    val isDisabled: Boolean = capacity <= 0
 
     /**
      * Insert [element] into the fallback cache.
@@ -52,7 +50,6 @@ internal class FallbackCacheStorage(
      */
     @Suppress("ReturnCount")
     suspend fun insert(element: AuctionResult): InsertResult = mutex.withLock {
-        // Disabled fallback — reject everything
         if (capacity <= 0) {
             return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
         }
@@ -65,15 +62,13 @@ internal class FallbackCacheStorage(
         if (existingIndex >= 0) {
             val existingPrice = items[existingIndex].price()
             if (existingPrice == price) {
-                // Same price: update in-place
                 items[existingIndex] = element
                 items.sortByDescending { it.price() }
-                updateSnapshots()
+                emitState()
                 logInfo(TAG, "[Fallback] insert UPDATED in-place: key=$key price=$price")
                 logCacheState()
                 return@withLock InsertResult.Success
             } else {
-                // Different price: remove old, fall through to re-insert
                 items.removeAt(existingIndex)
             }
         }
@@ -93,7 +88,7 @@ internal class FallbackCacheStorage(
 
         items.add(element)
         items.sortByDescending { it.price() }
-        updateSnapshots()
+        emitState()
         logInfo(TAG, "[Fallback] insert SUCCESS: key=$key price=$price size=${items.size}")
         logCacheState()
         InsertResult.Success
@@ -105,26 +100,23 @@ internal class FallbackCacheStorage(
     suspend fun popFirst(): AuctionResult? = mutex.withLock {
         if (items.isEmpty()) return@withLock null
         val head = items.removeAt(0)
-        updateSnapshots()
+        emitState()
         logInfo(TAG, "[Fallback] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")
         logCacheState()
         head
     }
 
-    /** Returns the head item without removing it. Suspends for Mutex. */
-    suspend fun peek(): AuctionResult? = mutex.withLock { items.firstOrNull() }
-
-    /** Non-suspend snapshot for synchronous isReady checks. May be stale by one operation. */
-    fun peekSnapshot(): AuctionResult? = headSnapshot
-
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
 
-    private fun updateSnapshots() {
-        headSnapshot = items.firstOrNull()
-        isFull = capacity <= 0 || items.size >= capacity
-        cheapestPrice = items.lastOrNull()?.price()
+    private fun emitState() {
+        _state.value = FallbackSnapshot(
+            head = items.firstOrNull(),
+            isFull = capacity <= 0 || items.size >= capacity,
+            cheapestPrice = items.lastOrNull()?.price(),
+            size = items.size,
+        )
     }
 
     private fun logCacheState() {

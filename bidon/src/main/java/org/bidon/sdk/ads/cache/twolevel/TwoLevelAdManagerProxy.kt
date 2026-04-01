@@ -2,8 +2,11 @@ package org.bidon.sdk.ads.cache.twolevel
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -25,14 +28,14 @@ import org.bidon.sdk.auction.models.AuctionResult
  * All subsequent calls delegate directly to the resolved manager.
  *
  * Thread safety:
- *  - [delegate] is @Volatile for safe publication after assignment.
+ *  - [_delegate] is a [MutableStateFlow] for safe publication and reactive observation.
  *  - [resolveMutex] ensures exactly one manager is created even under concurrent calls.
  */
 internal class TwoLevelAdManagerProxy(
     override val demandAd: DemandAd,
 ) : AdCache {
 
-    @Volatile private var delegate: TwoLevelAdManager? = null
+    private val _delegate = MutableStateFlow<TwoLevelAdManager?>(null)
     private val resolveMutex = Mutex()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -48,32 +51,27 @@ internal class TwoLevelAdManagerProxy(
     }
 
     private suspend fun resolveDelegate(adTypeParam: AdTypeParam): TwoLevelAdManager {
-        delegate?.let { return it }
+        _delegate.value?.let { return it }
         return resolveMutex.withLock {
-            delegate ?: run {
+            _delegate.value ?: run {
                 val config = TwoLevelCacheConfig.fromExtras(demandAd.adType)
                 val key = adTypeParam.auctionKey ?: "default_${demandAd.adType.code}"
                 ManagerPool.getOrCreate(key, demandAd, config)
-                    .also { delegate = it }
+                    .also { _delegate.value = it }
             }
         }
     }
 
-    override fun peek(): AuctionResult? = delegate?.peek()
+    override fun peek(): AuctionResult? = _delegate.value?.peek()
 
-    override fun pop(): AuctionResult? = delegate?.pop()
+    override fun pop(): AuctionResult? = _delegate.value?.pop()
 
-    override suspend fun poll(): AuctionResult {
-        while (true) {
-            val d = delegate
-            if (d != null) return d.poll()
-            delay(100)
-        }
-    }
+    override suspend fun poll(): AuctionResult =
+        _delegate.filterNotNull().first().poll()
 
     override fun clear() {
-        delegate?.clear()
-        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        _delegate.value?.clear()
+        scope.coroutineContext[Job]?.cancel()
     }
 
     override fun withSettings(settings: Cacheable.Settings) {

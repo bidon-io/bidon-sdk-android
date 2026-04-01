@@ -54,8 +54,8 @@ internal class FallbackCacheStorageTest {
         val result = storage.insert(item)
 
         assertThat(result).isEqualTo(InsertResult.Success)
-        assertThat(storage.peek()).isSameInstanceAs(item)
-        assertThat(storage.peekSnapshot()).isSameInstanceAs(item)
+        assertThat(storage.state.value.head).isSameInstanceAs(item)
+        assertThat(storage.state.value.head).isSameInstanceAs(item)
     }
 
     @Test
@@ -65,7 +65,7 @@ internal class FallbackCacheStorageTest {
         storage.insert(makeResult("dem2", 7.0))
         storage.insert(makeResult("dem3", 1.0))
 
-        assertThat(storage.peek()!!.adSource.getStats().price).isEqualTo(7.0)
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(7.0)
     }
 
     // -----------------------------------------------------------------------
@@ -112,7 +112,7 @@ internal class FallbackCacheStorageTest {
         assertThat(result).isEqualTo(InsertResult.Success)
         verify { cheap.adSource.destroy() }
         // head is 10.0 (most expensive)
-        assertThat(storage.peek()!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
     }
 
     @Test
@@ -125,7 +125,7 @@ internal class FallbackCacheStorageTest {
         val result = storage.insert(newcomer)
 
         assertThat(result).isEqualTo(InsertResult.Success)
-        assertThat(storage.peek()).isSameInstanceAs(newcomer)
+        assertThat(storage.state.value.head).isSameInstanceAs(newcomer)
     }
 
     // -----------------------------------------------------------------------
@@ -141,7 +141,7 @@ internal class FallbackCacheStorageTest {
         val result = storage.insert(updated)
 
         assertThat(result).isEqualTo(InsertResult.Success)
-        assertThat(storage.peek()).isSameInstanceAs(updated)
+        assertThat(storage.state.value.head).isSameInstanceAs(updated)
     }
 
     @Test
@@ -153,8 +153,8 @@ internal class FallbackCacheStorageTest {
         val result = storage.insert(updated)
 
         assertThat(result).isEqualTo(InsertResult.Success)
-        assertThat(storage.peek()).isSameInstanceAs(updated)
-        assertThat(storage.peek()!!.adSource.getStats().price).isEqualTo(9.0)
+        assertThat(storage.state.value.head).isSameInstanceAs(updated)
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(9.0)
     }
 
     @Test
@@ -170,7 +170,7 @@ internal class FallbackCacheStorageTest {
 
         assertThat(result).isEqualTo(InsertResult.Success)
         // head is still other (8.0)
-        assertThat(storage.peek()).isSameInstanceAs(other)
+        assertThat(storage.state.value.head).isSameInstanceAs(other)
     }
 
     // -----------------------------------------------------------------------
@@ -188,7 +188,7 @@ internal class FallbackCacheStorageTest {
         val popped = storage.popFirst()
 
         assertThat(popped).isSameInstanceAs(item1)
-        assertThat(storage.peek()).isSameInstanceAs(item2)
+        assertThat(storage.state.value.head).isSameInstanceAs(item2)
     }
 
     @Test
@@ -205,8 +205,8 @@ internal class FallbackCacheStorageTest {
 
         storage.popFirst()
 
-        assertThat(storage.peek()).isNull()
-        assertThat(storage.peekSnapshot()).isNull()
+        assertThat(storage.state.value.head).isNull()
+        assertThat(storage.state.value.head).isNull()
     }
 
     @Test
@@ -236,8 +236,8 @@ internal class FallbackCacheStorageTest {
         val item = makeResult("dem1", 5.0)
         storage.insert(item)
 
-        val first = storage.peek()
-        val second = storage.peek()
+        val first = storage.state.value.head
+        val second = storage.state.value.head
 
         assertThat(first).isSameInstanceAs(item)
         assertThat(second).isSameInstanceAs(item)
@@ -247,7 +247,7 @@ internal class FallbackCacheStorageTest {
     fun `peek - empty storage returns null`() = runTest {
         val storage = FallbackCacheStorage(capacity = 3)
 
-        assertThat(storage.peek()).isNull()
+        assertThat(storage.state.value.head).isNull()
     }
 
     // -----------------------------------------------------------------------
@@ -260,14 +260,14 @@ internal class FallbackCacheStorageTest {
         val item = makeResult("dem1", 5.0)
         storage.insert(item)
 
-        assertThat(storage.peekSnapshot()).isSameInstanceAs(item)
+        assertThat(storage.state.value.head).isSameInstanceAs(item)
     }
 
     @Test
     fun `peekSnapshot - null before any insert`() = runTest {
         val storage = FallbackCacheStorage(capacity = 3)
 
-        assertThat(storage.peekSnapshot()).isNull()
+        assertThat(storage.state.value.head).isNull()
     }
 
     // -----------------------------------------------------------------------
@@ -285,7 +285,7 @@ internal class FallbackCacheStorageTest {
 
         assertThat(result).isEqualTo(InsertResult.Success)
         verify { cheap.adSource.destroy() }
-        assertThat(storage.peek()).isSameInstanceAs(expensive)
+        assertThat(storage.state.value.head).isSameInstanceAs(expensive)
     }
 
     @Test

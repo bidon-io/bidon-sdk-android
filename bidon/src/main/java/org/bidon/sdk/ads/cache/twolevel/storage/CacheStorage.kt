@@ -1,9 +1,29 @@
 package org.bidon.sdk.ads.cache.twolevel.storage
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
+
+/**
+ * Immutable snapshot of main cache state.
+ * Exposed via [CacheStorage.state] for lock-free, consistent reads.
+ */
+internal data class CacheSnapshot(
+    val head: AuctionResult? = null,
+    val isFull: Boolean = false,
+    val thresholdBar: Double? = null,
+    val size: Int = 0,
+) {
+    val hasContent: Boolean get() = head != null
+
+    companion object {
+        val Empty = CacheSnapshot()
+    }
+}
 
 /**
  * Main cache storage for the Two-Level Cache strategy. Maintains a sorted array of
@@ -21,36 +41,18 @@ import org.bidon.sdk.logs.logging.impl.logInfo
  * ### No eviction (spec section 3.3)
  * Caller verifies `!isFull` before calling [insert]. The storage never evicts items.
  *
- * Thread safety: all mutating operations use [Mutex].
- * [peekSnapshot] and [isFull] are volatile for lock-free reads.
+ * Thread safety: mutations use [Mutex]. State is exposed via [StateFlow] for lock-free reads.
  */
 internal class CacheStorage(
     private val capacity: Int,
-    private val threshold: Int, // percentage 0-100
+    private val threshold: Int,
 ) {
     private val mutex = Mutex()
-
-    // Items sorted descending by price. items[0] = highest price (head).
     private val items = mutableListOf<AuctionResult>()
-
     private var stickyHeadActive = false
 
-    @Volatile
-    private var headSnapshot: AuctionResult? = null
-
-    /** Volatile snapshot: true when items.size >= capacity. Lock-free read for callers. */
-    @Volatile
-    var isFull: Boolean = false
-        private set
-
-    /** Volatile snapshot of the current threshold bar, or null when cache is empty (first bid always accepted). */
-    @Volatile
-    var thresholdBar: Double? = null
-        private set
-
-    // -----------------------------------------------------------------------
-    // Public API
-    // -----------------------------------------------------------------------
+    private val _state = MutableStateFlow(CacheSnapshot.Empty)
+    val state: StateFlow<CacheSnapshot> = _state.asStateFlow()
 
     /**
      * Insert [element] into the cache.
@@ -77,7 +79,7 @@ internal class CacheStorage(
         if (items.isEmpty()) {
             items.add(element)
             if (sticky) stickyHeadActive = true
-            updateSnapshots()
+            emitState()
             logInfo(TAG, "[Main] insert SUCCESS (first): key=$key price=$price sticky=$sticky")
             logCacheState()
             return@withLock InsertResult.Success
@@ -92,9 +94,9 @@ internal class CacheStorage(
 
         // 3. Threshold check: price < thresholdBar -> reject.
         val maxPrice = items[0].price()
-        val thresholdBar = maxPrice * (threshold / 100.0)
-        if (price < thresholdBar) {
-            logInfo(TAG, "[Main] insert REJECTED Threshold: price=$price bar=$thresholdBar max=$maxPrice")
+        val bar = maxPrice * (threshold / 100.0)
+        if (price < bar) {
+            logInfo(TAG, "[Main] insert REJECTED Threshold: price=$price bar=$bar max=$maxPrice")
             logCacheState()
             return@withLock InsertResult.Rejected(InsertResult.Reason.Threshold)
         }
@@ -112,7 +114,7 @@ internal class CacheStorage(
         items.add(element)
         if (sticky) stickyHeadActive = true
         sortItems()
-        updateSnapshots()
+        emitState()
 
         logInfo(TAG, "[Main] insert SUCCESS: key=$key price=$price sticky=$sticky size=${items.size}")
         logCacheState()
@@ -126,25 +128,16 @@ internal class CacheStorage(
         if (items.isEmpty()) return@withLock null
         val head = items.removeAt(0)
         stickyHeadActive = false
-        updateSnapshots()
+        emitState()
         logInfo(TAG, "[Main] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")
         logCacheState()
         head
     }
 
-    /** Returns the best item without removing it. Suspends for [Mutex]. */
-    suspend fun peek(): AuctionResult? = mutex.withLock { items.firstOrNull() }
-
-    /** Non-suspend volatile snapshot for lock-free isReady checks. */
-    fun peekSnapshot(): AuctionResult? = headSnapshot
-
     // -----------------------------------------------------------------------
     // Private helpers — all called with Mutex already held
     // -----------------------------------------------------------------------
 
-    /**
-     * Sort by price descending, keeping sticky head pinned at index 0.
-     */
     private fun sortItems() {
         if (stickyHeadActive && items.size > 1) {
             val head = items[0]
@@ -157,10 +150,13 @@ internal class CacheStorage(
         }
     }
 
-    private fun updateSnapshots() {
-        headSnapshot = items.firstOrNull()
-        isFull = items.size >= capacity
-        thresholdBar = items.firstOrNull()?.let { it.price() * (threshold / 100.0) }
+    private fun emitState() {
+        _state.value = CacheSnapshot(
+            head = items.firstOrNull(),
+            isFull = items.size >= capacity,
+            thresholdBar = items.firstOrNull()?.let { it.price() * (threshold / 100.0) },
+            size = items.size,
+        )
     }
 
     private fun logCacheState() {

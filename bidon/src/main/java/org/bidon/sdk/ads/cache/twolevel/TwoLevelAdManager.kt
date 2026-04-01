@@ -5,7 +5,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -24,6 +26,7 @@ import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.stats.models.RoundStatus
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.coroutineContext
 
 /**
  * Two-Level Cache AdCache facade per AD_CACHE_SPEC.md.
@@ -35,18 +38,24 @@ internal class TwoLevelAdManager(
     private val controller: TwoLevelAuctionController,
 ) : AdCache {
 
+    /**
+     * Auction lifecycle state. Tracks whether an auction is currently running
+     * and holds a reference to the active [Job] for cancellation.
+     */
+    private sealed interface AuctionState {
+        data object Idle : AuctionState
+        data class Running(val job: Job) : AuctionState
+    }
+
     private val adTypeLabel = demandAd.adType.code.uppercase()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val auctionRunning = AtomicBoolean(false)
-
-    @Volatile
-    private var auctionJob: Job? = null
+    private val _auctionState = MutableStateFlow<AuctionState>(AuctionState.Idle)
 
     /** Timestamp of last auction completion. Used by [pool.ManagerPool] for idle-time cleanup. */
     @Volatile
     var lastActiveAt: Long = SystemClock.elapsedRealtime()
 
-    fun isIdle(): Boolean = !auctionRunning.get()
+    fun isIdle(): Boolean = _auctionState.value is AuctionState.Idle
 
     // --- AdCache ---
 
@@ -55,7 +64,7 @@ internal class TwoLevelAdManager(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        auctionJob = scope.launch {
+        scope.launch {
             cacheInternal(adTypeParam, onSuccess, onFailure)
         }
     }
@@ -65,17 +74,20 @@ internal class TwoLevelAdManager(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        // Step 1: Main.peek() — instant cache hit
-        val warmMain = mainCache.peek()
-        if (warmMain != null) {
+        // Step 1: Main cache hit — instant delivery
+        val mainState = mainCache.state.value
+        if (mainState.hasContent) {
+            val warmMain = mainState.head!!
             logInfo(TAG, "[$adTypeLabel] Cache hit from Main: ${warmMain.adSource.getStats().demandId.demandId}")
             val info = buildSyntheticAuctionInfo(warmMain)
             withContext(Dispatchers.Main) { onSuccess(warmMain, info) }
             return
         }
 
-        // Step 2: auction running → silent return
-        if (!auctionRunning.compareAndSet(false, true)) {
+        // Step 2: Atomically transition Idle → Running
+        val currentJob = coroutineContext[Job]!!
+        val myState = AuctionState.Running(currentJob)
+        if (!_auctionState.compareAndSet(AuctionState.Idle, myState)) {
             logInfo(TAG, "[$adTypeLabel] Auction already running — silent return")
             return
         }
@@ -90,30 +102,31 @@ internal class TwoLevelAdManager(
                     routeBidToCache(winner, firstFillFired, onSuccess)
                 },
                 shouldContinueAuction = { ecpm ->
-                    // Pre-filter per spec §7/§11: can any cache accept this bid?
-                    val bar = mainCache.thresholdBar
-                    val canAcceptMain = !mainCache.isFull && (bar == null || ecpm >= bar)
+                    val ms = mainCache.state.value
+                    val fs = fallbackCache.state.value
+                    val canAcceptMain = !ms.isFull && (ms.thresholdBar == null || ecpm >= ms.thresholdBar)
                     val canAcceptFallback = !fallbackCache.isDisabled &&
-                        (!fallbackCache.isFull || ecpm > (fallbackCache.cheapestPrice ?: 0.0))
+                        (!fs.isFull || ecpm > (fs.cheapestPrice ?: 0.0))
                     canAcceptMain || canAcceptFallback
                 },
                 onComplete = { auctionInfo, error ->
                     if (!firstFillFired.get()) {
-                        // No bid was delivered to user — try Fallback rescue
-                        val fallbackAd = fallbackCache.peek()
-                        if (fallbackAd != null) {
-                            val info = auctionInfo ?: buildSyntheticAuctionInfo(fallbackAd)
-                            withContext(Dispatchers.Main) { onSuccess(fallbackAd, info) }
+                        // No bid was delivered — try Fallback rescue
+                        val fallbackHead = fallbackCache.state.value.head
+                        if (fallbackHead != null) {
+                            val info = auctionInfo ?: buildSyntheticAuctionInfo(fallbackHead)
+                            withContext(Dispatchers.Main) { onSuccess(fallbackHead, info) }
                         } else {
                             val failError = error ?: BidonError.NoFill(DemandId("auction"))
                             withContext(Dispatchers.Main) { onFailure(auctionInfo, failError) }
                         }
                     }
-                    // firstFillFired == true → onSuccess already delivered, nothing to do.
                 },
             )
         } finally {
-            auctionRunning.set(false)
+            // Only reset to Idle if we are still the active Running state.
+            // Prevents overwriting a new Running state started after cancelAuction().
+            _auctionState.compareAndSet(myState, AuctionState.Idle)
             lastActiveAt = SystemClock.elapsedRealtime()
         }
     }
@@ -133,22 +146,19 @@ internal class TwoLevelAdManager(
         val price = winner.adSource.getStats().price
 
         // Attempt Main
-        if (!mainCache.isFull) {
+        if (!mainCache.state.value.isFull) {
             val mainResult = mainCache.insert(winner, sticky = isFirst)
             if (mainResult.isInserted) {
                 if (isFirst) {
-                    // WIN — first fill, deliver to user. Stats keep Successful → converted to Win.
                     logInfo(TAG, "[$adTypeLabel] WIN: $demandId price=$price (sticky)")
                     val info = buildSyntheticAuctionInfo(winner)
                     withContext(Dispatchers.Main) { onSuccess(winner, info) }
                 } else {
-                    // CACHE — silently cached in Main.
                     winner.adSource.markFillFinished(RoundStatus.Cached, price)
                     logInfo(TAG, "[$adTypeLabel] CACHE (Main): $demandId price=$price")
                 }
                 return
             }
-            // Main rejected (threshold) — fall through to Fallback.
             logInfo(TAG, "[$adTypeLabel] Main rejected: $demandId mainResult=$mainResult")
         }
 
@@ -157,11 +167,7 @@ internal class TwoLevelAdManager(
             winner.adSource.markFillFinished(RoundStatus.Lose, price)
             winner.adSource.destroy()
             logInfo(TAG, "[$adTypeLabel] LOSE (Fb disabled): $demandId price=$price")
-            if (isFirst) {
-                // Edge case: first bid rejected by Main AND Fallback disabled.
-                // No didLoad fired — will be handled by onComplete no-fill path.
-                firstFillFired.set(false)
-            }
+            if (isFirst) firstFillFired.set(false)
             return
         }
 
@@ -175,34 +181,41 @@ internal class TwoLevelAdManager(
             logInfo(TAG, "[$adTypeLabel] LOSE (both rejected): $demandId price=$price")
         }
 
-        // First fill that went to Fallback (not Main) — still deliver didLoad.
         if (isFirst && fbResult.isInserted) {
             logInfo(TAG, "[$adTypeLabel] WIN (from Fallback): $demandId price=$price")
             val info = buildSyntheticAuctionInfo(winner)
             withContext(Dispatchers.Main) { onSuccess(winner, info) }
         } else if (isFirst) {
-            // First bid rejected by both — reset flag so onComplete handles no-fill.
             firstFillFired.set(false)
         }
     }
 
     override fun peek(): AuctionResult? =
-        mainCache.peekSnapshot() ?: fallbackCache.peekSnapshot()
+        mainCache.state.value.head ?: fallbackCache.state.value.head
 
-    override fun pop(): AuctionResult? = runBlocking {
-        val result = mainCache.popFirst() ?: fallbackCache.popFirst()
+    override fun pop(): AuctionResult? {
+        // Fast-path: check snapshots before entering runBlocking
+        if (!mainCache.state.value.hasContent && !fallbackCache.state.value.hasContent) return null
+        // Brief runBlocking for Mutex-based popFirst (sub-microsecond list operation)
+        val result = runBlocking {
+            mainCache.popFirst() ?: fallbackCache.popFirst()
+        }
         if (result != null) cancelAuction()
-        result
+        return result
     }
 
     override suspend fun poll(): AuctionResult {
+        val hasContent = mainCache.state.combine(fallbackCache.state) { main, fallback ->
+            main.hasContent || fallback.hasContent
+        }
         while (true) {
+            // Suspend until either cache has content (event-driven, no polling delay)
+            hasContent.first { it }
             val result = mainCache.popFirst() ?: fallbackCache.popFirst()
             if (result != null) {
                 cancelAuction()
                 return result
             }
-            delay(100)
         }
     }
 
@@ -217,8 +230,11 @@ internal class TwoLevelAdManager(
     }
 
     private fun cancelAuction() {
-        auctionJob?.cancel()
-        auctionJob = null
+        val current = _auctionState.value
+        if (current is AuctionState.Running) {
+            current.job.cancel()
+            _auctionState.compareAndSet(current, AuctionState.Idle)
+        }
     }
 
     private fun buildSyntheticAuctionInfo(result: AuctionResult): AuctionInfo {
