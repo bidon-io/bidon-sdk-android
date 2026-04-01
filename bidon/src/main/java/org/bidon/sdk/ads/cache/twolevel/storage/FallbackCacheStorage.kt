@@ -30,10 +30,15 @@ internal class FallbackCacheStorage(
 
     /** Volatile snapshot: true when capacity is 0 (disabled) or items.size >= capacity. */
     @Volatile
-    var isFullSnapshot: Boolean = capacity <= 0
+    var isFull: Boolean = capacity <= 0
         private set
 
-    /** True when fallback is disabled (capacity = 0). */
+    /** Volatile snapshot of cheapest item price, or null when empty/disabled. */
+    @Volatile
+    var cheapestPrice: Double? = null
+        private set
+
+    /** True when fallback is disabled (capacity <= 0). */
     val isDisabled: Boolean get() = capacity <= 0
 
     // -----------------------------------------------------------------------
@@ -66,7 +71,7 @@ internal class FallbackCacheStorage(
                 updateSnapshots()
                 logInfo(TAG, "[Fallback] insert UPDATED in-place: key=$key price=$price")
                 logCacheState()
-                return@withLock InsertResult.Success()
+                return@withLock InsertResult.Success
             } else {
                 // Different price: remove old, fall through to re-insert
                 items.removeAt(existingIndex)
@@ -91,7 +96,7 @@ internal class FallbackCacheStorage(
         updateSnapshots()
         logInfo(TAG, "[Fallback] insert SUCCESS: key=$key price=$price size=${items.size}")
         logCacheState()
-        InsertResult.Success()
+        InsertResult.Success
     }
 
     /**
@@ -118,7 +123,8 @@ internal class FallbackCacheStorage(
 
     private fun updateSnapshots() {
         headSnapshot = items.firstOrNull()
-        isFullSnapshot = capacity <= 0 || items.size >= capacity
+        isFull = capacity <= 0 || items.size >= capacity
+        cheapestPrice = items.lastOrNull()?.price()
     }
 
     private fun logCacheState() {

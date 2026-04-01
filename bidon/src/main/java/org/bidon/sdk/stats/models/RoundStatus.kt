@@ -21,6 +21,7 @@ public sealed class RoundStatus(public val code: String) {
     public object AdFormatNotSupported : RoundStatus("AD_FORMAT_NOT_SUPPORTED")
     public class UnspecifiedException(public val errorMessage: String?) : RoundStatus("UNSPECIFIED_EXCEPTION")
     public object BelowPricefloor : RoundStatus("BELOW_PRICEFLOOR")
+    public object Cached : RoundStatus("CACHE")
 
     public object Successful : RoundStatus("INTERNAL_STATUS") // Internal status, its code should not be used
 }

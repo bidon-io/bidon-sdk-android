@@ -7,49 +7,58 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 
 /**
  * Main cache storage for the Two-Level Cache strategy. Maintains a sorted array of
- * AuctionResult items with sticky-head mode and per-iteration threshold filtering.
+ * [AuctionResult] items ordered by price descending. Capacity = [capacity].
+ *
+ * ### Sticky head (spec section 3.1)
+ * The first inserted bid (sticky=true) is protected at the head. It is never displaced
+ * by a later insert. [popFirst] clears sticky mode.
+ *
+ * ### Threshold (spec section 3.2)
+ * When the cache is non-empty, only bids with `price >= thresholdBar` are accepted.
+ * `thresholdBar = items[0].price * (threshold / 100)`.
+ * The first bid always passes (sets maxPrice).
+ *
+ * ### No eviction (spec section 3.3)
+ * Caller verifies `!isFull` before calling [insert]. The storage never evicts items.
  *
  * Thread safety: all mutating operations use [Mutex].
- * Volatile snapshot fields provide lock-free checks from any thread.
+ * [peekSnapshot] and [isFull] are volatile for lock-free reads.
  */
 internal class CacheStorage(
     private val capacity: Int,
-    private val iterationThreshold: Int, // percentage, e.g. 80
+    private val threshold: Int, // percentage 0-100
 ) {
     private val mutex = Mutex()
 
-    // Items sorted descending by price
+    // Items sorted descending by price. items[0] = highest price (head).
     private val items = mutableListOf<AuctionResult>()
 
-    // demandId -> index in items; rebuilt after every structural change
-    private val indexByKey = mutableMapOf<String, Int>()
-
     private var stickyHeadActive = false
-    private var iterationMaxPrice: Double? = null
 
     @Volatile
     private var headSnapshot: AuctionResult? = null
 
-    /** Volatile snapshot: true when items.size >= capacity. */
+    /** Volatile snapshot: true when items.size >= capacity. Lock-free read for callers. */
     @Volatile
-    var isFullSnapshot: Boolean = false
+    var isFull: Boolean = false
         private set
 
     // -----------------------------------------------------------------------
     // Public API
     // -----------------------------------------------------------------------
 
-    /** Resets the iteration-threshold state. Call before each auction round. */
-    suspend fun beginIteration() = mutex.withLock {
-        iterationMaxPrice = null
-        logInfo(TAG, "[Main] beginIteration | cache: ${items.size}/$capacity")
-    }
-
     /**
      * Insert [element] into the cache.
      *
-     * @param sticky if true, the element is promoted to head and protected from eviction.
-     * @return [InsertResult.Success] (with evicted items) or [InsertResult.Rejected].
+     * Algorithm (spec section 3.3):
+     *  1. Empty cache -> accept (sets maxPrice).
+     *  2. capacity==1 + sticky active + not sticky -> REJECTED (StickyProtected).
+     *  3. price < thresholdBar -> REJECTED (Threshold).
+     *  4. Duplicate (same demandId) -> remove old, insert new.
+     *  5. INSERT + sort (sticky stays at head).
+     *
+     * @param sticky if true, marks this element as the sticky head.
+     * @return [InsertResult.Success] or [InsertResult.Rejected].
      */
     @Suppress("ReturnCount")
     suspend fun insert(
@@ -59,157 +68,79 @@ internal class CacheStorage(
         val price = element.price()
         val key = element.demandKey()
 
-        // 1. Iteration threshold (capacity > 1 only)
-        if (shouldRejectByIterationThreshold(price)) {
-            logInfo(TAG, "[Main] insert REJECTED IterationThreshold: price=$price minAllowed=${formatMinAllowed()}")
-            logCacheState()
-            return@withLock InsertResult.Rejected(InsertResult.Reason.IterationThreshold)
-        }
-
-        // 2. Duplicate check by demandId
-        val existingIndex = indexByKey[key]
-        if (existingIndex != null) {
-            val existingPrice = items[existingIndex].price()
-            if (existingPrice == price) {
-                // Same price: protect sticky head from non-sticky update
-                if (stickyHeadActive && existingIndex == 0 && !sticky) {
-                    logInfo(TAG, "[Main] insert REJECTED StickyHeadProtected (update): key=$key price=$price")
-                    logCacheState()
-                    return@withLock InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected)
-                }
-                // Update in-place
-                items[existingIndex] = element
-                if (sticky && existingIndex != 0) {
-                    promoteToStickyHead(existingIndex)
-                }
-                sortAccordingToMode()
-                rebuildIndex()
-                val evicted = trimIfNeeded()
-                updateSnapshots()
-                logInfo(TAG, "[Main] insert UPDATED in-place: key=$key price=$price")
-                logCacheState()
-                return@withLock InsertResult.Success(evicted)
-            } else {
-                // Different price: remove old entry, fall through to re-insert
-                if (stickyHeadActive && existingIndex == 0) {
-                    stickyHeadActive = false
-                }
-                items.removeAt(existingIndex)
-                rebuildIndex()
-            }
-        }
-
-        // 3. Sticky head protection for capacity == 1
-        if (capacity == 1 && stickyHeadActive && items.isNotEmpty() && !sticky) {
-            logInfo(TAG, "[Main] insert REJECTED StickyHeadProtected: key=$key price=$price")
-            logCacheState()
-            return@withLock InsertResult.Rejected(InsertResult.Reason.StickyHeadProtected)
-        }
-
-        // 4. Capacity check: only reject if new item doesn't beat the cheapest evictable.
-        // When cheapest is null (e.g. sticky head only, no tail), skip to insert.
-        // Eviction is deferred to trimIfNeeded() in step 5 after insert.
-        if (items.size >= capacity) {
-            val cheapestPrice = cheapestAllowedToEvictPrice()
-            if (cheapestPrice != null && price <= cheapestPrice) {
-                logInfo(TAG, "[Main] insert REJECTED CacheFull: price=$price cheapest=$cheapestPrice")
-                logCacheState()
-                return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
-            }
-        }
-
-        // 5. Insert, sort according to mode, trim overflow.
-        // Sticky inserts go at head; non-sticky inserts go at tail.
-        if (sticky) {
-            items.add(0, element)
-            stickyHeadActive = true
-        } else {
+        // 1. Empty cache -> always accept.
+        if (items.isEmpty()) {
             items.add(element)
+            if (sticky) stickyHeadActive = true
+            updateSnapshots()
+            logInfo(TAG, "[Main] insert SUCCESS (first): key=$key price=$price sticky=$sticky")
+            logCacheState()
+            return@withLock InsertResult.Success
         }
-        sortAccordingToMode()
-        val evicted = trimIfNeeded()
+
+        // 2. capacity==1 + sticky active + not sticky -> reject.
+        if (capacity == 1 && stickyHeadActive && !sticky) {
+            logInfo(TAG, "[Main] insert REJECTED StickyProtected: key=$key price=$price")
+            logCacheState()
+            return@withLock InsertResult.Rejected(InsertResult.Reason.StickyProtected)
+        }
+
+        // 3. Threshold check: price < thresholdBar -> reject.
+        val maxPrice = items[0].price()
+        val thresholdBar = maxPrice * (threshold / 100.0)
+        if (price < thresholdBar) {
+            logInfo(TAG, "[Main] insert REJECTED Threshold: price=$price bar=$thresholdBar max=$maxPrice")
+            logCacheState()
+            return@withLock InsertResult.Rejected(InsertResult.Reason.Threshold)
+        }
+
+        // 4. Duplicate by demandId -> remove old, fall through to insert.
+        val existingIndex = items.indexOfFirst { it.demandKey() == key }
+        if (existingIndex >= 0) {
+            if (stickyHeadActive && existingIndex == 0) {
+                stickyHeadActive = false
+            }
+            items.removeAt(existingIndex)
+        }
+
+        // 5. Insert + sort (sticky stays at head).
+        items.add(element)
+        if (sticky) stickyHeadActive = true
+        sortItems()
         updateSnapshots()
 
         logInfo(TAG, "[Main] insert SUCCESS: key=$key price=$price sticky=$sticky size=${items.size}")
         logCacheState()
-        InsertResult.Success(evicted)
+        InsertResult.Success
     }
 
     /**
-     * Remove and return the highest-priced item (head).
-     * Disables sticky mode and re-sorts the remaining items.
+     * Remove and return the highest-priced item (head). Clears sticky mode.
      */
     suspend fun popFirst(): AuctionResult? = mutex.withLock {
         if (items.isEmpty()) return@withLock null
         val head = items.removeAt(0)
-        indexByKey.remove(head.demandKey())
         stickyHeadActive = false
-        sortAccordingToMode()
-        rebuildIndex()
         updateSnapshots()
         logInfo(TAG, "[Main] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")
         logCacheState()
         head
     }
 
-    /** Returns the head item without removing it. Suspends for Mutex. */
+    /** Returns the best item without removing it. Suspends for [Mutex]. */
     suspend fun peek(): AuctionResult? = mutex.withLock { items.firstOrNull() }
 
-    /** Non-suspend snapshot for synchronous isReady checks. May be stale by one operation. */
+    /** Non-suspend volatile snapshot for lock-free isReady checks. */
     fun peekSnapshot(): AuctionResult? = headSnapshot
 
     // -----------------------------------------------------------------------
     // Private helpers — all called with Mutex already held
     // -----------------------------------------------------------------------
 
-    private fun updateSnapshots() {
-        headSnapshot = items.firstOrNull()
-        isFullSnapshot = items.size >= capacity
-    }
-
     /**
-     * Iteration threshold logic:
-     *  - First item (iterationMaxPrice == null): set max, pass.
-     *  - price > currentMax: update max, pass.
-     *  - price >= currentMax * (threshold/100): pass.
-     *  - otherwise: reject.
-     *
-     * Only active when capacity > 1.
+     * Sort by price descending, keeping sticky head pinned at index 0.
      */
-    private fun shouldRejectByIterationThreshold(price: Double): Boolean {
-        if (capacity <= 1) return false
-        val currentMax = iterationMaxPrice
-        return if (currentMax == null || price > currentMax) {
-            iterationMaxPrice = price
-            false // new maximum — always pass
-        } else if (price >= currentMax * (iterationThreshold / 100.0)) {
-            false // within threshold — pass
-        } else {
-            true // below threshold — reject
-        }
-    }
-
-    /**
-     * Returns the price of the cheapest item eligible for eviction.
-     *
-     * Items are sorted descending so last == cheapest.
-     * In sticky mode, requires at least 2 items (head is protected).
-     */
-    private fun cheapestAllowedToEvictPrice(): Double? {
-        if (items.isEmpty()) return null
-        return if (stickyHeadActive) {
-            if (items.size >= 2) items.last().price() else null
-        } else {
-            items.last().price()
-        }
-    }
-
-    /**
-     * Sort according to mode:
-     *  - Sticky mode: sort only tail (items[1..]), keep head in place.
-     *  - Normal mode: sort all items.
-     */
-    private fun sortAccordingToMode() {
+    private fun sortItems() {
         if (stickyHeadActive && items.size > 1) {
             val head = items[0]
             val sortedTail = items.subList(1, items.size).sortedByDescending { it.price() }
@@ -219,40 +150,12 @@ internal class CacheStorage(
         } else {
             items.sortByDescending { it.price() }
         }
-        rebuildIndex()
     }
 
-    /**
-     * Remove from tail while over capacity.
-     * The sticky head (items[0]) is never removed because trim always
-     * removes items.last() and the sticky head is at index 0.
-     *
-     * Returns evicted items for caller to route to Fallback.
-     */
-    private fun trimIfNeeded(): List<AuctionResult> {
-        val evicted = mutableListOf<AuctionResult>()
-        while (items.size > capacity) {
-            val removed = items.removeAt(items.lastIndex)
-            evicted.add(removed)
-        }
-        rebuildIndex()
-        return evicted
+    private fun updateSnapshots() {
+        headSnapshot = items.firstOrNull()
+        isFull = items.size >= capacity
     }
-
-    private fun promoteToStickyHead(idx: Int) {
-        val element = items.removeAt(idx)
-        items.add(0, element)
-        stickyHeadActive = true
-    }
-
-    private fun rebuildIndex() {
-        indexByKey.clear()
-        items.forEachIndexed { i, item -> indexByKey[item.demandKey()] = i }
-    }
-
-    // -----------------------------------------------------------------------
-    // Logging helpers
-    // -----------------------------------------------------------------------
 
     private fun logCacheState() {
         if (items.isEmpty()) {
@@ -260,15 +163,10 @@ internal class CacheStorage(
             return
         }
         val entries = items.mapIndexed { i, item ->
-            val sticky = if (stickyHeadActive && i == 0) "*" else ""
-            "${item.price()}$sticky"
+            val s = if (stickyHeadActive && i == 0) "*" else ""
+            "${item.price()}$s"
         }
         logInfo(TAG, "[Main] Cache (${items.size}/$capacity): [${entries.joinToString(", ")}]")
-    }
-
-    private fun formatMinAllowed(): String {
-        val max = iterationMaxPrice ?: return "n/a"
-        return "${max * iterationThreshold / 100.0}"
     }
 
     companion object {

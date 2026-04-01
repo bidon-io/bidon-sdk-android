@@ -9,7 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
-import org.bidon.sdk.adapter.DemandId
 import org.bidon.sdk.ads.AdUnitInfo
 import org.bidon.sdk.ads.AuctionInfo
 import org.bidon.sdk.ads.cache.AdCache
@@ -17,24 +16,14 @@ import org.bidon.sdk.ads.cache.Cacheable
 import org.bidon.sdk.ads.cache.twolevel.auction.TwoLevelAuctionController
 import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
-import org.bidon.sdk.ads.cache.twolevel.storage.InsertResult
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.models.AuctionResult
-import org.bidon.sdk.config.BidonError
 import org.bidon.sdk.logs.logging.impl.logInfo
+import org.bidon.sdk.stats.models.RoundStatus
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Two-Level Cache AdCache facade.
- *
- * Wraps [CacheStorage] (main) and [FallbackCacheStorage] (fallback)
- * created per auctionKey by [org.bidon.sdk.ads.cache.twolevel.pool.ManagerPool].
- *
- * Thread safety:
- *  - [cache] launches a coroutine on [scope]; [auctionRunning] guards duplicate starts.
- *  - [peek] uses non-suspend snapshot reads — safe from any thread.
- *  - [pop] uses runBlocking over the storage Mutex — lock contention is sub-millisecond.
- *  - [poll] suspends with a 100ms polling interval until an entry is available.
+ * Two-Level Cache AdCache facade per AD_CACHE_SPEC.md.
  */
 internal class TwoLevelAdManager(
     override val demandAd: DemandAd,
@@ -44,29 +33,12 @@ internal class TwoLevelAdManager(
 ) : AdCache {
 
     private val adTypeLabel = demandAd.adType.code.uppercase()
-
-    // Owned scope for launching cache() body; separate from the controller's scope.
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
-    // True while an auction is running — prevents duplicate starts and signals ManagerPool.
     private val auctionRunning = AtomicBoolean(false)
 
-    // Reference to the current auction coroutine. Cancelled by pop()/show() to stop
-    // background demand polling per spec section 8.
     @Volatile
     private var auctionJob: Job? = null
 
-    // Set when threshold rejection occurs AND Fallback can't accept more bids.
-    // Since the waterfall is sorted by price (descending), once threshold rejects
-    // a bid and Fallback is full/disabled, all subsequent bids are even cheaper
-    // and will also be rejected. No point querying more demand sources.
-    @Volatile
-    private var thresholdStopSignal = false
-
-    /**
-     * Returns true when no auction is currently running.
-     * Queried by ManagerPool during periodic cleanup.
-     */
     fun isIdle(): Boolean = !auctionRunning.get()
 
     // --- AdCache ---
@@ -86,30 +58,24 @@ internal class TwoLevelAdManager(
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        // WARM START: if the cache already has an ad >= pricefloor, return it immediately.
-        // Peek only — do NOT pop. The ad stays in cache until show() calls pop().
+        // Step 1: Main.peek() — instant cache hit
         val warmMain = mainCache.peek()
-        if (warmMain != null && warmMain.adSource.getStats().price >= adTypeParam.pricefloor) {
-            logInfo(TAG, "[$adTypeLabel] Warm start from Main: ${warmMain.adSource.getStats().demandId.demandId}")
+        if (warmMain != null) {
+            logInfo(TAG, "[$adTypeLabel] Cache hit from Main: ${warmMain.adSource.getStats().demandId.demandId}")
             val info = buildSyntheticAuctionInfo(warmMain)
             withContext(Dispatchers.Main) { onSuccess(warmMain, info) }
             return
         }
 
-        // COLD START — guard against duplicate loads (silent return per spec).
+        // Step 2: auction running → silent return
         if (!auctionRunning.compareAndSet(false, true)) {
-            logInfo(TAG, "[$adTypeLabel] Auction already running — ignoring duplicate load")
+            logInfo(TAG, "[$adTypeLabel] Auction already running — silent return")
             return
         }
 
-        // Tracks whether the first-fill onSuccess callback has fired.
         val firstFillFired = AtomicBoolean(false)
 
         try {
-            // Reset iteration-threshold state before each auction round.
-            thresholdStopSignal = false
-            mainCache.beginIteration()
-
             controller.start(
                 demandAd = demandAd,
                 adTypeParam = adTypeParam,
@@ -117,28 +83,22 @@ internal class TwoLevelAdManager(
                     routeBidToCache(winner, firstFillFired, onSuccess)
                 },
                 shouldContinueAuction = {
-                    // Stop when:
-                    // 1. Main full AND Fallback full/disabled — no space for more bids.
-                    // 2. Threshold rejected a bid AND Fallback full/disabled — waterfall is
-                    //    sorted descending, so all subsequent bids are even cheaper.
-                    val bothFull = mainCache.isFullSnapshot && fallbackCache.isFullSnapshot
-                    !bothFull && !thresholdStopSignal
+                    // Stop when Main full AND Fallback can't accept.
+                    // Waterfall sorted desc → once both can't accept, all subsequent are cheaper.
+                    !(mainCache.isFull && fallbackCache.isFull)
                 },
                 onComplete = { auctionInfo, error ->
                     if (error != null && !firstFillFired.get()) {
-                        withContext(Dispatchers.Main) { onFailure(auctionInfo, error) }
-                    } else if (!firstFillFired.get()) {
-                        // Fallback scenario: controller found a cached ad in fallback.
-                        val cached = mainCache.peek() ?: fallbackCache.peek()
-                        if (cached != null) {
-                            val info = auctionInfo ?: buildSyntheticAuctionInfo(cached)
-                            withContext(Dispatchers.Main) { onSuccess(cached, info) }
+                        // No-fill → check Fallback
+                        val fallbackAd = fallbackCache.peek()
+                        if (fallbackAd != null) {
+                            val info = auctionInfo ?: buildSyntheticAuctionInfo(fallbackAd)
+                            withContext(Dispatchers.Main) { onSuccess(fallbackAd, info) }
                         } else {
-                            withContext(Dispatchers.Main) {
-                                onFailure(auctionInfo, BidonError.NoFill(DemandId("fallback")))
-                            }
+                            withContext(Dispatchers.Main) { onFailure(auctionInfo, error) }
                         }
                     }
+                    // firstFillFired == true → onSuccess already delivered, nothing to do.
                 },
             )
         } finally {
@@ -147,8 +107,9 @@ internal class TwoLevelAdManager(
     }
 
     /**
-     * Routes a filled bid through the cache hierarchy:
-     * Main (sticky for first) → evicted from Main → Fallback → destroy.
+     * Routes a filled bid per spec pseudocode:
+     * Main (sticky for first) → Fallback (with eviction) → destroy.
+     * Sets RoundStatus: WIN (first), CACHE (cached), LOSE (destroyed).
      */
     private suspend fun routeBidToCache(
         winner: AuctionResult,
@@ -157,68 +118,71 @@ internal class TwoLevelAdManager(
     ) {
         val isFirst = firstFillFired.compareAndSet(false, true)
         val demandId = winner.adSource.getStats().demandId.demandId
+        val price = winner.adSource.getStats().price
 
-        // Try Main cache (sticky for first fill).
-        val mainResult = mainCache.insert(winner, sticky = isFirst)
-        logInfo(TAG, "[$adTypeLabel] route winner=$demandId isFirst=$isFirst mainResult=$mainResult")
-
-        // Route evicted items from Main → Fallback.
-        if (mainResult is InsertResult.Success) {
-            mainResult.evicted.forEach { evictedAd ->
-                val fbResult = fallbackCache.insert(evictedAd)
-                if (!fbResult.isInserted) {
-                    evictedAd.adSource.destroy()
-                    logInfo(TAG, "[$adTypeLabel] evicted ad destroyed (Fallback rejected)")
+        // Attempt Main
+        if (!mainCache.isFull) {
+            val mainResult = mainCache.insert(winner, sticky = isFirst)
+            if (mainResult.isInserted) {
+                if (isFirst) {
+                    // WIN — first fill, deliver to user. Stats keep Successful → converted to Win.
+                    logInfo(TAG, "[$adTypeLabel] WIN: $demandId price=$price (sticky)")
+                    val info = buildSyntheticAuctionInfo(winner)
+                    withContext(Dispatchers.Main) { onSuccess(winner, info) }
+                } else {
+                    // CACHE — silently cached in Main.
+                    winner.adSource.markFillFinished(RoundStatus.Cached, price)
+                    logInfo(TAG, "[$adTypeLabel] CACHE (Main): $demandId price=$price")
                 }
+                return
             }
+            // Main rejected (threshold) — fall through to Fallback.
+            logInfo(TAG, "[$adTypeLabel] Main rejected: $demandId mainResult=$mainResult")
         }
 
-        // If Main rejected → try Fallback.
-        if (!mainResult.isInserted) {
-            val isThresholdReject = mainResult is InsertResult.Rejected &&
-                mainResult.reason == InsertResult.Reason.IterationThreshold
-            val fallbackResult = fallbackCache.insert(winner)
-            logInfo(TAG, "[$adTypeLabel] fallback insert: $fallbackResult")
-            if (!fallbackResult.isInserted) {
-                winner.adSource.destroy()
-                logInfo(TAG, "[$adTypeLabel] winner destroyed (rejected by both caches)")
-                // Threshold reject + Fallback can't accept → all subsequent are even cheaper → stop.
-                if (isThresholdReject) {
-                    thresholdStopSignal = true
-                    logInfo(TAG, "[$adTypeLabel] threshold stop signal: no point querying cheaper demands")
-                }
+        // Main didn't accept → Fallback
+        if (fallbackCache.isDisabled) {
+            winner.adSource.markFillFinished(RoundStatus.Lose, price)
+            winner.adSource.destroy()
+            logInfo(TAG, "[$adTypeLabel] LOSE (Fb disabled): $demandId price=$price")
+            if (isFirst) {
+                // Edge case: first bid rejected by Main AND Fallback disabled.
+                // No didLoad fired — will be handled by onComplete no-fill path.
+                firstFillFired.set(false)
             }
+            return
         }
 
-        // First fill → deliver onSuccess on main thread.
-        if (isFirst) {
+        val fbResult = fallbackCache.insert(winner)
+        if (fbResult.isInserted) {
+            winner.adSource.markFillFinished(RoundStatus.Cached, price)
+            logInfo(TAG, "[$adTypeLabel] CACHE (Fallback): $demandId price=$price")
+        } else {
+            winner.adSource.markFillFinished(RoundStatus.Lose, price)
+            winner.adSource.destroy()
+            logInfo(TAG, "[$adTypeLabel] LOSE (both rejected): $demandId price=$price")
+        }
+
+        // First fill that went to Fallback (not Main) — still deliver didLoad.
+        if (isFirst && fbResult.isInserted) {
+            logInfo(TAG, "[$adTypeLabel] WIN (from Fallback): $demandId price=$price")
             val info = buildSyntheticAuctionInfo(winner)
-            logInfo(TAG, "[$adTypeLabel] firing onSuccess for first fill")
             withContext(Dispatchers.Main) { onSuccess(winner, info) }
+        } else if (isFirst) {
+            // First bid rejected by both — reset flag so onComplete handles no-fill.
+            firstFillFired.set(false)
         }
     }
 
-    /**
-     * Uses non-suspend snapshot reads — safe to call from any thread synchronously.
-     */
     override fun peek(): AuctionResult? =
         mainCache.peekSnapshot() ?: fallbackCache.peekSnapshot()
 
-    /**
-     * Pop from Main first, then Fallback. Cancels any running auction (per spec:
-     * show() consumes the ad and stops background demand polling).
-     */
     override fun pop(): AuctionResult? = runBlocking {
         val result = mainCache.popFirst() ?: fallbackCache.popFirst()
-        if (result != null) {
-            cancelAuction()
-        }
+        if (result != null) cancelAuction()
         result
     }
 
-    /**
-     * Suspends until an entry is available in either cache, then pops it.
-     */
     override suspend fun poll(): AuctionResult {
         while (true) {
             val result = mainCache.popFirst() ?: fallbackCache.popFirst()
@@ -236,17 +200,14 @@ internal class TwoLevelAdManager(
         scope.coroutineContext[Job]?.cancel()
     }
 
+    override fun withSettings(settings: Cacheable.Settings) {
+        // NO-OP: uses TwoLevelCacheConfig from server extras.
+    }
+
     private fun cancelAuction() {
         auctionJob?.cancel()
         auctionJob = null
-        logInfo(TAG, "[$adTypeLabel] auction cancelled")
     }
-
-    override fun withSettings(settings: Cacheable.Settings) {
-        // NO-OP: Two-Level Cache uses TwoLevelCacheConfig sourced from server extras.
-    }
-
-    // ---
 
     private fun buildSyntheticAuctionInfo(result: AuctionResult): AuctionInfo {
         val stats = result.adSource.getStats()
@@ -267,7 +228,7 @@ internal class TwoLevelAdManager(
                     bidType = adUnit?.bidType?.code,
                     fillStartTs = stats.fillStartTs,
                     fillFinishTs = stats.fillFinishTs,
-                    status = "WIN",
+                    status = RoundStatus.Win.code,
                     ext = adUnit?.extra?.toString(),
                 ),
             ),

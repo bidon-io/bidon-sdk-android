@@ -79,7 +79,7 @@ internal object ManagerPool {
         // Each auctionKey gets its own cache stores (different waterfalls/pricefloors).
         val mainCache = CacheStorage(
             capacity = config.mainCacheSize,
-            iterationThreshold = config.threshold,
+            threshold = config.threshold,
         )
         val fallbackCache = FallbackCacheStorage(
             capacity = config.fallbackCacheSize,
