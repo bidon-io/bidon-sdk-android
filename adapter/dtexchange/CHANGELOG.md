@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [8.4.4.0] - 2026-04-01
+### Changed
+- Updated SDK dependency from 8.4.3 to 8.4.4
+
 ## [8.4.3.1] - 2026-03-27
 ### Changed
 - Fixed memory leak where InneractiveAdSpotManager held destroyed Activity references through request listener closures
