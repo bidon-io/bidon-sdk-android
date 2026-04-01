@@ -1,4 +1,34 @@
-# Two-Level Cache Audit: Stats, Callbacks, ResultsCollector
+# Two-Level Cache Audit
+
+## Part A: Логические проблемы (2026-04-01)
+
+### A.1 runBlocking в TwoLevelAdManager.pop() [FIXED]
+
+**Severity:** HIGH — ANR risk
+
+`pop()` вызывается с Main thread. `CacheStorage.popFirst()` и `FallbackCacheStorage.popFirst()` использовали `kotlinx.coroutines.sync.Mutex` (suspend). Для вызова suspend из не-suspend использовался `runBlocking`, блокируя Main thread при contention.
+
+**Fix:** Заменил `Mutex` на `synchronized` в обоих storage. Операции внутри lock — list add/remove/sort без suspend-точек. `popFirst()` и `insert()` теперь обычные `fun`, `runBlocking` убран из `pop()`.
+
+### A.2 TwoLevelAdManagerProxy мёртв после clear() [FIXED]
+
+**Severity:** MEDIUM — silent failure
+
+`clear()` отменял `scope.coroutineContext[Job]`. После этого `cache()` → `scope.launch { }` — no-op. Callbacks `onSuccess`/`onFailure` никогда не вызывались. Publisher не получал ни ответа, ни ошибки.
+
+**Fix:** Добавил `ensureActiveScope()` — если scope отменён, пересоздаёт его. `clear()` также обнуляет `_delegate`, чтобы при следующем `cache()` manager резолвился заново.
+
+### A.3 Ad Expiry не обрабатывается для закешированных бидов [OPEN]
+
+**Severity:** MEDIUM — stale ads
+
+V1 (`AdCacheImpl`) подписывается на `adSource.adEvent` и удаляет expired ads из кеша. Two-Level Cache не подписывается. Закешированный бид может протухнуть (ad network TTL 30-60 мин), и при `pop()` вернётся невалидный креатив.
+
+Задокументировано в AD_CACHE_SPEC.md, section 14.
+
+---
+
+## Part B: Stats, Callbacks, ResultsCollector (ранее)
 
 Comparison of `TwoLevel (SequentialAuctionPipeline + TwoLevelAdManager)` vs reference flows
 (`AuctionImpl + DefaultAuctionExecutor + WinLossNotifier`).

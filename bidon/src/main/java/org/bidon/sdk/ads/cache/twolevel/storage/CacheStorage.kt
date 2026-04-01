@@ -3,8 +3,6 @@ package org.bidon.sdk.ads.cache.twolevel.storage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -41,13 +39,13 @@ internal data class CacheSnapshot(
  * ### No eviction (spec section 3.3)
  * Caller verifies `!isFull` before calling [insert]. The storage never evicts items.
  *
- * Thread safety: mutations use [Mutex]. State is exposed via [StateFlow] for lock-free reads.
+ * Thread safety: mutations use [synchronized]. State is exposed via [StateFlow] for lock-free reads.
  */
 internal class CacheStorage(
     private val capacity: Int,
     private val threshold: Int,
 ) {
-    private val mutex = Mutex()
+    private val lock = Any()
     private val items = mutableListOf<AuctionResult>()
     private var stickyHeadActive = false
 
@@ -68,10 +66,10 @@ internal class CacheStorage(
      * @return [InsertResult.Success] or [InsertResult.Rejected].
      */
     @Suppress("ReturnCount")
-    suspend fun insert(
+    fun insert(
         element: AuctionResult,
         sticky: Boolean,
-    ): InsertResult = mutex.withLock {
+    ): InsertResult = synchronized(lock) {
         val price = element.price()
         val key = element.demandKey()
 
@@ -82,14 +80,14 @@ internal class CacheStorage(
             emitState()
             logInfo(TAG, "[Main] insert SUCCESS (first): key=$key price=$price sticky=$sticky")
             logCacheState()
-            return@withLock InsertResult.Success()
+            return@synchronized InsertResult.Success()
         }
 
         // 2. capacity==1 + sticky active + not sticky -> reject.
         if (capacity == 1 && stickyHeadActive && !sticky) {
             logInfo(TAG, "[Main] insert REJECTED StickyProtected: key=$key price=$price")
             logCacheState()
-            return@withLock InsertResult.Rejected(InsertResult.Reason.StickyProtected)
+            return@synchronized InsertResult.Rejected(InsertResult.Reason.StickyProtected)
         }
 
         // 3. Threshold check: price < thresholdBar -> reject.
@@ -98,7 +96,7 @@ internal class CacheStorage(
         if (price < bar) {
             logInfo(TAG, "[Main] insert REJECTED Threshold: price=$price bar=$bar max=$maxPrice")
             logCacheState()
-            return@withLock InsertResult.Rejected(InsertResult.Reason.Threshold)
+            return@synchronized InsertResult.Rejected(InsertResult.Reason.Threshold)
         }
 
         // 4. Duplicate (same demandId + same price) -> remove old, fall through to insert.
@@ -124,8 +122,8 @@ internal class CacheStorage(
     /**
      * Remove and return the highest-priced item (head). Clears sticky mode.
      */
-    suspend fun popFirst(): AuctionResult? = mutex.withLock {
-        if (items.isEmpty()) return@withLock null
+    fun popFirst(): AuctionResult? = synchronized(lock) {
+        if (items.isEmpty()) return@synchronized null
         val head = items.removeAt(0)
         stickyHeadActive = false
         emitState()

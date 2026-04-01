@@ -37,14 +37,14 @@ internal class TwoLevelAdManagerProxy(
 
     private val _delegate = MutableStateFlow<TwoLevelAdManager?>(null)
     private val resolveMutex = Mutex()
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     override fun cache(
         adTypeParam: AdTypeParam,
         onSuccess: (AuctionResult, AuctionInfo) -> Unit,
         onFailure: (AuctionInfo?, Throwable) -> Unit,
     ) {
-        scope.launch {
+        ensureActiveScope().launch {
             val manager = resolveDelegate(adTypeParam)
             manager.cache(adTypeParam, onSuccess, onFailure)
         }
@@ -71,10 +71,19 @@ internal class TwoLevelAdManagerProxy(
 
     override fun clear() {
         _delegate.value?.clear()
+        _delegate.value = null
         scope.coroutineContext[Job]?.cancel()
     }
 
     override fun withSettings(settings: Cacheable.Settings) {
         // NO-OP: Two-Level Cache uses TwoLevelCacheConfig sourced from server extras.
+    }
+
+    @Synchronized
+    private fun ensureActiveScope(): CoroutineScope {
+        if (scope.coroutineContext[Job]?.isActive != true) {
+            scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+        }
+        return scope
     }
 }

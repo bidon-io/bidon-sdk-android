@@ -3,8 +3,6 @@ package org.bidon.sdk.ads.cache.twolevel.storage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.logs.logging.impl.logInfo
 
@@ -30,12 +28,12 @@ internal data class FallbackSnapshot(
  * Eviction rule: strict `price > cheapest.price` required.
  * Equal-price items do NOT displace the current cheapest when the cache is full.
  *
- * Thread safety: mutations use [Mutex]. State is exposed via [StateFlow] for lock-free reads.
+ * Thread safety: mutations use [synchronized]. State is exposed via [StateFlow] for lock-free reads.
  */
 internal class FallbackCacheStorage(
     private val capacity: Int,
 ) {
-    private val mutex = Mutex()
+    private val lock = Any()
     private val items = mutableListOf<AuctionResult>()
 
     private val _state = MutableStateFlow(FallbackSnapshot(isFull = capacity <= 0))
@@ -49,9 +47,9 @@ internal class FallbackCacheStorage(
      * @return [InsertResult.Success] or [InsertResult.Rejected] with reason [InsertResult.Reason.CacheFull].
      */
     @Suppress("ReturnCount")
-    suspend fun insert(element: AuctionResult): InsertResult = mutex.withLock {
+    fun insert(element: AuctionResult): InsertResult = synchronized(lock) {
         if (capacity <= 0) {
-            return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
+            return@synchronized InsertResult.Rejected(InsertResult.Reason.CacheFull)
         }
 
         val price = element.price()
@@ -70,7 +68,7 @@ internal class FallbackCacheStorage(
             if (cheapest == null || price <= cheapest.price()) {
                 logInfo(TAG, "[Fallback] insert REJECTED CacheFull: price=$price cheapest=${cheapest?.price()}")
                 logCacheState()
-                return@withLock InsertResult.Rejected(InsertResult.Reason.CacheFull)
+                return@synchronized InsertResult.Rejected(InsertResult.Reason.CacheFull)
             }
             items.remove(cheapest)
             evicted = cheapest
@@ -88,8 +86,8 @@ internal class FallbackCacheStorage(
     /**
      * Remove and return the highest-priced item (head).
      */
-    suspend fun popFirst(): AuctionResult? = mutex.withLock {
-        if (items.isEmpty()) return@withLock null
+    fun popFirst(): AuctionResult? = synchronized(lock) {
+        if (items.isEmpty()) return@synchronized null
         val head = items.removeAt(0)
         emitState()
         logInfo(TAG, "[Fallback] popFirst: ${head.demandKey()} price=${head.price()} remaining=${items.size}")

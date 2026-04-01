@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -280,13 +279,8 @@ internal class TwoLevelAdManager(
         mainCache.state.value.head ?: fallbackCache.state.value.head
 
     override fun pop(): AuctionResult? {
-        // Fast-path: check snapshots before entering runBlocking
-        if (!mainCache.state.value.hasContent && !fallbackCache.state.value.hasContent) return null
-        // Brief runBlocking for Mutex-based popFirst (sub-microsecond list operation)
-        val result = runBlocking {
-            mainCache.popFirst() ?: fallbackCache.popFirst()
-        }
-        if (result != null) cancelAuction()
+        val result = mainCache.popFirst() ?: fallbackCache.popFirst() ?: return null
+        cancelAuction()
         return result
     }
 
