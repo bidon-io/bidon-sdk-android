@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.11.0.0] - 2026-04-01
+### Changed
+- Updated SDK dependency from 1.10.0 to 1.11.0
+
 ## [1.10.0.0] - 2026-01-21
 ### Changed
 - Updated MobileFuse SDK dependency from 1.9.3 to 1.10.0
