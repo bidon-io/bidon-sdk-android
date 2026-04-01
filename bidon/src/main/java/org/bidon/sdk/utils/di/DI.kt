@@ -18,9 +18,6 @@ import org.bidon.sdk.ads.banner.render.CalculateAdContainerParamsUseCase
 import org.bidon.sdk.ads.banner.render.RenderInspectorImpl
 import org.bidon.sdk.ads.cache.AdCache
 import org.bidon.sdk.ads.cache.AdCacheFactory
-import org.bidon.sdk.ads.cache.andr.RefillCoordinatorProvider
-import org.bidon.sdk.ads.cache.andr.store.AdStoreProvider
-import org.bidon.sdk.ads.cache.andr.token.TokenCollectionProvider
 import org.bidon.sdk.ads.cache.impl.AdCacheFactoryImpl
 import org.bidon.sdk.auction.Auction
 import org.bidon.sdk.auction.AuctionResolver
@@ -89,7 +86,6 @@ import org.bidon.sdk.stats.impl.StatsRequestUseCaseImpl
 import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
-import org.bidon.sdk.utils.SdkDispatchers
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -170,9 +166,6 @@ internal object DI {
 
             singleton<BiddingConfig> { BiddingConfigImpl() }
             singleton<GetTokensUseCase> { GetTokensUseCaseImpl() }
-            singleton<AdStoreProvider> { AdStoreProvider(coroutineContext = SdkDispatchers.IO) }
-            singleton<TokenCollectionProvider> { TokenCollectionProvider() }
-            singleton<RefillCoordinatorProvider> { RefillCoordinatorProvider() }
 
             /**
              * Factories
