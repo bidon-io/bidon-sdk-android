@@ -362,7 +362,7 @@ internal class SequentialAuctionPipeline(
                 return null
             }
 
-            adSource.markFillStarted(adUnit, pricefloor)
+            adSource.markFillStarted(adUnit, adUnit.pricefloor)
 
             // Load on Main thread (required by some adapters, e.g. AdMob).
             // Use withTimeoutOrNull so per-unit timeout returns null instead of throwing
