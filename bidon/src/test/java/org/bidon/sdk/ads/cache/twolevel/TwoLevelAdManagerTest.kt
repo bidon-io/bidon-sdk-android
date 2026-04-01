@@ -13,6 +13,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -2197,5 +2198,117 @@ internal class TwoLevelAdManagerTest {
 
         val fired = latch.await(5, TimeUnit.SECONDS)
         assertThat(fired).isTrue()
+    }
+
+    // -----------------------------------------------------------------------
+    // Section 45: poll() — suspend until content available (AdCache interface)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `poll - returns immediately when main has content`() = runBlocking {
+        val (manager, mainCache, _, _) = createSetup()
+        val item = makeResult("admob", 10.0)
+        mainCache.insert(item, sticky = true)
+
+        val result = manager.poll()
+
+        assertThat(result).isSameInstanceAs(item)
+        // poll pops — main should be empty after
+        assertThat(mainCache.state.value.hasContent).isFalse()
+    }
+
+    @Test
+    fun `poll - returns from fallback when main empty`() = runBlocking {
+        val (manager, _, fallbackCache, _) = createSetup()
+        val item = makeResult("fb_dem", 5.0)
+        fallbackCache.insert(item)
+
+        val result = manager.poll()
+
+        assertThat(result).isSameInstanceAs(item)
+        assertThat(fallbackCache.state.value.hasContent).isFalse()
+    }
+
+    @Test
+    fun `poll - prefers main over fallback`() = runBlocking {
+        val (manager, mainCache, fallbackCache, _) = createSetup()
+        mainCache.insert(makeResult("main_dem", 10.0), sticky = true)
+        fallbackCache.insert(makeResult("fb_dem", 5.0))
+
+        val result = manager.poll()
+
+        assertThat(result.adSource.getStats().demandId.demandId).isEqualTo("main_dem")
+    }
+
+    @Test
+    fun `poll - suspends until content appears then returns`() = runBlocking<Unit> {
+        val (manager, mainCache, _, _) = createSetup()
+        val item = makeResult("delayed", 7.0)
+
+        val resultRef = AtomicReference<AuctionResult>()
+        val latch = CountDownLatch(1)
+
+        // Launch poll on a real dispatcher — it must actually suspend waiting for content
+        val job = kotlinx.coroutines.CoroutineScope(Dispatchers.Default).launch {
+            resultRef.set(manager.poll())
+            latch.countDown()
+        }
+
+        // Verify poll hasn't returned yet
+        val earlyFire = latch.await(300, TimeUnit.MILLISECONDS)
+        assertThat(earlyFire).isFalse()
+
+        // Insert item — poll should wake up via StateFlow emission
+        mainCache.insert(item, sticky = false)
+
+        val fired = latch.await(5, TimeUnit.SECONDS)
+        assertThat(fired).isTrue()
+        assertThat(resultRef.get()).isSameInstanceAs(item)
+        job.cancel()
+    }
+
+    @Test
+    fun `poll - cancels auction on return`() = runBlocking<Unit> {
+        val (manager, mainCache, _, controller) = createSetup()
+        val gate = CompletableDeferred<Unit>()
+        coEvery { controller.start(any(), any(), any(), any(), any()) } coAnswers {
+            gate.await()
+        }
+
+        // Start auction
+        manager.cache(
+            adTypeParam = mockAdTypeParam(),
+            onSuccess = { _, _ -> },
+            onFailure = { _, _ -> },
+        )
+        Thread.sleep(100)
+
+        // Insert content directly and poll
+        mainCache.insert(makeResult("dem1", 10.0), sticky = false)
+        manager.poll()
+
+        // After poll, auction state should be Idle (cancelled)
+        assertThat(manager.isIdle()).isTrue()
+        gate.complete(Unit)
+    }
+
+    @Test
+    fun `poll - sequential polls drain main then fallback`() = runBlocking {
+        val (manager, mainCache, fallbackCache, _) = createSetup()
+        mainCache.insert(makeResult("m1", 10.0), sticky = true)
+        mainCache.insert(makeResult("m2", 9.0), sticky = false)
+        fallbackCache.insert(makeResult("f1", 5.0))
+
+        val r1 = manager.poll()
+        assertThat(r1.adSource.getStats().price).isEqualTo(10.0)
+
+        val r2 = manager.poll()
+        assertThat(r2.adSource.getStats().price).isEqualTo(9.0)
+
+        val r3 = manager.poll()
+        assertThat(r3.adSource.getStats().price).isEqualTo(5.0)
+
+        assertThat(mainCache.state.value.hasContent).isFalse()
+        assertThat(fallbackCache.state.value.hasContent).isFalse()
     }
 }
