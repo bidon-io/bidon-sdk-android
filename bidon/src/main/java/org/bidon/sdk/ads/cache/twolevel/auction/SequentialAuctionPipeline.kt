@@ -159,6 +159,16 @@ internal class SequentialAuctionPipeline(
                                 // Pre-filter: can any cache accept this bid?
                                 if (!shouldContinueAuction(adUnit.pricefloor)) {
                                     logInfo(TAG, "[$index/${adUnits.size}] Stop: no cache can accept ecpm=${adUnit.pricefloor}")
+                                    // Mark remaining ad units as LOSE (spec §7: markRemaining(LOSE))
+                                    for (remaining in adUnits.subList(index, adUnits.size)) {
+                                        resultsCollector.add(
+                                            AuctionResult.AuctionFailed(
+                                                adUnit = remaining,
+                                                roundStatus = RoundStatus.Lose,
+                                                tokenInfo = null,
+                                            )
+                                        )
+                                    }
                                     break
                                 }
 

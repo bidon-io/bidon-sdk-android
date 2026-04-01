@@ -101,8 +101,8 @@ internal class CacheStorage(
             return@withLock InsertResult.Rejected(InsertResult.Reason.Threshold)
         }
 
-        // 4. Duplicate by demandId -> remove old, fall through to insert.
-        val existingIndex = items.indexOfFirst { it.demandKey() == key }
+        // 4. Duplicate (same demandId + same price) -> remove old, fall through to insert.
+        val existingIndex = items.indexOfFirst { it.demandKey() == key && it.price() == price }
         if (existingIndex >= 0) {
             if (stickyHeadActive && existingIndex == 0) {
                 stickyHeadActive = false

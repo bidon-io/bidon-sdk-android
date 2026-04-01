@@ -74,7 +74,7 @@ insert(element, sticky):
   1. Пустой кеш → принять
   2. capacity==1 + sticky active + не sticky → REJECTED
   3. price < thresholdBar → REJECTED
-  4. Дубликат (same demandId) → удалить старый, вставить новый
+  4. Дубликат (same demandId + same price) → удалить старый, вставить новый
   5. INSERT + sort (sticky stays at head)
 ```
 
