@@ -176,7 +176,6 @@ internal class TwoLevelAdManager(
         // Main didn't accept → Fallback
         if (fallbackCache.isDisabled) {
             handleLoser(winner, winnerInfo, "Fb disabled")
-            if (isFirst) firstFillFired.set(false)
             return
         }
 
@@ -189,17 +188,6 @@ internal class TwoLevelAdManager(
             logInfo(TAG, "[$adTypeLabel] CACHE (Fallback): $demandId price=$price")
         } else {
             handleLoser(winner, winnerInfo, "both rejected")
-        }
-
-        if (isFirst && fbResult.isInserted) {
-            logInfo(TAG, "[$adTypeLabel] WIN (from Fallback): $demandId price=$price")
-            markWin(winner, externalWinNotificationsEnabled)
-            winnerInfo.demandId = demandId
-            winnerInfo.price = price
-            val info = buildSyntheticAuctionInfo(winner)
-            withContext(Dispatchers.Main) { onSuccess(winner, info) }
-        } else if (isFirst) {
-            firstFillFired.set(false)
         }
     }
 
@@ -276,7 +264,7 @@ internal class TwoLevelAdManager(
     }
 
     override fun peek(): AuctionResult? =
-        mainCache.state.value.head ?: fallbackCache.state.value.head
+        mainCache.state.value.head
 
     override fun pop(): AuctionResult? {
         val result = mainCache.popFirst() ?: fallbackCache.popFirst() ?: return null

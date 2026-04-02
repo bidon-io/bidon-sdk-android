@@ -59,8 +59,9 @@ internal class CacheStorage(
      *  1. Empty cache -> accept (sets maxPrice).
      *  2. capacity==1 + sticky active + not sticky -> REJECTED (StickyProtected).
      *  3. price < thresholdBar -> REJECTED (Threshold).
-     *  4. Duplicate (same demandId) -> remove old, insert new.
-     *  5. INSERT + sort (sticky stays at head).
+     *  4. Full -> REJECTED (CacheFull).
+     *  5. Duplicate (same demandId) -> remove old, insert new.
+     *  6. INSERT + sort (sticky stays at head).
      *
      * @param sticky if true, marks this element as the sticky head.
      * @return [InsertResult.Success] or [InsertResult.Rejected].
@@ -99,7 +100,14 @@ internal class CacheStorage(
             return@synchronized InsertResult.Rejected(InsertResult.Reason.Threshold)
         }
 
-        // 4. Duplicate (same demandId + same price) -> remove old, fall through to insert.
+        // 4. Capacity guard: reject if full (caller should pre-check, but defensive).
+        if (items.size >= capacity) {
+            logInfo(TAG, "[Main] insert REJECTED CacheFull: key=$key price=$price size=${items.size}/$capacity")
+            logCacheState()
+            return@synchronized InsertResult.Rejected(InsertResult.Reason.CacheFull)
+        }
+
+        // 5. Duplicate (same demandId + same price) -> remove old, fall through to insert.
         val existingIndex = items.indexOfFirst { it.demandKey() == key && it.price() == price }
         if (existingIndex >= 0) {
             if (stickyHeadActive && existingIndex == 0) {
@@ -108,7 +116,7 @@ internal class CacheStorage(
             items.removeAt(existingIndex)
         }
 
-        // 5. Insert + sort (sticky stays at head).
+        // 6. Insert + sort (sticky stays at head).
         items.add(element)
         if (sticky) stickyHeadActive = true
         sortItems()

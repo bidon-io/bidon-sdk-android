@@ -173,17 +173,14 @@ internal class CacheStorageTest {
     }
 
     @Test
-    fun `sticky head protection - capacity 1, second sticky insert accepted (caller checks isFull)`() = runTest {
-        // Per spec: caller must check !isFull before insert. Inserting into a full
-        // capacity-1 cache is undefined. The storage accepts it (no capacity guard).
+    fun `sticky head protection - capacity 1, second sticky insert rejected (CacheFull)`() = runTest {
         val storage = CacheStorage(capacity = 1, threshold = 80)
         storage.insert(makeResult("dem1", 5.0), sticky = true)
 
         val dem2 = makeResult("dem2", 10.0)
         val result = storage.insert(dem2, sticky = true)
 
-        // Insert succeeds (step 2 skipped because incoming is sticky)
-        assertThat(result.isInserted).isTrue()
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
     }
 
     // -----------------------------------------------------------------------
@@ -366,17 +363,17 @@ internal class CacheStorageTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `sticky eviction protection - sticky head is never evicted even if cheapest`() = runTest {
+    fun `sticky eviction protection - full cache rejects insert`() = runTest {
         val storage = CacheStorage(capacity = 2, threshold = 80)
         val stickyItem = makeResult("sticky", 1.0) // low price sticky head
         storage.insert(stickyItem, sticky = true)
         storage.insert(makeResult("dem2", 8.0), sticky = false)
 
-        // Try to insert a more expensive item — eviction candidate should be dem2 (not sticky head)
+        // Cache is full (2/2) — insert rejected by capacity guard
         val newcomer = makeResult("dem3", 10.0)
         val result = storage.insert(newcomer, sticky = false)
 
-        assertThat(result.isInserted).isTrue()
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
         // sticky head survives
         assertThat(storage.state.value.head).isSameInstanceAs(stickyItem)
     }
@@ -386,9 +383,7 @@ internal class CacheStorageTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `capacity 1 - second sticky insert accepted (caller checks isFull)`() = runTest {
-        // Per spec: only one sticky per auction, and caller checks !isFull.
-        // If called anyway, insert succeeds (no capacity guard in storage).
+    fun `capacity 1 - second sticky insert rejected (CacheFull)`() = runTest {
         val storage = CacheStorage(capacity = 1, threshold = 80)
         val first = makeResult("admob", 5.0)
         storage.insert(first, sticky = true)
@@ -396,7 +391,7 @@ internal class CacheStorageTest {
         val second = makeResult("applovin", 8.0)
         val result = storage.insert(second, sticky = true)
 
-        assertThat(result.isInserted).isTrue()
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
     }
 
     @Test
@@ -414,17 +409,17 @@ internal class CacheStorageTest {
     }
 
     @Test
-    fun `capacity 1 - non-sticky insert succeeds when no sticky head`() = runTest {
+    fun `capacity 1 - non-sticky insert rejected when full (no sticky head)`() = runTest {
         val storage = CacheStorage(capacity = 1, threshold = 80)
         val first = makeResult("admob", 5.0)
         storage.insert(first, sticky = false)
 
-        // Non-sticky insert should evict existing (no sticky protection)
+        // Cache is full (1/1) — insert rejected by capacity guard
         val second = makeResult("applovin", 8.0)
         val result = storage.insert(second, sticky = false)
 
-        assertThat(result.isInserted).isTrue()
-        assertThat(storage.state.value.head).isSameInstanceAs(second)
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
+        assertThat(storage.state.value.head).isSameInstanceAs(first)
     }
 
     // -----------------------------------------------------------------------
@@ -919,13 +914,14 @@ internal class CacheStorageTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `capacity 1 non-sticky - higher price replaces lower`() = runTest {
+    fun `capacity 1 non-sticky - higher price rejected when full`() = runTest {
         val storage = CacheStorage(capacity = 1, threshold = 0)
         storage.insert(makeResult("dem1", 5.0), sticky = false)
 
+        // Cache is full (1/1) — capacity guard rejects even higher price
         val result = storage.insert(makeResult("dem2", 10.0), sticky = false)
-        assertThat(result.isInserted).isTrue()
-        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(10.0)
+        assertThat(result).isEqualTo(InsertResult.Rejected(InsertResult.Reason.CacheFull))
+        assertThat(storage.state.value.head!!.adSource.getStats().price).isEqualTo(5.0)
     }
 
     @Test
