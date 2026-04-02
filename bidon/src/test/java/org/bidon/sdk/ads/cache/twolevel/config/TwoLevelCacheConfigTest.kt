@@ -10,18 +10,33 @@ internal class TwoLevelCacheConfigTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `DEFAULT - mainCacheSize is 2`() {
-        assertThat(TwoLevelCacheConfig.DEFAULT.mainCacheSize).isEqualTo(2)
+    fun `DEFAULT_FULLSCREEN - mainCacheSize is 2`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_FULLSCREEN.mainCacheSize).isEqualTo(2)
     }
 
     @Test
-    fun `DEFAULT - fallbackCacheSize is 1`() {
-        assertThat(TwoLevelCacheConfig.DEFAULT.fallbackCacheSize).isEqualTo(1)
+    fun `DEFAULT_FULLSCREEN - fallbackCacheSize is 1`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_FULLSCREEN.fallbackCacheSize).isEqualTo(1)
     }
 
     @Test
-    fun `DEFAULT - threshold is 80`() {
-        assertThat(TwoLevelCacheConfig.DEFAULT.threshold).isEqualTo(80)
+    fun `DEFAULT_FULLSCREEN - threshold is 80`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_FULLSCREEN.threshold).isEqualTo(80)
+    }
+
+    @Test
+    fun `DEFAULT_BANNER - mainCacheSize is 3`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_BANNER.mainCacheSize).isEqualTo(3)
+    }
+
+    @Test
+    fun `DEFAULT_BANNER - fallbackCacheSize is 5`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_BANNER.fallbackCacheSize).isEqualTo(5)
+    }
+
+    @Test
+    fun `DEFAULT_BANNER - threshold is 70`() {
+        assertThat(TwoLevelCacheConfig.DEFAULT_BANNER.threshold).isEqualTo(70)
     }
 
     // -----------------------------------------------------------------------
@@ -78,7 +93,7 @@ internal class TwoLevelCacheConfigTest {
 
     @Test
     fun `copy - changes only specified field`() {
-        val original = TwoLevelCacheConfig.DEFAULT
+        val original = TwoLevelCacheConfig.DEFAULT_FULLSCREEN
         val modified = original.copy(threshold = 50)
         assertThat(modified.mainCacheSize).isEqualTo(original.mainCacheSize)
         assertThat(modified.fallbackCacheSize).isEqualTo(original.fallbackCacheSize)

@@ -111,7 +111,7 @@ internal class TwoLevelAdManager(
                     val fs = fallbackCache.state.value
                     val canAcceptMain = !ms.isFull && (ms.thresholdBar == null || ecpm >= ms.thresholdBar)
                     val canAcceptFallback = !fallbackCache.isDisabled &&
-                        (!fs.isFull || ecpm > (fs.cheapestPrice ?: 0.0))
+                        (!fs.isFull || ecpm > (fs.cheapestPrice ?: Double.MAX_VALUE))
                     canAcceptMain || canAcceptFallback
                 },
                 onComplete = { auctionInfo, error ->

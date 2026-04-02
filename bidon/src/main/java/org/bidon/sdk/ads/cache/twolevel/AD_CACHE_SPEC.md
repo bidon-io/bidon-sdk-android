@@ -24,11 +24,11 @@ Two-Level Cache — стратегия кеширования рекламы с 
 
 Задаётся с сервера, отдельно для каждого формата.
 
-| Параметр | Диапазон | Default | Описание |
-| --- | --- | --- | --- |
-| `adunitCacheSize` | 1–10 | 2 | Ёмкость Main Cache |
-| `fallbackCacheSize` | 0–10 | 1 | Ёмкость Fallback. **0 = отключён** |
-| `threshold` | 0–100 | 80 | % от maxPrice для фильтрации дешёвых бидов |
+| Параметр | Диапазон | Default (Fullscreen) | Default (Banner) | Описание |
+| --- | --- | --- | --- | --- |
+| `adunitCacheSize` | 1–10 | 2 | 3 | Ёмкость Main Cache |
+| `fallbackCacheSize` | 0–10 | 1 | 5 | Ёмкость Fallback. **0 = отключён** |
+| `threshold` | 0–100 | 80 | 70 | % от maxPrice для фильтрации дешёвых бидов |
 
 ---
 
