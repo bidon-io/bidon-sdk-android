@@ -42,6 +42,8 @@ Two-Level Cache — стратегия кеширования рекламы с 
 | `popFirst()` | Извлечь лучший. Sticky режим снимается |
 | `insert(ad, sticky)` | Вставить с валидацией. Отклонённые → Fallback |
 
+**Manager-level `peek()`** проверяет Main ?? Fallback — нужно для корректной работы после Fallback rescue (бид отдан через didLoad, но ещё лежит в Fallback до show/pop).
+
 ### 3.1 Sticky Head
 
 Первый бид аукциона вставляется как **sticky** — защищён от вытеснения. Гарантирует что бид, отданный в `didLoad`, будет доступен при `show()`.
@@ -74,11 +76,12 @@ insert(element, sticky):
   1. Пустой кеш → принять
   2. capacity==1 + sticky active + не sticky → REJECTED
   3. price < thresholdBar → REJECTED
-  4. Дубликат (same demandId + same price) → удалить старый, вставить новый
-  5. INSERT + sort (sticky stays at head)
+  4. isFull → REJECTED (capacity guard)
+  5. Дубликат (same demandId + same price) → удалить старый, вставить новый
+  6. INSERT + sort (sticky stays at head)
 ```
 
-Main заполняется один раз за аукцион. Caller проверяет `!isFull` перед insert — вытеснения нет.
+Main заполняется один раз за аукцион. Caller проверяет `!isFull` перед insert, storage имеет внутренний capacity guard — вытеснения нет.
 
 ---
 
@@ -177,7 +180,7 @@ performAuction(adUnits, mainCache, fallbackCache):
                              OR adUnit.pricefloor > fallbackCache.cheapest)
 
     if !canAcceptMain AND !canAcceptFallback:
-      markRemaining(LOSE)
+      markRemaining(BelowPricefloor для CPM, Lose для RTB)
       break
 
     // --- LOAD ---
@@ -348,8 +351,8 @@ canAcceptFallback = Fallback не отключён И (не полон ИЛИ б
 
 | Компонент | Механизм |
 | --- | --- |
-| Main / Fallback Cache | Мьютекс |
-| Manager Pool | Мьютекс |
+| Main / Fallback Cache | synchronized (Android), NSLock (iOS) |
+| Manager Pool | Мьютекс (Android), DispatchQueue+barrier (iOS) |
 | Колбэки | Главный поток |
 
 ---

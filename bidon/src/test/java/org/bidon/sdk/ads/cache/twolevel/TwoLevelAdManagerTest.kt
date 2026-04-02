@@ -682,12 +682,12 @@ internal class TwoLevelAdManagerTest {
     }
 
     @Test
-    fun `peek - returns null when main is empty even if fallback has items`() = runBlocking {
+    fun `peek - returns fallback head when main is empty`() = runBlocking {
         val (manager, _, fallbackCache, _) = createSetup()
         val item = makeResult("admob", 5.0)
         fallbackCache.insert(item)
 
-        assertThat(manager.peek()).isNull()
+        assertThat(manager.peek()).isSameInstanceAs(item)
     }
 
     @Test

@@ -264,7 +264,7 @@ internal class TwoLevelAdManager(
     }
 
     override fun peek(): AuctionResult? =
-        mainCache.state.value.head
+        mainCache.state.value.head ?: fallbackCache.state.value.head
 
     override fun pop(): AuctionResult? {
         val result = mainCache.popFirst() ?: fallbackCache.popFirst() ?: return null
