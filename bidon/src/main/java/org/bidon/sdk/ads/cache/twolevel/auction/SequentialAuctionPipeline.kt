@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.cache.twolevel.auction
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
@@ -99,6 +100,8 @@ internal class SequentialAuctionPipeline(
         val auctionId = UUID.randomUUID().toString()
         val resultsCollector: ResultsCollector = get()
         val pricefloor = adTypeParam.pricefloor
+        // Hoisted so stats can be sent even on cancellation.
+        var auctionResponseData: org.bidon.sdk.auction.models.AuctionResponse? = null
 
         try {
             resultsCollector.startRound(pricefloor)
@@ -126,6 +129,7 @@ internal class SequentialAuctionPipeline(
 
             auctionResponse.fold(
                 onSuccess = { response ->
+                    auctionResponseData = response
                     // Report server bidding result to ResultsCollector (deprecated but required
                     // for stats compatibility with the standard AuctionImpl flow).
                     resultsCollector.serverBiddingFinished(
@@ -265,7 +269,22 @@ internal class SequentialAuctionPipeline(
                 },
             )
         } catch (e: kotlinx.coroutines.CancellationException) {
-            auctionStat.markAuctionCanceled()
+            // Send stats for already-processed ad units before propagating cancellation.
+            withContext(NonCancellable) {
+                val response = auctionResponseData
+                if (response != null) {
+                    val roundStat = proceedRoundResults(resultsCollector)
+                    auctionStat.sendAuctionStats(
+                        auctionData = response,
+                        roundStat = roundStat,
+                        demandAd = demandAd,
+                    )
+                    resultsCollector.clear()
+                    logInfo(TAG, "Stats sent on cancellation")
+                } else {
+                    auctionStat.markAuctionCanceled()
+                }
+            }
             throw e
         } catch (e: Exception) {
             logError(TAG, "Unexpected error during sequential pipeline", e)
