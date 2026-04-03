@@ -70,7 +70,9 @@ internal class TwoLevelAdManagerProxy(
         _delegate.filterNotNull().first().poll()
 
     override fun clear() {
-        _delegate.value?.clear()
+        // Cancel running auction (prevents callbacks to dead listener)
+        // but keep the manager alive in ManagerPool with its cached ads.
+        _delegate.value?.detach()
         _delegate.value = null
         scope.coroutineContext[Job]?.cancel()
     }

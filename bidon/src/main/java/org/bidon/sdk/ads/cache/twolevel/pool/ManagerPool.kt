@@ -17,7 +17,6 @@ import org.bidon.sdk.ads.cache.twolevel.storage.CacheStorage
 import org.bidon.sdk.ads.cache.twolevel.storage.FallbackCacheStorage
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.di.get
-import java.lang.ref.WeakReference
 
 /**
  * Singleton pool of [TwoLevelAdManager] instances keyed by auctionKey.
@@ -26,16 +25,16 @@ import java.lang.ref.WeakReference
  * auctionKey it gets access to the existing manager. Each manager has its own
  * [CacheStorage] + [FallbackCacheStorage] pair (different auctionKeys have different
  * waterfalls and pricefloors).
- * - Stores a [WeakReference] to the manager; when no strong reference exists (the
- *   InterstitialImpl holding the AdCache was GC'd) the entry becomes eligible for cleanup.
+ * - Stores a strong reference to the manager so it survives proxy detach/GC cycles.
+ *   Cached ads persist across InterstitialImpl lifecycles.
  * - Periodic cleanup every 60 s: removes entries where the manager is idle AND
- *   (older than 5 min OR the weak reference has been cleared).
+ *   older than 5 min.
  * - Thread-safe via [Mutex].
  */
 internal object ManagerPool {
 
     private data class PoolEntry(
-        val weakRef: WeakReference<TwoLevelAdManager>,
+        val manager: TwoLevelAdManager,
         val createdAt: Long, // SystemClock.elapsedRealtime()
     )
 
@@ -53,26 +52,23 @@ internal object ManagerPool {
     /**
      * Returns the existing live [TwoLevelAdManager] for [auctionKey], or creates a new one.
      *
-     * The returned manager holds a strong reference. As long as the caller
-     * (InterstitialImpl / BannerView) holds the AdCache reference, the manager stays alive.
-     * Once the caller is GC'd the [WeakReference] in the pool is cleared and the entry
-     * becomes eligible for cleanup on the next periodic sweep.
+     * The pool holds a strong reference so the manager (and its cached ads) survives
+     * proxy detach cycles. Stale managers are removed by periodic cleanup.
      */
     suspend fun getOrCreate(
         auctionKey: String,
         demandAd: DemandAd,
         config: TwoLevelCacheConfig,
     ): TwoLevelAdManager = mutex.withLock {
-        // Check existing — reuse if WeakReference is still live
+        // Check existing — reuse if still alive
         val existing = pool[auctionKey]
         if (existing != null) {
-            val live = existing.weakRef.get()
-            if (live != null && live.isAlive()) {
+            val live = existing.manager
+            if (live.isAlive()) {
                 logInfo(TAG, "[Pool] reusing manager auctionKey=$auctionKey")
                 return@withLock live
             } else {
-                val reason = if (live == null) "weak ref dead" else "scope cancelled"
-                logInfo(TAG, "[Pool] $reason for auctionKey=$auctionKey, creating new")
+                logInfo(TAG, "[Pool] scope cancelled for auctionKey=$auctionKey, creating new")
                 pool.remove(auctionKey)
             }
         }
@@ -108,7 +104,7 @@ internal object ManagerPool {
         )
 
         pool[auctionKey] = PoolEntry(
-            weakRef = WeakReference(manager),
+            manager = manager,
             createdAt = SystemClock.elapsedRealtime(),
         )
         logInfo(TAG, "[Pool] created new manager auctionKey=$auctionKey adType=${demandAd.adType}")
@@ -129,13 +125,11 @@ internal object ManagerPool {
     private suspend fun runCleanup() = mutex.withLock {
         val now = SystemClock.elapsedRealtime()
         val toRemove = pool.entries.filter { (_, entry) ->
-            val manager = entry.weakRef.get()
-            val isWeakRefDead = manager == null
-            val isIdle = manager?.isIdle() ?: true
-            val lastActive = manager?.lastActiveAt ?: entry.createdAt
+            val manager = entry.manager
+            val isIdle = manager.isIdle()
+            val lastActive = manager.lastActiveAt
             val isStale = (now - lastActive) > IDLE_TTL_MS
-            // Cleanup: dead refs always; live refs when idle + stale (no recent activity)
-            isWeakRefDead || (isIdle && isStale)
+            isIdle && isStale
         }.map { it.key }
 
         toRemove.forEach { key -> pool.remove(key) }

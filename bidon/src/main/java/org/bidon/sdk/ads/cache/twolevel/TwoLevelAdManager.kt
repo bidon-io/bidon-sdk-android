@@ -297,6 +297,15 @@ internal class TwoLevelAdManager(
         // NO-OP: uses TwoLevelCacheConfig from server extras.
     }
 
+    /**
+     * Cancel any running auction but keep the manager alive with its cached ads.
+     * Called when a proxy detaches (InterstitialImpl destroyed) so the pool
+     * preserves cached ads for the next proxy with the same auctionKey.
+     */
+    internal fun detach() {
+        cancelAuction()
+    }
+
     private fun cancelAuction() {
         val current = _auctionState.value
         if (current is AuctionState.Running) {
