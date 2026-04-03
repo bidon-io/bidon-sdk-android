@@ -129,6 +129,7 @@ internal class TwoLevelAdManagerTest {
             mainCache = mainCache,
             fallbackCache = fallbackCache,
             controller = controller,
+            auctionKey = "test",
         )
         return Setup(manager, mainCache, fallbackCache, controller)
     }

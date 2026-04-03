@@ -32,7 +32,9 @@ internal data class FallbackSnapshot(
  */
 internal class FallbackCacheStorage(
     private val capacity: Int,
+    auctionKey: String = "",
 ) {
+    private val TAG = "[TwoLevelCache/$auctionKey]"
     private val lock = Any()
     private val items = mutableListOf<AuctionResult>()
 
@@ -119,9 +121,5 @@ internal class FallbackCacheStorage(
         }
         val entries = items.map { "${it.price()}" }
         logInfo(TAG, "[Fallback] Cache (${items.size}/$capacity): [${entries.joinToString(", ")}]")
-    }
-
-    companion object {
-        private const val TAG = "[TwoLevelCache]"
     }
 }

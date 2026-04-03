@@ -72,8 +72,9 @@ internal class SequentialAuctionPipeline(
     private val auctionStat: AuctionStat,
     private val biddingConfig: BiddingConfig,
     private val adTypeLabel: String = "",
+    private val auctionKey: String = "",
 ) {
-    private val TAG = "[TwoLevelCache] Sequential/$adTypeLabel"
+    private val TAG = "[TwoLevelCache/$auctionKey] Sequential/$adTypeLabel"
 
     /**
      * Execute the sequential auction pipeline.

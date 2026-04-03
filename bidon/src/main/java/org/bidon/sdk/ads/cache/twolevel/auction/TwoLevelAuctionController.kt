@@ -17,6 +17,7 @@ import org.bidon.sdk.logs.logging.impl.logInfo
 internal class TwoLevelAuctionController(
     private val pipeline: SequentialAuctionPipeline,
     private val adTypeLabel: String,
+    private val auctionKey: String = "",
 ) {
     /**
      * Start the sequential auction pipeline.
@@ -34,7 +35,7 @@ internal class TwoLevelAuctionController(
         shouldContinueAuction: (ecpm: Double) -> Boolean,
         onComplete: suspend (AuctionInfo?, BidonError?) -> Unit,
     ) {
-        logInfo(TAG, "[$adTypeLabel] start pricefloor=${adTypeParam.pricefloor}")
+        logInfo(TAG, "[$adTypeLabel/$auctionKey] start pricefloor=${adTypeParam.pricefloor}")
 
         pipeline.execute(
             demandAd = demandAd,

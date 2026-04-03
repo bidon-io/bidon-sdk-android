@@ -77,9 +77,11 @@ internal object ManagerPool {
         val mainCache = CacheStorage(
             capacity = config.mainCacheSize,
             threshold = config.threshold,
+            auctionKey = auctionKey,
         )
         val fallbackCache = FallbackCacheStorage(
             capacity = config.fallbackCacheSize,
+            auctionKey = auctionKey,
         )
 
         val pipeline = SequentialAuctionPipeline(
@@ -89,11 +91,13 @@ internal object ManagerPool {
             auctionStat = get(),
             biddingConfig = get(),
             adTypeLabel = demandAd.adType.code.uppercase(),
+            auctionKey = auctionKey,
         )
 
         val controller = TwoLevelAuctionController(
             pipeline = pipeline,
             adTypeLabel = demandAd.adType.code.uppercase(),
+            auctionKey = auctionKey,
         )
 
         val manager = TwoLevelAdManager(
@@ -101,6 +105,7 @@ internal object ManagerPool {
             mainCache = mainCache,
             fallbackCache = fallbackCache,
             controller = controller,
+            auctionKey = auctionKey,
         )
 
         pool[auctionKey] = PoolEntry(

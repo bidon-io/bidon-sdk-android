@@ -44,7 +44,9 @@ internal data class CacheSnapshot(
 internal class CacheStorage(
     private val capacity: Int,
     private val threshold: Int,
+    auctionKey: String = "",
 ) {
+    private val TAG = "[TwoLevelCache/$auctionKey]"
     private val lock = Any()
     private val items = mutableListOf<AuctionResult>()
     private var stickyHeadActive = false
@@ -175,9 +177,5 @@ internal class CacheStorage(
             "${item.price()}$s"
         }
         logInfo(TAG, "[Main] Cache (${items.size}/$capacity): [${entries.joinToString(", ")}]")
-    }
-
-    companion object {
-        private const val TAG = "[TwoLevelCache]"
     }
 }

@@ -37,6 +37,7 @@ internal class TwoLevelAdManager(
     private val mainCache: CacheStorage,
     private val fallbackCache: FallbackCacheStorage,
     private val controller: TwoLevelAuctionController,
+    private val auctionKey: String,
 ) : AdCache {
 
     /**
@@ -48,6 +49,7 @@ internal class TwoLevelAdManager(
         data class Running(val job: Job) : AuctionState
     }
 
+    private val TAG = "[TwoLevelCache/$auctionKey]"
     private val adTypeLabel = demandAd.adType.code.uppercase()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val _auctionState = MutableStateFlow<AuctionState>(AuctionState.Idle)
@@ -344,9 +346,5 @@ internal class TwoLevelAdManager(
     private class WinnerInfo {
         var demandId: String? = null
         var price: Double = 0.0
-    }
-
-    companion object {
-        private const val TAG = "[TwoLevelCache]"
     }
 }
