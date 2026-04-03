@@ -4,7 +4,7 @@ object Versions {
     private const val major = 0
     private const val minor = 13
     private const val patch = 0
-    private const val semantic: String = "-ac.5"
+    private const val semantic: String = "-ac.6"
 
     val BidonVersionName = mainVersion + semanticVersion
 
