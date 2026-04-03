@@ -50,6 +50,8 @@ internal class AuctionStatImpl(
     override fun markAuctionStarted(auctionId: String, adTypeParam: AdTypeParam) {
         this.auctionId = auctionId
         this.auctionStartTs = SystemTimeNow
+        this.isAuctionCanceled = false
+        this.winner = null
         val (banner, interstitial, rewarded) = adTypeParam.asAdRequestBody()
         this.bannerRequestBody = banner
         this.interstitialRequestBody = interstitial
