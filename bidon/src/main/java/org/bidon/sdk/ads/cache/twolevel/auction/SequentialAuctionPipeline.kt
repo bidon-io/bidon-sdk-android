@@ -102,6 +102,7 @@ internal class SequentialAuctionPipeline(
         val pricefloor = adTypeParam.pricefloor
         // Hoisted so stats can be sent even on cancellation.
         var auctionResponseData: org.bidon.sdk.auction.models.AuctionResponse? = null
+        var statsSent = false
 
         try {
             resultsCollector.startRound(pricefloor)
@@ -149,6 +150,7 @@ internal class SequentialAuctionPipeline(
                             roundStat = roundStat,
                             demandAd = demandAd,
                         )
+                        statsSent = true
                         resultsCollector.clear()
                         onComplete(auctionInfo, BidonError.NoFill(DemandId("auction")))
                         return
@@ -239,6 +241,7 @@ internal class SequentialAuctionPipeline(
                         roundStat = roundStat,
                         demandAd = demandAd,
                     )
+                    statsSent = true
                     resultsCollector.clear()
 
                     if (fillCount > 0) {
@@ -264,25 +267,31 @@ internal class SequentialAuctionPipeline(
                         roundStat = roundStat,
                         demandAd = demandAd,
                     )
+                    statsSent = true
                     resultsCollector.clear()
                     onComplete(null, BidonError.InternalServerSdkError(error.message ?: "Auction request failed"))
                 },
             )
         } catch (e: kotlinx.coroutines.CancellationException) {
             // Send stats for already-processed ad units before propagating cancellation.
+            // Skip if stats were already sent in the normal flow to avoid duplicates / 422 errors.
             withContext(NonCancellable) {
-                val response = auctionResponseData
-                if (response != null) {
-                    val roundStat = proceedRoundResults(resultsCollector)
-                    auctionStat.sendAuctionStats(
-                        auctionData = response,
-                        roundStat = roundStat,
-                        demandAd = demandAd,
-                    )
-                    resultsCollector.clear()
-                    logInfo(TAG, "Stats sent on cancellation")
+                if (statsSent) {
+                    logInfo(TAG, "Cancelled after stats already sent — skipping duplicate")
                 } else {
-                    auctionStat.markAuctionCanceled()
+                    val response = auctionResponseData
+                    if (response != null) {
+                        val roundStat = proceedRoundResults(resultsCollector)
+                        auctionStat.sendAuctionStats(
+                            auctionData = response,
+                            roundStat = roundStat,
+                            demandAd = demandAd,
+                        )
+                        resultsCollector.clear()
+                        logInfo(TAG, "Stats sent on cancellation")
+                    } else {
+                        auctionStat.markAuctionCanceled()
+                    }
                 }
             }
             throw e
