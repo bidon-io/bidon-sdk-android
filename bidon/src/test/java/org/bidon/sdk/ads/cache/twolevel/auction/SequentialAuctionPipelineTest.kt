@@ -8,10 +8,13 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -696,5 +699,125 @@ internal class SequentialAuctionPipelineTest {
 
         // RTB below pricefloor → Lose (not BelowPricefloor)
         verify { adSource.markFillFinished(RoundStatus.Lose, fillPrice) }
+    }
+
+    // -----------------------------------------------------------------------
+    // Cancellation stats
+    // -----------------------------------------------------------------------
+
+    /**
+     * Set up two adapters: first fills instantly, second hangs (never emits).
+     * Returns the hanging adEventFlow so the test can control it.
+     */
+    private fun setupTwoAdaptersFirstFillsSecondHangs(
+        adUnit1: AdUnit,
+        adUnit2: AdUnit,
+        fillPrice: Double,
+    ): MutableSharedFlow<AdEvent> {
+        val adEventFlow1 = MutableSharedFlow<AdEvent>(replay = 1)
+        val ad1 = makeAd(fillPrice, adUnit1)
+
+        val adSource1 = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        every { adSource1.adEvent } returns adEventFlow1
+        every { adSource1.getAd() } returns ad1
+        every { adSource1.getStats() } returns BidStat(
+            demandId = DemandId(adUnit1.demandId), price = fillPrice, auctionId = "auction_1",
+            roundStatus = RoundStatus.Successful, auctionPricefloor = 0.0,
+            fillStartTs = null, fillFinishTs = null, dspSource = null,
+            adUnit = adUnit1, tokenInfo = null,
+        )
+        every { adSource1.getAuctionParam(any()) } returns Result.success(mockk(relaxed = true))
+        every { adSource1.load(any()) } answers { adEventFlow1.tryEmit(AdEvent.Fill(ad1)) }
+
+        // Second adapter hangs — adEventFlow never emits
+        val adEventFlow2 = MutableSharedFlow<AdEvent>(replay = 1)
+        val adSource2 = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        every { adSource2.adEvent } returns adEventFlow2
+        every { adSource2.getStats() } returns BidStat(
+            demandId = DemandId(adUnit2.demandId), price = 0.0, auctionId = "auction_1",
+            roundStatus = RoundStatus.NoFill, auctionPricefloor = 0.0,
+            fillStartTs = null, fillFinishTs = null, dspSource = null,
+            adUnit = adUnit2, tokenInfo = null,
+        )
+        every { adSource2.getAuctionParam(any()) } returns Result.success(mockk(relaxed = true))
+        // load() does NOT emit — simulates a slow adapter
+
+        val adapter1 = mockk<TestAdapter>(relaxed = true)
+        every { adapter1.demandId } returns DemandId(adUnit1.demandId)
+        every { adapter1.adapterInfo } returns mockk(relaxed = true)
+        every { adapter1.interstitial() } returns adSource1
+
+        val adapter2 = mockk<TestAdapter>(relaxed = true)
+        every { adapter2.demandId } returns DemandId(adUnit2.demandId)
+        every { adapter2.adapterInfo } returns mockk(relaxed = true)
+        every { adapter2.interstitial() } returns adSource2
+
+        every { adaptersSource.adapters } returns setOf(adapter1, adapter2)
+
+        return adEventFlow2
+    }
+
+    @Test
+    fun `cancel mid-pipeline - sendAuctionStats called with partial results`() = runTest {
+        val adUnit1 = makeAdUnit("admob", pricefloor = 5.0)
+        val adUnit2 = makeAdUnit("applovin", pricefloor = 3.0)
+        setupTwoAdaptersFirstFillsSecondHangs(adUnit1, adUnit2, fillPrice = 5.0)
+
+        val response = makeResponse(listOf(adUnit1, adUnit2))
+        coEvery { getAuctionRequest.request(any(), any(), any(), any(), any()) } returns Result.success(response)
+
+        val pipeline = createPipeline()
+        val adTypeParam = mockAdTypeParam()
+        val firstFillReceived = CompletableDeferred<Unit>()
+
+        val job = launch {
+            pipeline.execute(
+                demandAd = DemandAd(AdType.Interstitial),
+                adTypeParam = adTypeParam,
+                singleLoadCompletion = { _, _ -> firstFillReceived.complete(Unit) },
+                shouldContinueAuction = { true },
+                onComplete = { _, _ -> },
+            )
+        }
+
+        // Wait for first fill, then cancel (simulates pop()/show())
+        firstFillReceived.await()
+        job.cancel()
+        advanceUntilIdle()
+
+        // Stats should be sent even though pipeline was cancelled mid-waterfall
+        coVerify { auctionStat.sendAuctionStats(any(), any(), any()) }
+        // markAuctionCanceled should NOT be called (we had a response)
+        coVerify(exactly = 0) { auctionStat.markAuctionCanceled() }
+    }
+
+    @Test
+    fun `cancel before response - markAuctionCanceled called`() = runTest {
+        // Auction request hangs forever
+        coEvery { getAuctionRequest.request(any(), any(), any(), any(), any()) } coAnswers {
+            CompletableDeferred<Result<AuctionResponse>>().await()
+        }
+
+        val pipeline = createPipeline()
+        val adTypeParam = mockAdTypeParam()
+
+        val job = launch {
+            pipeline.execute(
+                demandAd = DemandAd(AdType.Interstitial),
+                adTypeParam = adTypeParam,
+                singleLoadCompletion = { _, _ -> },
+                shouldContinueAuction = { true },
+                onComplete = { _, _ -> },
+            )
+        }
+
+        advanceUntilIdle()
+        job.cancel()
+        advanceUntilIdle()
+
+        // No response received — fall back to markAuctionCanceled
+        coVerify { auctionStat.markAuctionCanceled() }
+        // sendAuctionStats should NOT be called (no response data)
+        coVerify(exactly = 0) { auctionStat.sendAuctionStats(any(), any(), any()) }
     }
 }
