@@ -216,6 +216,9 @@ jobs:
         adapter: ${{ fromJson(needs._detect-changes.outputs.adapters) }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Download build output
         uses: actions/download-artifact@v4
         with:
@@ -224,8 +227,10 @@ jobs:
 
       - name: Check for deprecated warnings
         id: deprecated
+        env:
+          ADAPTER_NAME: ${{ matrix.adapter }}
         run: |
-          echo "🔍 Checking for deprecated warnings in adapter: ${{ matrix.adapter }}"
+          echo "🔍 Checking for deprecated warnings in adapter: $ADAPTER_NAME"
 
           if [ ! -f build_output.log ]; then
             echo "⚠️ Build output not found, skipping deprecated check"
@@ -234,32 +239,49 @@ jobs:
             exit 0
           fi
 
-          ADAPTER_DEPRECATED=$(grep "is deprecated" build_output.log | grep "adapter/${{ matrix.adapter }}/" || true)
+          # Check if adapter is in the skip list
+          SKIP_CONFIG=".github/deprecated-skip-adapters.json"
+          ADAPTER_SKIPPED="false"
+          if [ -f "$SKIP_CONFIG" ]; then
+            SKIP_REASON=$(jq -r --arg adapter "$ADAPTER_NAME" '.skip[] | select(.adapter == $adapter) | .reason' "$SKIP_CONFIG")
+            if [ -n "$SKIP_REASON" ]; then
+              ADAPTER_SKIPPED="true"
+              echo "⏭️ Adapter $ADAPTER_NAME is in the deprecated skip list"
+              echo "   Reason: $SKIP_REASON"
+            fi
+          fi
+
+          ADAPTER_DEPRECATED=$(grep "is deprecated" build_output.log | grep "adapter/$ADAPTER_NAME/" || true)
 
           if [ -n "$ADAPTER_DEPRECATED" ]; then
-            echo "❌ Found deprecated code warnings in adapter ${{ matrix.adapter }}:"
             echo ""
-
             echo "$ADAPTER_DEPRECATED" | sed 's/^w: //' | while IFS= read -r line; do
               echo "  🚨 $line"
             done
-
             echo ""
-            echo "🚫 Deprecated code is not allowed in adapters."
-            echo "Please remove or replace all deprecated code before merging."
-            echo ""
-            echo "💡 To fix this:"
-            echo "   1. Find the deprecated code in the files listed above"
-            echo "   2. Replace it with non-deprecated alternatives"
-            echo "   3. Remove any @Deprecated annotations from adapter code"
-            echo "deprecated_status=failure" >> $GITHUB_OUTPUT
-            echo "has_deprecated=true" >> $GITHUB_OUTPUT
 
             # Save warnings for artifact upload
             echo "$ADAPTER_DEPRECATED" > deprecated_warnings.txt
+
+            if [ "$ADAPTER_SKIPPED" == "true" ]; then
+              echo "⚠️ Deprecated code found in adapter $ADAPTER_NAME, but skipped per .github/deprecated-skip-adapters.json"
+              echo "deprecated_status=skipped" >> $GITHUB_OUTPUT
+              echo "has_deprecated=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Found deprecated code warnings in adapter $ADAPTER_NAME:"
+              echo "🚫 Deprecated code is not allowed in adapters."
+              echo "Please remove or replace all deprecated code before merging."
+              echo ""
+              echo "💡 To fix this:"
+              echo "   1. Find the deprecated code in the files listed above"
+              echo "   2. Replace it with non-deprecated alternatives"
+              echo "   3. Remove any @Deprecated annotations from adapter code"
+              echo "deprecated_status=failure" >> $GITHUB_OUTPUT
+              echo "has_deprecated=true" >> $GITHUB_OUTPUT
+            fi
           else
             if grep -q "is deprecated" build_output.log; then
-              echo "ℹ️ Found deprecated warnings in dependencies, but none in adapter ${{ matrix.adapter }} itself"
+              echo "ℹ️ Found deprecated warnings in dependencies, but none in adapter $ADAPTER_NAME itself"
             fi
             echo "✅ No deprecated code warnings found in adapter"
             echo "deprecated_status=success" >> $GITHUB_OUTPUT
@@ -275,18 +297,30 @@ jobs:
           retention-days: 1
 
       - name: Fail if deprecated found
-        if: steps.deprecated.outputs.has_deprecated == 'true'
+        if: steps.deprecated.outputs.has_deprecated == 'true' && steps.deprecated.outputs.deprecated_status == 'failure'
         run: exit 1
 
       - name: Job Summary
         if: always()
+        env:
+          ADAPTER_NAME: ${{ matrix.adapter }}
+          DEPRECATED_STATUS: ${{ steps.deprecated.outputs.deprecated_status }}
+          HAS_DEPRECATED: ${{ steps.deprecated.outputs.has_deprecated }}
         run: |
-          echo "## Deprecated Check: ${{ matrix.adapter }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Deprecated Check: $ADAPTER_NAME" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ steps.deprecated.outputs.deprecated_status }}" == "success" ]; then
+          if [ "$DEPRECATED_STATUS" == "success" ]; then
             echo ":white_check_mark: No deprecated code found" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.deprecated.outputs.deprecated_status }}" == "skipped" ]; then
+          elif [ "$DEPRECATED_STATUS" == "skipped" ] && [ "$HAS_DEPRECATED" == "true" ]; then
+            echo ":warning: Deprecated code found but adapter is in skip list (.github/deprecated-skip-adapters.json)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            if [ -f deprecated_warnings.txt ]; then
+              cat deprecated_warnings.txt >> $GITHUB_STEP_SUMMARY
+            fi
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          elif [ "$DEPRECATED_STATUS" == "skipped" ]; then
             echo ":warning: Check skipped (build output not available)" >> $GITHUB_STEP_SUMMARY
           else
             echo ":x: Found deprecated code warnings:" >> $GITHUB_STEP_SUMMARY
@@ -295,7 +329,7 @@ jobs:
             if [ -f deprecated_warnings.txt ]; then
               cat deprecated_warnings.txt >> $GITHUB_STEP_SUMMARY
             else
-              grep "is deprecated" build_output.log | grep "adapter/${{ matrix.adapter }}/" >> $GITHUB_STEP_SUMMARY || echo "See logs for details" >> $GITHUB_STEP_SUMMARY
+              grep "is deprecated" build_output.log | grep "adapter/$ADAPTER_NAME/" >> $GITHUB_STEP_SUMMARY || echo "See logs for details" >> $GITHUB_STEP_SUMMARY
             fi
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
