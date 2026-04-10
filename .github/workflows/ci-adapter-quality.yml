@@ -129,11 +129,35 @@ jobs:
               filtered=$(echo "$json_array" | jq -c --argjson skip "$skip_json" '[.[] | select(. as $a | $skip | index($a) | not)]')
               skipped=$(echo "$json_array" | jq -c --argjson skip "$skip_json" '[.[] | select(. as $a | $skip | index($a))]')
               echo "adapters_for_deprecation=$filtered" >> $GITHUB_OUTPUT
+              echo "skipped_adapters=$skipped" >> $GITHUB_OUTPUT
               if [[ "$skipped" != "[]" ]]; then
                 echo "⏭️ Deprecated check skipped for: $(echo "$skipped" | jq -r 'join(", ")')"
               fi
             else
               echo "adapters_for_deprecation=$json_array" >> $GITHUB_OUTPUT
+              echo "skipped_adapters=[]" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Job Summary
+        if: always()
+        env:
+          ADAPTERS: ${{ steps.matrix.outputs.adapters }}
+          SKIPPED: ${{ steps.matrix.outputs.skipped_adapters }}
+        run: |
+          echo "## Adapter Detection" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$ADAPTERS" == "[]" ]] || [[ -z "$ADAPTERS" ]]; then
+            echo ":information_source: No adapter changes detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Changed adapters:** $(echo "$ADAPTERS" | jq -r 'join(", ")')" >> $GITHUB_STEP_SUMMARY
+
+            if [[ -n "$SKIPPED" ]] && [[ "$SKIPPED" != "[]" ]]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo ":warning: **Deprecated check skipped for:** $(echo "$SKIPPED" | jq -r 'join(", ")')" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "> Configured via repository variable \`DEPRECATED_SKIP_ADAPTERS\`" >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
