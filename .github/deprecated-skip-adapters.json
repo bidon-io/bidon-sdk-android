@@ -1,9 +1,0 @@
-{
-  "skip": [
-    {
-      "adapter": "applovin",
-      "reason": "Legacy AppLovin SDK deprecations require full MAX SDK migration (BDN-1152)",
-      "added": "2026-04-08"
-    }
-  ]
-}
