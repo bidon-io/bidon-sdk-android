@@ -240,35 +240,37 @@ jobs:
           fi
 
           # Check if adapter is in the skip list
-          SKIP_CONFIG=".github/deprecated-skip-adapters.json"
           ADAPTER_SKIPPED="false"
-          if [ -f "$SKIP_CONFIG" ]; then
-            SKIP_REASON=$(jq -r --arg adapter "$ADAPTER_NAME" '.skip[] | select(.adapter == $adapter) | .reason' "$SKIP_CONFIG")
-            if [ -n "$SKIP_REASON" ]; then
-              ADAPTER_SKIPPED="true"
-              echo "⏭️ Adapter $ADAPTER_NAME is in the deprecated skip list"
-              echo "   Reason: $SKIP_REASON"
-            fi
+          SKIP_JSON=$(cat .github/deprecated-skip-adapters.json 2>/dev/null || echo '{"skip":[]}')
+          SKIP_REASON=$(echo "$SKIP_JSON" | jq -r --arg adapter "$ADAPTER_NAME" '.skip[] | select(.adapter == $adapter) | (.reason // empty)' 2>/dev/null)
+          if [ -n "$SKIP_REASON" ]; then
+            ADAPTER_SKIPPED="true"
+            echo "⏭️ Adapter $ADAPTER_NAME is in the deprecated skip list"
+            echo "   Reason: $SKIP_REASON"
           fi
 
           ADAPTER_DEPRECATED=$(grep "is deprecated" build_output.log | grep "adapter/$ADAPTER_NAME/" || true)
 
           if [ -n "$ADAPTER_DEPRECATED" ]; then
-            echo ""
-            echo "$ADAPTER_DEPRECATED" | sed 's/^w: //' | while IFS= read -r line; do
-              echo "  🚨 $line"
-            done
-            echo ""
-
             # Save warnings for artifact upload
             echo "$ADAPTER_DEPRECATED" > deprecated_warnings.txt
 
             if [ "$ADAPTER_SKIPPED" == "true" ]; then
               echo "⚠️ Deprecated code found in adapter $ADAPTER_NAME, but skipped per .github/deprecated-skip-adapters.json"
+              echo ""
+              echo "$ADAPTER_DEPRECATED" | sed 's/^w: //' | while IFS= read -r line; do
+                echo "  🚨 $line"
+              done
+              echo ""
               echo "deprecated_status=skipped" >> $GITHUB_OUTPUT
               echo "has_deprecated=true" >> $GITHUB_OUTPUT
             else
               echo "❌ Found deprecated code warnings in adapter $ADAPTER_NAME:"
+              echo ""
+              echo "$ADAPTER_DEPRECATED" | sed 's/^w: //' | while IFS= read -r line; do
+                echo "  🚨 $line"
+              done
+              echo ""
               echo "🚫 Deprecated code is not allowed in adapters."
               echo "Please remove or replace all deprecated code before merging."
               echo ""
