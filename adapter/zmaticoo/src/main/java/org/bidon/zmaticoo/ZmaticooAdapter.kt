@@ -114,7 +114,7 @@ internal class ZmaticooAdapter :
 
         if (regulation.ccpaApplies) {
             context?.let {
-                MaticooAds.setDoNotTrackStatus(it, !regulation.hasCcpaConsent)
+                MaticooAds.setDoNotTrackStatus(it, if (regulation.hasCcpaConsent) 0 else 1)
             }
         }
 
