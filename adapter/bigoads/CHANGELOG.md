@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [5.8.0.0] - 2026-04-15
+### Changed
+- Updated BigoAds SDK from 5.7.1 to 5.8.0
+
 ## [5.7.1.0] - 2026-03-04
 ### Changed
 - Updated BigoAds SDK from 5.7.0 to 5.7.1
