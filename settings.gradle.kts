@@ -52,6 +52,7 @@ include(
     ":adapter:chartboost",
     ":adapter:dtexchange",
     ":adapter:gam",
+    ":adapter:gma",
     ":adapter:inmobi",
     ":adapter:ironsource",
     ":adapter:meta",
