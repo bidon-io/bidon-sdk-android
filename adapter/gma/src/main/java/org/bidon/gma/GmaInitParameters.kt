@@ -25,7 +25,7 @@ internal sealed interface GmaBannerAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit,
     ) : GmaBannerAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val adUnitId: String? = adUnit.extra?.optString("ad_unit_id")?.takeIf { it.isNotBlank() }
 
         override fun toString(): String {
             return "GmaBannerAuctionParams($adUnit)"
@@ -41,7 +41,7 @@ internal sealed interface GmaFullscreenAdAuctionParams : AdAuctionParams {
         override val adUnit: AdUnit,
     ) : GmaFullscreenAdAuctionParams {
         override val price: Double = adUnit.pricefloor
-        val adUnitId: String? = adUnit.extra?.getString("ad_unit_id")
+        val adUnitId: String? = adUnit.extra?.optString("ad_unit_id")?.takeIf { it.isNotBlank() }
 
         override fun toString(): String {
             return "GmaFullscreenAdAuctionParams($adUnit)"

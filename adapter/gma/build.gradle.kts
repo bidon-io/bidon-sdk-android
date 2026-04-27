@@ -28,8 +28,9 @@ dependencies {
     implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:$adapterSdkVersion")
 }
 
-// Exclude legacy ads SDK transitively to prevent symbol conflicts
+// Exclude legacy ads SDK transitively to prevent symbol conflicts with ads-mobile-sdk bundled classes
 configurations.configureEach {
     exclude(group = "com.google.android.gms", module = "play-services-ads")
     exclude(group = "com.google.android.gms", module = "play-services-ads-lite")
+    exclude(group = "com.google.android.gms", module = "play-services-ads-api")
 }

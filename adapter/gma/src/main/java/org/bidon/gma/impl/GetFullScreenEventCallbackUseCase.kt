@@ -1,6 +1,6 @@
 package org.bidon.gma.impl
 
-import com.google.android.libraries.ads.mobile.sdk.common.FullScreenAdError
+import com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.rewarded.RewardedAdEventCallback
 import org.bidon.gma.asBidonError
@@ -40,7 +40,7 @@ internal class GetFullScreenEventCallbackUseCase {
                 onClosed()
             }
 
-            override fun onAdFailedToShowFullScreenContent(error: FullScreenAdError) {
+            override fun onAdFailedToShowFullScreenContent(error: FullScreenContentError) {
                 logError(TAG, "onAdFailedToShowFullScreenContent (interstitial)", error.asBidonError())
                 adEventFlow.emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
@@ -78,7 +78,7 @@ internal class GetFullScreenEventCallbackUseCase {
                 onClosed()
             }
 
-            override fun onAdFailedToShowFullScreenContent(error: FullScreenAdError) {
+            override fun onAdFailedToShowFullScreenContent(error: FullScreenContentError) {
                 logError(TAG, "onAdFailedToShowFullScreenContent (rewarded)", error.asBidonError())
                 adEventFlow.emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }

@@ -81,14 +81,15 @@ android {
 
 dependencies {
     implementation(projects.bidon)
-    implementation(projects.adapter.admob)
+//    implementation(projects.adapter.admob)
     implementation(projects.adapter.amazon)
     implementation(projects.adapter.applovin)
     implementation(projects.adapter.bidmachine)
     implementation(projects.adapter.bigoads)
     implementation(projects.adapter.chartboost)
     implementation(projects.adapter.dtexchange)
-    implementation(projects.adapter.gam)
+//    implementation(projects.adapter.gam)
+    implementation(projects.adapter.gma)
     implementation(projects.adapter.inmobi)
     implementation(projects.adapter.ironsource)
     implementation(projects.adapter.meta)
@@ -101,13 +102,11 @@ dependencies {
     implementation(projects.adapter.vkads)
     implementation(projects.adapter.vungle)
     implementation(projects.adapter.yandex)
-    implementation(projects.adapter.zmaticoo)
+//    implementation(projects.adapter.zmaticoo)
 
     implementation(Dependencies.Google.PlayServicesAdsIdentifier)
 
     implementation("com.chartboost:chartboost-mediation-sdk:4.0.0")
-    implementation("com.google.android.gms:play-services-ads:22.5.0")
-
     implementation("com.google.accompanist:accompanist-permissions:0.29.1-alpha")
     implementation("androidx.multidex:multidex:2.0.1")
     implementation(Dependencies.Android.CoreKtx)

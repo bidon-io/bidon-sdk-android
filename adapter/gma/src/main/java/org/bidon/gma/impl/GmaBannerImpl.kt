@@ -1,12 +1,12 @@
 package org.bidon.gma.impl
 
 import android.annotation.SuppressLint
+import com.google.android.libraries.ads.mobile.sdk.banner.AdView
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerView
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadError
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import org.bidon.gma.GmaBannerAuctionParams
 import org.bidon.gma.asBidonError
 import org.bidon.gma.ext.GmaAdValue
@@ -31,7 +31,7 @@ internal class GmaBannerImpl(
 
     override var isAdReadyToShow: Boolean = false
 
-    private var bannerView: BannerView? = null
+    private var adView: AdView? = null
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> {
         return getAdAuctionParams(auctionParamsScope, demandAd.adType)
@@ -47,12 +47,10 @@ internal class GmaBannerImpl(
             return
         }
         adParams.activity.runOnUiThread {
-            val view = BannerView(adParams.activity.applicationContext).also {
-                bannerView = it
-            }
+            val view = AdView(adParams.activity.applicationContext).also { adView = it }
             val bannerAdRequest = BannerAdRequest.Builder(adUnitId, adParams.adSize).build()
             view.loadAd(bannerAdRequest, object : AdLoadCallback<BannerAd> {
-                override fun onAdFailedToLoad(error: AdLoadError) {
+                override fun onAdFailedToLoad(error: LoadAdError) {
                     logInfo(TAG, "onAdFailedToLoad: $error")
                     emitEvent(AdEvent.LoadFailed(error.asBidonError()))
                 }
@@ -63,7 +61,7 @@ internal class GmaBannerImpl(
                     ad.adEventCallback = object : BannerAdEventCallback {
                         override fun onAdImpression() {
                             logInfo(TAG, "onAdImpression")
-                            // Impression is tracked by BannerView
+                            getAd()?.let { emitEvent(AdEvent.Shown(it)) }
                         }
 
                         override fun onAdClicked() {
@@ -82,11 +80,12 @@ internal class GmaBannerImpl(
         }
     }
 
-    override fun getAdView(): AdViewHolder? = bannerView?.let { AdViewHolder(networkAdview = it) }
+    override fun getAdView(): AdViewHolder? = adView?.let { AdViewHolder(networkAdview = it) }
 
     override fun destroy() {
         logInfo(TAG, "destroy $this")
-        bannerView = null
+        adView?.destroy()
+        adView = null
         isAdReadyToShow = false
     }
 }

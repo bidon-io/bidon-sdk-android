@@ -2,9 +2,9 @@ package org.bidon.gma.impl
 
 import android.app.Activity
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadError
+import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
-import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdRequest
 import org.bidon.gma.GmaFullscreenAdAuctionParams
 import org.bidon.gma.asBidonError
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -46,9 +46,9 @@ internal class GmaInterstitialImpl(
             )
             return
         }
-        val adRequest = InterstitialAdRequest.Builder(adUnitId).build()
+        val adRequest = AdRequest.Builder(adUnitId).build()
         InterstitialAd.load(adRequest, object : AdLoadCallback<InterstitialAd> {
-            override fun onAdFailedToLoad(error: AdLoadError) {
+            override fun onAdFailedToLoad(error: LoadAdError) {
                 logInfo(TAG, "onAdFailedToLoad: $error")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
