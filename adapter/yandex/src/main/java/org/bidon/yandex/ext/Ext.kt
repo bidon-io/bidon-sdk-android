@@ -4,7 +4,7 @@ import android.content.Context
 import com.yandex.mobile.ads.banner.BannerAdSize
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
-import com.yandex.mobile.ads.common.MobileAds
+import com.yandex.mobile.ads.common.YandexAds
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.config.BidonError
@@ -18,16 +18,16 @@ import org.json.JSONObject
  * Created by Bidon Team on 28/02/2023.
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
-internal var sdkVersion = MobileAds.libraryVersion
+internal var sdkVersion = YandexAds.libraryVersion
 
 internal fun BannerFormat.toYandexBannerSize(context: Context): BannerAdSize = when (this) {
-    BannerFormat.Banner -> BannerAdSize.fixedSize(context, 320, 50)
-    BannerFormat.LeaderBoard -> BannerAdSize.fixedSize(context, 728, 90)
-    BannerFormat.MRec -> BannerAdSize.fixedSize(context, 300, 250)
+    BannerFormat.Banner -> BannerAdSize.inline(context, 320, 50)
+    BannerFormat.LeaderBoard -> BannerAdSize.inline(context, 728, 90)
+    BannerFormat.MRec -> BannerAdSize.inline(context, 300, 250)
     BannerFormat.Adaptive -> if (DeviceInfo.isTablet) {
-        BannerAdSize.fixedSize(context, 728, 90)
+        BannerAdSize.inline(context, 728, 90)
     } else {
-        BannerAdSize.fixedSize(context, 320, 50)
+        BannerAdSize.inline(context, 320, 50)
     }
 }
 

@@ -49,7 +49,7 @@ internal class YandexBannerImpl :
         val adUnitId = adParams.adUnitId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
 
-        val adRequest = AdRequest.Builder()
+        val adRequest = AdRequest.Builder(adUnitId)
             .apply {
                 when (adParams.adUnit.bidType) {
                     BidType.RTB -> {
@@ -66,7 +66,6 @@ internal class YandexBannerImpl :
         val bannerView = BannerAdView(adParams.activity).also { this.bannerView = it }
         val adSize = adParams.bannerFormat.toYandexBannerSize(adParams.activity)
         bannerView.setAdSize(adSize)
-        bannerView.setAdUnitId(adUnitId)
         bannerView.setBannerAdEventListener(
             object : BannerAdEventListener {
                 override fun onAdLoaded() {
@@ -85,9 +84,6 @@ internal class YandexBannerImpl :
                     val ad = getAd() ?: return
                     emitEvent(AdEvent.Clicked(ad))
                 }
-
-                override fun onLeftApplication() {}
-                override fun onReturnedToApplication() {}
 
                 override fun onImpression(impressionData: ImpressionData?) {
                     logInfo(TAG, "onImpression: $this")
