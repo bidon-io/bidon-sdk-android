@@ -27,8 +27,7 @@ import org.bidon.yandex.ext.toYandexBannerSize
 internal class YandexBannerImpl :
     AdSource.Banner<YandexBannerAuctionParam>,
     AdEventFlow by AdEventFlowImpl(),
-    StatisticsCollector by StatisticsCollectorImpl(),
-    YandexLoader by singleLoader {
+    StatisticsCollector by StatisticsCollectorImpl() {
 
     private var bannerView: BannerAdView? = null
 
