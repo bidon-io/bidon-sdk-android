@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Replaced `AdRequestConfiguration` with `AdRequest` (adUnitId now passed to constructor)
 - Migrated `BidderTokenRequestConfiguration.Builder` to factory methods: `BidderTokenRequest.banner()`, `BidderTokenRequest.interstitial()`, `BidderTokenRequest.rewarded()`
 - Migrated `BidderTokenLoader.loadBidderToken()` from static to instance method
-- Replaced `BannerAdSize.fixedSize()` with `BannerAdSize.inline()`
+- Replaced `BannerAdSize.fixedSize()` with `BannerAdSize.fixed()`
 - Removed `BannerAdView.setAdUnitId()` (adUnitId now passed via `AdRequest.Builder`)
 - Replaced `setAgeRestrictedUser()` with `setAgeRestricted()`
 - Removed deprecated banner event listeners: `onLeftApplication()` and `onReturnedToApplication()`

@@ -21,13 +21,13 @@ internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = YandexAds.libraryVersion
 
 internal fun BannerFormat.toYandexBannerSize(context: Context): BannerAdSize = when (this) {
-    BannerFormat.Banner -> BannerAdSize.inline(context, 320, 50)
-    BannerFormat.LeaderBoard -> BannerAdSize.inline(context, 728, 90)
-    BannerFormat.MRec -> BannerAdSize.inline(context, 300, 250)
+    BannerFormat.Banner -> BannerAdSize.fixed(context, 320, 50)
+    BannerFormat.LeaderBoard -> BannerAdSize.fixed(context, 728, 90)
+    BannerFormat.MRec -> BannerAdSize.fixed(context, 300, 250)
     BannerFormat.Adaptive -> if (DeviceInfo.isTablet) {
-        BannerAdSize.inline(context, 728, 90)
+        BannerAdSize.fixed(context, 728, 90)
     } else {
-        BannerAdSize.inline(context, 320, 50)
+        BannerAdSize.fixed(context, 320, 50)
     }
 }
 
