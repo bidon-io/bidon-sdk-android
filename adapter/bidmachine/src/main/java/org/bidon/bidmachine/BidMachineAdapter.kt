@@ -74,11 +74,8 @@ internal class BidMachineAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        regulation.usPrivacyString?.let { privacyString ->
-            // Parse CCPA US Privacy String (format: 1YNN)
-            // Position 2 indicates opt-out of sale: Y = opted out, N = opted in
-            val optedOut = privacyString.getOrNull(2) == 'Y'
-            BidMachine.setNonPersonalized(optedOut)
+        regulation.usPrivacyString?.let {
+            BidMachine.setUSPrivacyString(it)
         }
         if (regulation.coppaApplies) {
             BidMachine.setCoppa(true)
@@ -88,7 +85,10 @@ internal class BidMachineAdapter :
             regulation.gdprConsentString
                 ?.takeIf { it.isNotBlank() }
                 ?.let {
-                    BidMachine.setConsentStatus(regulation.hasGdprConsent)
+                    BidMachine.setConsentConfig(
+                        /* hasConsent = */ regulation.hasGdprConsent,
+                        /* consentString = */ it
+                    )
                 }
         }
     }
