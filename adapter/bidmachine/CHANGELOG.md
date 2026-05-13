@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [3.7.0.0] - 2026-05-13
+### Changed
+- Updated SDK dependency from 3.6.1 to 3.7.0
+- Migrated from deprecated `BidMachine.setUSPrivacyString()` to `BidMachine.setNonPersonalized()` with CCPA privacy string parsing (format: 1YNN, position 2 indicates opt-out status)
+- Replaced deprecated `BidMachine.setConsentConfig(hasConsent, consentString)` with `BidMachine.setConsentStatus(hasConsent)`
+
 ## [3.6.1.0] - 2026-03-25
 ### Changed
 - Updated SDK dependency from 3.6.0 to 3.6.1
