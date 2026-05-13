@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [11.3.0.0] - 2026-05-13
+### Changed
+- Updated SDK dependency from 11.2.0 to 11.3.0
+- Migrated from deprecated `setBannerSize(widthInDp, heightInDp)` to `setLayoutParams()` API with proper density conversion
+
 ## [11.2.0.0] - 2026-04-01
 ### Changed
 - Updated SDK dependency from 11.1.1 to 11.2.0
