@@ -1,5 +1,6 @@
 package org.bidon.inmobi.impl
 
+import android.view.ViewGroup
 import com.inmobi.ads.AdMetaInfo
 import com.inmobi.ads.InMobiAdRequestStatus
 import com.inmobi.ads.InMobiBanner
@@ -60,7 +61,10 @@ internal class InmobiBannerImpl :
         val bannerView = InMobiBanner(adParams.activity, adParams.placementId)
             .also { this.bannerView = it }
         bannerView.setExtras(InmobiAdapter.getExtras())
-        bannerView.setBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
+        val density = adParams.activity.resources.displayMetrics.density
+        val widthPx = (adParams.bannerFormat.width * density).toInt()
+        val heightPx = (adParams.bannerFormat.height * density).toInt()
+        bannerView.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
         bannerView.setEnableAutoRefresh(false)
         bannerView.setAnimationType(InMobiBanner.AnimationType.ANIMATION_OFF)
         bannerView.setListener(object : BannerAdEventListener() {
