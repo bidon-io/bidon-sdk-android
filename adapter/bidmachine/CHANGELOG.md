@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [3.6.1.1] - 2026-05-15
+### Added
+- APDM-2419: Forward host-supplied mediator identity to BidMachine. The adapter now reads the `"mediator"` key from `BidonSdk.getExtras()` and sends it as `mediation_mode` on every ad request. Falls back to `"bidon"` when the key is unset.
+
 ## [3.6.1.0] - 2026-03-25
 ### Changed
 - Updated SDK dependency from 3.6.0 to 3.6.1

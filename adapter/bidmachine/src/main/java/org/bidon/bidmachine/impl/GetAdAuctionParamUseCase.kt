@@ -4,6 +4,7 @@ import io.bidmachine.CustomParams
 import io.bidmachine.TargetingParams
 import org.bidon.bidmachine.BMBannerAuctionParams
 import org.bidon.bidmachine.BMFullscreenAuctionParams
+import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.json.JSONObject
 
@@ -60,7 +61,7 @@ internal class GetAdAuctionParamUseCase {
 
     private fun JSONObject?.buildCustomParameters(): CustomParams {
         return CustomParams().apply {
-            addParam("mediation_mode", "bidon")
+            addParam("mediation_mode", resolveMediationMode())
 
             this@buildCustomParameters?.optJSONObject("custom_parameters")?.let { paramsJson ->
                 paramsJson.keys().forEach { key ->
@@ -82,5 +83,16 @@ internal class GetAdAuctionParamUseCase {
                 }
             }.takeIf { it.isNotEmpty() }
         }
+    }
+
+    private fun resolveMediationMode(): String =
+        (BidonSdk.getExtras()[MEDIATOR_EXTRA_KEY] as? String)
+            ?.takeIf(String::isNotBlank)
+            ?: DEFAULT_MEDIATION_MODE
+
+    private companion object {
+        private const val MEDIATOR_EXTRA_KEY = "mediator"
+
+        private const val DEFAULT_MEDIATION_MODE = "bidon"
     }
 }
