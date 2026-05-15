@@ -8,6 +8,7 @@ import org.bidon.bidmachine.ext.toAdPlacementConfig
 import org.bidon.bidmachine.impl.BMBannerAdImpl
 import org.bidon.bidmachine.impl.BMInterstitialAdImpl
 import org.bidon.bidmachine.impl.BMRewardedAdImpl
+import org.bidon.bidmachine.impl.GetAdAuctionParamUseCase
 import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.*
 import org.bidon.sdk.adapter.impl.SupportsTestModeImpl
@@ -23,7 +24,9 @@ internal val BidMachineDemandId = DemandId("bidmachine")
 internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
 
 @Suppress("unused")
-internal class BidMachineAdapter :
+class BidMachineAdapter @JvmOverloads constructor(
+    internal val mediationMode: String = "bidon",
+) :
     Adapter.Bidding,
     Adapter.Network,
     SupportsRegulation,
@@ -93,7 +96,12 @@ internal class BidMachineAdapter :
         }
     }
 
-    override fun interstitial(): AdSource.Interstitial<BMFullscreenAuctionParams> = BMInterstitialAdImpl()
-    override fun rewarded(): AdSource.Rewarded<BMFullscreenAuctionParams> = BMRewardedAdImpl()
-    override fun banner(): AdSource.Banner<BMBannerAuctionParams> = BMBannerAdImpl()
+    override fun interstitial(): AdSource.Interstitial<BMFullscreenAuctionParams> =
+        BMInterstitialAdImpl(obtainAdAuctionParams = GetAdAuctionParamUseCase(mediationMode))
+
+    override fun rewarded(): AdSource.Rewarded<BMFullscreenAuctionParams> =
+        BMRewardedAdImpl(obtainAdAuctionParams = GetAdAuctionParamUseCase(mediationMode))
+
+    override fun banner(): AdSource.Banner<BMBannerAuctionParams> =
+        BMBannerAdImpl(obtainAdAuctionParams = GetAdAuctionParamUseCase(mediationMode))
 }

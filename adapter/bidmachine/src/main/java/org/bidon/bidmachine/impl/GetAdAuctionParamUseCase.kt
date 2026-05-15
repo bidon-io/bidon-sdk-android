@@ -4,14 +4,15 @@ import io.bidmachine.CustomParams
 import io.bidmachine.TargetingParams
 import org.bidon.bidmachine.BMBannerAuctionParams
 import org.bidon.bidmachine.BMFullscreenAuctionParams
-import org.bidon.sdk.BidonSdk
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.json.JSONObject
 
 /**
  * Created by Bidon Team on 27/11/2023.
  */
-internal class GetAdAuctionParamUseCase {
+internal class GetAdAuctionParamUseCase(
+    internal val mediationMode: String = "bidon",
+) {
     fun getBMFullscreenAuctionParams(auctionParamsScope: AdAuctionParamSource): Result<BMFullscreenAuctionParams> {
         return auctionParamsScope {
             val extra = adUnit.extra
@@ -61,7 +62,7 @@ internal class GetAdAuctionParamUseCase {
 
     private fun JSONObject?.buildCustomParameters(): CustomParams {
         return CustomParams().apply {
-            addParam("mediation_mode", resolveMediationMode())
+            addParam("mediation_mode", mediationMode)
 
             this@buildCustomParameters?.optJSONObject("custom_parameters")?.let { paramsJson ->
                 paramsJson.keys().forEach { key ->
@@ -83,16 +84,5 @@ internal class GetAdAuctionParamUseCase {
                 }
             }.takeIf { it.isNotEmpty() }
         }
-    }
-
-    private fun resolveMediationMode(): String =
-        (BidonSdk.getExtras()[MEDIATOR_EXTRA_KEY] as? String)
-            ?.takeIf(String::isNotBlank)
-            ?: DEFAULT_MEDIATION_MODE
-
-    private companion object {
-        private const val MEDIATOR_EXTRA_KEY = "mediator"
-
-        private const val DEFAULT_MEDIATION_MODE = "bidon"
     }
 }
