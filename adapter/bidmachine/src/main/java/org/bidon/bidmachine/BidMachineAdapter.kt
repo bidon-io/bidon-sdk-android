@@ -2,6 +2,7 @@ package org.bidon.bidmachine
 
 import android.content.Context
 import io.bidmachine.BidMachine
+import io.bidmachine.models.AuctionResult
 import org.bidon.bidmachine.ext.adapterVersion
 import org.bidon.bidmachine.ext.sdkVersion
 import org.bidon.bidmachine.ext.toAdPlacementConfig
@@ -19,12 +20,12 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-internal val BidMachineDemandId = DemandId("bidmachine")
+public val BidMachineDemandId: DemandId = DemandId("bidmachine")
 
-internal typealias BMAuctionResult = io.bidmachine.models.AuctionResult
+internal typealias BMAuctionResult = AuctionResult
 
 @Suppress("unused")
-class BidMachineAdapter @JvmOverloads constructor(
+public class BidMachineAdapter @JvmOverloads constructor(
     internal val mediationMode: String = "bidon",
 ) :
     Adapter.Bidding,
@@ -36,8 +37,8 @@ class BidMachineAdapter @JvmOverloads constructor(
     AdProvider.Rewarded<BMFullscreenAuctionParams>,
     AdProvider.Interstitial<BMFullscreenAuctionParams> {
 
-    override val demandId = BidMachineDemandId
-    override val adapterInfo = AdapterInfo(
+    override val demandId: DemandId = BidMachineDemandId
+    override val adapterInfo: AdapterInfo = AdapterInfo(
         adapterVersion = adapterVersion,
         sdkVersion = sdkVersion
     )

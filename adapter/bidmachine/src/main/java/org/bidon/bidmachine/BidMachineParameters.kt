@@ -9,22 +9,22 @@ import org.bidon.sdk.adapter.AdapterParameters
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
 
-internal data class BidMachineParameters(
+public data class BidMachineParameters(
     val sellerId: String,
     val endpoint: String?,
     val placements: Map<String, String>?,
 ) : AdapterParameters
 
-internal class BMBannerAuctionParams(
+public class BMBannerAuctionParams(
     override val price: Double,
     override val adUnit: AdUnit,
-    val activity: Activity,
-    val bannerFormat: BannerFormat,
-    val timeout: Long,
-    val customParameters: CustomParams,
-    val targetingParams: TargetingParams,
-    val payload: String?,
-    val placement: String?,
+    public val activity: Activity,
+    public val bannerFormat: BannerFormat,
+    public val timeout: Long,
+    public val customParameters: CustomParams,
+    public val targetingParams: TargetingParams,
+    public val payload: String?,
+    public val placement: String?,
 ) : AdAuctionParams {
 
     override fun toString(): String {
@@ -32,15 +32,15 @@ internal class BMBannerAuctionParams(
     }
 }
 
-internal class BMFullscreenAuctionParams(
+public class BMFullscreenAuctionParams(
     override val price: Double,
     override val adUnit: AdUnit,
-    val context: Context,
-    val timeout: Long,
-    val customParameters: CustomParams,
-    val targetingParams: TargetingParams,
-    val payload: String?,
-    val placement: String?,
+    public val context: Context,
+    public val timeout: Long,
+    public val customParameters: CustomParams,
+    public val targetingParams: TargetingParams,
+    public val payload: String?,
+    public val placement: String?,
 ) : AdAuctionParams {
 
     override fun toString(): String {
