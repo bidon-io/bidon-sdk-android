@@ -15,6 +15,7 @@ public enum class DefaultAdapters(public val classPath: String) {
     Chartboost(classPath = "org.bidon.chartboost.ChartboostAdapter"),
     DTExchangeAdapter(classPath = "org.bidon.dtexchange.DTExchangeAdapter"),
     GoogleAdManagerAdapter(classPath = "org.bidon.gam.GamAdapter"),
+    GoogleMobileAdsAdapter(classPath = "org.bidon.gma.GmaAdapter"),
     InmobiAdapter(classPath = "org.bidon.inmobi.InmobiAdapter"),
     IronSourceAdapter(classPath = "org.bidon.ironsource.IronSourceAdapter"),
     MetaAdapter(classPath = "org.bidon.meta.MetaAudienceAdapter"),
