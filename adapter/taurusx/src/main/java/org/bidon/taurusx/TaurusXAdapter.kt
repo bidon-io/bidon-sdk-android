@@ -3,7 +3,6 @@ package org.bidon.taurusx
 import android.content.Context
 import com.taurusx.tax.api.BidManager
 import com.taurusx.tax.api.TaurusXAds
-import com.taurusx.tax.log.LogUtil
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -103,7 +102,6 @@ internal class TaurusXAdapter() :
         }
         if (isTestMode) {
             TaurusXAds.setTestMode(isTestMode)
-            LogUtil.setLogEnable(isTestMode)
         }
         TaurusXAds.setChannel(configParams.channel)
         TaurusXAds.init(context, configParams.appId)

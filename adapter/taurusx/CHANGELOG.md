@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.15.2.0] - 2026-05-27
+### Changed
+- Updated SDK dependency from 1.14.1 to 1.15.2
+- Removed deprecated `LogUtil.setLogEnable()` call that was removed from the SDK
+
 ## [1.14.1.0] - 2026-01-28
 ### Changed
 - Updated SDK dependency from 1.13.1 to 1.14.1
