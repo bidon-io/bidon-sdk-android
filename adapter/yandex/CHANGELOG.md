@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [8.0.0.0] - 2026-04-29
+### Changed
+- Updated SDK dependency from 7.18.5 to 8.0.0
+- Migrated from `MobileAds` to `YandexAds` API
+- Replaced `AdRequestConfiguration` with `AdRequest` (adUnitId now passed to constructor)
+- Migrated `BidderTokenRequestConfiguration.Builder` to factory methods: `BidderTokenRequest.banner()`, `BidderTokenRequest.interstitial()`, `BidderTokenRequest.rewarded()`
+- Migrated `BidderTokenLoader.loadBidderToken()` from static to instance method
+- Replaced `BannerAdSize.fixedSize()` with `BannerAdSize.fixed()`
+- Removed `BannerAdView.setAdUnitId()` (adUnitId now passed via `AdRequest.Builder`)
+- Replaced `setAgeRestrictedUser()` with `setAgeRestricted()`
+- Removed deprecated banner event listeners: `onLeftApplication()` and `onReturnedToApplication()`
+- Updated ad loaders to pass listeners directly to `loadAd()` instead of `setAdLoadListener()`
+
 ## [7.18.5.0] - 2026-04-01
 ### Changed
 - Updated SDK dependency from 7.18.4 to 7.18.5
