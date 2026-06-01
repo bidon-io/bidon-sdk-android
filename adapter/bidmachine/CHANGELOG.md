@@ -11,8 +11,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.7.1.0] - 2026-06-01
 ### Changed
 - Updated SDK dependency from 3.7.0 to 3.7.1
-- Migrated from deprecated `setUSPrivacyString(String)` to `setNonPersonalized(Boolean)` with US Privacy String parsing logic
-- Migrated from deprecated `setConsentConfig(Boolean, String)` to `setConsentStatus(Boolean)` (BidMachine now reads consent string from IAB TCF 2.0 SharedPreferences)
 
 ## [3.7.0.0] - 2026-05-13
 ### Changed

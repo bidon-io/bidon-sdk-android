@@ -74,11 +74,8 @@ internal class BidMachineAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        regulation.usPrivacyString?.let { usPrivacyString ->
-            // Parse US Privacy String (format: 1YNN, position 3 indicates opt-out)
-            // If position 3 is 'Y', user opted out, so non-personalized ads should be used
-            val optedOut = usPrivacyString.length > 2 && usPrivacyString[2] == 'Y'
-            BidMachine.setNonPersonalized(optedOut)
+        regulation.usPrivacyString?.let {
+            BidMachine.setUSPrivacyString(it)
         }
         if (regulation.coppaApplies) {
             BidMachine.setCoppa(true)
@@ -88,8 +85,10 @@ internal class BidMachineAdapter :
             regulation.gdprConsentString
                 ?.takeIf { it.isNotBlank() }
                 ?.let {
-                    // BidMachine now reads consent string from IAB TCF 2.0 SharedPreferences
-                    BidMachine.setConsentStatus(regulation.hasGdprConsent)
+                    BidMachine.setConsentConfig(
+                        /* hasConsent = */ regulation.hasGdprConsent,
+                        /* consentString = */ it
+                    )
                 }
         }
     }
