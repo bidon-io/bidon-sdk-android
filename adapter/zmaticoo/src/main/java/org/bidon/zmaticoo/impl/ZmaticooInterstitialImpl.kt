@@ -30,7 +30,7 @@ internal class ZmaticooInterstitialImpl :
     private var placementId: String? = null
 
     override val isAdReadyToShow: Boolean
-        get() = InterstitialAd.isReady(placementId)
+        get() = placementId?.let { InterstitialAd.isReady(it) } ?: false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
@@ -40,7 +40,7 @@ internal class ZmaticooInterstitialImpl :
     override fun load(adParams: ZmaticooFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
 
-        placementId =
+        val validatedPlacementId =
             adParams.placementId ?: return emitEvent(
                 AdEvent.LoadFailed(
                     BidonError.IncorrectAdUnit(
@@ -49,6 +49,7 @@ internal class ZmaticooInterstitialImpl :
                     )
                 )
             )
+        placementId = validatedPlacementId
         val payload =
             adParams.payload ?: return emitEvent(
                 AdEvent.LoadFailed(
@@ -60,7 +61,7 @@ internal class ZmaticooInterstitialImpl :
             )
 
         InterstitialAd.setAdListener(
-            placementId,
+            validatedPlacementId,
             object : InterstitialAdListener() {
                 override fun onAdLoadSuccess(adId: MaticooIds?) {
                     logInfo(TAG, "onAdLoadSuccess")
@@ -113,7 +114,7 @@ internal class ZmaticooInterstitialImpl :
             }
         )
 
-        InterstitialAd.loadAd(placementId, payload)
+        InterstitialAd.loadAd(validatedPlacementId, payload)
     }
 
     override fun show(activity: Activity) {
@@ -131,7 +132,7 @@ internal class ZmaticooInterstitialImpl :
     override fun destroy() {
         logInfo(TAG, "destroy $this")
         placementId?.let {
-            InterstitialAd.setAdListener(it, null)
+            InterstitialAd.setAdListener(it, object : InterstitialAdListener() {})
             InterstitialAd.destroy(it)
         }
         placementId = null
