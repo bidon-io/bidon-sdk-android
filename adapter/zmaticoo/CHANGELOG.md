@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [2.0.6.0.0] - 2026-06-04
+### Changed
+- Updated SDK dependency from 2.0.5.1 to 2.0.6.0
+- Fixed null-safety handling for `isReady()` API calls (SDK now requires non-null String parameters)
+- Updated `setAdListener()` calls in `destroy()` method to use empty listener object instead of null
+
 ## [2.0.5.1.0] - 2026-04-15
 ### Changed
 - Updated SDK dependency from 2.0.5.0 to 2.0.5.1
