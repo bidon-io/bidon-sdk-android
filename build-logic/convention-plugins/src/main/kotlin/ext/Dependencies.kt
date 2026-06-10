@@ -32,6 +32,15 @@ object Dependencies {
         const val Annotation = "androidx.annotation:annotation:1.6.0"
     }
 
+    /**
+     * Demo app config. minSdk is raised above [Android.minSdkVersion] because some bundled
+     * adapter SDKs require a higher minSdk. The core SDK and individual adapters keep
+     * [Android.minSdkVersion].
+     */
+    object TestApp {
+        const val minSdkVersion = 24
+    }
+
     object Java {
         const val javaVersion = 11
         val javaCompile = JvmTarget.JVM_11

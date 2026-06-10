@@ -43,7 +43,7 @@ android {
     compileSdk = Dependencies.Android.compileSdkVersion
     namespace = defaultPackage
     defaultConfig {
-        minSdk = Dependencies.Android.minSdkVersion
+        minSdk = Dependencies.TestApp.minSdkVersion
         targetSdk = Dependencies.Android.targetSdkVersion
 
         versionCode = 1
