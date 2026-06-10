@@ -1,4 +1,5 @@
-# 0.14.0 (2026.*.*)
+# 0.14.0 (2026.06.10)
+## Features:
 - BDN-1193 Migrated minSdkVersion to API 24
 - BDN-1112 Improved CI workflows and enable Changelog logic for Dependabot automation
 - BDN-1125 Added SDK size check and Claude AI auto-fix deprecated workflows
