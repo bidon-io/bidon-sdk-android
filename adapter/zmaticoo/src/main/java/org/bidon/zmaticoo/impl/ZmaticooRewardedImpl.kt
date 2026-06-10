@@ -32,7 +32,7 @@ internal class ZmaticooRewardedImpl :
     private var placementId: String? = null
 
     override val isAdReadyToShow: Boolean
-        get() = RewardedVideoAd.isReady(placementId)
+        get() = placementId?.let { RewardedVideoAd.isReady(it) } ?: false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
@@ -42,7 +42,7 @@ internal class ZmaticooRewardedImpl :
     override fun load(adParams: ZmaticooFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
 
-        placementId =
+        val validatedPlacementId =
             adParams.placementId ?: return emitEvent(
                 AdEvent.LoadFailed(
                     BidonError.IncorrectAdUnit(
@@ -51,6 +51,7 @@ internal class ZmaticooRewardedImpl :
                     )
                 )
             )
+        placementId = validatedPlacementId
         val payload =
             adParams.payload ?: return emitEvent(
                 AdEvent.LoadFailed(
@@ -62,7 +63,7 @@ internal class ZmaticooRewardedImpl :
             )
 
         RewardedVideoAd.setAdListener(
-            placementId,
+            validatedPlacementId,
             object : RewardedVideoListener() {
                 override fun onRewardedVideoAdLoadSuccess(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdLoadSuccess")
@@ -134,7 +135,7 @@ internal class ZmaticooRewardedImpl :
                 }
             })
 
-        RewardedVideoAd.loadAd(placementId, payload)
+        RewardedVideoAd.loadAd(validatedPlacementId, payload)
     }
 
     override fun show(activity: Activity) {
@@ -152,7 +153,7 @@ internal class ZmaticooRewardedImpl :
     override fun destroy() {
         logInfo(TAG, "destroy $this")
         placementId?.let {
-            RewardedVideoAd.setAdListener(it, null)
+            RewardedVideoAd.setAdListener(it, object : RewardedVideoListener() {})
             RewardedVideoAd.destroy(it)
         }
         placementId = null
