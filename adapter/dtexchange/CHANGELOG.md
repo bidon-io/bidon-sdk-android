@@ -4,7 +4,30 @@ All notable changes to the DTExchange adapter will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+📋 [Release Notes](https://docs.digitalturbine.com/dt-exchange/publishers/sdk-configuration/integrating-the-android-sdk/dt-exchange-android-changelog)
+
 ## [Unreleased]
+
+## [8.4.5.0] - 2026-05-06
+### Changed
+- Updated SDK dependency from 8.4.4 to 8.4.5
+
+## [8.4.4.0] - 2026-04-01
+### Changed
+- Updated SDK dependency from 8.4.3 to 8.4.4
+
+## [8.4.3.1] - 2026-03-27
+### Changed
+- Fixed memory leak where InneractiveAdSpotManager held destroyed Activity references through request listener closures
+
+## [8.4.3.0] - 2026-02-17
+### Changed
+- Updated SDK dependency from 8.4.2 to 8.4.3
+
+## [8.4.2.0] - 2025-12-29
+### Changed
+- Updated SDK dependency from 8.4.1 to 8.4.2
+
 
 ## [8.4.1.0]
 - Updated DTExchange SDK to 8.4.1

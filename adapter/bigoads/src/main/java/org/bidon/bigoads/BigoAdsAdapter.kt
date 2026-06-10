@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 26/07/2023.
  */
 internal val BigoAdsDemandId = DemandId("bigoads")
 

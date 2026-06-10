@@ -9,7 +9,7 @@ import android.os.Bundle
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Created by Aleksei Cherniaev on 21/04/2023.
+ * Created by Bidon Team on 08/09/2023.
  */
 internal class LifecycleObserver {
     private val isLifecycleRegistered = AtomicBoolean(false)

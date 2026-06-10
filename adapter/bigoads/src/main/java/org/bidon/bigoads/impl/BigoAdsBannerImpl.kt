@@ -25,7 +25,7 @@ import sg.bigo.ads.api.BannerAdLoader
 import sg.bigo.ads.api.BannerAdRequest
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 26/07/2023.
  */
 internal class BigoAdsBannerImpl :
     AdSource.Banner<BigoAdsBannerAuctionParams>,

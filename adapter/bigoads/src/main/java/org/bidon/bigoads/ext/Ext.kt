@@ -7,7 +7,7 @@ import sg.bigo.ads.BigoAdSdk
 import sg.bigo.ads.api.AdError
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 26/07/2023.
  */
 internal var adapterVersion = BuildConfig.ADAPTER_VERSION
 internal var sdkVersion = BigoAdSdk.getSDKVersionName()

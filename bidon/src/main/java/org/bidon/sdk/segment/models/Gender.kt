@@ -1,7 +1,7 @@
 package org.bidon.sdk.segment.models
 
 /**
- * Created by Aleksei Cherniaev on 14/06/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 public enum class Gender(public val code: String) {
     Male("MALE"),

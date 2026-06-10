@@ -9,7 +9,7 @@ import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.utils.ext.TAG
 
 /**
- * Created by Aleksei Cherniaev on 25/07/2023.
+ * Created by Bidon Team on 26/07/2023.
  */
 public class AdEventFlowImpl : AdEventFlow {
     /**

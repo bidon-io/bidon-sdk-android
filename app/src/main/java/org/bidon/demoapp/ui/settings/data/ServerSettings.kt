@@ -37,7 +37,7 @@ internal sealed interface Host {
 
         companion object {
             const val SCHEME = "https://"
-            const val SUFFIX = "-b-go.appodeal.com"
+            const val SUFFIX = "-b-go.bidon.org"
             val DEFAULT get() = Staging("staging1")
             fun fromString(string: String): Staging {
                 return Staging(

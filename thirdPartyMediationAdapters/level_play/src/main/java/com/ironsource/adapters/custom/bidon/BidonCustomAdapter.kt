@@ -2,7 +2,7 @@ package com.ironsource.adapters.custom.bidon
 
 import android.content.Context
 import com.ironsource.adapters.custom.bidon.ext.MISSING_APP_KEY_ERROR
-import com.ironsource.adapters.custom.bidon.logger.LevelPLaySdkLogger
+import com.ironsource.adapters.custom.bidon.logger.LevelPlaySdkLogger
 import com.ironsource.adapters.custom.bidon.logger.Logger
 import com.ironsource.mediationsdk.AdapterNetworkData
 import com.ironsource.mediationsdk.adunit.adapter.BaseAdapter
@@ -15,7 +15,7 @@ import org.bidon.sdk.logs.logging.Logger.Level.Verbose
 import org.bidon.sdk.regulation.Coppa
 import org.bidon.sdk.regulation.Gdpr
 
-public class BidonCustomAdapter : BaseAdapter(), Logger by LevelPLaySdkLogger {
+public class BidonCustomAdapter : BaseAdapter(), Logger by LevelPlaySdkLogger {
 
     override fun getNetworkSDKVersion(): String = BidonSdk.SdkVersion
     override fun getAdapterVersion(): String = "${BidonSdk.SdkVersion}.${BuildConfig.ADAPTER_VERSION}"

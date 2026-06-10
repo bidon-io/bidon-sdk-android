@@ -7,7 +7,7 @@ internal interface Logger {
     fun logError(tag: String, message: String, throwable: Throwable)
 }
 
-internal val LevelPLaySdkLogger: Logger = object : Logger {
+internal val LevelPlaySdkLogger: Logger = object : Logger {
     override fun log(tag: String, message: String) {
         Log.d("LevelPlaySdk", "[$tag] $message")
     }

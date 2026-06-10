@@ -26,7 +26,7 @@ import org.bidon.sdk.stats.StatisticsCollector
 import org.bidon.sdk.stats.impl.StatisticsCollectorImpl
 
 /**
- * Created by Aleksei Cherniaev on 28/02/2023.
+ * Created by Bidon Team on 01/03/2023.
  */
 internal class DTExchangeInterstitial :
     AdSource.Interstitial<DTExchangeAdAuctionParams>,
@@ -100,6 +100,7 @@ internal class DTExchangeInterstitial :
                 getAd()?.let {
                     emitEvent(AdEvent.Closed(ad = it))
                 }
+                this@DTExchangeInterstitial.inneractiveAdSpot?.destroy()
                 this@DTExchangeInterstitial.inneractiveAdSpot = null
             }
         }
@@ -108,6 +109,7 @@ internal class DTExchangeInterstitial :
         spot.setRequestListener(
             object : InneractiveAdSpot.RequestListener {
                 override fun onInneractiveSuccessfulAdRequest(inneractiveAdSpot: InneractiveAdSpot?) {
+                    inneractiveAdSpot?.setRequestListener(null)
                     logInfo(TAG, "onInneractiveSuccessfulAdRequest: $inneractiveAdSpot")
                     this@DTExchangeInterstitial.inneractiveAdSpot = inneractiveAdSpot
                     setDsp(demandSource ?: inneractiveAdSpot?.mediationNameString)
@@ -120,6 +122,7 @@ internal class DTExchangeInterstitial :
                     inneractiveAdSpot: InneractiveAdSpot?,
                     inneractiveErrorCode: InneractiveErrorCode?
                 ) {
+                    inneractiveAdSpot?.setRequestListener(null)
                     val error = inneractiveErrorCode.asBidonError()
                     logError(TAG, "onInneractiveFailedAdRequest: $inneractiveErrorCode", error)
                     emitEvent(AdEvent.LoadFailed(error))
@@ -140,6 +143,7 @@ internal class DTExchangeInterstitial :
     }
 
     override fun destroy() {
+        inneractiveAdSpot?.setRequestListener(null)
         inneractiveAdSpot?.destroy()
         inneractiveAdSpot = null
     }

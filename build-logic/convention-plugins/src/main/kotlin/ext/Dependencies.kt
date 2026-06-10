@@ -26,7 +26,7 @@ object Dependencies {
     object Android {
         const val compileSdkVersion = 35
         const val targetSdkVersion = 35
-        const val minSdkVersion = 23
+        const val minSdkVersion = 24
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"
         const val Annotation = "androidx.annotation:annotation:1.6.0"
@@ -41,9 +41,5 @@ object Dependencies {
         const val AppSet = "com.google.android.gms:play-services-appset:16.0.0"
         const val PlayServicesAdsIdentifier =
             "com.google.android.gms:play-services-ads-identifier:18.0.1"
-    }
-
-    object Others {
-        const val IabTcfDecoder = "com.iabtcf:iabtcf-decoder:2.0.10"
     }
 }

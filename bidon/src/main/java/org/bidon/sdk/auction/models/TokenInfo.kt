@@ -4,7 +4,7 @@ import org.bidon.sdk.utils.serializer.JsonName
 import org.bidon.sdk.utils.serializer.Serializable
 
 /**
- * Created by Aleksei Cherniaev on 14/11/2023.
+ * Created by Bidon Team on 14/02/2024.
  */
 public data class TokenInfo(
     @field:JsonName("token")

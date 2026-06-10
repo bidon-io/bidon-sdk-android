@@ -41,7 +41,7 @@ import org.bidon.demoapp.component.Subtitle1Text
 import org.bidon.sdk.segment.models.Gender
 
 /**
- * Created by Aleksei Cherniaev on 13/07/2023.
+ * Created by Bidon Team on 13/07/2023.
  */
 @Composable
 internal fun SegmentSettingsView(

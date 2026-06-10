@@ -1,7 +1,7 @@
 package org.bidon.yandex
 
 import android.content.Context
-import com.yandex.mobile.ads.common.MobileAds
+import com.yandex.mobile.ads.common.YandexAds
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource.Banner
@@ -26,7 +26,7 @@ import org.bidon.yandex.impl.YandexRewardedImpl
 import kotlin.coroutines.resume
 
 /**
- * Created by Aleksei Cherniaev on 17/09/2023.
+ * Created by Bidon Team on 07/08/2024.
  */
 internal val YandexDemandId = DemandId("yandex")
 
@@ -53,18 +53,18 @@ internal class YandexAdapter :
 
     override suspend fun init(context: Context, configParams: YandexParameters) =
         suspendCancellableCoroutine {
-            MobileAds.enableLogging(isTestMode)
-            MobileAds.initialize(context) { it.resume(Unit) }
+            YandexAds.enableLogging(isTestMode)
+            YandexAds.initialize(context) { it.resume(Unit) }
         }
 
     override fun parseConfigParam(json: String): YandexParameters = YandexParameters()
 
     override fun updateRegulation(regulation: Regulation) {
         if (regulation.gdprApplies) {
-            MobileAds.setUserConsent(regulation.hasGdprConsent)
+            YandexAds.setUserConsent(regulation.hasGdprConsent)
         }
         if (regulation.coppaApplies) {
-            MobileAds.setAgeRestrictedUser(true)
+            YandexAds.setAgeRestricted(true)
         }
     }
 

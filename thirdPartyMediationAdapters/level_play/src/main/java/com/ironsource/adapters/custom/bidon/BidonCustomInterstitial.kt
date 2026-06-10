@@ -12,7 +12,7 @@ import com.ironsource.adapters.custom.bidon.ext.getErrorCode
 import com.ironsource.adapters.custom.bidon.interstitial.InterstitialAdInstance
 import com.ironsource.adapters.custom.bidon.keeper.AdKeeper
 import com.ironsource.adapters.custom.bidon.keeper.AdKeepers
-import com.ironsource.adapters.custom.bidon.logger.LevelPLaySdkLogger
+import com.ironsource.adapters.custom.bidon.logger.LevelPlaySdkLogger
 import com.ironsource.adapters.custom.bidon.logger.Logger
 import com.ironsource.mediationsdk.adunit.adapter.BaseInterstitial
 import com.ironsource.mediationsdk.adunit.adapter.listener.InterstitialAdListener
@@ -31,7 +31,7 @@ import org.bidon.sdk.logs.analytic.AdValue
 
 internal class BidonCustomInterstitial(
     networkSetting: NetworkSettings
-) : BaseInterstitial<BidonCustomAdapter>(networkSetting), Logger by LevelPLaySdkLogger {
+) : BaseInterstitial<BidonCustomAdapter>(networkSetting), Logger by LevelPlaySdkLogger {
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var adInstance: InterstitialAdInstance? = null

@@ -2,7 +2,7 @@ package org.bidon.yandex.impl
 
 import android.app.Activity
 import com.yandex.mobile.ads.common.AdError
-import com.yandex.mobile.ads.common.AdRequestConfiguration
+import com.yandex.mobile.ads.common.AdRequest
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
 import com.yandex.mobile.ads.rewarded.Reward
@@ -47,7 +47,7 @@ internal class YandexRewardedImpl :
         val adUnitId = adParams.adUnitId
             ?: return emitEvent(AdEvent.LoadFailed(BidonError.IncorrectAdUnit(demandId = demandId, message = "adUnitId")))
 
-        val adRequestConfiguration = AdRequestConfiguration.Builder(adUnitId)
+        val adRequest = AdRequest.Builder(adUnitId)
             .apply {
                 when (adParams.adUnit.bidType) {
                     BidType.RTB -> {
@@ -74,7 +74,7 @@ internal class YandexRewardedImpl :
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
-        requestRewardedAd(adParams.context, adRequestConfiguration, adLoadListener)
+        requestRewardedAd(adParams.context, adRequest, adLoadListener)
     }
 
     override fun show(activity: Activity) {

@@ -44,7 +44,7 @@ class TaurusXBannerImplTest {
                 label = "test_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "placement_id" hasValue "test_ad_unit_id"
                     "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
@@ -75,7 +75,7 @@ class TaurusXBannerImplTest {
                 label = "test_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "placement_id" hasValue "test_ad_unit_id"
                     "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
@@ -155,7 +155,7 @@ class TaurusXBannerImplTest {
                 label = "test_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "placement_id" hasValue "test_ad_unit_id"
                 }.toString(),
                 timeout = 5000,
                 uid = "test_uid"
@@ -179,7 +179,7 @@ class TaurusXBannerImplTest {
                 label = "test_label",
                 bidType = BidType.RTB,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "placement_id" hasValue "test_ad_unit_id"
                     "payload" hasValue "test_payload"
                 }.toString(),
                 timeout = 5000,
@@ -206,7 +206,7 @@ class TaurusXBannerImplTest {
                 label = "test_label",
                 bidType = BidType.CPM,
                 ext = jsonObject {
-                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "placement_id" hasValue "test_ad_unit_id"
                 }.toString(),
                 timeout = 5000,
                 uid = "test_uid"

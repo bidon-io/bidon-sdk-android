@@ -5,7 +5,7 @@ import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 
 /**
- * Created by Aleksei Cherniaev on 06/02/2023.
+ * Created by Bidon Team on 07/09/2022.
  */
 internal sealed interface AuctionResult {
     val adSource: AdSource<*>

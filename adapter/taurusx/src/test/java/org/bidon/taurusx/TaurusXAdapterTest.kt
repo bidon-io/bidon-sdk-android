@@ -70,9 +70,9 @@ class TaurusXAdapterTest {
         assertThat(result.channel).isEqualTo("test_channel")
         assertThat(result.placementIds).hasSize(2)
         assertThat(result.placementIds[0].adUnitId).isEqualTo("banner_123")
-        assertThat(result.placementIds[0].adFormat).isEqualTo("banner")
+        assertThat(result.placementIds[0].adFormat).isEqualTo(TaurusXAdFormat.Banner)
         assertThat(result.placementIds[1].adUnitId).isEqualTo("interstitial_456")
-        assertThat(result.placementIds[1].adFormat).isEqualTo("interstitial")
+        assertThat(result.placementIds[1].adFormat).isEqualTo(TaurusXAdFormat.Interstitial)
     }
 
     @Test
@@ -126,8 +126,8 @@ class TaurusXAdapterTest {
         every { TaurusXAds.setChannel(any()) } returns Unit
         every { TaurusXAds.init(any(), any()) } returns Unit
         val placementIds = listOf(
-            TaurusXPlacement("banner_123", "banner"),
-            TaurusXPlacement("interstitial_456", "interstitial")
+            TaurusXPlacement("banner_123", TaurusXAdFormat.Banner),
+            TaurusXPlacement("interstitial_456", TaurusXAdFormat.Interstitial)
         )
         val params = TaurusXParams("test_app_id", "test_channel", placementIds)
 

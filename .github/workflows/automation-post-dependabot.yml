@@ -1,0 +1,943 @@
+name: Automation post dependabot
+
+on:
+  workflow_run:
+    workflows: ["CI Adapter Quality"]
+    types: [completed]
+    branches:
+      - 'dependabot/**'
+
+concurrency:
+  group: automation-dependabot-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+jobs:
+  # Check PR state and determine what needs to be done
+  check-state:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.pr.outputs.should_run }}
+      pr_number: ${{ steps.pr.outputs.number }}
+      pr_branch: ${{ steps.pr.outputs.branch }}
+      build_failed: ${{ steps.status.outputs.build_failed }}
+      deprecated_failed: ${{ steps.status.outputs.deprecated_failed }}
+      tests_failed: ${{ steps.status.outputs.tests_failed }}
+      changelog_done: ${{ steps.labels.outputs.changelog_done }}
+      build_attempted: ${{ steps.labels.outputs.build_attempted }}
+      deprecated_attempted: ${{ steps.labels.outputs.deprecated_attempted }}
+      tests_attempted: ${{ steps.labels.outputs.tests_attempted }}
+      adapters: ${{ steps.artifacts.outputs.adapters }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const prNumber = run.pull_requests[0]?.number;
+            const prBranch = run.head_branch;
+
+            if (!prNumber) {
+              console.log('Could not determine PR number');
+              core.setOutput('should_run', 'false');
+              return;
+            }
+
+            console.log(`PR #${prNumber}`);
+            console.log(`Branch: ${prBranch}`);
+
+            core.setOutput('should_run', 'true');
+            core.setOutput('number', prNumber);
+            core.setOutput('branch', prBranch);
+
+      - name: Check labels
+        id: labels
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            const labels = (pr.labels || []).map(l => l.name);
+            console.log(`Labels: ${labels.join(', ')}`);
+
+            core.setOutput('changelog_done', labels.includes('bot:changelog-updated') ? 'true' : 'false');
+            core.setOutput('build_attempted', labels.includes('bot:build-attempted') ? 'true' : 'false');
+            core.setOutput('deprecated_attempted', labels.includes('bot:deprecated-attempted') ? 'true' : 'false');
+            core.setOutput('tests_attempted', labels.includes('bot:tests-attempted') ? 'true' : 'false');
+
+      - name: Check CI job statuses
+        id: status
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
+
+            // Get jobs from the triggering workflow run
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+
+            let buildFailed = false;
+            let deprecatedFailed = false;
+            let testsFailed = false;
+
+            for (const job of jobs.jobs) {
+              console.log(`Job: ${job.name} - ${job.conclusion}`);
+
+              if (job.name.startsWith('build') && job.conclusion === 'failure') {
+                buildFailed = true;
+              }
+              if (job.name.startsWith('deprecated-check') && job.conclusion === 'failure') {
+                deprecatedFailed = true;
+              }
+              if (job.name.startsWith('unit-tests') && job.conclusion === 'failure') {
+                testsFailed = true;
+              }
+            }
+
+            console.log(`Build failed: ${buildFailed}`);
+            console.log(`Deprecated failed: ${deprecatedFailed}`);
+            console.log(`Tests failed: ${testsFailed}`);
+
+            core.setOutput('build_failed', buildFailed ? 'true' : 'false');
+            core.setOutput('deprecated_failed', deprecatedFailed ? 'true' : 'false');
+            core.setOutput('tests_failed', testsFailed ? 'true' : 'false');
+
+      - name: List available artifacts
+        id: artifacts
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
+
+            const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+
+            // Find adapters with issues
+            const adaptersWithIssues = new Set();
+
+            for (const artifact of data.artifacts || []) {
+              console.log(`Artifact: ${artifact.name}`);
+
+              // Extract adapter name from artifact names like:
+              // build-output-admob, deprecated-warnings-admob, test-failures-admob
+              const match = artifact.name.match(/^(build-output|deprecated-warnings|test-failures)-(.+)$/);
+              if (match) {
+                adaptersWithIssues.add(match[2]);
+              }
+            }
+
+            const adapters = Array.from(adaptersWithIssues);
+            console.log(`Adapters with artifacts: ${adapters.join(', ')}`);
+
+            if (adapters.length > 0) {
+              core.setOutput('adapters', JSON.stringify(adapters));
+            } else {
+              core.setOutput('adapters', '[]');
+            }
+
+      - name: Request team review
+        if: steps.pr.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                team_reviewers: ['bidon-android']
+              });
+              console.log(`Requested review from bidon-android team on PR #${prNumber}`);
+            } catch (e) {
+              console.log(`Could not request team review: ${e.message}`);
+            }
+
+  # Trigger Claude to update changelog (after all fixes done and CI passes)
+  trigger-changelog:
+    needs: [check-state, trigger-fix-build, trigger-fix-deprecated, trigger-fix-tests]
+    if: |
+      always() &&
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.changelog_done != 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed != 'true' &&
+      needs.check-state.outputs.tests_failed != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-state.outputs.pr_branch }}
+          fetch-depth: 0
+
+      - name: Get version changes
+        id: versions
+        run: |
+          git fetch origin develop
+          VERSION_CHANGES=""
+          ADAPTERS_LIST=""
+          RELEASE_NOTES=""
+
+          CHANGED_FILES=$(git diff --name-only origin/develop...HEAD | grep 'adapter/.*/build.gradle.kts' || true)
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            ADAPTER_DIR=$(dirname "$file")
+            ADAPTER_NAME=$(basename "$ADAPTER_DIR")
+
+            OLD_VER=$(git show origin/develop:"$file" | grep 'val adapterSdkVersion = ' | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+            NEW_VER=$(grep 'val adapterSdkVersion = ' "$file" | sed 's/.*"\([^"]*\)".*/\1/' || echo "unknown")
+
+            if [ "$OLD_VER" != "$NEW_VER" ] && [ "$OLD_VER" != "unknown" ]; then
+              VERSION_CHANGES="${VERSION_CHANGES}- **${ADAPTER_NAME}**: ${OLD_VER} -> ${NEW_VER}\n"
+              ADAPTERS_LIST="${ADAPTERS_LIST}${ADAPTER_NAME}, "
+
+              # Get release notes URL
+              CHANGELOG_FILE="adapter/$ADAPTER_NAME/CHANGELOG.md"
+              if [ -f "$CHANGELOG_FILE" ]; then
+                URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1 || true)
+                if [ -n "$URL" ]; then
+                  RELEASE_NOTES="${RELEASE_NOTES}- **${ADAPTER_NAME}**: ${URL}\n"
+                fi
+              fi
+            fi
+          done <<< "$CHANGED_FILES"
+
+          ADAPTERS_LIST=$(echo "$ADAPTERS_LIST" | sed 's/, $//')
+
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$VERSION_CHANGES" > /tmp/version_changes.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
+
+          if [ -n "$ADAPTERS_LIST" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine AI fixes
+        id: ai-fixes
+        env:
+          BUILD_ATTEMPTED: ${{ needs.check-state.outputs.build_attempted }}
+          DEPRECATED_ATTEMPTED: ${{ needs.check-state.outputs.deprecated_attempted }}
+          TESTS_ATTEMPTED: ${{ needs.check-state.outputs.tests_attempted }}
+        run: |
+          AI_FIXES=""
+          if [ "$DEPRECATED_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- deprecated-fix: yes\n"
+          fi
+          if [ "$BUILD_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- build-fix: yes\n"
+          fi
+          if [ "$TESTS_ATTEMPTED" == "true" ]; then
+            AI_FIXES="${AI_FIXES}- tests-fix: yes\n"
+          fi
+
+          if [ -z "$AI_FIXES" ]; then
+            AI_FIXES="None"
+          fi
+
+          echo -e "$AI_FIXES" > /tmp/ai_fixes.txt
+
+      - name: Render prompt
+        if: steps.versions.outputs.has_changes == 'true'
+        run: |
+          PROMPT=$(cat .github/claude-prompts/update-changelog.md)
+
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          VERSION_CHANGES=$(cat /tmp/version_changes.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
+          AI_FIXES=$(cat /tmp/ai_fixes.txt)
+
+          PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
+          PROMPT="${PROMPT//\{\{VERSION_CHANGES\}\}/$VERSION_CHANGES}"
+          PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
+          PROMPT="${PROMPT//\{\{AI_FIXES\}\}/$AI_FIXES}"
+
+          echo "$PROMPT" > /tmp/prompt.txt
+
+      - name: Post @claude comment
+        if: steps.versions.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              body: `@claude\n\n${prompt}`
+            });
+
+      - name: Add changelog label
+        if: steps.versions.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const label = {
+              name: 'bot:changelog-updated',
+              color: '0366d6',
+              description: 'CHANGELOG automatically updated'
+            };
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name
+              });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              labels: [label.name]
+            });
+
+  # Trigger Claude to fix build errors
+  trigger-fix-build:
+    needs: [check-state]
+    if: |
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed == 'true' &&
+      needs.check-state.outputs.build_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-state.outputs.pr_branch }}
+
+      - name: Download all build artifacts
+        uses: actions/github-script@v7
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        with:
+          script: |
+            const fs = require('fs');
+            const adapters = JSON.parse(process.env.ADAPTERS);
+            const runId = context.payload.workflow_run.id;
+
+            for (const adapter of adapters) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+
+                const artifact = artifacts.data.artifacts.find(a => a.name === `build-output-${adapter}`);
+                if (artifact) {
+                  const download = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                    archive_format: 'zip'
+                  });
+
+                  fs.writeFileSync(`build-output-${adapter}.zip`, Buffer.from(download.data));
+                  console.log(`Downloaded artifact for ${adapter}`);
+                }
+              } catch (e) {
+                console.log(`No build artifact for ${adapter}: ${e.message}`);
+              }
+            }
+
+      - name: Extract artifacts
+        run: |
+          for zip in build-output-*.zip; do
+            [ -f "$zip" ] || continue
+            adapter=$(echo "$zip" | sed 's/build-output-\(.*\)\.zip/\1/')
+            mkdir -p "artifacts/$adapter"
+            unzip -o "$zip" -d "artifacts/$adapter" || true
+          done
+
+      - name: Collect all errors and release notes
+        id: collect
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        run: |
+          ADAPTERS_JSON="$ADAPTERS"
+
+          # Collect errors from all adapters (only include adapters with actual errors)
+          ISSUES=""
+          RELEASE_NOTES=""
+          ADAPTERS_WITH_ISSUES=""
+
+          for adapter in $(echo "$ADAPTERS_JSON" | jq -r '.[]'); do
+            ERRORS=""
+            if [ -f "artifacts/$adapter/build_output.log" ]; then
+              ERRORS=$(grep -E "(e: |error:|Error:|FAILURE|BUILD FAILED)" "artifacts/$adapter/build_output.log" | head -50 || true)
+            fi
+
+            if [ -n "$ERRORS" ]; then
+              ISSUES="${ISSUES}#### adapter/${adapter}\n\`\`\`\n${ERRORS}\n\`\`\`\n\n"
+              ADAPTERS_WITH_ISSUES="${ADAPTERS_WITH_ISSUES}${adapter}, "
+
+              # Get release notes URL (only for adapters with issues)
+              CHANGELOG_FILE="adapter/$adapter/CHANGELOG.md"
+              if [ -f "$CHANGELOG_FILE" ]; then
+                URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1 || true)
+                if [ -n "$URL" ]; then
+                  RELEASE_NOTES="${RELEASE_NOTES}- **${adapter}**: ${URL}\n"
+                fi
+              fi
+            fi
+          done
+
+          # Remove trailing comma and space
+          ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
+
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
+
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read prompt template and render
+        id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
+        run: |
+          PROMPT=$(cat .github/claude-prompts/fix-build.md)
+
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
+
+          PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
+          PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
+          PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
+
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
+
+      - name: Post @claude comment
+        if: steps.collect.outputs.has_issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              body: `@claude\n\n${prompt}`
+            });
+
+      - name: Add attempted label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const label = {
+              name: 'bot:build-attempted',
+              color: 'd73a4a',
+              description: 'Claude attempted to fix build errors'
+            };
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name
+              });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              labels: [label.name]
+            });
+
+  # Trigger Claude to fix deprecated code
+  trigger-fix-deprecated:
+    needs: [check-state]
+    if: |
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed == 'true' &&
+      needs.check-state.outputs.deprecated_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-state.outputs.pr_branch }}
+
+      - name: Download all deprecated warnings artifacts
+        uses: actions/github-script@v7
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        with:
+          script: |
+            const fs = require('fs');
+            const adapters = JSON.parse(process.env.ADAPTERS);
+            const runId = context.payload.workflow_run.id;
+
+            for (const adapter of adapters) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+
+                const artifact = artifacts.data.artifacts.find(a => a.name === `deprecated-warnings-${adapter}`);
+                if (artifact) {
+                  const download = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                    archive_format: 'zip'
+                  });
+
+                  fs.writeFileSync(`deprecated-warnings-${adapter}.zip`, Buffer.from(download.data));
+                  console.log(`Downloaded artifact for ${adapter}`);
+                }
+              } catch (e) {
+                console.log(`No deprecated warnings artifact for ${adapter}: ${e.message}`);
+              }
+            }
+
+      - name: Extract artifacts
+        run: |
+          for zip in deprecated-warnings-*.zip; do
+            [ -f "$zip" ] || continue
+            adapter=$(echo "$zip" | sed 's/deprecated-warnings-\(.*\)\.zip/\1/')
+            mkdir -p "artifacts/$adapter"
+            unzip -o "$zip" -d "artifacts/$adapter" || true
+          done
+
+      - name: Collect all warnings and release notes
+        id: collect
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        run: |
+          ADAPTERS_JSON="$ADAPTERS"
+
+          # Collect warnings from all adapters (only include adapters with actual warnings)
+          ISSUES=""
+          RELEASE_NOTES=""
+          ADAPTERS_WITH_ISSUES=""
+
+          for adapter in $(echo "$ADAPTERS_JSON" | jq -r '.[]'); do
+            WARNINGS=""
+            if [ -f "artifacts/$adapter/deprecated_warnings.txt" ]; then
+              WARNINGS=$(cat "artifacts/$adapter/deprecated_warnings.txt" | head -50 || true)
+            fi
+
+            if [ -n "$WARNINGS" ]; then
+              ISSUES="${ISSUES}#### adapter/${adapter}\n\`\`\`\n${WARNINGS}\n\`\`\`\n\n"
+              ADAPTERS_WITH_ISSUES="${ADAPTERS_WITH_ISSUES}${adapter}, "
+
+              # Get release notes URL (only for adapters with issues)
+              CHANGELOG_FILE="adapter/$adapter/CHANGELOG.md"
+              if [ -f "$CHANGELOG_FILE" ]; then
+                URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1 || true)
+                if [ -n "$URL" ]; then
+                  RELEASE_NOTES="${RELEASE_NOTES}- **${adapter}**: ${URL}\n"
+                fi
+              fi
+            fi
+          done
+
+          # Remove trailing comma and space
+          ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
+
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
+
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read prompt template and render
+        id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
+        run: |
+          PROMPT=$(cat .github/claude-prompts/fix-deprecated.md)
+
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
+
+          PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
+          PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
+          PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
+
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
+
+      - name: Post @claude comment
+        if: steps.collect.outputs.has_issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              body: `@claude\n\n${prompt}`
+            });
+
+      - name: Add attempted label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const label = {
+              name: 'bot:deprecated-attempted',
+              color: '0e8a16',
+              description: 'Claude attempted to fix deprecated warnings'
+            };
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name
+              });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              labels: [label.name]
+            });
+
+  # Trigger Claude to fix test failures
+  trigger-fix-tests:
+    needs: [check-state]
+    if: |
+      needs.check-state.outputs.should_run == 'true' &&
+      needs.check-state.outputs.build_failed != 'true' &&
+      needs.check-state.outputs.deprecated_failed != 'true' &&
+      needs.check-state.outputs.tests_failed == 'true' &&
+      needs.check-state.outputs.tests_attempted != 'true' &&
+      needs.check-state.outputs.adapters != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BIDON_BOT_APP_ID }}
+          private-key: ${{ secrets.BIDON_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check-state.outputs.pr_branch }}
+
+      - name: Download all test failures artifacts
+        uses: actions/github-script@v7
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        with:
+          script: |
+            const fs = require('fs');
+            const adapters = JSON.parse(process.env.ADAPTERS);
+            const runId = context.payload.workflow_run.id;
+
+            for (const adapter of adapters) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+
+                const artifact = artifacts.data.artifacts.find(a => a.name === `test-failures-${adapter}`);
+                if (artifact) {
+                  const download = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                    archive_format: 'zip'
+                  });
+
+                  fs.writeFileSync(`test-failures-${adapter}.zip`, Buffer.from(download.data));
+                  console.log(`Downloaded artifact for ${adapter}`);
+                }
+              } catch (e) {
+                console.log(`No test failures artifact for ${adapter}: ${e.message}`);
+              }
+            }
+
+      - name: Extract artifacts
+        run: |
+          for zip in test-failures-*.zip; do
+            [ -f "$zip" ] || continue
+            adapter=$(echo "$zip" | sed 's/test-failures-\(.*\)\.zip/\1/')
+            mkdir -p "artifacts/$adapter"
+            unzip -o "$zip" -d "artifacts/$adapter" || true
+          done
+
+      - name: Collect all test failures and release notes
+        id: collect
+        env:
+          ADAPTERS: ${{ needs.check-state.outputs.adapters }}
+        run: |
+          ADAPTERS_JSON="$ADAPTERS"
+
+          # Collect test failures from all adapters (only include adapters with actual failures)
+          ISSUES=""
+          RELEASE_NOTES=""
+          ADAPTERS_WITH_ISSUES=""
+
+          for adapter in $(echo "$ADAPTERS_JSON" | jq -r '.[]'); do
+            FAILURES=""
+
+            # Look for XML test reports
+            TEST_DIR="artifacts/$adapter/adapter/$adapter/build/test-results"
+            if [ -d "$TEST_DIR" ]; then
+              for xml in $(find "$TEST_DIR" -name "*.xml" 2>/dev/null | head -5); do
+                if grep -q 'failures="[1-9]' "$xml" 2>/dev/null || grep -q 'errors="[1-9]' "$xml" 2>/dev/null; then
+                  FAILURES="${FAILURES}$(grep -A5 'failure message=' "$xml" 2>/dev/null | head -30)\n"
+                  FAILURES="${FAILURES}$(grep -A5 'error message=' "$xml" 2>/dev/null | head -30)\n"
+                fi
+              done
+            fi
+
+            if [ -n "$FAILURES" ]; then
+              ISSUES="${ISSUES}#### adapter/${adapter}\n\`\`\`\n${FAILURES}\n\`\`\`\n\n"
+              ADAPTERS_WITH_ISSUES="${ADAPTERS_WITH_ISSUES}${adapter}, "
+
+              # Get release notes URL (only for adapters with issues)
+              CHANGELOG_FILE="adapter/$adapter/CHANGELOG.md"
+              if [ -f "$CHANGELOG_FILE" ]; then
+                URL=$(grep -o '\[Release Notes\](https://[^)]*' "$CHANGELOG_FILE" | sed 's/\[Release Notes\](//' | head -1 || true)
+                if [ -n "$URL" ]; then
+                  RELEASE_NOTES="${RELEASE_NOTES}- **${adapter}**: ${URL}\n"
+                fi
+              fi
+            fi
+          done
+
+          # Remove trailing comma and space
+          ADAPTERS_LIST=$(echo "$ADAPTERS_WITH_ISSUES" | sed 's/, $//')
+
+          # Write to files (outputs don't handle backticks well)
+          echo "$ADAPTERS_LIST" > /tmp/adapters_list.txt
+          echo -e "$ISSUES" > /tmp/issues.txt
+          echo -e "$RELEASE_NOTES" > /tmp/release_notes.txt
+
+          # Output for condition check
+          if [ -n "$ISSUES" ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read prompt template and render
+        id: prompt
+        if: steps.collect.outputs.has_issues == 'true'
+        run: |
+          PROMPT=$(cat .github/claude-prompts/fix-tests.md)
+
+          ADAPTERS=$(cat /tmp/adapters_list.txt)
+          ISSUES=$(cat /tmp/issues.txt)
+          RELEASE_NOTES=$(cat /tmp/release_notes.txt)
+
+          PROMPT="${PROMPT//\{\{ADAPTERS\}\}/$ADAPTERS}"
+          PROMPT="${PROMPT//\{\{ISSUES\}\}/$ISSUES}"
+          PROMPT="${PROMPT//\{\{RELEASE_NOTES\}\}/$RELEASE_NOTES}"
+
+          # Write to file for next step
+          echo "$PROMPT" > /tmp/prompt.txt
+
+      - name: Post @claude comment
+        if: steps.collect.outputs.has_issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const prompt = fs.readFileSync('/tmp/prompt.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              body: `@claude\n\n${prompt}`
+            });
+
+      - name: Add attempted label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const label = {
+              name: 'bot:tests-attempted',
+              color: '5319e7',
+              description: 'Claude attempted to fix test failures'
+            };
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name
+              });
+            } catch (e) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (e2) {
+                console.log(`Could not create label: ${e2.message}`);
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-state.outputs.pr_number }},
+              labels: [label.name]
+            });
+
+  # Summary job
+  summary:
+    needs: [check-state, trigger-changelog, trigger-fix-build, trigger-fix-deprecated, trigger-fix-tests]
+    if: always() && needs.check-state.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Job Summary
+        run: |
+          echo "## Automation Post-Dependabot Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| PR Number | #${{ needs.check-state.outputs.pr_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Failed | ${{ needs.check-state.outputs.build_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deprecated Failed | ${{ needs.check-state.outputs.deprecated_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Failed | ${{ needs.check-state.outputs.tests_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Labels" >> $GITHUB_STEP_SUMMARY
+          echo "| Label | Present |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:changelog-updated | ${{ needs.check-state.outputs.changelog_done }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:build-attempted | ${{ needs.check-state.outputs.build_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:deprecated-attempted | ${{ needs.check-state.outputs.deprecated_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bot:tests-attempted | ${{ needs.check-state.outputs.tests_attempted }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Adapters" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo '${{ needs.check-state.outputs.adapters }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

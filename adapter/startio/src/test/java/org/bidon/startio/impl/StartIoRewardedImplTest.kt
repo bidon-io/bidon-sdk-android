@@ -7,6 +7,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import org.bidon.sdk.auction.models.AdUnit
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Test
 
@@ -29,11 +30,12 @@ class StartIoRewardedImplTest {
 
     @Test
     fun `load should handle valid payload without crashing`() {
+        val extraJson = JSONObject().apply {
+            put("payload", "test_payload")
+        }
         val adUnit = mockk<AdUnit>(relaxed = true) {
             every { pricefloor } returns 1.0
-            every { extra } returns mockk {
-                every { optString("payload") } returns "test_payload"
-            }
+            every { extra } returns extraJson
         }
         val adParams = StartIoFullscreenAuctionParams(context, adUnit)
 

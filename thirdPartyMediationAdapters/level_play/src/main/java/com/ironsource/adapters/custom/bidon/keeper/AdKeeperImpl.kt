@@ -1,12 +1,12 @@
 package com.ironsource.adapters.custom.bidon.keeper
 
-import com.ironsource.adapters.custom.bidon.logger.LevelPLaySdkLogger
+import com.ironsource.adapters.custom.bidon.logger.LevelPlaySdkLogger
 import com.ironsource.adapters.custom.bidon.logger.Logger
 import java.util.TreeSet
 
 internal class AdKeeperImpl<T : AdInstance>(
     private val adType: String
-) : AdKeeper<T>, Logger by LevelPLaySdkLogger {
+) : AdKeeper<T>, Logger by LevelPlaySdkLogger {
 
     private val registeredEcpm: TreeSet<Double> = TreeSet<Double>()
     private var lastRegisteredEcpm: Double? = null

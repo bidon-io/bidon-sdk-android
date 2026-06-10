@@ -1,12 +1,9 @@
 package org.bidon.yandex.impl
 
 import android.content.Context
-import com.yandex.mobile.ads.common.AdRequestConfiguration
-import com.yandex.mobile.ads.common.AdRequestError
-import com.yandex.mobile.ads.interstitial.InterstitialAd
+import com.yandex.mobile.ads.common.AdRequest
 import com.yandex.mobile.ads.interstitial.InterstitialAdLoadListener
 import com.yandex.mobile.ads.interstitial.InterstitialAdLoader
-import com.yandex.mobile.ads.rewarded.RewardedAd
 import com.yandex.mobile.ads.rewarded.RewardedAdLoadListener
 import com.yandex.mobile.ads.rewarded.RewardedAdLoader
 
@@ -19,42 +16,20 @@ internal class YandexLoaderImpl : YandexLoader {
 
     override fun requestInterstitialAd(
         context: Context,
-        adRequestConfiguration: AdRequestConfiguration,
+        adRequest: AdRequest,
         adLoadListener: InterstitialAdLoadListener
     ) {
         val interstitialAdLoader = interstitialAdLoader ?: createInterstitialAdLoader(context)
-        interstitialAdLoader.setAdLoadListener(object : InterstitialAdLoadListener {
-            override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                adLoadListener.onAdLoaded(interstitialAd)
-                interstitialAdLoader.setAdLoadListener(null)
-            }
-
-            override fun onAdFailedToLoad(error: AdRequestError) {
-                adLoadListener.onAdFailedToLoad(error)
-                interstitialAdLoader.setAdLoadListener(null)
-            }
-        })
-        interstitialAdLoader.loadAd(adRequestConfiguration)
+        interstitialAdLoader.loadAd(adRequest, adLoadListener)
     }
 
     override fun requestRewardedAd(
         context: Context,
-        adRequestConfiguration: AdRequestConfiguration,
+        adRequest: AdRequest,
         adLoadListener: RewardedAdLoadListener
     ) {
         val rewardedAdLoader = rewardedAdLoader ?: createRewardedAdLoader(context)
-        rewardedAdLoader.setAdLoadListener(object : RewardedAdLoadListener {
-            override fun onAdLoaded(rewarded: RewardedAd) {
-                adLoadListener.onAdLoaded(rewarded)
-                rewardedAdLoader.setAdLoadListener(null)
-            }
-
-            override fun onAdFailedToLoad(error: AdRequestError) {
-                adLoadListener.onAdFailedToLoad(error)
-                rewardedAdLoader.setAdLoadListener(null)
-            }
-        })
-        rewardedAdLoader.loadAd(adRequestConfiguration)
+        rewardedAdLoader.loadAd(adRequest, adLoadListener)
     }
 
     private fun createInterstitialAdLoader(context: Context): InterstitialAdLoader {
@@ -73,13 +48,13 @@ internal class YandexLoaderImpl : YandexLoader {
 internal interface YandexLoader {
     fun requestInterstitialAd(
         context: Context,
-        adRequestConfiguration: AdRequestConfiguration,
+        adRequest: AdRequest,
         adLoadListener: InterstitialAdLoadListener
     )
 
     fun requestRewardedAd(
         context: Context,
-        adRequestConfiguration: AdRequestConfiguration,
+        adRequest: AdRequest,
         adLoadListener: RewardedAdLoadListener
     )
 }
