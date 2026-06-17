@@ -1,5 +1,8 @@
 package org.bidon.sdk.auction.usecases.impl
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -37,6 +40,12 @@ internal class ExecuteAuctionUseCaseImpl(
 ) : ExecuteAuctionUseCase {
 
     private var adUnitQueue: LinkedList<AdUnit> = LinkedList()
+
+    /**
+     * Every [AdSource] whose [AdSource.load] has been started during this auction.
+     * Kept so the in-flight sources can be destroyed if the auction is cancelled.
+     */
+    private val startedAdSources = MutableStateFlow(emptyList<AdSource<AdAuctionParams>>())
 
     override suspend fun invoke(
         auctionId: String,
@@ -99,6 +108,7 @@ internal class ExecuteAuctionUseCaseImpl(
                     }
 
                     if (adSource != null) {
+                        startedAdSources.update { it + adSource }
                         applyParams(
                             auctionId = auctionId,
                             auctionConfigurationId = auctionConfigurationId,
@@ -172,6 +182,14 @@ internal class ExecuteAuctionUseCaseImpl(
                 status = it.asBidonErrorOrUnspecified().asRoundStatus()
             )
             logError(TAG, "Failed to execute auction", it)
+        }
+    }
+
+    override fun destroyStartedAdSources() {
+        val sources = startedAdSources.getAndUpdate { emptyList() }
+        if (sources.isNotEmpty()) {
+            logInfo(TAG, "Destroying ${sources.size} in-flight ad source(s) on cancel")
+            sources.forEach { it.destroy() }
         }
     }
 
