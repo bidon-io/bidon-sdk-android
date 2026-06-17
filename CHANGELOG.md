@@ -1,3 +1,6 @@
+# 0.15.0 (2026.*.*)
+- BDN-1192 Fixed in-flight ad source leak when destroyAd() is called during an auction
+
 # 0.14.0 (2026.06.10)
 ## Features:
 - BDN-1193 Migrated minSdkVersion to API 24
