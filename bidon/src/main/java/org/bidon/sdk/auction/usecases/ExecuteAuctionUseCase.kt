@@ -23,4 +23,11 @@ internal interface ExecuteAuctionUseCase {
         resultsCollector: ResultsCollector,
         tokens: Map<String, TokenInfo>
     )
+
+    /**
+     * Destroys every [org.bidon.sdk.adapter.AdSource] whose [org.bidon.sdk.adapter.AdSource.load]
+     * has been started during the current auction. Used to release in-flight ad sources when the
+     * auction is cancelled (e.g. via `destroyAd()`), so adapter-level resources are not leaked.
+     */
+    fun destroyStartedAdSources()
 }
