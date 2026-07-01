@@ -1,6 +1,7 @@
 package org.bidon.unityads.ext
 
 import com.unity3d.ads.UnityAds
+import com.unity3d.ads.UnityAdsError
 import com.unity3d.services.banners.BannerErrorCode
 import com.unity3d.services.banners.BannerErrorInfo
 import org.bidon.sdk.config.BidonError
@@ -36,4 +37,16 @@ internal fun BannerErrorInfo?.asBidonError() = when (this?.errorCode) {
         demandId = UnityAdsDemandId,
         cause = Throwable("Message: $errorMessage. Code: $errorCode")
     )
+}
+
+internal fun UnityAdsError?.asBidonError() = when (this?.code) {
+    null -> BidonError.Unspecified(UnityAdsDemandId)
+    UnityAdsError.ErrorCode.INTERNAL_ERROR -> BidonError.InternalServerSdkError("UnityAdsError.INTERNAL_ERROR")
+    UnityAdsError.ErrorCode.NO_FILL -> BidonError.NoFill(UnityAdsDemandId)
+    UnityAdsError.ErrorCode.TIMEOUT -> BidonError.BidTimedOut(UnityAdsDemandId)
+    UnityAdsError.ErrorCode.INVALID_ARGUMENT -> BidonError.NoAppropriateAdUnitId
+    UnityAdsError.ErrorCode.NOT_READY -> BidonError.AdNotReady
+    UnityAdsError.ErrorCode.NO_CONNECTION -> BidonError.NetworkError(UnityAdsDemandId)
+    UnityAdsError.ErrorCode.INIT_FAILED -> BidonError.SdkNotInitialized
+    else -> BidonError.Unspecified(demandId = UnityAdsDemandId, cause = Throwable(this.message))
 }
