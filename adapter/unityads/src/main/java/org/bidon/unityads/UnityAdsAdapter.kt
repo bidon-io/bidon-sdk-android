@@ -1,9 +1,10 @@
 package org.bidon.unityads
 
 import android.content.Context
-import com.unity3d.ads.IUnityAdsInitializationListener
+import com.unity3d.ads.InitializationConfiguration
+import com.unity3d.ads.InitializationListener
 import com.unity3d.ads.UnityAds
-import com.unity3d.ads.metadata.MetaData
+import com.unity3d.ads.UnityAdsExperimental
 import org.bidon.sdk.adapter.AdProvider
 import org.bidon.sdk.adapter.AdSource
 import org.bidon.sdk.adapter.Adapter
@@ -54,24 +55,23 @@ internal class UnityAdsAdapter :
         sdkVersion = sdkVersion
     )
 
+    @OptIn(UnityAdsExperimental::class)
     override suspend fun init(context: Context, configParams: UnityAdsParameters) =
         suspendCoroutine { continuation ->
             this.context = context
-            UnityAds.initialize(
-                context,
-                configParams.unityGameId,
-                isTestMode,
-                object : IUnityAdsInitializationListener {
-                    override fun onInitializationComplete() {
-                        continuation.resume(Unit)
-                    }
+            val config = InitializationConfiguration.Builder(configParams.unityGameId)
+                .withTestMode(isTestMode)
+                .build()
 
-                    override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
-                        logError(TAG, "Error while initialization: $message, $error", error.asBidonError())
-                        continuation.resumeWithException(error.asBidonError())
-                    }
+            val listener = InitializationListener { error ->
+                if (error == null) {
+                    continuation.resume(Unit)
+                } else {
+                    logError(TAG, "Error while initialization: ${error.message}", error.asBidonError())
+                    continuation.resumeWithException(error.asBidonError())
                 }
-            )
+            }
+            UnityAds.initialize(config, listener)
         }
 
     override fun parseConfigParam(json: String): UnityAdsParameters {
@@ -81,17 +81,15 @@ internal class UnityAdsAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        MetaData(context).also { data ->
-            if (regulation.gdprApplies) {
-                data.set("gdpr.consent", regulation.hasGdprConsent)
-            }
-            if (!regulation.ccpaApplies) {
-                data.set("privacy.consent", regulation.hasCcpaConsent)
-            }
-            if (regulation.coppaApplies) {
-                data.set("privacy.useroveragelimit", true)
-            }
-        }.commit()
+        if (regulation.gdprApplies) {
+            UnityAds.userConsent = regulation.hasGdprConsent
+        }
+        if (regulation.ccpaApplies) {
+            UnityAds.userOptOut = !regulation.hasCcpaConsent
+        }
+        if (regulation.coppaApplies) {
+            UnityAds.nonBehavioral = true
+        }
     }
 
     override fun interstitial(): AdSource.Interstitial<UnityAdsFullscreenAuctionParams> {

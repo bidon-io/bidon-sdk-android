@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [4.19.0.0] - 2026-07-01
+### Changed
+- Updated SDK dependency from 4.18.1 to 4.19.0
+- Migrated from deprecated `IUnityAdsInitializationListener` to `InitializationListener`
+- Replaced deprecated `UnityAds.initialize()` with `InitializationConfiguration.Builder` API
+- Migrated from deprecated `MetaData` class to new privacy properties (`UnityAds.userConsent`, `userOptOut`, `nonBehavioral`)
+- Replaced deprecated `BannerView` constructor with `BannerAd.load()` API
+- Migrated from deprecated `BannerView.IListener` to `BannerShowListener` with updated callback methods
+- Replaced deprecated `UnityAds.load()` with `InterstitialAd.load()` and `RewardedAd.load()` APIs
+- Migrated from deprecated `IUnityAdsLoadListener` to lambda-based load callbacks
+- Replaced deprecated `UnityAds.show()` with `InterstitialAd.show()` and `RewardedAd.show()` methods
+- Migrated from deprecated `IUnityAdsShowListener` to `InterstitialShowListener` and `RewardedShowListener`
+- Updated error handling from deprecated error enums to `UnityAdsError` with numeric error codes
+
 ## [4.18.1.0] - 2026-06-04
 ### Changed
 - Updated SDK dependency from 4.18.0 to 4.18.1

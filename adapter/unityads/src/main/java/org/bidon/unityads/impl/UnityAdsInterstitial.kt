@@ -1,10 +1,12 @@
 package org.bidon.unityads.impl
 
 import android.app.Activity
-import com.unity3d.ads.IUnityAdsLoadListener
-import com.unity3d.ads.IUnityAdsShowListener
-import com.unity3d.ads.UnityAds
-import com.unity3d.ads.UnityAdsShowOptions
+import com.unity3d.ads.InterstitialAd
+import com.unity3d.ads.InterstitialShowListener
+import com.unity3d.ads.LoadConfiguration
+import com.unity3d.ads.ShowConfiguration
+import com.unity3d.ads.ShowFinishState
+import com.unity3d.ads.UnityAdsError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -30,7 +32,7 @@ internal class UnityAdsInterstitial :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var adUnit: AdUnit? = null
-    private var placementId: String? = null
+    private var interstitialAd: InterstitialAd? = null
 
     override var isAdReadyToShow: Boolean = false
 
@@ -44,7 +46,7 @@ internal class UnityAdsInterstitial :
 
     override fun load(adParams: UnityAdsFullscreenAuctionParams) {
         logInfo(TAG, "Starting with $adParams: $this")
-        placementId = adParams.placementId ?: run {
+        val placementId = adParams.placementId ?: run {
             emitEvent(
                 AdEvent.LoadFailed(
                     BidonError.IncorrectAdUnit(demandId = demandId, message = "placementId")
@@ -54,44 +56,37 @@ internal class UnityAdsInterstitial :
         }
         adUnit = adParams.adUnit
 
-        val loadListener = object : IUnityAdsLoadListener {
-            override fun onUnityAdsAdLoaded(placementId: String?) {
+        val loadConfig = LoadConfiguration.Builder(placementId).build()
+        InterstitialAd.load(loadConfig) { loadedAd, error ->
+            if (loadedAd != null) {
                 logInfo(TAG, "onUnityAdsAdLoaded: $this")
+                interstitialAd = loadedAd
                 isAdReadyToShow = true
                 getAd()?.let {
                     emitEvent(AdEvent.Fill(it))
                 }
-            }
-
-            override fun onUnityAdsFailedToLoad(
-                placementId: String?,
-                error: UnityAds.UnityAdsLoadError?,
-                message: String?
-            ) {
-                logInfo(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=$error, message=$message")
+            } else {
+                logInfo(TAG, "onUnityAdsFailedToLoad: placementId=$placementId, error=${error?.message}")
                 emitEvent(AdEvent.LoadFailed(error.asBidonError()))
             }
         }
-        UnityAds.load(adParams.placementId, loadListener)
     }
 
     override fun show(activity: Activity) {
-        val showListener = object : IUnityAdsShowListener {
-            override fun onUnityAdsShowFailure(
-                placementId: String?,
-                error: UnityAds.UnityAdsShowError?,
-                message: String?
-            ) {
+        val ad = interstitialAd ?: return
+        val showConfig = ShowConfiguration.Builder().build()
+        val showListener = object : InterstitialShowListener {
+            override fun onFailed(unityAd: InterstitialAd, error: UnityAdsError) {
                 logError(
                     tag = TAG,
-                    message = "onUnityAdsShowFailure: placementId=$placementId, error=$error, message=$message",
+                    message = "onUnityAdsShowFailure: error=${error.message}",
                     error = error.asBidonError()
                 )
                 emitEvent(AdEvent.ShowFailed(error.asBidonError()))
             }
 
-            override fun onUnityAdsShowStart(placementId: String?) {
-                logInfo(TAG, "onUnityAdsShowStart: placementId=$placementId")
+            override fun onStarted(unityAd: InterstitialAd) {
+                logInfo(TAG, "onUnityAdsShowStart")
                 getAd()?.let {
                     emitEvent(AdEvent.Shown(it))
                     emitEvent(
@@ -107,22 +102,19 @@ internal class UnityAdsInterstitial :
                 }
             }
 
-            override fun onUnityAdsShowClick(placementId: String?) {
-                logInfo(TAG, "onUnityAdsShowClick. placementId: $placementId")
+            override fun onClicked(unityAd: InterstitialAd) {
+                logInfo(TAG, "onUnityAdsShowClick")
                 getAd()?.let { emitEvent(AdEvent.Clicked(it)) }
             }
 
-            override fun onUnityAdsShowComplete(
-                placementId: String?,
-                state: UnityAds.UnityAdsShowCompletionState?
-            ) {
-                logInfo(TAG, "onUnityAdsShowComplete: placementId=$placementId, state=$state")
+            override fun onCompleted(unityAd: InterstitialAd, state: ShowFinishState) {
+                logInfo(TAG, "onUnityAdsShowComplete: state=$state")
                 getAd()?.let {
                     emitEvent(AdEvent.Closed(it))
                 }
             }
         }
-        UnityAds.show(activity, placementId, UnityAdsShowOptions(), showListener)
+        ad.show(activity, showConfig, showListener)
         isAdReadyToShow = false
     }
 
