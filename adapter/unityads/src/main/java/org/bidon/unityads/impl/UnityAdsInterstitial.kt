@@ -114,7 +114,7 @@ internal class UnityAdsInterstitial :
                 }
             }
         }
-        ad.show(showConfig, showListener)
+        ad.show(activity, showConfig, showListener)
         isAdReadyToShow = false
     }
 

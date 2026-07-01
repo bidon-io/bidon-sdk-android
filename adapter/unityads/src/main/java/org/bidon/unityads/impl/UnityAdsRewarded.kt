@@ -121,7 +121,7 @@ internal class UnityAdsRewarded :
                 }
             }
         }
-        ad.show(showConfig, showListener)
+        ad.show(activity, showConfig, showListener)
         isAdReadyToShow = false
     }
 

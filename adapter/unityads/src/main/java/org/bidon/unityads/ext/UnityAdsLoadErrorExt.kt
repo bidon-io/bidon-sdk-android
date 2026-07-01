@@ -1,52 +1,23 @@
 package org.bidon.unityads.ext
 
-import com.unity3d.ads.UnityAds
 import com.unity3d.ads.UnityAdsError
-import com.unity3d.services.banners.BannerErrorCode
-import com.unity3d.services.banners.BannerErrorInfo
 import org.bidon.sdk.config.BidonError
 import org.bidon.unityads.UnityAdsDemandId
 
 /**
  * Created by Bidon Team on 02/03/2023.
  */
-internal fun UnityAds.UnityAdsLoadError?.asBidonError() = when (this) {
-    null -> BidonError.Unspecified(UnityAdsDemandId)
-    UnityAds.UnityAdsLoadError.INTERNAL_ERROR -> BidonError.InternalServerSdkError("UnityAdsLoadError.INTERNAL_ERROR")
-    UnityAds.UnityAdsLoadError.NO_FILL -> BidonError.NoFill(UnityAdsDemandId)
-    UnityAds.UnityAdsLoadError.TIMEOUT -> BidonError.BidTimedOut(UnityAdsDemandId)
-    UnityAds.UnityAdsLoadError.INVALID_ARGUMENT -> BidonError.NoAppropriateAdUnitId
-    else -> BidonError.Unspecified(demandId = UnityAdsDemandId, cause = Throwable(name))
-}
-
-internal fun UnityAds.UnityAdsShowError?.asBidonError() = when (this) {
-    null -> BidonError.Unspecified(UnityAdsDemandId)
-    UnityAds.UnityAdsShowError.NOT_READY -> BidonError.AdNotReady
-    UnityAds.UnityAdsShowError.NO_CONNECTION -> BidonError.NetworkError(UnityAdsDemandId)
-    UnityAds.UnityAdsShowError.INVALID_ARGUMENT -> BidonError.NoAppropriateAdUnitId
-    UnityAds.UnityAdsShowError.TIMEOUT -> BidonError.FillTimedOut(UnityAdsDemandId)
-    else -> BidonError.Unspecified(demandId = UnityAdsDemandId, cause = Throwable(name))
-}
-
-internal fun BannerErrorInfo?.asBidonError() = when (this?.errorCode) {
-    null -> BidonError.Unspecified(UnityAdsDemandId)
-    BannerErrorCode.NATIVE_ERROR,
-    BannerErrorCode.WEBVIEW_ERROR,
-    BannerErrorCode.NO_FILL -> BidonError.NoFill(UnityAdsDemandId)
-    else -> BidonError.Unspecified(
-        demandId = UnityAdsDemandId,
-        cause = Throwable("Message: $errorMessage. Code: $errorCode")
-    )
-}
-
 internal fun UnityAdsError?.asBidonError() = when (this?.code) {
     null -> BidonError.Unspecified(UnityAdsDemandId)
-    UnityAdsError.ErrorCode.INTERNAL_ERROR -> BidonError.InternalServerSdkError("UnityAdsError.INTERNAL_ERROR")
-    UnityAdsError.ErrorCode.NO_FILL -> BidonError.NoFill(UnityAdsDemandId)
-    UnityAdsError.ErrorCode.TIMEOUT -> BidonError.BidTimedOut(UnityAdsDemandId)
-    UnityAdsError.ErrorCode.INVALID_ARGUMENT -> BidonError.NoAppropriateAdUnitId
-    UnityAdsError.ErrorCode.NOT_READY -> BidonError.AdNotReady
-    UnityAdsError.ErrorCode.NO_CONNECTION -> BidonError.NetworkError(UnityAdsDemandId)
-    UnityAdsError.ErrorCode.INIT_FAILED -> BidonError.SdkNotInitialized
+    CODE_TIMEOUT -> BidonError.BidTimedOut(UnityAdsDemandId)
+    CODE_NO_FILL -> BidonError.NoFill(UnityAdsDemandId)
+    CODE_NOT_INITIALIZED -> BidonError.SdkNotInitialized
+    CODE_INVALID_CONFIGURATION_A, CODE_INVALID_CONFIGURATION_B -> BidonError.NoAppropriateAdUnitId
     else -> BidonError.Unspecified(demandId = UnityAdsDemandId, cause = Throwable(this.message))
 }
+
+private const val CODE_TIMEOUT = 2
+private const val CODE_NO_FILL = 52100
+private const val CODE_NOT_INITIALIZED = 52101
+private const val CODE_INVALID_CONFIGURATION_A = 52102
+private const val CODE_INVALID_CONFIGURATION_B = 52104
