@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [4.10.0.1] - 2026-07-01
+## [4.10.0.1] - 2026-07-07
 ### Added
 - Added support for adaptive banners
 
