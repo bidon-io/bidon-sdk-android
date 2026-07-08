@@ -1,10 +1,16 @@
 package org.bidon.moloco.impl
 
 import android.app.Activity
+import com.moloco.sdk.publisher.BannerAdSize
 import com.moloco.sdk.publisher.Moloco
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkAll
+import io.mockk.verify
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.ads.banner.BannerFormat
 import org.bidon.sdk.auction.models.AdUnit
@@ -111,6 +117,35 @@ class MolocoBannerImplTest {
         } catch (e: Exception) {
             assertTrue(true)
         }
+    }
+
+    @Test
+    fun `load adaptive banner should request anchored adaptive size`() {
+        val sizeSlot = slot<BannerAdSize>()
+        every {
+            Moloco.createMolocoBanner(any(), any(), capture(sizeSlot), any(), any())
+        } just Runs
+
+        val adParams = MolocoBannerAuctionParams(
+            bannerFormat = BannerFormat.Adaptive,
+            adUnit = AdUnit(
+                demandId = "moloco",
+                pricefloor = 2.5,
+                label = "test_label",
+                bidType = BidType.RTB,
+                ext = jsonObject {
+                    "ad_unit_id" hasValue "test_ad_unit_id"
+                    "payload" hasValue "test_payload"
+                }.toString(),
+                timeout = 5000,
+                uid = "test_uid"
+            )
+        )
+
+        testee.load(adParams)
+
+        verify { Moloco.createMolocoBanner(any(), "test_ad_unit_id", any(), any(), any()) }
+        assertTrue(sizeSlot.captured is BannerAdSize.AnchoredAdaptive)
     }
 
     @Test
