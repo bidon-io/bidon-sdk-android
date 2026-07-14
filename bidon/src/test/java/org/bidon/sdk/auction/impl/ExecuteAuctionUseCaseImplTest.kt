@@ -7,6 +7,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdProvider
@@ -25,6 +26,8 @@ import org.bidon.sdk.auction.models.AuctionResult
 import org.bidon.sdk.auction.usecases.ExecuteAuctionUseCase
 import org.bidon.sdk.auction.usecases.RequestAdUnitUseCase
 import org.bidon.sdk.auction.usecases.impl.ExecuteAuctionUseCaseImpl
+import org.bidon.sdk.auction.usecases.models.BiddingResult
+import org.bidon.sdk.auction.usecases.models.RoundResult
 import org.bidon.sdk.config.models.adapters.Process
 import org.bidon.sdk.config.models.adapters.TestAdapter
 import org.bidon.sdk.config.models.adapters.TestAdapterParameters
@@ -34,6 +37,7 @@ import org.bidon.sdk.config.models.auctions.impl.BidMachine
 import org.bidon.sdk.config.models.base.ConcurrentTest
 import org.bidon.sdk.mockkLog
 import org.bidon.sdk.regulation.Regulation
+import org.bidon.sdk.stats.models.BidStat
 import org.bidon.sdk.stats.models.BidType
 import org.bidon.sdk.stats.models.RoundStatus
 import org.bidon.sdk.utils.di.DI
@@ -179,6 +183,294 @@ internal class ExecuteAuctionUseCaseImplTest : ConcurrentTest() {
         // THEN the started ad source is destroyed (BDN-1192)
         verify { adSource.destroy() }
     }
+
+    @Test
+    fun `it should report only the in-flight ad unit as FillTimeoutReached on auction timeout`() = runTest {
+        // PREPARE: interstitial adapter whose request hangs, so the auction times out mid-request.
+        val adSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val adapter = mockk<Adapter>(moreInterfaces = arrayOf(AdProvider.Interstitial::class))
+        every { adapter.demandId } returns DemandId(Admob)
+        @Suppress("UNCHECKED_CAST")
+        every { (adapter as AdProvider.Interstitial<AdAuctionParams>).interstitial() } returns adSource
+        every { adaptersSource.adapters } returns setOf(adapter)
+
+        // The in-flight request actually started loading: fill started, not yet finished.
+        val inFlightUnit = admobInterstitialAdUnit(uid = "1", pricefloor = 1.0)
+        every { adSource.getStats() } returns bidStat(adUnit = inFlightUnit, fillStartTs = 100L, fillFinishTs = null)
+
+        // Request never completes within the auction timeout
+        coEvery {
+            requestAdUnit.invoke(any(), any(), any(), any())
+        } coAnswers {
+            delay(10_000L)
+            AuctionResult.Network(adSource, RoundStatus.Successful)
+        }
+
+        val resultsCollector = mockk<ResultsCollector>(relaxed = true)
+
+        // WHEN the auction times out with a second ad unit still never requested
+        testee.invoke(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = false,
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(activity, 0.5, null),
+            pricefloor = 0.5,
+            auctionTimeout = 1_000L,
+            adUnits = listOf(
+                inFlightUnit,
+                admobInterstitialAdUnit(uid = "2", pricefloor = 2.0),
+            ),
+            resultsCollector = resultsCollector,
+            tokens = emptyMap(),
+        )
+
+        // THEN the in-flight unit is finalized with real timing and reported as FillTimeoutReached
+        verify { adSource.markFillFinished(RoundStatus.FillTimeoutReached, any()) }
+        verify(exactly = 1) {
+            resultsCollector.add(
+                match {
+                    it is AuctionResult.Network && it.roundStatus == RoundStatus.FillTimeoutReached
+                }
+            )
+        }
+        // AND never-requested units are not reported at all
+        verify(exactly = 0) {
+            resultsCollector.add(match { it is AuctionResult.AuctionFailed })
+        }
+    }
+
+    @Test
+    fun `it should not report an ad unit that never started loading on auction timeout`() = runTest {
+        // PREPARE: request hangs before fill even started (no fillStartTs)
+        val adSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val adapter = mockk<Adapter>(moreInterfaces = arrayOf(AdProvider.Interstitial::class))
+        every { adapter.demandId } returns DemandId(Admob)
+        @Suppress("UNCHECKED_CAST")
+        every { (adapter as AdProvider.Interstitial<AdAuctionParams>).interstitial() } returns adSource
+        every { adaptersSource.adapters } returns setOf(adapter)
+
+        val unit = admobInterstitialAdUnit(uid = "1", pricefloor = 1.0)
+        every { adSource.getStats() } returns bidStat(adUnit = unit, fillStartTs = null, fillFinishTs = null)
+
+        coEvery {
+            requestAdUnit.invoke(any(), any(), any(), any())
+        } coAnswers {
+            delay(10_000L)
+            AuctionResult.Network(adSource, RoundStatus.Successful)
+        }
+
+        val resultsCollector = mockk<ResultsCollector>(relaxed = true)
+
+        testee.invoke(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = false,
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(activity, 0.5, null),
+            pricefloor = 0.5,
+            auctionTimeout = 1_000L,
+            adUnits = listOf(unit),
+            resultsCollector = resultsCollector,
+            tokens = emptyMap(),
+        )
+
+        // THEN nothing is reported (unit had not started loading → treated as never-requested)
+        verify(exactly = 0) { resultsCollector.add(any()) }
+    }
+
+    @Test
+    fun `it should report the in-flight RTB ad unit as Bidding FillTimeoutReached on auction timeout`() = runTest {
+        // PREPARE: bidding adapter whose request hangs past the auction timeout
+        val adSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val adapter = mockk<Adapter>(moreInterfaces = arrayOf(AdProvider.Interstitial::class))
+        every { adapter.demandId } returns DemandId(BidMachine)
+        @Suppress("UNCHECKED_CAST")
+        every { (adapter as AdProvider.Interstitial<AdAuctionParams>).interstitial() } returns adSource
+        every { adaptersSource.adapters } returns setOf(adapter)
+
+        val rtbUnit = AdUnit(
+            demandId = BidMachine,
+            label = "bidmachine_interstitial",
+            pricefloor = 1.0,
+            uid = "1",
+            bidType = BidType.RTB,
+            timeout = 5000,
+            ext = null,
+        )
+        every { adSource.getStats() } returns bidStat(
+            demandId = DemandId(BidMachine),
+            adUnit = rtbUnit,
+            fillStartTs = 100L,
+            fillFinishTs = null,
+        )
+        coEvery {
+            requestAdUnit.invoke(any(), any(), any(), any())
+        } coAnswers {
+            delay(10_000L)
+            AuctionResult.Bidding(adSource, RoundStatus.Successful)
+        }
+
+        val resultsCollector = mockk<ResultsCollector>(relaxed = true)
+
+        testee.invoke(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = false,
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(activity, 0.5, null),
+            pricefloor = 0.5,
+            auctionTimeout = 1_000L,
+            adUnits = listOf(rtbUnit),
+            resultsCollector = resultsCollector,
+            tokens = emptyMap(),
+        )
+
+        // THEN the in-flight RTB unit is reported as a Bidding FillTimeoutReached result
+        verify { adSource.markFillFinished(RoundStatus.FillTimeoutReached, any()) }
+        verify(exactly = 1) {
+            resultsCollector.add(
+                match {
+                    it is AuctionResult.Bidding && it.roundStatus == RoundStatus.FillTimeoutReached
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should report only the in-flight source when an earlier one already finished`() = runTest {
+        // PREPARE: two ad units. The first finishes (NoFill), the second hangs until the timeout.
+        val finishedSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val inFlightSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val adapter = mockk<Adapter>(moreInterfaces = arrayOf(AdProvider.Interstitial::class))
+        every { adapter.demandId } returns DemandId(Admob)
+        @Suppress("UNCHECKED_CAST")
+        every { (adapter as AdProvider.Interstitial<AdAuctionParams>).interstitial() } returnsMany
+            listOf(finishedSource, inFlightSource)
+        every { adaptersSource.adapters } returns setOf(adapter)
+
+        val unit1 = admobInterstitialAdUnit(uid = "1", pricefloor = 1.0)
+        val unit2 = admobInterstitialAdUnit(uid = "2", pricefloor = 2.0)
+        every { finishedSource.getStats() } returns bidStat(adUnit = unit1, fillStartTs = 100L, fillFinishTs = 200L)
+        every { inFlightSource.getStats() } returns bidStat(adUnit = unit2, fillStartTs = 300L, fillFinishTs = null)
+
+        var call = 0
+        coEvery {
+            requestAdUnit.invoke(any(), any(), any(), any())
+        } coAnswers {
+            call++
+            if (call == 1) {
+                AuctionResult.Network(finishedSource, RoundStatus.NoFill)
+            } else {
+                delay(10_000L)
+                AuctionResult.Network(inFlightSource, RoundStatus.Successful)
+            }
+        }
+
+        val resultsCollector = mockk<ResultsCollector>(relaxed = true)
+
+        testee.invoke(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = false,
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(activity, 0.5, null),
+            pricefloor = 0.5,
+            auctionTimeout = 1_000L,
+            adUnits = listOf(unit1, unit2),
+            resultsCollector = resultsCollector,
+            tokens = emptyMap(),
+        )
+
+        // THEN only the in-flight source is finalized as timeout; the finished one is left untouched
+        verify { inFlightSource.markFillFinished(RoundStatus.FillTimeoutReached, any()) }
+        verify(exactly = 0) { finishedSource.markFillFinished(RoundStatus.FillTimeoutReached, any()) }
+        verify(exactly = 1) {
+            resultsCollector.add(
+                match {
+                    it is AuctionResult.Network && it.roundStatus == RoundStatus.FillTimeoutReached
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should not report any timeout when the auction completes before its timeout`() = runTest {
+        // PREPARE: request succeeds immediately, well within the auction timeout
+        val adSource = mockk<AdSource.Interstitial<AdAuctionParams>>(relaxed = true)
+        val adapter = mockk<Adapter>(moreInterfaces = arrayOf(AdProvider.Interstitial::class))
+        every { adapter.demandId } returns DemandId(Admob)
+        @Suppress("UNCHECKED_CAST")
+        every { (adapter as AdProvider.Interstitial<AdAuctionParams>).interstitial() } returns adSource
+        every { adaptersSource.adapters } returns setOf(adapter)
+
+        val unit = admobInterstitialAdUnit(uid = "1", pricefloor = 1.0)
+        every { adSource.getStats() } returns bidStat(adUnit = unit, fillStartTs = 100L, fillFinishTs = 200L)
+        coEvery {
+            requestAdUnit.invoke(any(), any(), any(), any())
+        } returns AuctionResult.Network(adSource, RoundStatus.Successful)
+
+        val resultsCollector = mockk<ResultsCollector>(relaxed = true)
+        // A non-empty round result means the auction produced results, so the timeout branch is skipped
+        every { resultsCollector.getRoundResults() } returns RoundResult.Results(
+            biddingResult = BiddingResult.Idle,
+            networkResults = listOf(AuctionResult.Network(adSource, RoundStatus.Successful)),
+            pricefloor = 0.5,
+            noBidsInfo = emptyList(),
+        )
+
+        testee.invoke(
+            auctionId = "auctionId_123",
+            auctionConfigurationId = 10,
+            auctionConfigurationUid = "10",
+            externalWinNotificationsEnabled = false,
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(activity, 0.5, null),
+            pricefloor = 0.5,
+            auctionTimeout = 10_000L,
+            adUnits = listOf(unit),
+            resultsCollector = resultsCollector,
+            tokens = emptyMap(),
+        )
+
+        // THEN no FillTimeoutReached is produced on the happy path
+        verify(exactly = 0) { adSource.markFillFinished(RoundStatus.FillTimeoutReached, any()) }
+        verify(exactly = 0) {
+            resultsCollector.add(match { it.roundStatus == RoundStatus.FillTimeoutReached })
+        }
+    }
+
+    private fun admobInterstitialAdUnit(uid: String, pricefloor: Double) = AdUnit(
+        demandId = Admob,
+        label = "admob_interstitial_$uid",
+        pricefloor = pricefloor,
+        uid = uid,
+        bidType = BidType.CPM,
+        timeout = 5000,
+        ext = null,
+    )
+
+    private fun bidStat(
+        adUnit: AdUnit,
+        fillStartTs: Long?,
+        fillFinishTs: Long?,
+        demandId: DemandId = DemandId(Admob),
+    ) = BidStat(
+        auctionId = "auctionId_123",
+        demandId = demandId,
+        roundStatus = null,
+        price = adUnit.pricefloor,
+        auctionPricefloor = 0.5,
+        fillStartTs = fillStartTs,
+        fillFinishTs = fillFinishTs,
+        dspSource = null,
+        adUnit = adUnit,
+        tokenInfo = null,
+    )
 
 //    @Test
 //    fun `it should conduct round`() = runTest {

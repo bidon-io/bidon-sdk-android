@@ -1,4 +1,5 @@
 # 0.15.0 (2026.*.*)
+- SDK-429 Stopped reporting never-requested ad units as FILL_TIMEOUT_REACHED on auction timeout (fixed fake 0-second TIMEOUTREACHED stats)
 - BDN-1192 Fixed in-flight ad source leak when destroyAd() is called during an auction
 
 # 0.14.0 (2026.06.10)

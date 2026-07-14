@@ -168,12 +168,18 @@ internal class ExecuteAuctionUseCaseImpl(
                 }
             }
             if (result.isNullOrEmpty()) {
-                finishWithStatus(
-                    tokens = tokens,
-                    resultsCollector = resultsCollector,
-                    status = RoundStatus.FillTimeoutReached
+                /**
+                 * On auction timeout only the in-flight ad unit (its request had started) is
+                 * reported as a genuine [RoundStatus.FillTimeoutReached] with real fill timing.
+                 * Ad units still queued but never requested are NOT reported at all (matching iOS) —
+                 * previously they were tagged [RoundStatus.FillTimeoutReached] with null fill
+                 * timestamps, producing fake 0-second TIMEOUTREACHED rows downstream.
+                 */
+                reportInFlightTimeout(resultsCollector)
+                logInfo(
+                    TAG,
+                    "Auction was finished by timeout: $auctionTimeout, never-requested ad units skipped"
                 )
-                logInfo(TAG, "Auction was finished by timeout: $auctionTimeout")
             }
         }.onFailure {
             finishWithStatus(
@@ -191,6 +197,31 @@ internal class ExecuteAuctionUseCaseImpl(
             logInfo(TAG, "Destroying ${sources.size} in-flight ad source(s) on cancel")
             sources.forEach { it.destroy() }
         }
+    }
+
+    /**
+     * Reports the in-flight ad unit (if any) as a genuine [RoundStatus.FillTimeoutReached] with real
+     * fill timing when the overall auction times out.
+     *
+     * The auction loop's only suspension point is [RequestAdUnitUseCase.invoke], so a timeout can
+     * only fire while a request is in flight — hence the last started ad source is that in-flight
+     * unit. Ad units that already finished have their result (and [BidStat.fillFinishTs]) set;
+     * ad units still queued were never requested and have no started ad source, so they are not
+     * reported at all (matching iOS).
+     */
+    private fun reportInFlightTimeout(resultsCollector: ResultsCollector) {
+        val adSource = startedAdSources.value.lastOrNull() ?: return
+        val stat = adSource.getStats()
+        if (stat.fillStartTs == null || stat.fillFinishTs != null) {
+            return
+        }
+        adSource.markFillFinished(RoundStatus.FillTimeoutReached, stat.price)
+        val result = when (stat.bidType) {
+            BidType.RTB -> AuctionResult.Bidding(adSource, RoundStatus.FillTimeoutReached)
+            BidType.CPM -> AuctionResult.Network(adSource, RoundStatus.FillTimeoutReached)
+            null -> return
+        }
+        resultsCollector.add(result)
     }
 
     private fun finishWithStatus(
