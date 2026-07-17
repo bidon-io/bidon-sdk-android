@@ -1,3 +1,7 @@
+# 0.14.0.0
+## Features:
+- Updated Applovin SDK to 13.6.3 for BCAMAX SDK
+
 # 0.13.0.0
 ## Features:
 - BDN-1045 Updated Applovin SDK to 13.5.1 for BCAMAX SDK
