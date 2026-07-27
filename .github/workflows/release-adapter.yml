@@ -13,9 +13,9 @@ on:
         type: string
     secrets:
       ARTIFACTORY_USER:
-        required: false
+        required: true
       ARTIFACTORY_PASSWORD:
-        required: false
+        required: true
       FALLBACK_ARTIFACTORY_URL:
         required: true
       FALLBACK_ARTIFACTORY_USER:
