@@ -51,7 +51,10 @@ class PublishAdapterPlugin : Plugin<Project> {
                     maven {
                         name = "Bidon"
                         project.findProperty("repo")?.let { repo ->
-                            url = uri("https://artifactory.bidon.org/artifactory/$repo")
+                            val baseUrl = (project.findProperty("repoUrl") as? String)
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "https://artifactory.bidon.org/artifactory"
+                            url = uri("$baseUrl/$repo")
                             println("Artifactory repo: $url. $getArtifactId, $getVersionName")
                             credentials {
                                 project.findProperty("uname")?.let { uname ->
