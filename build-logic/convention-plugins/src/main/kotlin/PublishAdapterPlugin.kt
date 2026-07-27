@@ -51,9 +51,13 @@ class PublishAdapterPlugin : Plugin<Project> {
                     maven {
                         name = "Bidon"
                         project.findProperty("repo")?.let { repo ->
-                            val baseUrl = (project.findProperty("repoUrl") as? String)
-                                ?.takeIf { it.isNotBlank() }
-                                ?: "https://artifactory.bidon.org/artifactory"
+                            val repoUrlProp = project.findProperty("repoUrl") as? String
+                            val baseUrl = when {
+                                repoUrlProp == null -> "https://artifactory.bidon.org/artifactory"
+                                repoUrlProp.isBlank() ->
+                                    error("repoUrl property is set but blank (missing FALLBACK_ARTIFACTORY_URL secret?)")
+                                else -> repoUrlProp.trimEnd('/')
+                            }
                             url = uri("$baseUrl/$repo")
                             println("Artifactory repo: $url. $getArtifactId, $getVersionName")
                             credentials {
