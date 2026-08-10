@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 📋 [Release Notes](https://developers.bidmachine.io/sdk/general/android/android-changelog)
 
 ## [Unreleased]
-### Added
+
+## [3.7.1.1] - 2026-08-11
+### Changed
 - Relayed the bid response custom params to the ad unit ext reported in stats and auction info
 
 ## [3.7.1.0] - 2026-06-01
