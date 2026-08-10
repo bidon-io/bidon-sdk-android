@@ -13,41 +13,47 @@ import org.junit.Test
 class ExtTest {
 
     @Test
-    fun `relay ml floor predictions into ad unit ext`() {
-        val adUnit = createAdUnit(serverExt = jsonObject { "payload" hasValue "payload123" }.toString())
+    fun `relay all bid response custom params into ad unit ext`() {
+        val adUnit = createAdUnit(serverExt = serverExt)
 
-        adUnit.addMlFloorPredictions(bidWith("ml_floor_predictions" to Predictions))
+        adUnit.addCustomParams(
+            bidWith(
+                "ml_floor_predictions" to Predictions,
+                "some_param" to "value123",
+            )
+        )
 
         assertThat(adUnit.extra?.getString("ml_floor_predictions")).isEqualTo(Predictions)
+        assertThat(adUnit.extra?.getString("some_param")).isEqualTo("value123")
         assertThat(adUnit.extra?.getString("payload")).isEqualTo("payload123")
     }
 
     @Test
-    fun `keep ad unit ext untouched when bid carries no predictions`() {
-        val adUnit = createAdUnit(serverExt = jsonObject { "payload" hasValue "payload123" }.toString())
+    fun `keep ad unit ext untouched when bid carries no custom params`() {
+        val adUnit = createAdUnit(serverExt = serverExt)
 
-        adUnit.addMlFloorPredictions(bidWith("other_param" to "value123"))
+        adUnit.addCustomParams(bidWith())
 
-        assertThat(adUnit.extra?.has("ml_floor_predictions")).isFalse()
+        assertThat(adUnit.extra?.length()).isEqualTo(1)
         assertThat(adUnit.extra?.getString("payload")).isEqualTo("payload123")
     }
 
     @Test
-    fun `relay predictions into the ad unit already captured by the stats row`() {
-        val adUnit = createAdUnit(serverExt = jsonObject { "payload" hasValue "payload123" }.toString())
+    fun `relay custom params into the ad unit already captured by the stats row`() {
+        val adUnit = createAdUnit(serverExt = serverExt)
         val statisticsCollector = StatisticsCollectorImpl().apply { markFillStarted(adUnit, 2.75) }
 
-        adUnit.addMlFloorPredictions(bidWith("ml_floor_predictions" to Predictions))
+        adUnit.addCustomParams(bidWith("ml_floor_predictions" to Predictions))
 
         assertThat(statisticsCollector.getStats().adUnit?.extra?.getString("ml_floor_predictions"))
             .isEqualTo(Predictions)
     }
 
     @Test
-    fun `skip predictions when ad unit came without ext`() {
+    fun `skip custom params when ad unit came without ext`() {
         val adUnit = createAdUnit(serverExt = null)
 
-        adUnit.addMlFloorPredictions(bidWith("ml_floor_predictions" to Predictions))
+        adUnit.addCustomParams(bidWith("ml_floor_predictions" to Predictions))
 
         assertThat(adUnit.extra).isNull()
     }
@@ -67,4 +73,5 @@ class ExtTest {
     )
 }
 
+private val serverExt = jsonObject { "payload" hasValue "payload123" }.toString()
 private const val Predictions = """[{"ecpm":1.2,"probability":0.8}]"""

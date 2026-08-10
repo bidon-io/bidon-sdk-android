@@ -30,9 +30,7 @@ internal fun BannerFormat.toBannerAdSize(): BannerAdSize = when (this) {
     BannerFormat.Adaptive -> if (DeviceInfo.isTablet) BannerAdSize.Leaderboard else BannerAdSize.Banner
 }
 
-internal fun AdUnit.addMlFloorPredictions(auctionResult: BMAuctionResult) {
-    val predictions = auctionResult.customParams[MlFloorPredictionsKey] ?: return
-    extra?.put(MlFloorPredictionsKey, predictions)
+internal fun AdUnit.addCustomParams(auctionResult: BMAuctionResult) {
+    val extra = extra ?: return
+    auctionResult.customParams.forEach { (key, value) -> extra.put(key, value) }
 }
-
-private const val MlFloorPredictionsKey = "ml_floor_predictions"
