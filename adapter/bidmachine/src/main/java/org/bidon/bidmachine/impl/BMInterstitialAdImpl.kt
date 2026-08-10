@@ -14,6 +14,7 @@ import org.bidon.bidmachine.BMAuctionResult
 import org.bidon.bidmachine.BMFullscreenAuctionParams
 import org.bidon.bidmachine.asBidonErrorOnBid
 import org.bidon.bidmachine.asBidonErrorOnFill
+import org.bidon.bidmachine.ext.addMlFloorPredictions
 import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
@@ -91,6 +92,7 @@ internal class BMInterstitialAdImpl(
                         result: BMAuctionResult
                     ) {
                         logInfo(TAG, "onRequestSuccess $result: $this")
+                        adParams.adUnit.addMlFloorPredictions(result)
                         fillRequest(request, bidType)
                     }
 
