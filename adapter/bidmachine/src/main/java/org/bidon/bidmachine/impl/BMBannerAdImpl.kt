@@ -11,6 +11,7 @@ import org.bidon.bidmachine.BMAuctionResult
 import org.bidon.bidmachine.BMBannerAuctionParams
 import org.bidon.bidmachine.asBidonErrorOnBid
 import org.bidon.bidmachine.asBidonErrorOnFill
+import org.bidon.bidmachine.ext.addCustomParams
 import org.bidon.bidmachine.ext.asBidonAdValue
 import org.bidon.bidmachine.ext.toBannerAdSize
 import org.bidon.sdk.adapter.AdAuctionParamSource
@@ -84,6 +85,7 @@ internal class BMBannerAdImpl(
                     object : AdRequest.AdRequestListener<BannerRequest> {
                         override fun onRequestSuccess(request: BannerRequest, result: BMAuctionResult) {
                             logInfo(TAG, "onRequestSuccess $result: $this")
+                            adParams.adUnit.addCustomParams(result)
                             fillRequest(request, bidType)
                         }
 
