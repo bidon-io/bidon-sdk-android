@@ -67,6 +67,7 @@ jobs:
         run: rm -rf */build build-logic/build build-logic/convention-plugins/build
 
       - name: Publish to Artifactory (primary)
+        continue-on-error: true
         run: ./gradlew publishAllPublicationsToBidonRepository
         env:
           ORG_GRADLE_PROJECT_repo: ${{ github.event.inputs.ORG_GRADLE_PROJECT_repo }}
