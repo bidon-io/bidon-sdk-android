@@ -1,5 +1,7 @@
 # 0.15.0 (2026.*.*)
+## Features:
 - BDN-1192 Fixed in-flight ad source leak when destroyAd() is called during an auction
+- SDK-636 Resolved vendor SDKs from vendor repositories after the Bidon Artifactory sunset
 
 # 0.14.0 (2026.06.10)
 ## Features:
