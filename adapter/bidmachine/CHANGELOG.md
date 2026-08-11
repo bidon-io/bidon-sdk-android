@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.7.1.1] - 2026-08-11
 ### Changed
-- Relayed the bid response custom params to the ad unit ext reported in stats and auction info
+- Relayed the bid response custom params to the ad unit ext
 
 ## [3.7.1.0] - 2026-06-01
 ### Changed
