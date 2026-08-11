@@ -33,6 +33,7 @@ dependencyResolutionManagement {
         maven(url = "https://cboost.jfrog.io/artifactory/chartboost-ads") {
             content {
                 includeGroup("com.chartboost")
+                includeGroupByRegex("com\\.iab\\.omid\\.library.*")
             }
         }
         maven(url = "https://cboost.jfrog.io/artifactory/chartboost-mediation") {
