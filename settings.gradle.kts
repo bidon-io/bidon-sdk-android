@@ -23,6 +23,23 @@ dependencyResolutionManagement {
         // mavenLocal()
         mavenCentral()
         maven(url = "https://artifactory.bidon.org/bidon")
+        maven(url = "https://artifactory.bidmachine.io/bidmachine") {
+            content {
+                includeGroupByRegex("io\\.bidmachine.*")
+                includeGroupByRegex("com\\.explorestack.*")
+                includeGroup("com.mbridge.msdk.oversea")
+            }
+        }
+        maven(url = "https://cboost.jfrog.io/artifactory/chartboost-ads") {
+            content {
+                includeGroup("com.chartboost")
+            }
+        }
+        maven(url = "https://cboost.jfrog.io/artifactory/chartboost-mediation") {
+            content {
+                includeGroup("com.chartboost")
+            }
+        }
         maven(url = "https://artifactory.bidon.org/artifactory/bidon-private/") {
             credentials {
                 username = System.getenv("BDN_USERNAME")
