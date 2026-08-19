@@ -26,5 +26,5 @@ android {
 
 dependencies {
     implementation("com.amazon.android:aps-sdk:$adapterSdkVersion")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
 }
