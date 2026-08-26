@@ -9,6 +9,19 @@ registries:
     type: maven-repository
     url: https://artifactory.bidon.org/bidon
 
+  # Dependabot does not read `dependencyResolutionManagement` from settings.gradle.kts.
+  # Every non-default repository declared there must be duplicated here, otherwise
+  # Dependabot resolves against Maven Central only and silently reports "no update possible".
+  bidmachine:
+    type: maven-repository
+    url: https://artifactory.bidmachine.io/bidmachine
+
+  # Maven Central hosts a stale mirror of com.chartboost:chartboost-sdk (9.2.1),
+  # current releases are published to this repository only.
+  chartboost-ads:
+    type: maven-repository
+    url: https://cboost.jfrog.io/artifactory/chartboost-ads
+
 updates:
   # Google Adapters (admob + gam)
   # Note: Dependabot cannot group updates from different directories
@@ -94,25 +107,25 @@ updates:
       - "dependencies"
       - "adapter"
 
-#  - package-ecosystem: "gradle"
-#    directory: "/adapter/appsflyer"
-#    target-branch: "develop"
-#    schedule:
-#      interval: "weekly"
-#      day: "wednesday"
-#      time: "03:00"
-#      timezone: "UTC"
-#    open-pull-requests-limit: 10
-#    registries:
-#      - google-maven
-#      - bidon-public
-#    reviewers:
-#      - "bidon-io/bidon-android"
-#    commit-message:
-#      prefix: "⬆️"
-#    labels:
-#      - "dependencies"
-#      - "adapter"
+  #  - package-ecosystem: "gradle"
+  #    directory: "/adapter/appsflyer"
+  #    target-branch: "develop"
+  #    schedule:
+  #      interval: "weekly"
+  #      day: "wednesday"
+  #      time: "03:00"
+  #      timezone: "UTC"
+  #    open-pull-requests-limit: 10
+  #    registries:
+  #      - google-maven
+  #      - bidon-public
+  #    reviewers:
+  #      - "bidon-io/bidon-android"
+  #    commit-message:
+  #      prefix: "⬆️"
+  #    labels:
+  #      - "dependencies"
+  #      - "adapter"
 
   - package-ecosystem: "gradle"
     directory: "/adapter/bidmachine"
@@ -126,6 +139,7 @@ updates:
     registries:
       - google-maven
       - bidon-public
+      - bidmachine
     reviewers:
       - "bidon-io/bidon-android"
     commit-message:
@@ -166,6 +180,7 @@ updates:
     registries:
       - google-maven
       - bidon-public
+      - chartboost-ads
     reviewers:
       - "bidon-io/bidon-android"
     commit-message:
@@ -194,25 +209,25 @@ updates:
       - "dependencies"
       - "adapter"
 
-#  - package-ecosystem: "gradle"
-#    directory: "/adapter/fyber"
-#    target-branch: "develop"
-#    schedule:
-#      interval: "weekly"
-#      day: "wednesday"
-#      time: "03:00"
-#      timezone: "UTC"
-#    open-pull-requests-limit: 10
-#    registries:
-#      - google-maven
-#      - bidon-public
-#    reviewers:
-#      - "bidon-io/bidon-android"
-#    commit-message:
-#      prefix: "⬆️"
-#    labels:
-#      - "dependencies"
-#      - "adapter"
+  #  - package-ecosystem: "gradle"
+  #    directory: "/adapter/fyber"
+  #    target-branch: "develop"
+  #    schedule:
+  #      interval: "weekly"
+  #      day: "wednesday"
+  #      time: "03:00"
+  #      timezone: "UTC"
+  #    open-pull-requests-limit: 10
+  #    registries:
+  #      - google-maven
+  #      - bidon-public
+  #    reviewers:
+  #      - "bidon-io/bidon-android"
+  #    commit-message:
+  #      prefix: "⬆️"
+  #    labels:
+  #      - "dependencies"
+  #      - "adapter"
 
   - package-ecosystem: "gradle"
     directory: "/adapter/inmobi"
@@ -286,6 +301,7 @@ updates:
     registries:
       - google-maven
       - bidon-public
+      - bidmachine
     reviewers:
       - "bidon-io/bidon-android"
     commit-message:
