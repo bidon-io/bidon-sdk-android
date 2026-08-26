@@ -87,7 +87,6 @@ internal class InmobiAdapter :
         return InmobiParams(JSONObject(json).optString("account_id"))
     }
 
-    // TODO: 02/09/2025 [glavatskikh] https://appodeal.slack.com/archives/C02PE4GAFU0/p1756807478969089?thread_ts=1754615120.657369&cid=C02PE4GAFU0
     override fun updateRegulation(regulation: Regulation) {
         // GDPR compliance - use both methods for maximum compatibility
         if (regulation.gdprApplies) {
