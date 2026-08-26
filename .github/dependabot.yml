@@ -22,6 +22,18 @@ registries:
     type: maven-repository
     url: https://cboost.jfrog.io/artifactory/chartboost-ads
 
+# Since 2026-07-14 Dependabot applies a default 3 day cooldown to version updates,
+# so a release is not proposed until 3 days after it was published to the registry.
+# Ad network SDKs ship hotfixes that we want to pick up on the next scheduled run,
+# so every block below opts out with `cooldown.exclude: ["*"]` — the exclude list is
+# matched with File.fnmatch, and `*` matches every dependency name, which disables the
+# cooldown filter entirely. `default-days: 0` is not used: the dependabot-2.0 JSON
+# schema constrains that field to 1..90 and an out-of-range value risks rejecting the
+# whole configuration.
+#
+# Trade-off: the cooldown exists to let a compromised or broken release be pulled
+# before it reaches consumers. Opting out means such a release can land in a PR within
+# hours, so adapter bumps must not be merged without CI and review.
 updates:
   # Google Adapters (admob + gam)
   # Note: Dependabot cannot group updates from different directories
@@ -35,6 +47,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -55,6 +70,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -76,6 +94,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -96,6 +117,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -136,6 +160,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -157,6 +184,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -177,6 +207,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -198,6 +231,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -238,6 +274,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -258,6 +297,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -278,6 +320,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -298,6 +343,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -319,6 +367,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -339,6 +390,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -359,6 +413,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -379,6 +436,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -399,6 +459,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -419,6 +482,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -439,6 +505,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -459,6 +528,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
@@ -479,6 +551,9 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      exclude:
+        - "*"
     registries:
       - google-maven
       - bidon-public
