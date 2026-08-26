@@ -157,7 +157,6 @@ internal class RewardedImpl(
             adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
-            winner = null
         }
     }
 
