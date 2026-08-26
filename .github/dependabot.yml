@@ -475,6 +475,7 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+      day: "wednesday"
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
