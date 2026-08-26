@@ -74,8 +74,11 @@ internal class BidMachineAdapter :
     }
 
     override fun updateRegulation(regulation: Regulation) {
-        regulation.usPrivacyString?.let {
-            BidMachine.setUSPrivacyString(it)
+        regulation.usPrivacyString?.let { privacyString ->
+            // US Privacy String format: "1YNN" where position 2 indicates opt-out status
+            // 'Y' at position 2 means user opted out of sale (non-personalized ads required)
+            val userOptedOut = privacyString.length > 2 && privacyString[2] == 'Y'
+            BidMachine.setNonPersonalized(userOptedOut)
         }
         if (regulation.coppaApplies) {
             BidMachine.setCoppa(true)
@@ -85,10 +88,7 @@ internal class BidMachineAdapter :
             regulation.gdprConsentString
                 ?.takeIf { it.isNotBlank() }
                 ?.let {
-                    BidMachine.setConsentConfig(
-                        /* hasConsent = */ regulation.hasGdprConsent,
-                        /* consentString = */ it
-                    )
+                    BidMachine.setConsentStatus(regulation.hasGdprConsent)
                 }
         }
     }
