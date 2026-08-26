@@ -159,6 +159,10 @@ internal class AuctionImpl(
         if (job?.isActive == true) {
             job?.cancel(AuctionCancellation())
             auctionStat.markAuctionCanceled()
+            // Release in-flight ad sources whose load() was dispatched to the ad-network SDK.
+            // Cancelling the coroutine does not stop the adapter listener flow, so without this
+            // the loaded ad object and its listeners leak (BDN-1192).
+            executeAuction.destroyStartedAdSources()
             logInfo(TAG, "Auction canceled")
         }
         job = null

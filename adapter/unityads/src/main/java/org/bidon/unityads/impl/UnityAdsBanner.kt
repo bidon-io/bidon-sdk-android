@@ -1,8 +1,11 @@
 package org.bidon.unityads.impl
 
-import com.unity3d.services.banners.BannerErrorInfo
-import com.unity3d.services.banners.BannerView
-import com.unity3d.services.banners.UnityBannerSize
+import android.view.View
+import com.unity3d.ads.BannerAd
+import com.unity3d.ads.BannerConfiguration
+import com.unity3d.ads.BannerShowListener
+import com.unity3d.ads.BannerSize
+import com.unity3d.ads.UnityAdsError
 import org.bidon.sdk.adapter.AdAuctionParamSource
 import org.bidon.sdk.adapter.AdAuctionParams
 import org.bidon.sdk.adapter.AdEvent
@@ -28,7 +31,8 @@ internal class UnityAdsBanner :
     AdSource.Banner<UnityAdsBannerAuctionParams>,
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
-    private var bannerAdView: BannerView? = null
+    private var bannerAd: BannerAd? = null
+    private var bannerAdView: View? = null
     private var adUnit: AdUnit? = null
 
     override var isAdReadyToShow: Boolean = false
@@ -55,21 +59,9 @@ internal class UnityAdsBanner :
         }
         adUnit = adParams.adUnit
         adParams.activity.runOnUiThread {
-            val unityBannerSize = UnityBannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
-            val adView = BannerView(adParams.activity, placementId, unityBannerSize).also {
-                bannerAdView = it
-            }
-            adView.listener = object : BannerView.IListener {
-                override fun onBannerLoaded(bannerAdView: BannerView?) {
-                    logInfo(TAG, "onAdLoaded: $this")
-                    this@UnityAdsBanner.bannerAdView = bannerAdView
-                    isAdReadyToShow = true
-                    getAd()?.let {
-                        emitEvent(AdEvent.Fill(it))
-                    }
-                }
-
-                override fun onBannerShown(bannerAdView: BannerView?) {
+            val bannerSize = BannerSize(adParams.bannerFormat.width, adParams.bannerFormat.height)
+            val showListener = object : BannerShowListener {
+                override fun onImpression(bannerAd: BannerAd) {
                     logInfo(TAG, "onAdShown: $this")
                     getAd()?.let {
                         emitEvent(
@@ -85,30 +77,39 @@ internal class UnityAdsBanner :
                     }
                 }
 
-                override fun onBannerClick(bannerAdView: BannerView?) {
+                override fun onClicked(bannerAd: BannerAd) {
                     logInfo(TAG, "onAdClicked: $this")
-                    getAd()?.let {
-                        emitEvent(AdEvent.Clicked(it))
-                    }
+                    getAd()?.let { emitEvent(AdEvent.Clicked(it)) }
                 }
 
-                override fun onBannerFailedToLoad(bannerAdView: BannerView?, errorInfo: BannerErrorInfo?) {
-                    logInfo(TAG, "Error while loading ad: $errorInfo. $this")
-                    isAdReadyToShow = false
-                    emitEvent(AdEvent.LoadFailed(errorInfo.asBidonError()))
+                override fun onFailedToShow(bannerAd: BannerAd, error: UnityAdsError) {
+                    logInfo(TAG, "Error while showing ad: ${error.message}. $this")
                 }
-
-                override fun onBannerLeftApplication(bannerView: BannerView?) {}
             }
-            adView.load()
+            val loadConfig = BannerConfiguration.Builder(placementId, bannerSize, showListener).build()
+
+            BannerAd.load(loadConfig) { loadedBanner, error ->
+                if (loadedBanner != null) {
+                    logInfo(TAG, "onAdLoaded: $this")
+                    bannerAd = loadedBanner
+                    bannerAdView = loadedBanner.view
+                    isAdReadyToShow = true
+                    getAd()?.let {
+                        emitEvent(AdEvent.Fill(it))
+                    }
+                } else {
+                    logInfo(TAG, "Error while loading ad: ${error?.message}. $this")
+                    isAdReadyToShow = false
+                    emitEvent(AdEvent.LoadFailed(error.asBidonError()))
+                }
+            }
         }
     }
 
     override fun getAdView(): AdViewHolder? = bannerAdView?.let { AdViewHolder(it) }
 
     override fun destroy() {
-        bannerAdView?.listener = null
-        bannerAdView?.destroy()
+        bannerAd = null
         bannerAdView = null
     }
 }

@@ -1,6 +1,7 @@
 package org.bidon.moloco.ext
 
 import com.moloco.sdk.publisher.Banner
+import com.moloco.sdk.publisher.BannerAdSize
 import com.moloco.sdk.publisher.MediationInfo
 import com.moloco.sdk.publisher.Moloco
 import com.moloco.sdk.publisher.MolocoAdError
@@ -8,6 +9,7 @@ import org.bidon.moloco.EMPTY_MEDIATOR
 import org.bidon.moloco.EMPTY_WATERMARK
 import org.bidon.moloco.MolocoDemandId
 import org.bidon.sdk.ads.banner.BannerFormat
+import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.config.BidonError
 
 internal fun MolocoAdError.toBidonLoadError() = when (errorType) {
@@ -26,7 +28,7 @@ internal fun MolocoAdError.toBidonShowError() = when (errorType) {
 }
 
 internal fun Moloco.createBannerAd(
-    bannerSize: BannerFormat,
+    bannerFormat: BannerFormat,
     adUnitId: String,
     callback: (Banner?, Throwable?) -> Unit
 ) {
@@ -35,7 +37,7 @@ internal fun Moloco.createBannerAd(
             callback(banner, null)
         } else {
             val exception = Exception(
-                "${bannerSize.name} wasn't created. " +
+                "${bannerFormat.name} wasn't created. " +
                     "Error: ${err?.description}, code: ${err?.errorCode}"
             )
             callback(null, exception)
@@ -43,7 +45,7 @@ internal fun Moloco.createBannerAd(
     }
 
     try {
-        when (bannerSize) {
+        when (bannerFormat) {
             BannerFormat.Banner -> {
                 Moloco.createBanner(
                     mediationInfo = MediationInfo(EMPTY_MEDIATOR),
@@ -72,7 +74,14 @@ internal fun Moloco.createBannerAd(
             }
 
             BannerFormat.Adaptive -> {
-                callback(null, IllegalStateException("Adaptive format should have been resolved"))
+                Moloco.createMolocoBanner(
+                    mediationInfo = MediationInfo(EMPTY_MEDIATOR),
+                    adUnitId = adUnitId,
+                    // null width lets Moloco auto-detect the full screen width
+                    size = BannerAdSize.AnchoredAdaptive(DeviceInfo.screenWidthDp.takeIf { it > 0 }),
+                    watermarkString = EMPTY_WATERMARK,
+                    callback = sdkCallback
+                )
             }
         }
     } catch (t: Throwable) {

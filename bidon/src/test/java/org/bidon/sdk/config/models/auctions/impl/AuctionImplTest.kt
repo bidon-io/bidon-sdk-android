@@ -7,7 +7,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
@@ -374,6 +376,35 @@ internal class AuctionImplTest : ConcurrentTest() {
                 assertThat(throwable).isEqualTo(BidonError.NoAuctionResults)
             }
         )
+    }
+
+    @Test
+    fun `it should destroy started ad sources when auction is canceled`() = runTest {
+        // PREPARE: park the auction inside getTokens so the job stays active (in progress)
+        every { adaptersSource.adapters } returns emptySet()
+        coEvery {
+            tokenGetter.invoke(any(), any(), any())
+        } coAnswers {
+            delay(60_000L)
+            emptyMap()
+        }
+
+        testee.start(
+            demandAd = DemandAd(AdType.Interstitial),
+            adTypeParam = AdTypeParam.Interstitial(
+                activity = activity,
+                pricefloor = 1.0,
+                auctionKey = null
+            ),
+            onSuccess = { _, _ -> error("unexpected") },
+            onFailure = { _, _ -> },
+        )
+
+        // WHEN the auction is canceled while in progress
+        testee.cancel()
+
+        // THEN in-flight ad sources are released (BDN-1192)
+        verify { executeAuctionUseCase.destroyStartedAdSources() }
     }
 
     private fun getAuctionResponse() = AuctionResponse(

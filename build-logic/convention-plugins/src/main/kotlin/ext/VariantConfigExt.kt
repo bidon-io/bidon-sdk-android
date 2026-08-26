@@ -11,7 +11,7 @@ private fun Variant.addBuildConfigField(
     when (type) {
         BuildConfigFieldType.String -> {
             require(value is String)
-            buildConfigFields.put(
+            buildConfigFields?.put(
                 name,
                 BuildConfigField(
                     type = "String",
@@ -23,7 +23,7 @@ private fun Variant.addBuildConfigField(
 
         BuildConfigFieldType.Integer -> {
             require(value is Int)
-            buildConfigFields.put(
+            buildConfigFields?.put(
                 name,
                 BuildConfigField(
                     type = "int",
@@ -35,7 +35,7 @@ private fun Variant.addBuildConfigField(
 
         BuildConfigFieldType.Date -> {
             require(value is Long)
-            buildConfigFields.put(
+            buildConfigFields?.put(
                 name,
                 BuildConfigField(
                     type = "java.util.Date",

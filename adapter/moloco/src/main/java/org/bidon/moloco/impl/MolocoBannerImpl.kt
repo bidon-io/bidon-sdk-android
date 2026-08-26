@@ -89,7 +89,7 @@ internal class MolocoBannerImpl :
     }
 
     override fun load(adParams: MolocoBannerAuctionParams) {
-        logInfo(TAG, "Starting banner load with format: ${adParams.bannerSize}")
+        logInfo(TAG, "Starting banner load with format: ${adParams.bannerFormat}")
 
         val adUnitId = adParams.adUnitId
         if (adUnitId == null) {
@@ -114,8 +114,8 @@ internal class MolocoBannerImpl :
             return
         }
         Moloco.createBannerAd(
-            adParams.bannerSize,
-            adUnitId = adParams.adUnitId
+            adParams.bannerFormat,
+            adUnitId = adUnitId
         ) { banner: Banner?, adCreateError: Throwable? ->
             if (banner != null) {
                 bannerAd = banner

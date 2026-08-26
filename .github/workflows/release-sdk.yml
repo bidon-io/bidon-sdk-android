@@ -66,12 +66,21 @@ jobs:
       - name: Clean Build Directories
         run: rm -rf */build build-logic/build build-logic/convention-plugins/build
 
-      - name: Publish to Artifactory
+      - name: Publish to Artifactory (primary)
+        continue-on-error: true
         run: ./gradlew publishAllPublicationsToBidonRepository
         env:
           ORG_GRADLE_PROJECT_repo: ${{ github.event.inputs.ORG_GRADLE_PROJECT_repo }}
           ORG_GRADLE_PROJECT_uname: ${{ secrets.ARTIFACTORY_USER }}
           ORG_GRADLE_PROJECT_upassword: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+      - name: Publish to Artifactory (fallback)
+        run: ./gradlew publishAllPublicationsToBidonRepository
+        env:
+          ORG_GRADLE_PROJECT_repo: ${{ github.event.inputs.ORG_GRADLE_PROJECT_repo }}
+          ORG_GRADLE_PROJECT_repoUrl: ${{ secrets.FALLBACK_ARTIFACTORY_URL }}
+          ORG_GRADLE_PROJECT_uname: ${{ secrets.FALLBACK_ARTIFACTORY_USER }}
+          ORG_GRADLE_PROJECT_upassword: ${{ secrets.FALLBACK_ARTIFACTORY_PASSWORD }}
 
       #- name: Publish to Maven Central
       #  run: ./gradlew publishReleasePublicationToSonatypeRepository --no-parallel

@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [3.8.0.0] - 2026-08-26
+### Changed
+- Updated SDK dependency from 3.7.1 to 3.8.0
+- Migrated from deprecated `setUSPrivacyString()` to `setNonPersonalized()` with CCPA opt-out flag parsing
+- Migrated from deprecated `setConsentConfig(Boolean, String)` to `setConsentStatus(Boolean)`
+
+## [3.7.1.1] - 2026-08-11
+### Changed
+- Relayed the bid response custom params to the ad unit ext
+
 ## [3.7.1.0] - 2026-06-01
 ### Changed
 - Updated SDK dependency from 3.7.0 to 3.7.1

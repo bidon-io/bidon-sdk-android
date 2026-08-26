@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [4.11.1.0] - 2026-08-19
+### Changed
+- Updated SDK dependency from 4.11.0 to 4.11.1
+
+## [4.11.0.0] - 2026-08-12
+### Changed
+- Updated SDK dependency from 4.10.1 to 4.11.0
+
+## [4.10.1.0] - 2026-07-08
+### Changed
+- Updated SDK dependency from 4.10.0 to 4.10.1
+
+## [4.10.0.1] - 2026-07-07
+### Added
+- Added support for adaptive banners
+
+## [4.10.0.0] - 2026-07-01
+### Changed
+- Updated SDK dependency from 4.9.0 to 4.10.0
+
 ## [4.9.0.0] - 2026-06-04
 ### Changed
 - Updated SDK dependency from 4.8.1 to 4.9.0

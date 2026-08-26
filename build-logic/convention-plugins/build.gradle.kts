@@ -28,7 +28,7 @@ tasks {
 
 dependencies {
     compileOnly(kotlin("gradle-plugin"))
-    compileOnly("com.android.tools.build:gradle:8.7.3")
+    compileOnly("com.android.tools.build:gradle:8.10.0")
 }
 
 gradlePlugin {
