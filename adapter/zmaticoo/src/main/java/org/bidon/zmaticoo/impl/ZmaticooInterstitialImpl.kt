@@ -27,10 +27,10 @@ internal class ZmaticooInterstitialImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var interstitialAd: InterstitialAd? = null
+    private var placementId: String? = null
 
     override val isAdReadyToShow: Boolean
-        get() = interstitialAd?.isReady() ?: false
+        get() = placementId?.let { InterstitialAd.isReady(it) } ?: false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
@@ -49,6 +49,7 @@ internal class ZmaticooInterstitialImpl :
                     )
                 )
             )
+        placementId = validatedPlacementId
         val payload =
             adParams.payload ?: return emitEvent(
                 AdEvent.LoadFailed(
@@ -59,10 +60,8 @@ internal class ZmaticooInterstitialImpl :
                 )
             )
 
-        val ad = InterstitialAd(validatedPlacementId)
-        interstitialAd = ad
-
-        ad.setAdListener(
+        InterstitialAd.setAdListener(
+            validatedPlacementId,
             object : InterstitialAdListener() {
                 override fun onAdLoadSuccess(adId: MaticooIds?) {
                     logInfo(TAG, "onAdLoadSuccess")
@@ -115,16 +114,16 @@ internal class ZmaticooInterstitialImpl :
             }
         )
 
-        ad.loadAd(payload)
+        InterstitialAd.loadAd(validatedPlacementId, payload)
     }
 
     override fun show(activity: Activity) {
         logInfo(TAG, "Starting show: $this")
 
-        val ad = interstitialAd ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+        val id = placementId ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
 
         if (isAdReadyToShow) {
-            ad.showAd()
+            InterstitialAd.showAd(id)
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
@@ -132,11 +131,11 @@ internal class ZmaticooInterstitialImpl :
 
     override fun destroy() {
         logInfo(TAG, "destroy $this")
-        interstitialAd?.let {
-            it.setAdListener(object : InterstitialAdListener() {})
-            it.destroy()
+        placementId?.let {
+            InterstitialAd.setAdListener(it, object : InterstitialAdListener() {})
+            InterstitialAd.destroy(it)
         }
-        interstitialAd = null
+        placementId = null
     }
 }
 
