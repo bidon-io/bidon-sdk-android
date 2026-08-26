@@ -159,6 +159,7 @@ internal class InterstitialImpl(
             adCache.clear()
             observeCallbacksJob?.cancel()
             observeCallbacksJob = null
+            winner = null
         }
     }
 
