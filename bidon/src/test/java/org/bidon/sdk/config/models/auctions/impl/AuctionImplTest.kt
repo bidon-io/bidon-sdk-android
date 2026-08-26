@@ -8,9 +8,12 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.bidon.sdk.adapter.AdaptersSource
 import org.bidon.sdk.adapter.DemandAd
 import org.bidon.sdk.adapter.DemandId
@@ -19,8 +22,10 @@ import org.bidon.sdk.ads.AdType
 import org.bidon.sdk.ads.banner.helper.DeviceInfo
 import org.bidon.sdk.auction.AdTypeParam
 import org.bidon.sdk.auction.Auction
+import org.bidon.sdk.auction.ResultsCollector
 import org.bidon.sdk.auction.impl.AuctionImpl
 import org.bidon.sdk.auction.impl.MaxPriceAuctionResolver
+import org.bidon.sdk.auction.impl.ResultsCollectorImpl
 import org.bidon.sdk.auction.models.AdUnit
 import org.bidon.sdk.auction.models.AuctionResponse
 import org.bidon.sdk.auction.usecases.AuctionStat
@@ -41,10 +46,13 @@ import org.bidon.sdk.stats.models.RoundStat
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.di.DI
 import org.bidon.sdk.utils.di.SimpleDiStorage
+import org.bidon.sdk.utils.di.module
 import org.bidon.sdk.utils.ext.asSuccess
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+
+private const val AUCTION_START_TIMEOUT_MS = 10_000L
 
 internal const val BidMachine = "bidmachine"
 internal const val Applovin = "applovin"
@@ -378,13 +386,25 @@ internal class AuctionImplTest : ConcurrentTest() {
         )
     }
 
+    // runBlocking, not runTest: the auction runs on its own real dispatcher, and runTest's
+    // virtual scheduler does not resume a wait that is completed from a foreign thread.
     @Test
-    fun `it should destroy started ad sources when auction is canceled`() = runTest {
-        // PREPARE: park the auction inside getTokens so the job stays active (in progress)
+    fun `it should destroy started ad sources when auction is canceled`() = runBlocking {
+        // PREPARE: AuctionImpl pulls ResultsCollector out of DI on its very first statement, and
+        // DI.init() alone does not register it. Without this the auction dies before it ever gets
+        // going, and the assertion below would only pass by racing cancel() against that failure.
+        module {
+            factory<ResultsCollector> { ResultsCollectorImpl(resolver = MaxPriceAuctionResolver) }
+        }
+        // Park the auction inside getTokens so the job stays active (in progress). The auction runs
+        // on its own dispatcher, so signal back when it actually gets there instead of assuming it
+        // wins the race against cancel() below.
+        val auctionInProgress = CompletableDeferred<Unit>()
         every { adaptersSource.adapters } returns emptySet()
         coEvery {
             tokenGetter.invoke(any(), any(), any())
         } coAnswers {
+            auctionInProgress.complete(Unit)
             delay(60_000L)
             emptyMap()
         }
@@ -399,6 +419,7 @@ internal class AuctionImplTest : ConcurrentTest() {
             onSuccess = { _, _ -> error("unexpected") },
             onFailure = { _, _ -> },
         )
+        withTimeout(AUCTION_START_TIMEOUT_MS) { auctionInProgress.await() }
 
         // WHEN the auction is canceled while in progress
         testee.cancel()
