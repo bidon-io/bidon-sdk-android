@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [2.0.7.0.0] - 2026-08-26
+### Changed
+- Updated SDK dependency from 2.0.6.0 to 2.0.7.0
+- Note: SDK 2.0.7.0 deprecates `InterstitialAd.isReady(String)`, `InterstitialAd.showAd(String)`, `RewardedVideoAd.isReady(String)`, and `RewardedVideoAd.showAd(String)` static methods, but does not provide working instance method alternatives; deprecated methods remain in use
+
 ## [2.0.6.0.0] - 2026-06-04
 ### Changed
 - Updated SDK dependency from 2.0.5.1 to 2.0.6.0
