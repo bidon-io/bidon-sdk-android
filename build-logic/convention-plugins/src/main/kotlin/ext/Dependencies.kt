@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 object Dependencies {
 
     object Kotlin {
-        const val kotlinVersion = "2.1.0"
+        const val kotlinVersion = "2.3.0"
         val kotlinTarget = KotlinVersion.KOTLIN_2_1
 
         /**
@@ -24,8 +24,8 @@ object Dependencies {
     }
 
     object Android {
-        const val compileSdkVersion = 35
-        const val targetSdkVersion = 35
+        const val compileSdkVersion = 37
+        const val targetSdkVersion = 36
         const val minSdkVersion = 24
 
         const val CoreKtx = "androidx.core:core-ktx:1.6.0"

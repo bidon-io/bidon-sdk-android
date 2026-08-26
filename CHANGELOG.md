@@ -1,4 +1,8 @@
 # 0.15.0 (2026.*.*)
+## Features:
+- Raised the build toolchain to support the latest ad network SDKs: Android Gradle Plugin 8.10.0, Kotlin 2.3.0, compileSdk 37, targetSdk 36
+
+## Fixes:
 - BDN-1192 Fixed in-flight ad source leak when destroyAd() is called during an auction
 
 # 0.14.0 (2026.06.10)
