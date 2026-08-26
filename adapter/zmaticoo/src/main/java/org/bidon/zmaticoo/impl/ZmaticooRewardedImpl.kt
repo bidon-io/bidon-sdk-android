@@ -29,10 +29,10 @@ internal class ZmaticooRewardedImpl :
     AdEventFlow by AdEventFlowImpl(),
     StatisticsCollector by StatisticsCollectorImpl() {
 
-    private var placementId: String? = null
+    private var rewardedAd: RewardedVideoAd? = null
 
     override val isAdReadyToShow: Boolean
-        get() = placementId?.let { RewardedVideoAd.isReady(it) } ?: false
+        get() = rewardedAd?.isReady() ?: false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
@@ -51,7 +51,6 @@ internal class ZmaticooRewardedImpl :
                     )
                 )
             )
-        placementId = validatedPlacementId
         val payload =
             adParams.payload ?: return emitEvent(
                 AdEvent.LoadFailed(
@@ -62,8 +61,10 @@ internal class ZmaticooRewardedImpl :
                 )
             )
 
-        RewardedVideoAd.setAdListener(
-            validatedPlacementId,
+        val ad = RewardedVideoAd(validatedPlacementId)
+        rewardedAd = ad
+
+        ad.setAdListener(
             object : RewardedVideoListener() {
                 override fun onRewardedVideoAdLoadSuccess(adId: MaticooIds?) {
                     logInfo(TAG, "onRewardedVideoAdLoadSuccess")
@@ -135,16 +136,16 @@ internal class ZmaticooRewardedImpl :
                 }
             })
 
-        RewardedVideoAd.loadAd(validatedPlacementId, payload)
+        ad.loadAd(payload)
     }
 
     override fun show(activity: Activity) {
         logInfo(TAG, "Starting show: $this")
 
-        val id = placementId ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+        val ad = rewardedAd ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
 
         if (isAdReadyToShow) {
-            RewardedVideoAd.showAd(id)
+            ad.showAd()
         } else {
             emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
         }
@@ -152,11 +153,11 @@ internal class ZmaticooRewardedImpl :
 
     override fun destroy() {
         logInfo(TAG, "destroy $this")
-        placementId?.let {
-            RewardedVideoAd.setAdListener(it, object : RewardedVideoListener() {})
-            RewardedVideoAd.destroy(it)
+        rewardedAd?.let {
+            it.setAdListener(object : RewardedVideoListener() {})
+            it.destroy()
         }
-        placementId = null
+        rewardedAd = null
     }
 }
 
