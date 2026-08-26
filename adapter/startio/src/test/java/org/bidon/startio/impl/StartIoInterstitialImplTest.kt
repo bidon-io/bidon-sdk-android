@@ -3,9 +3,16 @@ package org.bidon.startio.impl
 import android.app.Activity
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import com.startapp.sdk.adsbase.StartAppAd
+import com.startapp.sdk.adsbase.adlisteners.AdEventListener
+import com.startapp.sdk.adsbase.model.AdPreferences
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkConstructor
 import io.mockk.unmockkAll
+import io.mockk.verify
 import org.bidon.sdk.auction.models.AdUnit
 import org.json.JSONObject
 import org.junit.After
@@ -29,7 +36,17 @@ class StartIoInterstitialImplTest {
     }
 
     @Test
-    fun `load should handle valid payload without crashing`() {
+    fun `load should request an interstitial with the given payload`() {
+        // StartAppAd is mocked out: the real SDK blocks indefinitely in a JVM unit test
+        mockkConstructor(StartAppAd::class)
+        every {
+            anyConstructed<StartAppAd>().loadAd(
+                any<StartAppAd.AdMode>(),
+                any<AdPreferences>(),
+                any<AdEventListener>(),
+                any<String>()
+            )
+        } just Runs
         val extraJson = JSONObject().apply {
             put("payload", "test_payload")
         }
@@ -39,19 +56,15 @@ class StartIoInterstitialImplTest {
         }
         val adParams = StartIoFullscreenAuctionParams(context, adUnit)
 
-        // Should not crash when loading with valid payload
-        // Note: We can't test the actual StartAppAd creation due to SDK dependencies
-        try {
-            testee.load(adParams)
-            // If we reach here without exception, the test passes
-        } catch (e: NoClassDefFoundError) {
-            // Expected due to missing StartApp SDK dependencies in test environment
-            // This is acceptable for unit tests - the important thing is that the method
-            // doesn't crash with other types of exceptions
-            assertThat(e.message).contains("Callback")
-        } catch (e: Exception) {
-            // Any other exception should cause the test to fail
-            throw e
+        testee.load(adParams)
+
+        verify(exactly = 1) {
+            anyConstructed<StartAppAd>().loadAd(
+                StartAppAd.AdMode.AUTOMATIC,
+                any<AdPreferences>(),
+                any<AdEventListener>(),
+                "test_payload"
+            )
         }
     }
 

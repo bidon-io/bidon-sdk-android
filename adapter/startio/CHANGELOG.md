@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [5.3.2.0] - 2026-08-26
+### Changed
+- Updated SDK dependency from 5.3.1 to 5.3.2
+
+### Fixed
+- Interstitial and rewarded unit tests no longer invoke the real Start.io SDK, which hangs indefinitely on the JVM since 5.3.2
+
 ## [5.3.1.0] - 2026-06-24
 ### Changed
 - Updated SDK dependency from 5.3.0 to 5.3.1
