@@ -1,3 +1,7 @@
+# Develop (2026.**.**)
+## Features:
+- Added `loadAd(context: Context, pricefloor)` overloads for `InterstitialAd`, `RewardedAd` and `BannerView`; the Activity required by ad networks is resolved from the currently resumed Activity, and the load fails with `BidonError.NoContextFound` when none is available
+
 # 0.15.0 (2026.08.26)
 ## Features:
 - Raised the build toolchain to support the latest ad network SDKs: Android Gradle Plugin 8.10.0, Kotlin 2.3.0, compileSdk 37, targetSdk 36

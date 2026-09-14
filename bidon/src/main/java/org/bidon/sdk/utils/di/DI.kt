@@ -87,6 +87,8 @@ import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.activity.ActivityProvider
+import org.bidon.sdk.utils.activity.ActivityProviderImpl
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -105,8 +107,12 @@ import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
  */
 internal object DI {
     fun init(context: Context) {
+        val activityProvider = ActivityProviderImpl().apply {
+            (context.applicationContext as? Application)?.let(::install)
+        }
         module {
             singleton<Context> { context.applicationContext }
+            singleton<ActivityProvider> { activityProvider }
         }
         DeviceInfo.init(context)
         FlavoredDI.init()

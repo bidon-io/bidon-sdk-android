@@ -42,6 +42,7 @@ import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.logging.impl.logError
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.activity.ActivityProvider
 import org.bidon.sdk.utils.di.get
 import org.bidon.sdk.utils.ext.TAG
 import org.bidon.sdk.utils.ext.dpToPx
@@ -73,6 +74,7 @@ public class BannerView @JvmOverloads constructor(
     private var loadingError: BidonError? = null
     private val adLifecycleFlow = MutableStateFlow(AdLifecycle.Created)
     private val auction: Auction by lazy { get() }
+    private val activityProvider: ActivityProvider by lazy { get() }
     private val visibilityTracker: VisibilityTracker by lazy { get() }
     private var auctionInfo: AuctionInfo? = null
     private var winner: AuctionResult? = null
@@ -111,6 +113,14 @@ public class BannerView @JvmOverloads constructor(
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
+        load(pricefloor) { activity }
+    }
+
+    override fun loadAd(context: Context, pricefloor: Double) {
+        load(pricefloor) { activityProvider.resolve(context) }
+    }
+
+    private fun load(pricefloor: Double, resolveActivity: () -> Activity?) {
         logInfo(TAG, "LoadAd. $this. ${Thread.currentThread()}")
         scope.launch(Dispatchers.Default) {
             initWaitAndContinueIfRequired(
@@ -120,7 +130,17 @@ public class BannerView @JvmOverloads constructor(
                             update = AdLifecycle.Loading
                         )
                     ) {
-                        conductAuction(activity, pricefloor)
+                        val activity = resolveActivity()
+                        if (activity != null) {
+                            conductAuction(activity, pricefloor)
+                        } else {
+                            logInfo(TAG, "No resumed Activity available to load the ad")
+                            adLifecycleFlow.value = AdLifecycle.LoadingFailed
+                            loadingError = BidonError.NoContextFound
+                            withContext(Dispatchers.Main) {
+                                listener.onAdLoadFailed(null, BidonError.NoContextFound)
+                            }
+                        }
                     } else {
                         when (adLifecycleFlow.value) {
                             AdLifecycle.Loading -> {
