@@ -28,26 +28,28 @@ internal interface ActivityProvider {
     fun resolve(context: Context): Activity?
 }
 
+/**
+ * Tracks live Activities through [Application.ActivityLifecycleCallbacks].
+ *
+ * Android does not replay lifecycle callbacks for Activities that were resumed before registration,
+ * so the process-wide [shared] instance is installed by [ActivityProviderInitializer] at process start.
+ * [org.bidon.sdk.utils.di.DI.init] additionally seeds it from the initialization context and installs
+ * it again (a no-op when already installed) for apps that removed the initializer from their manifest.
+ */
 internal class ActivityProviderImpl : ActivityProvider, Application.ActivityLifecycleCallbacks {
     private val installed = AtomicBoolean(false)
     private val lock = Any()
 
-    /** Activities currently in the resumed state, most recently resumed last. */
-    private val resumed = ArrayList<WeakReference<Activity>>()
-
-    /** The most recently resumed or seeded Activity; may already be paused or stopped. */
-    @Volatile
-    private var lastKnown: WeakReference<Activity>? = null
+    /** Known live Activities, ordered by the time they were last resumed or seeded, most recent last. */
+    private val known = ArrayList<Entry>()
 
     override val resumedActivity: Activity?
-        get() = synchronized(lock) {
-            resumed.asReversed().firstNotNullOfOrNull { it.get()?.takeIf { activity -> activity.isAlive } }
-        }
+        get() = latest { it.isResumed }
 
     override fun resolve(context: Context): Activity? =
         context.findActivity()?.takeIf { it.isAlive }
             ?: resumedActivity
-            ?: lastKnown?.get()?.takeIf { it.isAlive }
+            ?: latest { true }
 
     /**
      * Registers this provider once per instance. Returns true only for the call that registered.
@@ -59,34 +61,33 @@ internal class ActivityProviderImpl : ActivityProvider, Application.ActivityLife
     }
 
     /**
-     * Records the Activity wrapped by [context], if any, as the last known Activity.
-     * Lifecycle callbacks are not replayed for Activities resumed before [install],
-     * so the SDK seeds the provider with the Activity it was initialized from.
+     * Records the Activity wrapped by [context], if any, as a known Activity, unless it is already tracked.
      */
     fun seed(context: Context) {
-        context.findActivity()?.takeIf { it.isAlive }?.let { lastKnown = WeakReference(it) }
+        val activity = context.findActivity()?.takeIf { it.isAlive } ?: return
+        synchronized(lock) {
+            if (known.none { it.activity === activity }) {
+                known.add(Entry(activity, isResumed = false))
+            }
+        }
     }
 
     override fun onActivityResumed(activity: Activity) {
         synchronized(lock) {
-            resumed.removeAll { it.get() == null || it.get() === activity }
-            resumed.add(WeakReference(activity))
+            known.removeAll { it.activity == null || it.activity === activity }
+            known.add(Entry(activity, isResumed = true))
         }
-        lastKnown = WeakReference(activity)
     }
 
     override fun onActivityPaused(activity: Activity) {
         synchronized(lock) {
-            resumed.removeAll { it.get() == null || it.get() === activity }
+            known.firstOrNull { it.activity === activity }?.isResumed = false
         }
     }
 
     override fun onActivityDestroyed(activity: Activity) {
         synchronized(lock) {
-            resumed.removeAll { it.get() == null || it.get() === activity }
-        }
-        if (lastKnown?.get() === activity) {
-            lastKnown = null
+            known.removeAll { it.activity == null || it.activity === activity }
         }
     }
 
@@ -94,6 +95,22 @@ internal class ActivityProviderImpl : ActivityProvider, Application.ActivityLife
     override fun onActivityStarted(activity: Activity) = Unit
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+    private inline fun latest(predicate: (Entry) -> Boolean): Activity? = synchronized(lock) {
+        known.asReversed().firstNotNullOfOrNull { entry ->
+            entry.activity?.takeIf { predicate(entry) && it.isAlive }
+        }
+    }
+
+    private class Entry(activity: Activity, var isResumed: Boolean) {
+        private val ref = WeakReference(activity)
+        val activity: Activity? get() = ref.get()
+    }
+
+    companion object {
+        /** The process-wide instance shared by [ActivityProviderInitializer] and DI. */
+        val shared: ActivityProviderImpl by lazy { ActivityProviderImpl() }
+    }
 }
 
 internal tailrec fun Context.findActivity(): Activity? = when (this) {

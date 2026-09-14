@@ -167,6 +167,71 @@ class ActivityProviderImplTest {
     }
 
     @Test
+    fun `resolve falls back to an earlier paused activity when a later one is destroyed`() {
+        val paused = activity()
+        val destroyed = activity()
+        provider.onActivityResumed(paused)
+        provider.onActivityPaused(paused)
+        provider.onActivityResumed(destroyed)
+
+        provider.onActivityPaused(destroyed)
+        provider.onActivityDestroyed(destroyed)
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(paused)
+    }
+
+    @Test
+    fun `resolve falls back to the seeded activity when a later resumed activity is destroyed`() {
+        val seeded = activity()
+        val destroyed = activity()
+        provider.seed(seeded)
+        provider.onActivityResumed(destroyed)
+
+        provider.onActivityDestroyed(destroyed)
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(seeded)
+    }
+
+    @Test
+    fun `resolve prefers the most recently resumed of two paused activities`() {
+        val older = activity()
+        val newer = activity()
+        provider.onActivityResumed(older)
+        provider.onActivityPaused(older)
+        provider.onActivityResumed(newer)
+        provider.onActivityPaused(newer)
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(newer)
+    }
+
+    @Test
+    fun `resolve falls back to an older paused activity when the last resumed one is destroyed`() {
+        val older = activity()
+        val newer = activity()
+        provider.onActivityResumed(older)
+        provider.onActivityPaused(older)
+        provider.onActivityResumed(newer)
+
+        provider.onActivityDestroyed(newer)
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(older)
+    }
+
+    @Test
+    fun `resolve skips a paused activity that became finishing`() {
+        val older = activity()
+        val newer = activity()
+        provider.onActivityResumed(older)
+        provider.onActivityPaused(older)
+        provider.onActivityResumed(newer)
+        provider.onActivityPaused(newer)
+
+        every { newer.isFinishing } returns true
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(older)
+    }
+
+    @Test
     fun `resolve prefers a currently resumed activity over a paused one`() {
         val paused = activity()
         val resumed = activity()
@@ -204,6 +269,16 @@ class ActivityProviderImplTest {
         provider.seed(finishing)
 
         assertThat(provider.resolve(mockk<Context>())).isNull()
+    }
+
+    @Test
+    fun `seed does not reset a tracked activity`() {
+        val activity = activity()
+        provider.onActivityResumed(activity)
+
+        provider.seed(activity)
+
+        assertThat(provider.resumedActivity).isSameInstanceAs(activity)
     }
 
     @Test

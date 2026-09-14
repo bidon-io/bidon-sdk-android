@@ -113,7 +113,7 @@ internal object DI {
      */
     fun init(context: Context) {
         val applicationContext = context.applicationContext
-        val activityProvider = ActivityProviderImpl().apply {
+        val activityProvider = ActivityProviderImpl.shared.apply {
             seed(context)
             (applicationContext as? Application)?.let(::install)
         }
