@@ -1,6 +1,6 @@
 # Develop (2026.**.**)
 ## Features:
-- Added `loadAd(context: Context, pricefloor)` overloads for `InterstitialAd`, `RewardedAd` and `BannerView`; the Activity required by ad networks is resolved from the currently resumed Activity, and the load fails with `BidonError.NoContextFound` when none is available
+- Added `loadAd(context: Context, pricefloor)` overloads for `InterstitialAd`, `RewardedAd` and `BannerView`; the Activity required by ad networks is resolved from the context itself, otherwise from the currently resumed Activity, otherwise from the most recently resumed Activity that is still alive, and the load fails with `BidonError.NoContextFound` when none is available
 
 # 0.15.0 (2026.08.26)
 ## Features:

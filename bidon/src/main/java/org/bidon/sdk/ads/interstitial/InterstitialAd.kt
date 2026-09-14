@@ -17,9 +17,10 @@ internal interface Interstitial : Extras, WinLossNotifier {
     fun loadAd(activity: Activity, pricefloor: Double = DefaultPricefloor)
 
     /**
-     * Loads an ad using any [Context]; the Activity required by ad networks is resolved from
-     * the currently resumed Activity. Fails with [org.bidon.sdk.config.BidonError.NoContextFound]
-     * when no Activity is available.
+     * Loads an ad using any [Context]. The Activity required by ad networks is resolved from
+     * [context] itself when it wraps an Activity, otherwise from the currently resumed Activity,
+     * otherwise from the most recently resumed Activity that is still alive. Fails with
+     * [org.bidon.sdk.config.BidonError.NoContextFound] when no Activity is available.
      */
     fun loadAd(context: Context, pricefloor: Double = DefaultPricefloor)
     fun destroyAd()

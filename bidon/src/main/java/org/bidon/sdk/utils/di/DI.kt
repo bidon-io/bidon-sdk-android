@@ -109,6 +109,7 @@ internal object DI {
     fun init(context: Context) {
         val activityProvider = ActivityProviderImpl().apply {
             (context.applicationContext as? Application)?.let(::install)
+            seed(context)
         }
         module {
             singleton<Context> { context.applicationContext }

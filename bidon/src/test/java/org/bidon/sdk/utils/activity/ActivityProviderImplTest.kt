@@ -31,13 +31,50 @@ class ActivityProviderImplTest {
     }
 
     @Test
-    fun `resumedActivity is kept when the activity is paused`() {
+    fun `resumedActivity is null when the only resumed activity is paused`() {
         val activity = activity()
         provider.onActivityResumed(activity)
 
         provider.onActivityPaused(activity)
 
-        assertThat(provider.resumedActivity).isSameInstanceAs(activity)
+        assertThat(provider.resumedActivity).isNull()
+    }
+
+    @Test
+    fun `resumedActivity returns the other resumed activity when one of two is paused`() {
+        val first = activity()
+        val second = activity()
+        provider.onActivityResumed(first)
+        provider.onActivityResumed(second)
+
+        provider.onActivityPaused(second)
+
+        assertThat(provider.resumedActivity).isSameInstanceAs(first)
+    }
+
+    @Test
+    fun `resumedActivity returns the other resumed activity when one of two is destroyed`() {
+        val first = activity()
+        val second = activity()
+        provider.onActivityResumed(first)
+        provider.onActivityResumed(second)
+
+        provider.onActivityDestroyed(second)
+
+        assertThat(provider.resumedActivity).isSameInstanceAs(first)
+    }
+
+    @Test
+    fun `resumedActivity does not duplicate an activity resumed twice`() {
+        val first = activity()
+        val second = activity()
+        provider.onActivityResumed(first)
+        provider.onActivityResumed(second)
+        provider.onActivityResumed(first)
+
+        provider.onActivityPaused(first)
+
+        assertThat(provider.resumedActivity).isSameInstanceAs(second)
     }
 
     @Test
@@ -106,6 +143,79 @@ class ActivityProviderImplTest {
     @Test
     fun `resolve returns null when no activity is available`() {
         assertThat(provider.resolve(mockk<Context>())).isNull()
+    }
+
+    @Test
+    fun `resolve falls back to the last resumed activity when it is paused`() {
+        val activity = activity()
+        provider.onActivityResumed(activity)
+        provider.onActivityPaused(activity)
+
+        val resolved = provider.resolve(mockk<Context>())
+
+        assertThat(resolved).isSameInstanceAs(activity)
+    }
+
+    @Test
+    fun `resolve returns null when the last resumed activity is destroyed`() {
+        val activity = activity()
+        provider.onActivityResumed(activity)
+        provider.onActivityPaused(activity)
+        provider.onActivityDestroyed(activity)
+
+        assertThat(provider.resolve(mockk<Context>())).isNull()
+    }
+
+    @Test
+    fun `resolve prefers a currently resumed activity over a paused one`() {
+        val paused = activity()
+        val resumed = activity()
+        provider.onActivityResumed(paused)
+        provider.onActivityPaused(paused)
+        provider.onActivityResumed(resumed)
+
+        val resolved = provider.resolve(mockk<Context>())
+
+        assertThat(resolved).isSameInstanceAs(resumed)
+    }
+
+    @Test
+    fun `seed makes the wrapped activity available before any lifecycle callback`() {
+        val seeded = activity()
+        val context = mockk<ContextWrapper> { every { baseContext } returns seeded }
+
+        provider.seed(context)
+
+        assertThat(provider.resumedActivity).isNull()
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(seeded)
+    }
+
+    @Test
+    fun `seed ignores a context that does not wrap an activity`() {
+        provider.seed(mockk<Context>())
+
+        assertThat(provider.resolve(mockk<Context>())).isNull()
+    }
+
+    @Test
+    fun `seed ignores a finishing activity`() {
+        val finishing = activity().also { every { it.isFinishing } returns true }
+
+        provider.seed(finishing)
+
+        assertThat(provider.resolve(mockk<Context>())).isNull()
+    }
+
+    @Test
+    fun `seeded activity is replaced by a later resumed activity`() {
+        val seeded = activity()
+        val resumed = activity()
+        provider.seed(seeded)
+
+        provider.onActivityResumed(resumed)
+        provider.onActivityPaused(resumed)
+
+        assertThat(provider.resolve(mockk<Context>())).isSameInstanceAs(resumed)
     }
 
     @Test
