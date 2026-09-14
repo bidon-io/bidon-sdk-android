@@ -102,7 +102,7 @@ public object BidonSdk {
 
     @JvmStatic
     public fun initialize(context: Context, appKey: String): Unit =
-        bidon.initialize(context.applicationContext, appKey)
+        bidon.initialize(context, appKey)
 
     /**
      * Adding SDK-level extra data.

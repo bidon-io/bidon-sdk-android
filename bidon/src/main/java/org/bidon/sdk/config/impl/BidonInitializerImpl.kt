@@ -99,12 +99,15 @@ internal class BidonInitializerImpl : BidonInitializer {
             /**
              * [DI.init] must be invoked before using all.
              * Check if SDK is initialized with [isInitialized].
+             * The original [context] is passed so that an Activity it wraps can seed the
+             * [org.bidon.sdk.utils.activity.ActivityProvider]; only the application context is retained.
              */
             DI.init(context)
+            val applicationContext = context.applicationContext
             scope.launch {
                 obtainSegmentUid()
                 runCatching {
-                    init(context, appKey, timeStart)
+                    init(applicationContext, appKey, timeStart)
                 }.onFailure {
                     logError(TAG, "Error while initialization", it)
                     initializationState.value = SdkState.InitializationFailed

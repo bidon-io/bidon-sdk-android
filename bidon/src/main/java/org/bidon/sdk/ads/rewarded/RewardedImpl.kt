@@ -1,6 +1,7 @@
 package org.bidon.sdk.ads.rewarded
 
 import android.app.Activity
+import android.content.Context
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ import org.bidon.sdk.databinders.extras.Extras
 import org.bidon.sdk.logs.analytic.AdValue
 import org.bidon.sdk.logs.logging.impl.logInfo
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.activity.ActivityProvider
 import org.bidon.sdk.utils.di.get
 
 internal class RewardedImpl(
@@ -46,6 +48,7 @@ internal class RewardedImpl(
     private val adCache: AdCache by lazy {
         get { params(demandAd) }
     }
+    private val activityProvider: ActivityProvider by lazy { get() }
     private val listener by lazy {
         getRewardedListener()
     }
@@ -62,9 +65,28 @@ internal class RewardedImpl(
     }
 
     override fun loadAd(activity: Activity, pricefloor: Double) {
+        load(pricefloor) { activity }
+    }
+
+    override fun loadAd(context: Context, pricefloor: Double) {
+        load(pricefloor) { activityProvider.resolve(context) }
+    }
+
+    private fun load(pricefloor: Double, resolveActivity: () -> Activity?) {
         scope.launch(Dispatchers.Default) {
             initWaitAndContinueIfRequired(
                 onSuccess = {
+                    val activity = resolveActivity()
+                    if (activity == null) {
+                        logInfo(TAG, "No resumed Activity available to load the ad")
+                        withContext(Dispatchers.Main) {
+                            listener.onAdLoadFailed(
+                                auctionInfo = null,
+                                cause = BidonError.NoContextFound
+                            )
+                        }
+                        return@initWaitAndContinueIfRequired
+                    }
                     logInfo(TAG, "Load (pricefloor=$pricefloor)")
                     adCache.cache(
                         adTypeParam = AdTypeParam.Rewarded(

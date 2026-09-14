@@ -87,6 +87,8 @@ import org.bidon.sdk.stats.usecases.SendImpressionRequestUseCase
 import org.bidon.sdk.stats.usecases.SendWinLossRequestUseCase
 import org.bidon.sdk.stats.usecases.StatsRequestUseCase
 import org.bidon.sdk.utils.SdkDispatchers
+import org.bidon.sdk.utils.activity.ActivityProvider
+import org.bidon.sdk.utils.activity.ActivityProviderImpl
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorage
 import org.bidon.sdk.utils.keyvaluestorage.KeyValueStorageImpl
 import org.bidon.sdk.utils.networking.BidonEndpoints
@@ -104,11 +106,22 @@ import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
  * Dependency Injection
  */
 internal object DI {
+    /**
+     * @param context the context the SDK was initialized with. An Activity it wraps seeds the
+     * [ActivityProvider] because lifecycle callbacks are not replayed for an already-resumed Activity.
+     * Only [Context.getApplicationContext] is retained.
+     */
     fun init(context: Context) {
-        module {
-            singleton<Context> { context.applicationContext }
+        val applicationContext = context.applicationContext
+        val activityProvider = ActivityProviderImpl.shared.apply {
+            seed(context)
+            (applicationContext as? Application)?.let(::install)
         }
-        DeviceInfo.init(context)
+        module {
+            singleton<Context> { applicationContext }
+            singleton<ActivityProvider> { activityProvider }
+        }
+        DeviceInfo.init(applicationContext)
         FlavoredDI.init()
     }
 

@@ -61,7 +61,7 @@ internal const val Admob = "admob"
 @ExperimentalCoroutinesApi
 internal class AuctionImplTest : ConcurrentTest() {
 
-    private val activity: Activity by lazy { mockk() }
+    private val activity: Activity by lazy { mockk(relaxed = true) }
     private val getAuctionRequestUseCase: GetAuctionRequestUseCase = mockk()
 
     private val adaptersSource: AdaptersSource by lazy { mockk(relaxed = true) }
