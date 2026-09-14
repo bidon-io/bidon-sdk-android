@@ -53,7 +53,7 @@ internal class AuctionStatImplTest : ConcurrentTest() {
     fun before() {
         mockkObject(DeviceInfo)
         every { DeviceInfo.init(any()) } returns Unit
-        DI.init(mockk())
+        DI.init(mockk(relaxed = true))
 //        DI.setFactories()
         mockkLog()
     }
