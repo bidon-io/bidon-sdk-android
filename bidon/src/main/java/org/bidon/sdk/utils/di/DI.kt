@@ -106,16 +106,22 @@ import org.bidon.sdk.utils.visibilitytracker.VisibilityTracker
  * Dependency Injection
  */
 internal object DI {
+    /**
+     * @param context the context the SDK was initialized with. An Activity it wraps seeds the
+     * [ActivityProvider] because lifecycle callbacks are not replayed for an already-resumed Activity.
+     * Only [Context.getApplicationContext] is retained.
+     */
     fun init(context: Context) {
+        val applicationContext = context.applicationContext
         val activityProvider = ActivityProviderImpl().apply {
-            (context.applicationContext as? Application)?.let(::install)
             seed(context)
+            (applicationContext as? Application)?.let(::install)
         }
         module {
-            singleton<Context> { context.applicationContext }
+            singleton<Context> { applicationContext }
             singleton<ActivityProvider> { activityProvider }
         }
-        DeviceInfo.init(context)
+        DeviceInfo.init(applicationContext)
         FlavoredDI.init()
     }
 
