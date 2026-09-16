@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [2.0.7.1.0] - 2026-09-16
+### Changed
+- Updated SDK dependency from 2.0.7.0 to 2.0.7.1
+- Migrated deprecated `isReady(String)` and `showAd(String)` methods to use `MaticooIds` parameter instead
+
 ## [2.0.7.0.0] - 2026-08-26
 ### Changed
 - Updated SDK dependency from 2.0.6.0 to 2.0.7.0
