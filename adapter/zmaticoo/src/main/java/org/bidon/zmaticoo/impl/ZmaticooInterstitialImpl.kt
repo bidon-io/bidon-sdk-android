@@ -28,9 +28,10 @@ internal class ZmaticooInterstitialImpl :
     StatisticsCollector by StatisticsCollectorImpl() {
 
     private var placementId: String? = null
+    private var adId: MaticooIds? = null
 
     override val isAdReadyToShow: Boolean
-        get() = placementId?.let { InterstitialAd.isReady(it) } ?: false
+        get() = adId?.let { InterstitialAd.isReady(it) } ?: false
 
     override fun getAuctionParam(auctionParamsScope: AdAuctionParamSource): Result<AdAuctionParams> =
         auctionParamsScope {
@@ -65,6 +66,7 @@ internal class ZmaticooInterstitialImpl :
             object : InterstitialAdListener() {
                 override fun onAdLoadSuccess(adId: MaticooIds?) {
                     logInfo(TAG, "onAdLoadSuccess")
+                    this@ZmaticooInterstitialImpl.adId = adId
                     emitEvent(AdEvent.Fill(getAd() ?: return))
                 }
 
@@ -120,7 +122,7 @@ internal class ZmaticooInterstitialImpl :
     override fun show(activity: Activity) {
         logInfo(TAG, "Starting show: $this")
 
-        val id = placementId ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
+        val id = adId ?: return emitEvent(AdEvent.ShowFailed(BidonError.AdNotReady))
 
         if (isAdReadyToShow) {
             InterstitialAd.showAd(id)
@@ -136,6 +138,7 @@ internal class ZmaticooInterstitialImpl :
             InterstitialAd.destroy(it)
         }
         placementId = null
+        adId = null
     }
 }
 
