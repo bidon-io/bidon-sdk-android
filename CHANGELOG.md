@@ -1,4 +1,4 @@
-# Develop (2026.**.**)
+# 0.16.0 (2026.09.15)
 ## Features:
 - Added `loadAd(context: Context, pricefloor)` overloads for `InterstitialAd`, `RewardedAd` and `BannerView`; the Activity required by ad networks is resolved from the context itself, otherwise from the currently resumed Activity, otherwise from the most recently resumed Activity that is still alive, and the load fails with `BidonError.NoContextFound` when none is available. Activities are tracked from process start by a manifest-declared `ContentProvider` (`org.bidon.sdk.utils.activity.ActivityProviderInitializer`), so initialization with an application context after an Activity is already resumed is supported
 
