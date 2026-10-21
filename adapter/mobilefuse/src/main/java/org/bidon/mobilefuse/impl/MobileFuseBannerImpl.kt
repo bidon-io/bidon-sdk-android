@@ -68,7 +68,6 @@ internal class MobileFuseBannerImpl :
         }
         val bannerAd = MobileFuseBannerAd(adParams.activity, placementId, adSize)
             .also { fuseBannerAd = it }
-        bannerAd.autorefreshEnabled = false
         bannerAd.setListener(object : MobileFuseBannerAd.Listener {
             override fun onAdLoaded() {
                 if (!isLoaded.getAndSet(true)) {
