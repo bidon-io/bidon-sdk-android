@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.13.0.0] - 2026-10-21
+### Changed
+- Updated SDK dependency from 1.12.0 to 1.13.0
+- Removed deprecated `autorefreshEnabled` property usage in banner implementation (property has no effect and will be deleted in future SDK release)
+
 ## [1.12.0.0] - 2026-08-21
 ### Changed
 - Updated SDK dependency from 1.11.0 to 1.12.0
