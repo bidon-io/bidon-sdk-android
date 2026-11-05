@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [8.5.1.0] - 2026-11-05
+### Changed
+- Updated SDK dependency from 8.5.0 to 8.5.1
+
 ## [8.5.0.0] - 2026-10-14
 ### Changed
 - Updated SDK dependency from 8.4.7 to 8.5.0
