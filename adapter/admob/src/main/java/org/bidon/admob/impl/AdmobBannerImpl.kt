@@ -102,6 +102,7 @@ internal class AdmobBannerImpl(
     override fun destroy() {
         logInfo(TAG, "destroy $this")
         adView?.onPaidEventListener = null
+        adView?.destroy()
         adView = null
     }
 }
