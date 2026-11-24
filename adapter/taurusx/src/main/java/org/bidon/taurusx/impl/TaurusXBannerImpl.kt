@@ -1,5 +1,6 @@
 package org.bidon.taurusx.impl
 
+import android.content.Context
 import com.taurusx.tax.api.OnTaurusXBannerListener
 import com.taurusx.tax.api.TaurusXAdError
 import com.taurusx.tax.api.TaurusXBannerAds
@@ -57,7 +58,7 @@ internal class TaurusXBannerImpl : AdSource.Banner<TaurusXBannerAuctionParams>,
             )
             return
         }
-        val bannerAd: TaurusXBannerAds = TaurusXBannerAds(adParams.activity).also {
+        val bannerAd: TaurusXBannerAds = TaurusXBannerAds(adParams.activity as Context).also {
             bannerAd = it
         }
         bannerAd.setAdUnitId(adUnitId)
