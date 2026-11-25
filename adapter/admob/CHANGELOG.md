@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [25.5.0.1] - 2026-11-25
+### Fixed
+- Destroy the `AdView` in banner `destroy()` to release its WebView and stop leaking replaced banners
+
 ## [25.5.0.0] - 2026-09-23
 ### Changed
 - Updated SDK dependency from 25.4.0 to 25.5.0
